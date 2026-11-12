@@ -15,6 +15,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   String? spaceId;
   String? spaceName;
   int memberCount = 0;
+  DateTime? pendingInviteExpiry;
   bool loading = true;
   bool working = false;
   String? issue;
@@ -49,6 +50,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           spaceId = null;
           spaceName = null;
           memberCount = 0;
+          pendingInviteExpiry = null;
         });
       } else {
         final id = memberships.first['space_id'] as String;
@@ -57,11 +59,30 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             .from('space_members')
             .select('user_id')
             .eq('space_id', id);
+        final invitations = await client
+            .from('space_invitations')
+            .select('expires_at, revoked_at, accepted_at')
+            .eq('space_id', id)
+            .eq('invited_by', userId)
+            .order('created_at', ascending: false)
+            .limit(1);
+        DateTime? pending;
+        if (invitations.isNotEmpty) {
+          final invite = invitations.first;
+          final expiry = DateTime.tryParse(invite['expires_at'] as String);
+          if (invite['revoked_at'] == null &&
+              invite['accepted_at'] == null &&
+              expiry != null &&
+              expiry.isAfter(DateTime.now())) {
+            pending = expiry;
+          }
+        }
         if (!mounted) return;
         setState(() {
           spaceId = id;
           spaceName = space['name'] as String?;
           memberCount = members.length;
+          pendingInviteExpiry = pending;
         });
       }
     } catch (_) {
@@ -132,6 +153,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           ],
         ),
       );
+      if (mounted) await _load();
     } on PostgrestException catch (e) {
       if (mounted) setState(() => issue = e.message);
     } catch (_) {
@@ -139,6 +161,35 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
     } finally {
       if (mounted) setState(() => working = false);
     }
+  }
+
+  Future<void> _revokeInvite() async {
+    final id = spaceId;
+    if (id == null || pendingInviteExpiry == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Revoke invitation?'),
+        content: const Text(
+          'The invitation code will stop working immediately. '
+          'You can generate a new code later.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep invitation'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Revoke'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _perform(() async {
+      await client.rpc('revoke_pending_invitation', params: {'p_space_id': id});
+    });
   }
 
   @override
@@ -205,12 +256,28 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                 children: [
                   Text('Members: $memberCount of 2'),
                   const SizedBox(height: 12),
-                  if (memberCount < 2)
+                  if (memberCount < 2) ...[
                     FilledButton.icon(
                       onPressed: working ? null : _invite,
                       icon: const Icon(Icons.person_add_alt_1),
-                      label: const Text('Copy partner invitation'),
+                      label: Text(pendingInviteExpiry == null
+                          ? 'Copy partner invitation'
+                          : 'Generate a replacement code'),
                     ),
+                    if (pendingInviteExpiry != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Pending invitation expires: '
+                        '${pendingInviteExpiry!.toLocal().toString().split('.').first}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      TextButton.icon(
+                        onPressed: working ? null : _revokeInvite,
+                        icon: const Icon(Icons.link_off),
+                        label: const Text('Revoke pending invitation'),
+                      ),
+                    ],
+                  ],
                   TextButton.icon(
                     onPressed: working ? null : _load,
                     icon: const Icon(Icons.refresh),
