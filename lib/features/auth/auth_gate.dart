@@ -379,7 +379,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         TextFormField(
                           controller: displayNameController,
                           maxLength: 80,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: tr(context, 'yourName'),
                             border: OutlineInputBorder(),
                           ),
@@ -394,7 +394,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: tr(context, 'email'),
                           border: OutlineInputBorder(),
                         ),
