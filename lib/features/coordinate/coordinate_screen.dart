@@ -48,8 +48,8 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
       final row=await db.from('activities').insert({'space_id':space,'title':title.text.trim(),
         'body':body.text.trim(),'priority':priority,'visibility':visibility})
         .select('id').single();
-      if(mounted)await Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>
-        ActivityScreen(id:row['id'] as String)));
+      if(mounted) { await Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>
+        ActivityScreen(id:row['id'] as String))); }
     }catch(e){if(mounted)setState(()=>error='Unable to create activity: $e');}
     finally{title.dispose();body.dispose();}
   }
@@ -65,8 +65,8 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
     if(items!=null)StreamBuilder<List<Map<String,dynamic>>>(stream:items,builder:(ctx,s){
       if(s.hasError)return const Text('Could not load activities. Pull to retry.');
       if(!s.hasData)return const Center(child:CircularProgressIndicator());
-      if(s.data!.isEmpty)return const Padding(padding:EdgeInsets.all(25),
-        child:Text('Your shared workspace begins with an idea.'));
+      if(s.data!.isEmpty) { return const Padding(padding:EdgeInsets.all(25),
+        child:Text('Your shared workspace begins with an idea.')); }
       return Column(children:[for(final a in s.data!)
         Card(child:ListTile(title:Text(a['title'] as String? ?? ''),
           subtitle:Text('${a['stage']} · ${a['priority']} priority\n${a['body']??''}',
@@ -199,11 +199,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         ?Theme.of(context).colorScheme.primary:null),
                       onPressed:()=>execute(() async {await db.from('activity_component_reactions').upsert({
                         'activity_id':widget.id,'component_id':item['id'],
-                        'user_id':db.auth.currentUser!.id,'opinion':1},onConflict:'component_id,user_id');}),
+                        'user_id':db.auth.currentUser!.id,'opinion':1},onConflict:'component_id,user_id');})),
                     IconButton(tooltip:'Dislike',icon:const Icon(Icons.thumb_down_outlined),
                       onPressed:()=>execute(() async {await db.from('activity_component_reactions').upsert({
                         'activity_id':widget.id,'component_id':item['id'],
-                        'user_id':db.auth.currentUser!.id,'opinion':-1},onConflict:'component_id,user_id');}),
+                        'user_id':db.auth.currentUser!.id,'opinion':-1},onConflict:'component_id,user_id');})),
                   ]),
                 )),
               ]);

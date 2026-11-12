@@ -79,13 +79,13 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
      if(id==null){if(mounted)setState(()=>loading=false);return;}
      final row=await db.from('spaces').select(
        'relationship_mode,last_met_on,next_meet_on').eq('id',id).single();
-     if(mounted)setState((){
+     if(mounted) { setState((){
        spaceId=id;
        mode=row['relationship_mode'] as String? ?? 'not_set';
        last=DateTime.tryParse(row['last_met_on'] as String? ?? '');
        next=DateTime.tryParse(row['next_meet_on'] as String? ?? '');
        loading=false;
-     });
+     }); }
    }catch(_){if(mounted)setState((){loading=false;error='Could not load relationship settings';});}
  }
  String format(DateTime? d)=>d==null?'Not set':'${d.day}/${d.month}/${d.year}';
@@ -105,8 +105,8 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
        'relationship_mode':mode,'last_met_on':sqlDate(last),
        'next_meet_on':sqlDate(next),
      }).eq('id',spaceId!);
-     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Shared relationship settings saved')));
+     if(mounted) { ScaffoldMessenger.of(context).showSnackBar(
+       const SnackBar(content:Text('Shared relationship settings saved'))); }
    }catch(e){if(mounted)setState(()=>error='Unable to save: $e');}
    finally{if(mounted)setState(()=>saving=false);}
  }
@@ -115,15 +115,15 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
    final selected=await showDatePicker(context:context,
      firstDate:DateTime(2000),lastDate:DateTime(2100),
      initialDate:(previous?last:next)??now);
-   if(mounted&&selected!=null)setState(() {
+   if(mounted&&selected!=null) {setState(() {
      if(previous){last=selected;}else{next=selected;}
-   });
+   });}
  }
  @override Widget build(BuildContext context){
-   if(loading)return const Padding(padding:EdgeInsets.all(18),
-     child:LinearProgressIndicator());
-   if(spaceId==null)return const Card(child:Padding(
-     padding:EdgeInsets.all(16),child:Text('Connect your shared space first.')));
+   if(loading) {return const Padding(padding:EdgeInsets.all(18),
+     child:LinearProgressIndicator());}
+   if(spaceId==null) {return const Card(child:Padding(
+     padding:EdgeInsets.all(16),child:Text('Connect your shared space first.')));}
    final since=daysSince(last),until=daysSince(next);
    return Card(elevation:0,child:Padding(padding:const EdgeInsets.all(15),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
