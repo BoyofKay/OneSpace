@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
+import '../../core/current_space_cache.dart';
 import 'note_draft_rules.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
@@ -58,12 +59,8 @@ class _NotesScreenState extends State<NotesScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final member = await _client.from('space_members')
-          .select('space_id')
-          .eq('user_id', _client.auth.currentUser!.id)
-          .limit(1);
+      final id = await CurrentSpaceCache.instance.get();
       if (!mounted) return;
-      final id = member.isEmpty ? null : member.first['space_id'] as String;
       setState(() {
         _spaceId = id;
         _stream = id == null ? null : _client.from('notes')
