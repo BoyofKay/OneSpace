@@ -247,6 +247,9 @@ class OneSpaceStrings {
     'noUpcomingEvents': 'No upcoming occasions yet.',
     'daysAway': 'days away',
     'calendarScopeInfo': 'Day-based events and yearly occasions are available now. Timed meetings and phone notifications are not yet enabled.',
+    'performanceDiagnostics': 'App performance',
+    'performanceDiagnosticsHint': 'View measured loading times (no personal data collected)',
+    'copyDiagnostics': 'Copy timings',
 
 
   };
@@ -492,6 +495,9 @@ class OneSpaceStrings {
     'noUpcomingEvents': 'لا توجد مناسبات قادمة بعد.',
     'daysAway': 'أيام متبقية',
     'calendarScopeInfo': 'الأحداث اليومية والمناسبات السنوية متاحة الآن. الاجتماعات المحددة بوقت وإشعارات الهاتف ليست مفعلة بعد.',
+    'performanceDiagnostics': 'أداء التطبيق',
+    'performanceDiagnosticsHint': 'عرض أوقات التحميل المقاسة دون جمع بيانات شخصية',
+    'copyDiagnostics': 'نسخ أوقات الأداء',
 
 
   };
