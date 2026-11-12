@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'invitation_code.dart';
 import 'space_task_summary.dart';
+import '../../l10n/onespace_strings.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
   const SharedSpaceScreen({super.key});
@@ -76,9 +77,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
         for (final memberId in memberIds) {
           final matches = profiles.where((profile) => profile['id'] == memberId);
           final foundName = matches.isEmpty
-              ? 'Member'
+              ? tr(context, 'member')
               : (matches.first['display_name'] as String? ?? 'Member');
-          names.add(memberId == userId ? '$foundName (you)' : foundName);
+          names.add(memberId == userId ? '$foundName (${tr(context, 'me')})' : foundName);
         }
         final invitations = await client
             .from('space_invitations')
@@ -114,7 +115,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => issue = 'Could not load your space. Check your connection.');
+      if (mounted) setState(() => issue = tr(context, 'loadedError'));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -131,7 +132,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
     } on PostgrestException catch (e) {
       if (mounted) setState(() => issue = e.message);
     } catch (_) {
-      if (mounted) setState(() => issue = 'Could not complete the request. Try again.');
+      if (mounted) setState(() => issue = tr(context, 'actionError'));
     } finally {
       if (mounted) setState(() => working = false);
     }
@@ -144,7 +145,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   Future<void> _accept() async {
     final code = normalizedInvitationCode(invitationController.text);
     if (code == null) {
-      setState(() => issue = 'Enter a valid 64-character invitation code.');
+      setState(() => issue = tr(context, 'invalidInvite'));
       return;
     }
     await _perform(() async {
@@ -170,17 +171,13 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Invite your partner'),
+          title: Text(tr(context, 'inviteTitle')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'This invitation code has been copied. Share it privately '
-                  'or switch accounts on this phone and paste it under Join a space. '
-                  'It expires after 48 hours.',
-                ),
+                Text(tr(context, 'inviteCopied')),
                 const SizedBox(height: 16),
                 SelectableText(
                   token,
@@ -193,11 +190,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             TextButton.icon(
               onPressed: () => Clipboard.setData(ClipboardData(text: token)),
               icon: const Icon(Icons.copy),
-              label: const Text('Copy again'),
+              label: Text(tr(context, 'copyAgain')),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(tr(context, 'done')),
             ),
           ],
         ),
@@ -206,7 +203,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
     } on PostgrestException catch (e) {
       if (mounted) setState(() => issue = e.message);
     } catch (_) {
-      if (mounted) setState(() => issue = 'Could not generate invitation.');
+      if (mounted) setState(() => issue = tr(context, 'requestInviteError'));
     } finally {
       if (mounted) setState(() => working = false);
     }
@@ -218,19 +215,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Revoke invitation?'),
-        content: const Text(
-          'The invitation code will stop working immediately. '
-          'You can generate a new code later.',
-        ),
+        title: Text(tr(context, 'revokeTitle')),
+        content: Text(tr(context, 'revokeMessage')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep invitation'),
+            child: Text(tr(context, 'keepInvitation')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Revoke'),
+            child: Text(tr(context, 'revoke')),
           ),
         ],
       ),
@@ -248,10 +242,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Our Space',
+          Text(tr(context, 'ourSpace'),
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
-          const Text('A private home for the two of you.'),
+          Text(tr(context, 'spaceSubtitle')),
           const SizedBox(height: 16),
           if (issue != null) ...[
             Text(issue!, style: const TextStyle(color: Colors.red)),
@@ -261,18 +255,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             const Center(child: CircularProgressIndicator())
           else if (spaceId == null) ...[
             _panel(
-              'Create your shared space',
-              'Start a private space, then invite your partner to join.',
+              tr(context, 'createSpaceTitle'),
+              tr(context, 'createSpaceDescription'),
               Icons.favorite_border,
               FilledButton(
                 onPressed: working ? null : _create,
-                child: const Text('Create Our Space'),
+                child: Text(tr(context, 'createSpaceButton')),
               ),
             ),
             const SizedBox(height: 14),
             _panel(
-              'Join your partner',
-              'Already have an invitation? Paste the code below.',
+              tr(context, 'joinPartner'),
+              tr(context, 'joinDescription'),
               Icons.people_outline,
               Column(
                 children: [
@@ -281,10 +275,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                     autocorrect: false,
                     enableSuggestions: false,
                     decoration: InputDecoration(
-                      labelText: 'Invitation code',
+                      labelText: tr(context, 'invitationCode'),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        tooltip: 'Paste invitation code',
+                        tooltip: tr(context, 'pasteCode'),
                         icon: const Icon(Icons.content_paste),
                         onPressed: () async {
                           final clip = await Clipboard.getData('text/plain');
@@ -300,7 +294,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                   const SizedBox(height: 10),
                   FilledButton.tonal(
                     onPressed: working ? null : _accept,
-                    child: const Text('Join space'),
+                    child: Text(tr(context, 'joinSpace')),
                   ),
                 ],
               ),
@@ -309,13 +303,13 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             _panel(
               spaceName ?? 'Our Space',
               memberCount == 2
-                  ? 'You and your partner are connected.'
-                  : 'Your space is created. Invite your partner.',
+                  ? tr(context, 'connected')
+                  : tr(context, 'invitePartnerDescription'),
               Icons.favorite_rounded,
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Members: $memberCount of 2'),
+                  Text('${tr(context, 'members')}: $memberCount / 2'),
                   const SizedBox(height: 8),
                   for (final memberName in memberDisplayNames)
                     Padding(
@@ -334,27 +328,27 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       onPressed: working ? null : _invite,
                       icon: const Icon(Icons.person_add_alt_1),
                       label: Text(pendingInviteExpiry == null
-                          ? 'Create invitation code'
-                          : 'Generate a replacement code'),
+                          ? tr(context, 'createInvitation')
+                          : tr(context, 'replaceInvitation')),
                     ),
                     if (pendingInviteExpiry != null) ...[
                       const SizedBox(height: 10),
                       Text(
-                        'Pending invitation expires: '
+                        '${tr(context, 'invitationExpires')}: '
                         '${pendingInviteExpiry!.toLocal().toString().split('.').first}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       TextButton.icon(
                         onPressed: working ? null : _revokeInvite,
                         icon: const Icon(Icons.link_off),
-                        label: const Text('Revoke pending invitation'),
+                        label: Text(tr(context, 'revokeInvitation')),
                       ),
                     ],
                   ],
                   TextButton.icon(
                     onPressed: working ? null : _load,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh status'),
+                    label: Text(tr(context, 'refreshStatus')),
                   ),
                 ],
               ),
@@ -362,8 +356,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           ],
           if (spaceId != null && taskSummary != null) ...[
             const SizedBox(height: 24),
-            const Text(
-              'Your plans at a glance',
+            Text(
+              tr(context, 'plansAtGlance'),
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 8),
@@ -373,23 +367,23 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _metric('Open shared tasks', taskSummary!.openShared),
-                    _metric('Assigned to me', taskSummary!.assignedToMe),
-                    _metric('My private tasks', taskSummary!.myPrivate),
-                    _metric('Completed shared tasks',
+                    _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
+                    _metric(tr(context, 'assignedToMe'), taskSummary!.assignedToMe),
+                    _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
+                    _metric(tr(context, 'completedSharedTasks'),
                         taskSummary!.completedShared),
                   ],
                 ),
               ),
             ),
-            const Text(
-              'Pull down to refresh this summary. Private tasks are not visible to your partner.',
+            Text(
+              tr(context, 'summaryHelp'),
               style: TextStyle(fontSize: 12),
             ),
           ],
           const SizedBox(height: 24),
-          const Text(
-            'Your account',
+          Text(
+            tr(context, 'yourAccount'),
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
           ),
           const SizedBox(height: 8),
@@ -397,7 +391,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           TextButton.icon(
             onPressed: working ? null : () => client.auth.signOut(),
             icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
+            label: Text(tr(context, 'signOut')),
           ),
         ],
       ),
