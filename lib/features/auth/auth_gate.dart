@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -277,6 +279,9 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       } else {
         await auth.signInWithPassword(email: email, password: password);
+        // Let Samsung Pass / Android's password manager offer to save or
+        // autofill the credentials. OneSpace never stores passwords itself.
+        TextInput.finishAutofillContext(shouldSave: true);
         if (rememberEmail) {
           await RememberedAccounts.remember(email);
         }
@@ -397,7 +402,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                Form(
+                AutofillGroup(
+                  child: Form(
                   key: formKey,
                   child: Column(
                     children: [
@@ -419,7 +425,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       TextFormField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        autofillHints: const [AutofillHints.email],
+                        autofillHints: const [AutofillHints.username, AutofillHints.email],
                         decoration: InputDecoration(
                           labelText: tr(context, 'email'),
                           border: OutlineInputBorder(),
@@ -455,6 +461,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 : null,
                       ),
                     ],
+                  ),
                   ),
                 ),
                 CheckboxListTile(
