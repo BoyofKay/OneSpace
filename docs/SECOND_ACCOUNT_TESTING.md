@@ -49,3 +49,16 @@ The database SQL regressions are already passing. This test verifies **actual ap
 The dummy email cannot receive recovery emails. Its password must not be shared in a repository, issue, or chat. An accepted test user has genuine access to that shared space, so do not pair it with sensitive real-life data.
 
 Before deleting a paired test user, review linked shared records and deletion rules. The current beta does **not** yet implement a safe self-service unlink or account deletion process; deleting a user without considering linked task/invitation data may be blocked by foreign-key constraints. Cleanup is a separate acceptance task.
+
+## Privacy, assignment and editing acceptance
+
+- [ ] With account A, create a Shared task and assign it to account B.
+- [ ] Sign in as B. Confirm it appears and displays B as the assignee.
+- [ ] As B, edit its title, priority or target date, then complete it.
+- [ ] Sign back into A and verify the edits and completion survived account switching.
+- [ ] As A, create a Private task. Sign into B and verify it does **not** appear under All visible, Shared or Private. Home's private-task count must not include A's task.
+- [ ] Switch back to A and verify that only A can see and edit the Private task.
+- [ ] The task editor must not offer a visibility switch for an existing task.
+- [ ] Check Home's open shared, assigned-to-me, my private, and completed shared counts.
+
+The role-based SQL privacy regression in `supabase/tests/0003_task_privacy_and_assignment.sql` passed on the live database within a rolled-back transaction. Physical app acceptance remains separate.
