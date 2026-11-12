@@ -333,6 +333,7 @@ class _ListsScreenState extends State<ListsScreen> {
                               title: entry['title'] as String,
                               isShopping: shopping,
                               canEdit: canEdit,
+                              spaceId: _spaceId!,
                             ),
                           ),
                         ),
@@ -382,8 +383,10 @@ class ListItemsScreen extends StatefulWidget {
     required this.title,
     required this.isShopping,
     required this.canEdit,
+    required this.spaceId,
   });
 
+  final String spaceId;
   final String listId;
   final String title;
   final bool isShopping;
@@ -395,17 +398,50 @@ class ListItemsScreen extends StatefulWidget {
 
 class _ListItemsScreenState extends State<ListItemsScreen> {
   final _client = Supabase.instance.client;
-  late final Stream<List<Map<String, dynamic>>> _stream;
+  late Stream<List<Map<String, dynamic>>> _stream;
+  StreamSubscription<List<Map<String, dynamic>>>? _revocationWatcher;
   bool _showRemoved = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _stream = _client.from('list_items')
-        .stream(primaryKey: ['id'])
-        .eq('list_id', widget.listId)
-        .order('created_at');
+    _stream = _makeStream();
+    if (!widget.canEdit) {
+      _revocationWatcher = watchObjectShares(
+        client: _client,
+        spaceId: widget.spaceId,
+        objectType: 'list',
+        onChanged: _validateAccess,
+      );
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> _makeStream() =>
+      _client.from('list_items')
+          .stream(primaryKey: ['id'])
+          .eq('list_id', widget.listId)
+          .order('created_at');
+
+  Future<void> _validateAccess() async {
+    try {
+      final visible = await _client.from('lists')
+          .select('id').eq('id', widget.listId).limit(1);
+      if (!mounted) return;
+      if (visible.isEmpty) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _stream = _makeStream());
+      }
+    } catch (_) {
+      // Do not incorrectly sign a user out during a connection failure.
+    }
+  }
+
+  @override
+  void dispose() {
+    _revocationWatcher?.cancel();
+    super.dispose();
   }
 
   Future<void> _itemEditor({Map<String, dynamic>? existing}) async {
