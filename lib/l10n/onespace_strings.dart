@@ -250,6 +250,18 @@ class OneSpaceStrings {
     'performanceDiagnostics': 'App performance',
     'performanceDiagnosticsHint': 'View measured loading times (no personal data collected)',
     'copyDiagnostics': 'Copy timings',
+    'ourMemories': 'Our memories',
+    'memoriesSubtitle': 'Remember meaningful moments, together or privately.',
+    'newMemory': 'Add a memory',
+    'editMemory': 'Edit memory',
+    'noMemories': 'No memories here yet. Save a special moment!',
+    'memoriesNoPhotosYet': 'This first Memories release supports text journals. Private photo storage will be added after security testing.',
+    'memoryValidation': 'Enter a title up to 120 characters; keep your story within 20,000 characters.',
+    'memoryTitle': 'Memory title',
+    'memoryStory': 'Tell the story',
+    'archiveMemory': 'Archive this memory?',
+    'memoriesCount': 'Memories',
+    'openMemories': 'Our memories',
 
 
   };
@@ -498,6 +510,18 @@ class OneSpaceStrings {
     'performanceDiagnostics': 'أداء التطبيق',
     'performanceDiagnosticsHint': 'عرض أوقات التحميل المقاسة دون جمع بيانات شخصية',
     'copyDiagnostics': 'نسخ أوقات الأداء',
+    'ourMemories': 'ذكرياتنا',
+    'memoriesSubtitle': 'سجّل لحظاتك المهمة مع شريكك أو بشكل خاص.',
+    'newMemory': 'إضافة ذكرى',
+    'editMemory': 'تعديل الذكرى',
+    'noMemories': 'لا توجد ذكريات بعد. احتفظ بلحظة جميلة!',
+    'memoriesNoPhotosYet': 'تدعم نسخة الذكريات الأولى النصوص. ستُضاف الصور بعد اختبار حماية التخزين.',
+    'memoryValidation': 'أدخل عنوانًا حتى ١٢٠ حرفًا، وقصة لا تتجاوز ٢٠٬٠٠٠ حرف.',
+    'memoryTitle': 'عنوان الذكرى',
+    'memoryStory': 'احكِ القصة',
+    'archiveMemory': 'هل تريد أرشفة هذه الذكرى؟',
+    'memoriesCount': 'الذكريات',
+    'openMemories': 'ذكرياتنا',
 
 
   };
