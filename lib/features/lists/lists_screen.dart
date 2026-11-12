@@ -489,6 +489,36 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
     }
   }
 
+  Future<void> _clearChecked() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(tr(context, 'clearChecked')),
+        content: Text(tr(context, 'clearCheckedPrompt')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(tr(context, 'cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(tr(context, 'clearChecked')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _client.from('list_items').update({
+        'removed_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('list_id', widget.listId).eq('checked', true);
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = tr(context, 'saveFailed'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -527,6 +557,12 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
                 icon: const Icon(Icons.add),
                 label: Text(tr(context, 'addItem')),
               ),
+              if (done > 0)
+                TextButton.icon(
+                  onPressed: _clearChecked,
+                  icon: const Icon(Icons.done_all),
+                  label: Text(tr(context, 'clearChecked')),
+                ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(tr(context, 'showRemoved')),
