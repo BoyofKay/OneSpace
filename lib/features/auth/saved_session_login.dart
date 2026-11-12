@@ -162,7 +162,7 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
               FilledButton(
                 key: const Key('savedSessionSignIn'),
                 onPressed: _busy ? null : _unlockWithPassword,
-                child: Text(tr(context, 'signIn')),
+                child: Text(tr(context, 'savedSessionPasswordAction')),
               ),
               TextButton(
                 onPressed: _busy ? null : widget.onSwitchAccount,
