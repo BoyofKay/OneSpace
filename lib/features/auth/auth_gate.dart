@@ -12,6 +12,7 @@ import 'device_unlock.dart';
 import 'password_recovery_screen.dart';
 import 'remembered_accounts.dart';
 import 'saved_session_login.dart';
+import 'session_lock_rules.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
 /// OS-level unlock gate, while other remembered accounts require their own
@@ -24,16 +25,22 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   StreamSubscription<AuthState>? _subscription;
   bool _recovery = false;
   bool _locked = false;
+  bool _coveredForBackground = false;
+  DateTime _lastInteraction = DateTime.now();
+  DateTime? _backgroundedAt;
+  Timer? _idleTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final auth = Supabase.instance.client.auth;
     _locked = auth.currentSession != null;
+    if (!_locked) _startIdleTimer();
     if (_locked) _loadAccountLocale();
     _subscription = auth.onAuthStateChange.listen(
       (state) {
@@ -44,15 +51,18 @@ class _AuthGateState extends State<AuthGate> {
             _locked = false;
           });
         } else if (state.event == AuthChangeEvent.signedOut) {
+          _idleTimer?.cancel();
           OneSpaceLocaleController.instance.selectLanguage(null);
           setState(() {
             _recovery = false;
             _locked = false;
+            _coveredForBackground = false;
           });
         } else if (state.event == AuthChangeEvent.signedIn) {
           // A refresh/restore must never bypass the locked saved-session UI.
           // Only the actual OS/password verification callback unlocks it.
           _loadAccountLocale();
+          if (!_locked) _startIdleTimer();
           if (!_locked) setState(() {});
         }
       },
@@ -80,7 +90,53 @@ class _AuthGateState extends State<AuthGate> {
 
   void _unlockCurrentAccount() {
     if (mounted && Supabase.instance.client.auth.currentSession != null) {
-      setState(() => _locked = false);
+      setState(() {
+        _locked = false;
+        _coveredForBackground = false;
+      });
+      _startIdleTimer();
+    }
+  }
+
+  void _startIdleTimer() {
+    _idleTimer?.cancel();
+    _lastInteraction = DateTime.now();
+    _idleTimer = Timer(SessionLockRules.idleTimeout, () {
+      if (!mounted || Supabase.instance.client.auth.currentSession == null) return;
+      // Never let an active session's UI remain exposed after inactivity.
+      setState(() => _locked = true);
+    });
+  }
+
+  void _registerInteraction() {
+    if (_locked || _coveredForBackground) return;
+    _startIdleTimer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null || !mounted) return;
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _backgroundedAt ??= DateTime.now();
+      _idleTimer?.cancel();
+      if (!_coveredForBackground) {
+        setState(() => _coveredForBackground = true);
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      final now = DateTime.now();
+      final since = _backgroundedAt;
+      final lockOnReturn = since != null &&
+          (SessionLockRules.backgroundExpired(since, now) ||
+              SessionLockRules.idleExpired(_lastInteraction, now));
+      _backgroundedAt = null;
+      setState(() {
+        _coveredForBackground = false;
+        if (lockOnReturn) _locked = true;
+      });
+      if (!_locked) _startIdleTimer();
     }
   }
 
@@ -92,6 +148,8 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    _idleTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     super.dispose();
   }
@@ -102,6 +160,12 @@ class _AuthGateState extends State<AuthGate> {
     final session = auth.currentSession;
     if (_recovery && session != null) return const ResetPasswordScreen();
     if (session == null) return const SignInScreen();
+    if (_coveredForBackground) {
+      // Hide private content in the Android app switcher/snapshot.
+      return const Scaffold(
+        body: Center(child: Icon(Icons.lock_outline, size: 48)),
+      );
+    }
     if (_locked) {
       return SavedSessionLogin(
         email: auth.currentUser?.email ?? '',
@@ -109,7 +173,12 @@ class _AuthGateState extends State<AuthGate> {
         onSwitchAccount: _switchAccount,
       );
     }
-    return widget.signedIn;
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _registerInteraction(),
+      onPointerSignal: (_) => _registerInteraction(),
+      child: widget.signedIn,
+    );
   }
 }
 
