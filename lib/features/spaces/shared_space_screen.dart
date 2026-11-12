@@ -37,6 +37,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int activeNotes = 0;
   DateTime? pendingInviteExpiry;
   bool loading = true;
+  bool membershipResolved = false;
   bool summaryLoading = false;
   String? summaryIssue;
   int _requestVersion = 0;
@@ -92,6 +93,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeNotes = 0;
           pendingInviteExpiry = null;
           summaryLoading = false;
+          membershipResolved = true;
           loading = false;
         });
         return;
@@ -110,6 +112,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           pendingInviteExpiry = null;
         }
         loading = false;
+        membershipResolved = true;
         summaryLoading = true;
       });
       await Future.wait<void>([
@@ -378,7 +381,26 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             const SizedBox(height: 12),
           ],
           if (loading)
-            const Center(child: CircularProgressIndicator())
+            Padding(
+              padding: const EdgeInsets.all(36),
+              child: Center(
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 14),
+                    Text(tr(context, 'openingSpace')),
+                  ],
+                ),
+              ),
+            )
+          else if (!membershipResolved && spaceId == null) ...[
+            Text(tr(context, 'loadedError')),
+            TextButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+              label: Text(tr(context, 'retry')),
+            ),
+          ]
           else if (spaceId == null) ...[
             _panel(
               tr(context, 'createSpaceTitle'),
