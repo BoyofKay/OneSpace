@@ -80,8 +80,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
         for (final memberId in memberIds) {
           final matches = profiles.where((profile) => profile['id'] == memberId);
           final foundName = matches.isEmpty
-              ? tr(context, 'member')
-              : (matches.first['display_name'] as String? ?? 'Member');
+              ? memberLabel
+              : (matches.first['display_name'] as String? ?? memberLabel);
           names.add(memberId == userId ? '$foundName ($meLabel)' : foundName);
         }
         final invitations = await client
