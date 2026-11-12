@@ -69,11 +69,13 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     } catch (_) {
       PerformanceTimings.instance.record(
         'Session initialization failed',clock.elapsed);
-      if (mounted) setState(() {
-        _busy = false;
-        _error = 'OneSpace could not open its saved session. '
-          'Check the device and network, then retry.';
-      });
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'OneSpace could not open its saved session. '
+            'Check the device and network, then retry.';
+        });
+      }
     }
   }
 
