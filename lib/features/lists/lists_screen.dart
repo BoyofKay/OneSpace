@@ -325,6 +325,7 @@ class _ListsScreenState extends State<ListsScreen> {
                             ),
                           ],
                         ),
+                      ),
                         if (canShare)
                           Align(
                             alignment: AlignmentDirectional.centerEnd,
