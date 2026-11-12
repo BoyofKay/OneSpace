@@ -16,6 +16,8 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenNotes,
     this.onOpenCalendar,
     this.onOpenMemories,
+    this.onOpenGoals,
+    this.onOpenCheckins,
     this.refreshToken = 0,
   });
 
@@ -24,6 +26,8 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenNotes;
   final VoidCallback? onOpenCalendar;
   final VoidCallback? onOpenMemories;
+  final VoidCallback? onOpenGoals;
+  final VoidCallback? onOpenCheckins;
   final int refreshToken;
 
   @override
@@ -496,6 +500,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                   onPressed: widget.onOpenMemories,
                   icon: const Icon(Icons.auto_stories_outlined),
                   label: Text(tr(context, 'openMemories')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenGoals,
+                  icon: const Icon(Icons.flag_outlined),
+                  label: Text(tr(context, 'openGoals')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenCheckins,
+                  icon: const Icon(Icons.favorite_outline),
+                  label: Text(tr(context, 'openCheckins')),
                 ),
               ],
             ),
