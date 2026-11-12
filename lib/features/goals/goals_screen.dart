@@ -39,9 +39,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() {
-        _error = tr(context,'loadFailed'); _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = tr(context,'loadFailed'); _loading = false;
+        });
+      }
     }
   }
 
@@ -96,15 +98,18 @@ class _GoalsScreenState extends State<GoalsScreen> {
           StreamBuilder<List<Map<String,dynamic>>>(
             stream:_stream,
             builder:(context,snapshot) {
-              if (snapshot.hasError) return Text(tr(context,'loadFailed'));
-              if (!snapshot.hasData) return const Center(
-                child:CircularProgressIndicator());
+              if (snapshot.hasError) { return Text(tr(context,'loadFailed')); }
+              if (!snapshot.hasData) {
+                return const Center(child:CircularProgressIndicator());
+              }
               final entries=snapshot.data!.where((g)=>
                 (_archived || g['archived_at']==null) &&
                 (_filter=='all' || g['status']==_filter)).toList();
-              if (entries.isEmpty) return Padding(
-                padding:const EdgeInsets.all(36),
-                child:Text(tr(context,'noGoals'),textAlign:TextAlign.center));
+              if (entries.isEmpty) {
+                return Padding(
+                  padding:const EdgeInsets.all(36),
+                  child:Text(tr(context,'noGoals'),textAlign:TextAlign.center));
+              }
               final me=_client.auth.currentUser?.id ?? '';
               return Column(children:entries.map((g) {
                 final owner=g['created_by'] as String? ?? '';
