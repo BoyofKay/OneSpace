@@ -7,7 +7,16 @@ import 'space_task_summary.dart';
 import '../../l10n/onespace_strings.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
-  const SharedSpaceScreen({super.key});
+  const SharedSpaceScreen({
+    super.key,
+    this.onOpenPlans,
+    this.onOpenLists,
+    this.onOpenNotes,
+  });
+
+  final VoidCallback? onOpenPlans;
+  final VoidCallback? onOpenLists;
+  final VoidCallback? onOpenNotes;
 
   @override
   State<SharedSpaceScreen> createState() => _SharedSpaceScreenState();
@@ -21,6 +30,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int memberCount = 0;
   List<String> memberDisplayNames = const [];
   SpaceTaskSummary? taskSummary;
+  int activeShoppingLists = 0;
+  int activeOtherLists = 0;
+  int activeNotes = 0;
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool working = false;
@@ -61,6 +73,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           memberCount = 0;
           memberDisplayNames = const [];
           taskSummary = null;
+          activeShoppingLists = 0;
+          activeOtherLists = 0;
+          activeNotes = 0;
           pendingInviteExpiry = null;
         });
       } else {
@@ -107,6 +122,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             .select('status,visibility,assigned_to')
             .eq('space_id', id);
         final summary = SpaceTaskSummary.fromRows(tasks, userId);
+        final listRows = await client.from('lists')
+            .select('kind,archived_at').eq('space_id', id);
+        final noteRows = await client.from('notes')
+            .select('archived_at').eq('space_id', id);
+        final currentLists = listRows.where((row) => row['archived_at'] == null);
+        final shoppingCount =
+            currentLists.where((row) => row['kind'] == 'shopping').length;
+        final otherCount =
+            currentLists.where((row) => row['kind'] != 'shopping').length;
+        final noteCount =
+            noteRows.where((row) => row['archived_at'] == null).length;
         if (!mounted) return;
         setState(() {
           spaceId = id;
@@ -114,6 +140,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           memberCount = members.length;
           memberDisplayNames = names;
           taskSummary = summary;
+          activeShoppingLists = shoppingCount;
+          activeOtherLists = otherCount;
+          activeNotes = noteCount;
           pendingInviteExpiry = pending;
         });
       }
@@ -375,10 +404,40 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                     _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
                     _metric(tr(context, 'completedSharedTasks'),
                         taskSummary!.completedShared),
+                    const Divider(),
+                    _metric(tr(context, 'shoppingListsCount'), activeShoppingLists),
+                    _metric(tr(context, 'otherListsCount'), activeOtherLists),
+                    _metric(tr(context, 'notesCount'), activeNotes),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            Text(tr(context, 'quickAccess'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenPlans,
+                  icon: const Icon(Icons.checklist_rounded),
+                  label: Text(tr(context, 'plans')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenLists,
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  label: Text(tr(context, 'openLists')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenNotes,
+                  icon: const Icon(Icons.sticky_note_2_outlined),
+                  label: Text(tr(context, 'openNotes')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
               tr(context, 'summaryHelp'),
               style: TextStyle(fontSize: 12),
