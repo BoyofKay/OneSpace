@@ -5,6 +5,7 @@ import '../../core/current_space_cache.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
+import '../connection/connection_rules.dart';
 
 /// Real goals persisted in Supabase. Owner-only private goals can be granted
 /// read access, while shared goals are collaboratively editable.
@@ -200,7 +201,8 @@ class _GoalEditorState extends State<GoalEditor> {
   Future<void> _save() async {
     if (!_canEdit || _saving) return;
     final title=_title.text.trim();
-    if (title.isEmpty || title.length>120 || _description.text.length>3000) {
+    if (!ConnectionRules.validGoal(title:title,
+      description:_description.text,progress:_progress)) {
       setState(()=>_error=tr(context,'goalValidation'));return;
     }
     setState(() { _saving=true;_error=null;});
