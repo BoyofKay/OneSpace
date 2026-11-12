@@ -114,22 +114,56 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   Future<void> editActivity(Map<String, dynamic> item) async {
-    final title = await prompt('Activity title',
-        initial: item['title'] as String? ?? '', max: 120);
-    if (title == null || title.isEmpty || !mounted) return;
-    final body = await prompt('Activity details',
-        initial: item['body'] as String? ?? '');
-    if (body == null) return;
-    await run(() async {
-      final rows = await db.from('activities')
-          .update({'title': title, 'body': body})
-          .eq('id', widget.id)
+    final title = TextEditingController(text: item['title']?.toString() ?? '');
+    final body = TextEditingController(text: item['body']?.toString() ?? '');
+    try {
+      final changed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Edit Activity'),
+          content: SingleChildScrollView(child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: title, maxLength: 120,
+                decoration: const InputDecoration(labelText: 'Title')),
+              TextField(controller: body, maxLength: 12000,
+                minLines: 4, maxLines: 8,
+                decoration: const InputDecoration(labelText: 'Details')),
+            ],
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+            FilledButton(onPressed: () {
+              if (title.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            }, child: const Text('Save')),
+          ],
+        ),
+      );
+      if (changed != true || !mounted) return;
+      await run(() async {
+        final rows = await db.from('activities').update({
+            'title': title.text.trim(), 'body': body.text.trim(),
+          }).eq('id', widget.id)
           .eq('updated_at', item['updated_at'] as String)
           .select('id');
-      if (rows.isEmpty) {
-        throw StateError('Your partner edited this Activity. Review their changes first.');
-      }
-    });
+        if (rows.isEmpty) {
+          throw StateError('Your partner edited this Activity. Review their changes first.');
+        }
+      });
+    } finally {
+      title.dispose();
+      body.dispose();
+    }
+  }
+
+  Future<void> editBody(Map<String, dynamic> item) async {
+    final body = await prompt('Edit Activity details',
+      initial: item['body']?.toString() ?? '');
+    if (body == null || !mounted) return;
+    await changeField(item, 'body', body);
   }
 
   Future<void> changeField(Map<String,dynamic> item,
@@ -401,6 +435,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                 (option['payload'] as Map?)?[field].toString() ?? ''),
                             const SizedBox(height: 9),
                           ],
+                        for (final child in items.where((c) =>
+                            c['parent_component_id'] == option['id'])) ...[
+                          const Divider(),
+                          Text(child['label']?.toString() ?? '',
+                              style: Theme.of(ctx).textTheme.labelLarge),
+                          SelectableText(valueFor(child)),
+                          if (((child['payload'] as Map?)?['note']?.toString() ?? '')
+                              .isNotEmpty)
+                            SelectableText(
+                              (child['payload'] as Map?)?['note']?.toString() ?? ''),
+                        ],
                       ],
                     )),
                   )),
@@ -584,39 +629,89 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
+
+  List<Widget> attachedTree(
+    Map<String,dynamic> root,
+    List<Map<String,dynamic>> items,
+    List<Map<String,dynamic>> votes, {
+    int depth = 0,
+  }) {
+    if (depth >= 8) return [componentCard(root, votes)];
+    return [
+      componentCard(root, votes),
+      for (final child in items.where(
+          (item) => item['parent_component_id'] == root['id']))
+        ...attachedTree(child, items, votes, depth: depth + 1),
+    ];
+  }
+
   Widget componentSection() => StreamBuilder<List<Map<String,dynamic>>>(
     stream: components,
-    builder: (context, s) {
-      if (s.hasError) return const Text('Could not load attached items.');
-      if (!s.hasData) return const LinearProgressIndicator();
-      final items = s.data!;
+    builder: (context, snapshot) {
+      if (snapshot.hasError) return const Text('Could not load attached items.');
+      if (!snapshot.hasData) return const LinearProgressIndicator();
+      final items = snapshot.data!;
+      final roots = items.where((i) => i['parent_component_id'] == null).toList();
+      final options = roots.where((i) => i['kind'] == 'option').toList();
+      final steps = roots.where((i) => i['kind'] == 'step').toList();
+      final references = roots.where(
+          (i) => i['kind'] != 'option' && i['kind'] != 'step').toList();
       return StreamBuilder<List<Map<String,dynamic>>>(
         stream: reactions,
         builder: (context, r) {
           final votes = r.data ?? [];
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (items.isEmpty) ...[
               Row(children: [
-                Expanded(child: Text('Attached to this Activity',
+                Expanded(child: Text('Add to this Activity',
                   style: Theme.of(context).textTheme.titleMedium)),
-                if (items.where((i) => i['kind'] == 'option').length >= 2)
-                  IconButton(
-                    tooltip: 'Compare options',
-                    onPressed: () => compare(items),
-                    icon: const Icon(Icons.compare_arrows)),
                 IconButton(
-                  tooltip: 'Add component',
+                  tooltip: 'Add a component',
                   onPressed: chooseAdd,
                   icon: const Icon(Icons.add_circle_outline)),
               ]),
-              if (items.isEmpty)
-                const Padding(padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Add your first link, option, note or step.')),
-              for (final item in items)
-                componentCard(item, votes),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Add a product, link, note, step or map location.')),
             ],
-          );
+            if (options.isNotEmpty) ...[
+              Row(children: [
+                Expanded(child: Text('Options · ${options.length}',
+                  style: Theme.of(context).textTheme.titleMedium)),
+                if (options.length >= 2)
+                  IconButton(tooltip: 'Compare options',
+                    onPressed: () => compare(items),
+                    icon: const Icon(Icons.compare_arrows)),
+                IconButton(tooltip: 'Add option',
+                  onPressed: () => openEditor('option'),
+                  icon: const Icon(Icons.add)),
+              ]),
+              for (final option in options) ...attachedTree(option, items, votes),
+              const SizedBox(height: 10),
+            ],
+            if (steps.isNotEmpty) ...[
+              Row(children: [
+                Expanded(child: Text('Next steps · ${steps.where(
+                    (i) => (i['payload'] as Map?)?['status'] != 'done').length} open',
+                  style: Theme.of(context).textTheme.titleMedium)),
+                IconButton(tooltip: 'Add step',
+                  onPressed: () => openEditor('step'),
+                  icon: const Icon(Icons.add)),
+              ]),
+              for (final step in steps) ...attachedTree(step, items, votes),
+              const SizedBox(height: 10),
+            ],
+            if (references.isNotEmpty) ...[
+              Row(children: [
+                Expanded(child: Text('Notes & references',
+                  style: Theme.of(context).textTheme.titleMedium)),
+                IconButton(tooltip: 'Add reference',
+                  onPressed: chooseAdd,
+                  icon: const Icon(Icons.add)),
+              ]),
+              for (final reference in references)
+                ...attachedTree(reference, items, votes),
+            ],
+          ]);
         },
       );
     },
@@ -875,7 +970,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
               child: InkWell(
-                onTap: () => editActivity(item),
+                onTap: () => editBody(item),
                 child: Text(
                   (item['body']?.toString() ?? '').isEmpty
                     ? 'Tap to add details…'
@@ -887,7 +982,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
             componentSection(),
             conversation(item['space_id']?.toString()),
             const SizedBox(height: 12),
-            Text('Created ${when(item['created_at'])}',
+            Text('Created by ${author(item['created_by']?.toString(),item['space_id']?.toString())}'
+                ' · ${when(item['created_at'])}',
                 style: Theme.of(context).textTheme.labelSmall),
           ],
         ),

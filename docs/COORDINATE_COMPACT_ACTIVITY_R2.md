@@ -24,11 +24,21 @@ OneSpace · One Life, Two Places
 - Tags: short labels attached to Activity or Option.
 - Mentions: existing data type remains compatible; actual notification dispatch is not available.
 
+## Voice notes — interaction and security specification (next implementation slice)
+Voice is a first-class contribution that can be attached either to an Activity/Option as a component or sent in the Conversation as a comment. It must have the *same author, original timestamp, contextual reply association and RLS access control* as text contributions.
+1. The composer mic opens a record interface: **Record → Stop → Preview → Send or Discard**. A mic in the Add-item sheet creates a standalone attached voice component.
+2. Keep voice UI compact: play/pause button, duration, sender initials and timestamp. No autoplay and no large waveform-only card. Long press allows replying and viewing details.
+3. Record only when the user taps Record and grants device microphone permission. No background capture.
+4. Store the recording in a **private Supabase Storage bucket**, validate content type/size, and use authenticated, short-lived signed playback URLs; do not put public permanent audio links in database rows.
+5. Preserve the file on a failed upload for user-controlled retry, without silently posting a comment or losing the draft. Explicitly clean up discarded local files and incomplete uploads.
+6. No automatic transcription or third-party voice processing without clear user opt-in.
+**Not shipped in R2**: do not display an inert microphone control. Voice needs a secured media implementation and Android device recording/playback tests before release.
+
 ## Deferred
-- Voice note recording/playback requires permission management, private media storage and expiring authenticated URLs. Do not show a nonfunctional mic button.
 - Images/screenshots need the same private storage rules and view-only grants.
 - Native Android share-in and searchable comparison data are follow-on milestones.
 - A more advanced comparison should compare structured fields row-by-row and preserve per-partner choices.
+- The next R2 refinement groups Options with their child prices/specs, Steps, and Notes & References separately so a component's context is visible at a glance.
 
 ## Acceptance
 - One-line toolbar doesn't wrap on 360dp phones.
