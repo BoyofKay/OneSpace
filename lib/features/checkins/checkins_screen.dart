@@ -71,14 +71,17 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           onSelected:(_)=>setState(()=>_filter=v))).toList()),
         StreamBuilder<List<Map<String,dynamic>>>(
           stream:_stream,builder:(context,snapshot){
-          if(snapshot.hasError)return Text(tr(context,'loadFailed'));
-          if(!snapshot.hasData)
+          if(snapshot.hasError) { return Text(tr(context,'loadFailed')); }
+          if(!snapshot.hasData) {
             return const Center(child:CircularProgressIndicator());
+          }
           final entries=snapshot.data!.where((x)=>
             _filter=='all'||x['visibility']==_filter).toList();
-          if(entries.isEmpty)return Padding(
-            padding:const EdgeInsets.all(36),
-            child:Text(tr(context,'noCheckins'),textAlign:TextAlign.center));
+          if(entries.isEmpty) {
+            return Padding(
+              padding:const EdgeInsets.all(36),
+              child:Text(tr(context,'noCheckins'),textAlign:TextAlign.center));
+          }
           final me=_client.auth.currentUser?.id ?? '';
           return Column(children:entries.map((entry){
             final owner=entry['created_by'] as String? ?? '';
