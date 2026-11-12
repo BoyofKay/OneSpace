@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
+import 'list_item_rules.dart';
 
 /// Lists and shopping use the same reliable data model, while each list has its
 /// own privacy boundary and separate, realtime item stream.
@@ -421,7 +422,12 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
                         final label = title.text.trim();
                         final qty = widget.isShopping
                             ? double.tryParse(amount.text.trim()) : 1.0;
-                        if (label.isEmpty || qty == null || qty <= 0 || qty > 99999) {
+                        if (qty == null || !ListItemRules.isValid(
+                            label: label,
+                            quantity: qty,
+                            unit: unit.text.trim(),
+                            note: note.text.trim(),
+                          )) {
                           change(() => error = tr(context, 'itemValidation'));
                           return;
                         }
