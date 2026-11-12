@@ -172,8 +172,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         .eq('id',item['id'] as String)
         .eq('updated_at',item['updated_at'] as String)
         .select('id');
-      if(rows.isEmpty)throw StateError(
-        'This component changed. Reopen to review the latest version.');
+      if(rows.isEmpty) { throw StateError(
+        'This component changed. Reopen to review the latest version.'); }
     });
   }
   Future<void> toggleStep(Map<String,dynamic> item) async {
@@ -214,8 +214,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
       case 'copy':
         final value=(item['payload'] as Map?)?['value']?.toString()??'';
         await Clipboard.setData(ClipboardData(text:value));
-        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content:Text('Link copied to clipboard')));
+        if(mounted) { ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Link copied to clipboard'))); }
       case 'history':
         await execute(() async {
           final rows=await db.from('activity_component_revisions').select()
