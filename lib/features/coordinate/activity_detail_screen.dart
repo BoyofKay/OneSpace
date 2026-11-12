@@ -1,0 +1,889 @@
+
+import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/current_space_cache.dart';
+import '../calendar/calendar_rules.dart';
+import 'activity_component_editor.dart';
+
+/// Purpose-first Activity detail. Primary content gets the screen; metadata,
+/// actions and reactions are deliberately tucked into compact controls.
+class ActivityScreen extends StatefulWidget {
+  const ActivityScreen({super.key, required this.id});
+  final String id;
+
+  @override
+  State<ActivityScreen> createState() => _ActivityScreenState();
+}
+
+class _ActivityScreenState extends State<ActivityScreen> {
+  final db = Supabase.instance.client;
+  final composer = TextEditingController();
+  late final Stream<List<Map<String, dynamic>>> activity;
+  late final Stream<List<Map<String, dynamic>>> components;
+  late final Stream<List<Map<String, dynamic>>> comments;
+  late final Stream<List<Map<String, dynamic>>> revisions;
+  late final Stream<List<Map<String, dynamic>>> reactions;
+  String? replyingTo;
+  String? onComponent;
+  String? onComponentTitle;
+  String? issue;
+  bool sending = false;
+
+  String get me => db.auth.currentUser?.id ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.id;
+    activity = db.from('activities')
+        .stream(primaryKey: ['id']).eq('id', id);
+    components = db.from('activity_components')
+        .stream(primaryKey: ['id']).eq('activity_id', id).order('created_at');
+    comments = db.from('activity_comments')
+        .stream(primaryKey: ['id']).eq('activity_id', id).order('created_at');
+    reactions = db.from('activity_component_reactions')
+        .stream(primaryKey: ['component_id', 'user_id']).eq('activity_id', id);
+    revisions = db.from('activity_revisions')
+        .stream(primaryKey: ['id']).eq('activity_id', id)
+        .order('changed_at', ascending: false);
+  }
+
+  @override
+  void dispose() {
+    composer.dispose();
+    super.dispose();
+  }
+
+  String when(Object? value) {
+    final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
+    if (date == null) return '';
+    final h = date.hour.toString().padLeft(2, '0');
+    final m = date.minute.toString().padLeft(2, '0');
+    return '${date.day}/${date.month}/${date.year} $h:$m';
+  }
+
+  String author(String? id, String? spaceId) {
+    if (id == me) return 'You';
+    final names = CurrentSpaceCache.instance.memberNamesFor(spaceId ?? '');
+    return names?[id] ?? 'Partner';
+  }
+
+  String initials(String value) {
+    final parts = value.split(' ').where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    final a = parts.first.characters.first;
+    final b = parts.length > 1 ? parts.last.characters.first : '';
+    return '$a$b'.toUpperCase();
+  }
+
+  Future<void> run(Future<void> Function() action) async {
+    try {
+      await action();
+      if (mounted) setState(() => issue = null);
+    } catch (e) {
+      if (mounted) {
+        setState(() => issue = 'Could not save your change. $e');
+      }
+    }
+  }
+
+  Future<String?> prompt(String label, {String initial = '', int max = 12000}) async {
+    final text = TextEditingController(text: initial);
+    try {
+      return await showDialog<String>(context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(label),
+            content: TextField(controller: text, maxLength: max,
+              minLines: 2, maxLines: 8, autofocus: true,
+              decoration: const InputDecoration(border: OutlineInputBorder())),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, text.text.trim()),
+                child: const Text('Save')),
+            ],
+          ));
+    } finally {
+      text.dispose();
+    }
+  }
+
+  Future<void> editActivity(Map<String, dynamic> item) async {
+    final title = await prompt('Activity title',
+        initial: item['title'] as String? ?? '', max: 120);
+    if (title == null || title.isEmpty || !mounted) return;
+    final body = await prompt('Activity details',
+        initial: item['body'] as String? ?? '');
+    if (body == null) return;
+    await run(() async {
+      final rows = await db.from('activities')
+          .update({'title': title, 'body': body})
+          .eq('id', widget.id)
+          .eq('updated_at', item['updated_at'] as String)
+          .select('id');
+      if (rows.isEmpty) {
+        throw StateError('Your partner edited this Activity. Review their changes first.');
+      }
+    });
+  }
+
+  Future<void> changeField(Map<String,dynamic> item,
+      String field, Object? value) async {
+    await run(() async {
+      final rows = await db.from('activities')
+        .update({field: value}).eq('id', widget.id)
+        .eq('updated_at', item['updated_at'] as String).select('id');
+      if (rows.isEmpty) throw StateError('Activity changed on another device. Please review.');
+    });
+  }
+
+  Future<void> pickDueDate(Map<String,dynamic> item) async {
+    final now = DateTime.now();
+    final initial = DateTime.tryParse(item['due_on']?.toString() ?? '') ?? now;
+    final selected = await showDatePicker(context: context,
+      firstDate: DateTime(2000), lastDate: DateTime(2100),
+      initialDate: initial);
+    if (selected != null) {
+      await changeField(item, 'due_on', CalendarRules.sqlDate(selected));
+    }
+  }
+
+  Future<void> chooseAdd({String? under, String? underTitle}) async {
+    final choices = <(String,IconData,String)>[
+      ('option', Icons.compare_arrows, 'Compare an option'),
+      ('link', Icons.link, 'Link'),
+      ('note', Icons.subject, 'Note'),
+      ('step', Icons.check_circle_outline, 'Step'),
+      ('price', Icons.payments_outlined, 'Price'),
+      ('spec', Icons.tune, 'Specification'),
+      ('date', Icons.event, 'Date'),
+      ('location', Icons.place_outlined, 'Map location'),
+      ('tag', Icons.sell_outlined, 'Tag'),
+    ];
+    final chosen = await showModalBottomSheet<String>(
+      context: context, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        child: SingleChildScrollView(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(underTitle == null ? 'Add to this Activity'
+                : 'Add detail to $underTitle',
+              style: Theme.of(ctx).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Wrap(spacing: 7, runSpacing: 7,
+              children: [
+                for (final choice in choices)
+                  ActionChip(
+                    avatar: Icon(choice.$2, size: 17),
+                    label: Text(choice.$3),
+                    onPressed: () => Navigator.pop(ctx, choice.$1),
+                  ),
+              ]),
+          ],
+        )),
+      )),
+    );
+    if (chosen == null || !mounted) return;
+    await openEditor(chosen, parent: under);
+  }
+
+  Future<void> openEditor(String kind, {
+    String? parent,
+    Map<String,dynamic>? existing,
+  }) async {
+    final draft = await showModalBottomSheet<Map<String,dynamic>>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => ComponentEditorSheet(kind: kind, existing: existing),
+    );
+    if (draft == null || !mounted) return;
+    await run(() async {
+      if (existing == null) {
+        await db.from('activity_components').insert({
+          'activity_id': widget.id,
+          'parent_component_id': parent,
+          'kind': kind,
+          ...draft,
+        });
+      } else {
+        final rows = await db.from('activity_components').update(draft)
+            .eq('id', existing['id'] as String)
+            .eq('updated_at', existing['updated_at'] as String)
+            .select('id');
+        if (rows.isEmpty) {
+          throw StateError('This component was edited by your partner. Please reopen it.');
+        }
+      }
+    });
+  }
+
+  Future<void> toggleStep(Map<String,dynamic> item) async {
+    final payload = Map<String,dynamic>.from(item['payload'] as Map? ?? const {});
+    payload['status'] = payload['status'] == 'done' ? 'open' : 'done';
+    await run(() async {
+      final result = await db.from('activity_components')
+        .update({'payload': payload}).eq('id', item['id'] as String)
+        .eq('updated_at', item['updated_at'] as String).select('id');
+      if (result.isEmpty) throw StateError('Step was edited on another device.');
+    });
+  }
+
+  Future<void> opinion(Map<String,dynamic> item, int vote) async {
+    await run(() async {
+      await db.from('activity_component_reactions').upsert({
+        'activity_id': widget.id,
+        'component_id': item['id'],
+        'user_id': me,
+        'opinion': vote,
+      }, onConflict: 'component_id,user_id');
+    });
+  }
+
+  Future<void> openExternal(String url) async {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || !uri.hasAuthority ||
+        (uri.scheme != 'https' && uri.scheme != 'http')) {
+      if (mounted) setState(() => issue = 'That website address is invalid.');
+      return;
+    }
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && mounted) {
+        await Clipboard.setData(ClipboardData(text: url));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot open website; link copied.')));
+      }
+    } catch (_) {
+      if (mounted) setState(() => issue = 'Could not open the link.');
+    }
+  }
+
+  Future<void> openMap(String place) async {
+    if (place.trim().isEmpty) return;
+    final url = Uri.https('www.google.com', '/maps/search/', {
+      'api': '1', 'query': place.trim(),
+    });
+    await openExternal(url.toString());
+  }
+
+  void focusOnComponent(Map<String,dynamic> item) {
+    setState(() {
+      onComponent = item['id'] as String;
+      onComponentTitle = item['label']?.toString();
+      replyingTo = null;
+    });
+  }
+
+  Future<void> componentMenu(Map<String,dynamic> item,
+      List<Map<String,dynamic>> votes) async {
+    final mine = votes.where((v) => v['component_id'] == item['id'] &&
+        v['user_id'] == me).firstOrNull;
+    final current = mine?['opinion'] as num? ?? 0;
+    final action = await showModalBottomSheet<String>(
+      context: context, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.chat_bubble_outline),
+            title: const Text('Discuss this item'),
+            onTap: () => Navigator.pop(ctx, 'comment')),
+          ListTile(
+            leading: const Icon(Icons.thumb_up_outlined),
+            title: const Text('Like'),
+            trailing: current == 1 ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.pop(ctx, 'like')),
+          ListTile(
+            leading: const Icon(Icons.thumb_down_outlined),
+            title: const Text('Dislike'),
+            trailing: current == -1 ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.pop(ctx, 'dislike')),
+          ListTile(
+            leading: const Icon(Icons.add_outlined),
+            title: const Text('Attach more details'),
+            onTap: () => Navigator.pop(ctx, 'child')),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Edit'),
+            onTap: () => Navigator.pop(ctx, 'edit')),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('Edit history'),
+            onTap: () => Navigator.pop(ctx, 'history')),
+        ],
+      )),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case 'comment': focusOnComponent(item);
+      case 'like': await opinion(item, current == 1 ? 0 : 1);
+      case 'dislike': await opinion(item, current == -1 ? 0 : -1);
+      case 'child':
+        await chooseAdd(
+          under: item['id'] as String,
+          underTitle: item['label']?.toString(),
+        );
+      case 'edit': await openEditor(item['kind'] as String, existing: item);
+      case 'history': await showComponentHistory(item);
+    }
+  }
+
+  Future<void> showComponentHistory(Map<String,dynamic> item) async {
+    await run(() async {
+      final changes = await db.from('activity_component_revisions').select()
+          .eq('component_id', item['id'] as String)
+          .order('changed_at', ascending: false);
+      if (!mounted) return;
+      await showDialog<void>(context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Component history'),
+          content: SizedBox(width: 420,
+            child: ListView(shrinkWrap: true, children: [
+              if (changes.isEmpty) const Text('No edits yet.'),
+              for (final change in changes)
+                ListTile(
+                  title: Text(when(change['changed_at'])),
+                  subtitle: Text(
+                    '${change['old_label']} → ${change['new_label']}\n'
+                    '${change['old_payload']} → ${change['new_payload']}'),
+                ),
+            ])),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close')),
+          ],
+        ));
+    });
+  }
+
+  Future<void> compare(List<Map<String,dynamic>> items) async {
+    final options = items.where((i) => i['kind'] == 'option').toList();
+    if (options.length < 2) {
+      if (mounted) setState(() => issue = 'Add at least two options to compare.');
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context, isScrollControlled: true, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: FractionallySizedBox(
+        heightFactor: 0.75,
+        child: Column(children: [
+          Padding(padding: const EdgeInsets.all(12),
+            child: Text('Compare options',
+                style: Theme.of(ctx).textTheme.titleLarge)),
+          Expanded(child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final option in options)
+                SizedBox(width: 230, child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: Card(child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SingleChildScrollView(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(option['label']?.toString() ?? '',
+                            style: Theme.of(ctx).textTheme.titleMedium),
+                        const SizedBox(height: 9),
+                        for (final field in ['price', 'currency', 'specs', 'value', 'note'])
+                          if ((option['payload'] as Map?)?[field]
+                              ?.toString().isNotEmpty == true) ...[
+                            Text(field.toUpperCase(),
+                                style: Theme.of(ctx).textTheme.labelSmall),
+                            SelectableText(
+                                (option['payload'] as Map?)?[field].toString() ?? ''),
+                            const SizedBox(height: 9),
+                          ],
+                      ],
+                    )),
+                  )),
+                )),
+            ],
+          )),
+        ]),
+      )),
+    );
+  }
+
+  Future<void> send() async {
+    if (sending || composer.text.trim().isEmpty) return;
+    setState(() => sending = true);
+    final message = composer.text.trim();
+    try {
+      await db.from('activity_comments').insert({
+        'activity_id': widget.id,
+        'body': message,
+        'reply_to': replyingTo,
+        'component_id': onComponent,
+      });
+      composer.clear();
+      if (mounted) setState(() {
+        replyingTo = null;
+        onComponent = null;
+        onComponentTitle = null;
+      });
+    } catch (_) {
+      if (mounted) setState(() => issue = 'Message was not sent. Please retry.');
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  IconData typeIcon(String kind) {
+    switch (kind) {
+      case 'option': return Icons.compare_arrows;
+      case 'link': return Icons.link;
+      case 'note': return Icons.subject;
+      case 'step': return Icons.check_circle_outline;
+      case 'price': return Icons.payments_outlined;
+      case 'spec': return Icons.tune;
+      case 'date': return Icons.event_outlined;
+      case 'location': return Icons.place_outlined;
+      case 'tag': return Icons.sell_outlined;
+      case 'reminder': return Icons.notifications_outlined;
+      case 'mention': return Icons.alternate_email;
+      default: return Icons.extension_outlined;
+    }
+  }
+
+  String valueFor(Map<String,dynamic> item) {
+    final kind = item['kind'] as String? ?? 'note';
+    final payload = item['payload'] as Map? ?? const {};
+    final value = payload['value']?.toString() ?? '';
+    if (kind == 'price') return '${payload['currency'] ?? ''} $value';
+    if (kind == 'option') {
+      final price = payload['price']?.toString() ?? '';
+      final currency = payload['currency']?.toString() ?? '';
+      final specs = payload['specs']?.toString() ?? '';
+      return [
+        if (price.isNotEmpty) '$currency $price',
+        if (value.isNotEmpty) value,
+        if (specs.isNotEmpty) specs,
+      ].join('\n');
+    }
+    return value;
+  }
+
+  Widget componentCard(Map<String,dynamic> item,
+      List<Map<String,dynamic>> allVotes) {
+    final kind = item['kind'] as String? ?? 'note';
+    final payload = item['payload'] as Map? ?? const {};
+    final value = valueFor(item);
+    final note = payload['note']?.toString() ?? '';
+    final done = payload['status'] == 'done';
+    final votes = allVotes.where((v) => v['component_id'] == item['id']);
+    final likes = votes.where((v) => v['opinion'] == 1).length;
+    final dislikes = votes.where((v) => v['opinion'] == -1).length;
+    final url = kind == 'link' ? payload['value']?.toString() ?? '' :
+        kind == 'option' ? payload['url']?.toString() ?? '' : '';
+    final location = kind == 'location' ? payload['value']?.toString() ?? '' : '';
+    final isNested = item['parent_component_id'] != null;
+
+    Future<void> primaryAction() async {
+      if (kind == 'link' && url.isNotEmpty) {
+        await openExternal(url);
+      } else if (kind == 'location') {
+        await openMap(location);
+      } else if (kind == 'step') {
+        await toggleStep(item);
+      } else {
+        await componentMenu(item, allVotes);
+      }
+    }
+
+    return Padding(
+      padding: EdgeInsetsDirectional.only(start: isNested ? 16 : 0, bottom: 5),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: primaryAction,
+          onLongPress: () => componentMenu(item, allVotes),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(11, 10, 7, 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (kind == 'step')
+                SizedBox(width: 30, height: 30,
+                  child: Checkbox(value: done,
+                      onChanged: (_) => toggleStep(item)))
+              else
+                Padding(padding: const EdgeInsets.only(top: 4, right: 8),
+                  child: Icon(typeIcon(kind), size: 19,
+                    color: Theme.of(context).colorScheme.secondary)),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item['label']?.toString() ?? '',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      decoration: done ? TextDecoration.lineThrough : null,
+                    )),
+                  if (value.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    SelectableText(value,
+                      style: TextStyle(
+                        fontSize: kind == 'price' ? 17 : 14,
+                        height: 1.35,
+                        fontWeight: kind == 'price' ? FontWeight.w600 : null,
+                      )),
+                  ],
+                  if (note.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(note, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                  if (url.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () => openExternal(url),
+                      icon: const Icon(Icons.open_in_new, size: 15),
+                      label: const Text('Open link'),
+                      style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 0)),
+                    ),
+                  if (location.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () => openMap(location),
+                      icon: const Icon(Icons.map_outlined, size: 15),
+                      label: const Text('Open in Maps'),
+                      style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 0)),
+                    ),
+                  if (kind == 'reminder')
+                    Text('Notification not active',
+                        style: Theme.of(context).textTheme.labelSmall),
+                  if (likes > 0 || dislikes > 0)
+                    Padding(padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${likes > 0 ? '👍 $likes ' : ''}'
+                        '${dislikes > 0 ? '👎 $dislikes' : ''}',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      )),
+                ],
+              )),
+              SizedBox(width: 33, height: 33,
+                child: IconButton(
+                  tooltip: 'More options for ${item['label']}',
+                  padding: EdgeInsets.zero,
+                  iconSize: 19,
+                  onPressed: () => componentMenu(item, allVotes),
+                  icon: const Icon(Icons.more_horiz),
+                )),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget componentSection() => StreamBuilder<List<Map<String,dynamic>>>(
+    stream: components,
+    builder: (context, s) {
+      if (s.hasError) return const Text('Could not load attached items.');
+      if (!s.hasData) return const LinearProgressIndicator();
+      final items = s.data!;
+      return StreamBuilder<List<Map<String,dynamic>>>(
+        stream: reactions,
+        builder: (context, r) {
+          final votes = r.data ?? [];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Expanded(child: Text('Attached to this Activity',
+                  style: Theme.of(context).textTheme.titleMedium)),
+                if (items.where((i) => i['kind'] == 'option').length >= 2)
+                  IconButton(
+                    tooltip: 'Compare options',
+                    onPressed: () => compare(items),
+                    icon: const Icon(Icons.compare_arrows)),
+                IconButton(
+                  tooltip: 'Add component',
+                  onPressed: chooseAdd,
+                  icon: const Icon(Icons.add_circle_outline)),
+              ]),
+              if (items.isEmpty)
+                const Padding(padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('Add your first link, option, note or step.')),
+              for (final item in items)
+                componentCard(item, votes),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  Widget conversation(String? spaceId) =>
+      StreamBuilder<List<Map<String,dynamic>>>(
+    stream: comments,
+    builder: (context, s) {
+      if (s.hasError) return const Text('Could not load the conversation.');
+      if (!s.hasData) return const LinearProgressIndicator();
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SizedBox(height: 18),
+        Text('Conversation', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 6),
+        if (s.data!.isEmpty)
+          const Padding(padding: EdgeInsets.symmetric(vertical: 10),
+            child: Text('Start talking here. Every message stays with this Activity.')),
+        for (final msg in s.data!) commentBubble(msg, spaceId),
+      ]);
+    },
+  );
+
+  Widget commentBubble(Map<String,dynamic> msg, String? spaceId) {
+    final owner = msg['author_id']?.toString();
+    final mine = owner == me;
+    final name = author(owner, spaceId);
+    final isReply = msg['reply_to'] != null;
+    final belongsTo = msg['component_id'] != null;
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: GestureDetector(
+        onTap: () => setState(() {
+          replyingTo = msg['id'] as String;
+          onComponent = null;
+          onComponentTitle = null;
+        }),
+        onLongPress: () async {
+          final action = await showModalBottomSheet<String>(
+            context: context, showDragHandle: true,
+            builder: (ctx) => SafeArea(child: Column(
+              mainAxisSize: MainAxisSize.min, children: [
+              ListTile(leading: const Icon(Icons.reply_outlined),
+                title: const Text('Reply'),
+                onTap: () => Navigator.pop(ctx, 'reply')),
+              ListTile(leading: const Icon(Icons.copy_outlined),
+                title: const Text('Copy message'),
+                onTap: () => Navigator.pop(ctx, 'copy')),
+            ])));
+          if (!mounted) return;
+          if (action == 'copy') {
+            await Clipboard.setData(ClipboardData(text: msg['body']?.toString() ?? ''));
+          } else if (action == 'reply') {
+            setState(() {
+              replyingTo = msg['id'] as String;
+              onComponent = null;
+            });
+          }
+        },
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 350),
+          margin: const EdgeInsets.only(bottom: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: mine ? Theme.of(context).colorScheme.primaryContainer :
+                Theme.of(context).colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(initials(name), style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary)),
+              const SizedBox(width: 6),
+              Text(name, style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(width: 7),
+              Text(when(msg['created_at']),
+                  style: Theme.of(context).textTheme.labelSmall),
+            ]),
+            if (belongsTo || isReply)
+              Text(
+                belongsTo ? '↳ About an attached item'
+                    : '↳ In reply',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            const SizedBox(height: 4),
+            Text(msg['body']?.toString() ?? '',
+                style: Theme.of(context).textTheme.bodyMedium),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget bottomComposer() => SafeArea(
+    top: false,
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(10, 4, 10, MediaQuery.viewInsetsOf(context).bottom > 0 ? 8 : 10),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        if (replyingTo != null || onComponent != null)
+          Row(children: [
+            Expanded(child: Text(
+              replyingTo != null ? 'Replying to message'
+                  : 'Discussing: ${onComponentTitle ?? 'attached item'}',
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall)),
+            IconButton(icon: const Icon(Icons.close, size: 16),
+              tooltip: 'Cancel reply',
+              onPressed: () => setState(() {
+                replyingTo = null; onComponent = null; onComponentTitle = null;
+              })),
+          ]),
+        Row(children: [
+          Expanded(child: TextField(
+            controller: composer, minLines: 1, maxLines: 3,
+            maxLength: 5000,
+            decoration: const InputDecoration(
+              hintText: 'Message your partner…',
+              isDense: true,
+              counterText: '',
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(),
+            ),
+          )),
+          const SizedBox(width: 3),
+          IconButton(
+            tooltip: 'Send comment', onPressed: sending ? null : send,
+            icon: const Icon(Icons.send_rounded)),
+        ]),
+      ]),
+    ),
+  );
+
+  Widget toolbar(Map<String,dynamic> item) {
+    final priority = item['priority']?.toString() ?? 'normal';
+    final stage = item['stage']?.toString() ?? 'exploring';
+    final due = item['due_on']?.toString();
+    return Column(children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        PopupMenuButton<String>(
+          tooltip: 'Priority: $priority',
+          icon: Icon(Icons.flag_outlined, size: 22,
+            color: priority == 'high' || priority == 'urgent'
+              ? Theme.of(context).colorScheme.error : null),
+          onSelected: (value) => changeField(item, 'priority', value),
+          itemBuilder: (_) => [
+            for (final v in ['low','normal','high','urgent'])
+              PopupMenuItem(value: v, child: Text('Priority · $v')),
+          ],
+        ),
+        PopupMenuButton<String>(
+          tooltip: 'Status: $stage',
+          icon: const Icon(Icons.task_alt, size: 22),
+          onSelected: (value) => changeField(item, 'stage', value),
+          itemBuilder: (_) => [
+            for (final v in ['exploring','comparing','decided','purchased',
+                'registered','completed','on_hold','cancelled'])
+              PopupMenuItem(value: v, child: Text('Status · $v')),
+          ],
+        ),
+        IconButton(tooltip: 'Set due date', icon: const Icon(Icons.event_outlined),
+          onPressed: () => pickDueDate(item)),
+        if (due != null)
+          IconButton(tooltip: 'Remove due date',
+            icon: const Icon(Icons.event_busy_outlined),
+            onPressed: () => changeField(item, 'due_on', null)),
+        IconButton(tooltip: 'Add an item', icon: const Icon(Icons.add_circle_outline),
+          onPressed: chooseAdd),
+        IconButton(tooltip: 'History', icon: const Icon(Icons.history),
+          onPressed: () => showActivityHistory(item)),
+      ]),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          '${priority[0].toUpperCase()}${priority.substring(1)} priority'
+          ' · ${stage.replaceAll('_', ' ')}'
+          '${due == null ? '' : ' · due $due'}',
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ),
+    ]);
+  }
+
+  Future<void> showActivityHistory(Map<String,dynamic> item) async {
+    await showModalBottomSheet<void>(
+      context: context, isScrollControlled: true, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: FractionallySizedBox(
+        heightFactor: 0.7,
+        child: Padding(padding: const EdgeInsets.all(16),
+          child: StreamBuilder<List<Map<String,dynamic>>>(
+            stream: revisions,
+            builder: (context, s) => ListView(children: [
+              Text('Activity edit history',
+                style: Theme.of(ctx).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              ListTile(
+                title: const Text('Original'),
+                subtitle: Text('${item['original_title']}\n'
+                    '${item['original_body']}\n'
+                    '${when(item['created_at'])}')),
+              if (s.hasData)
+                for (final rev in s.data!)
+                  ListTile(
+                    title: Text('Updated · ${when(rev['changed_at'])}'),
+                    subtitle: Text(
+                      '${rev['old_title']} → ${rev['new_title']}\n'
+                      '${rev['old_body']} → ${rev['new_body']}\n'
+                      '${rev['old_stage']} → ${rev['new_stage']}'),
+                  ),
+            ]),
+          ),
+        ),
+      )),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      StreamBuilder<List<Map<String,dynamic>>>(
+    stream: activity,
+    builder: (context, s) {
+      if (s.hasError) return Scaffold(
+        appBar: AppBar(title: const Text('Activity')),
+        body: const Center(child: Text('This Activity could not be loaded.')));
+      if (!s.hasData) return Scaffold(
+        appBar: AppBar(title: const Text('Activity')),
+        body: const Center(child: CircularProgressIndicator()));
+      if (s.data!.isEmpty) return Scaffold(
+        appBar: AppBar(title: const Text('Activity')),
+        body: const Center(child: Text('Activity not available.')));
+      final item = s.data!.first;
+      return Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: Text(item['title']?.toString() ?? 'Activity',
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          actions: [
+            IconButton(tooltip: 'Edit title and details',
+              onPressed: () => editActivity(item),
+              icon: const Icon(Icons.edit_outlined)),
+          ]),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 15),
+          children: [
+            toolbar(item),
+            if (issue != null)
+              Padding(padding: const EdgeInsets.only(bottom: 8),
+                child: Text(issue!, style: TextStyle(
+                  color: Theme.of(context).colorScheme.error))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+              child: InkWell(
+                onTap: () => editActivity(item),
+                child: Text(
+                  (item['body']?.toString() ?? '').isEmpty
+                    ? 'Tap to add details…'
+                    : item['body'].toString(),
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+            ),
+            componentSection(),
+            conversation(item['space_id']?.toString()),
+            const SizedBox(height: 12),
+            Text('Created ${when(item['created_at'])}',
+                style: Theme.of(context).textTheme.labelSmall),
+          ],
+        ),
+        bottomNavigationBar: bottomComposer(),
+      );
+    },
+  );
+}
