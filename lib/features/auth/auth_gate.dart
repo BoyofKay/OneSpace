@@ -8,7 +8,6 @@ import '../../core/auth_redirect.dart';
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
-import 'device_unlock.dart';
 import 'password_recovery_screen.dart';
 import 'remembered_accounts.dart';
 import 'saved_session_login.dart';
@@ -308,33 +307,17 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  Future<void> _fingerprintWithoutSession() async {
-    if (loading) return;
-    final available = await DeviceUnlock.isAvailable();
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(tr(context, 'fingerprintSignIn')),
-        content: Text(tr(context, available
-            ? 'fingerprintNeedsSession' : 'deviceEnrollmentNeeded')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(tr(context, 'cancel')),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final opened = await DeviceUnlock.openSystemEnrollment();
-              if (!mounted) return;
-              if (!opened) {
-                setState(() => error = tr(context, 'deviceEnrollmentNeeded'));
-              }
-            },
-            child: Text(tr(context, 'setupFingerprint')),
-          ),
-        ],
+  void _fingerprintWithoutSession() {
+    // There is no session to unlock. Never launch a biometric prompt or
+    // Android enrollment from the signed-out screen.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(tr(context, 'firstSignInHelp')),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: tr(context, 'done'),
+          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+        ),
       ),
     );
   }
