@@ -94,7 +94,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       column: 'space_id',
       value: id,
     );
-    _changes = _client.channel('calendar-' + id)
+    _changes = _client.channel('calendar-$id')
       .onPostgresChanges(
         event: PostgresChangeEvent.all,
         schema: 'public',
