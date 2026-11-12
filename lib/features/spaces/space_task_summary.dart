@@ -25,7 +25,10 @@ class SpaceTaskSummary {
       final shared = (row['visibility'] as String? ?? 'shared') == 'shared';
       final open = row['status'] == 'open';
       if (shared && open) openShared++;
-      if (!shared && open) myPrivate++;
+      // View-only private tasks granted by the partner are not "my" private tasks.
+      if (!shared && open && row['created_by'] == currentUserId) {
+        myPrivate++;
+      }
       if (shared && open && row['assigned_to'] == currentUserId) {
         assignedToMe++;
       }
