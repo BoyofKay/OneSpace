@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -5,6 +7,7 @@ import '../../core/current_space_cache.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
+import '../sharing/share_grant_watcher.dart';
 import '../connection/connection_rules.dart';
 
 /// Real goals persisted in Supabase. Owner-only private goals can be granted
@@ -21,11 +24,31 @@ class _GoalsScreenState extends State<GoalsScreen> {
   Stream<List<Map<String,dynamic>>>? _stream;
   String? _error;
   bool _loading = true;
+  StreamSubscription<List<Map<String,dynamic>>>? _grants;
   bool _archived = false;
   String _filter = 'active';
 
   @override
   void initState() { super.initState(); _load(); }
+
+  @override
+  void dispose() { _grants?.cancel(); super.dispose(); }
+
+  void _watchGrants(String id) {
+    _grants?.cancel();
+    _grants = watchObjectShares(
+      client:_client,spaceId:id,objectType:'goal',
+      onChanged:() {
+        if (!mounted || _space != id) return;
+        setState(() {
+          _stream = _client.from('goals')
+            .stream(primaryKey:['id']).eq('space_id',id)
+            .order('updated_at',ascending:false);
+        });
+      },
+    );
+  }
+
 
   Future<void> _load() async {
     if (mounted) setState(() { _loading = _space == null; _error = null; });
@@ -39,6 +62,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             .order('updated_at',ascending:false);
         _loading = false;
       });
+      if (space != null) _watchGrants(space);
     } catch (_) {
       if (mounted) {
         setState(() {
