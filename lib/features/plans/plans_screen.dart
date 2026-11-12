@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -5,6 +7,7 @@ import '../../l10n/onespace_strings.dart';
 import 'task_editor_sheet.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
+import '../sharing/share_grant_watcher.dart';
 export 'task_editor_sheet.dart'
     show SharedTask, TaskPriority, TaskStatus, TaskVisibility, TaskFilter, TaskScope;
 
@@ -22,6 +25,7 @@ class _PlansScreenState extends State<PlansScreen> {
   final _client = Supabase.instance.client;
   String? _spaceId;
   Stream<List<Map<String, dynamic>>>? _tasksStream;
+  StreamSubscription<List<Map<String, dynamic>>>? _shareWatcher;
   Map<String, String> _memberNames = const {};
   TaskFilter _filter = TaskFilter.open;
   TaskScope _scope = TaskScope.all;
@@ -35,6 +39,28 @@ class _PlansScreenState extends State<PlansScreen> {
   void initState() {
     super.initState();
     _loadSpace();
+  }
+
+  @override
+  void dispose() {
+    _shareWatcher?.cancel();
+    super.dispose();
+  }
+
+  void _watchGrants(String id) {
+    _shareWatcher?.cancel();
+    _shareWatcher = watchObjectShares(
+      client: _client,
+      spaceId: id,
+      objectType: 'task',
+      onChanged: () {
+        if (!mounted || _spaceId != id) return;
+        setState(() => _tasksStream = _client.from('tasks')
+            .stream(primaryKey: ['id'])
+            .eq('space_id', id)
+            .order('created_at', ascending: false));
+      },
+    );
   }
 
   Future<void> _loadSpace() async {
@@ -90,6 +116,7 @@ class _PlansScreenState extends State<PlansScreen> {
               .eq('space_id', id)
               .order('created_at', ascending: false);
         });
+        _watchGrants(id);
       }
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
