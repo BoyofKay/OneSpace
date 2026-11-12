@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/private_share_button.dart';
+import '../connection/connection_rules.dart';
 
 /// Each person may make one personal check-in per local calendar date. The
 /// partner can view shared entries, but only the author can edit their entry.
@@ -154,7 +155,9 @@ class _CheckinEditorState extends State<CheckinEditor> {
 
   Future<void> _save() async {
     if(!_canEdit || _saving)return;
-    if(_message.text.length>2000 || _gratitude.text.length>500){
+    if(!ConnectionRules.validCheckin(
+      day:_date,now:DateTime.now(),mood:_mood,
+      message:_message.text,gratitude:_gratitude.text)){
       setState(()=>_error=tr(context,'checkinValidation'));return;
     }
     setState((){_saving=true;_error=null;});
