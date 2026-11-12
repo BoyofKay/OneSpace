@@ -5,9 +5,10 @@ import '../../core/auth_redirect.dart';
 
 /// Signed-out password recovery. Email delivery depends on Supabase Auth settings.
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key, this.initialEmail = ''});
+  const ForgotPasswordScreen({super.key, this.initialEmail = '', this.onBack});
 
   final String initialEmail;
+  final VoidCallback? onBack;
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -114,7 +115,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Text(_sending ? 'Sending...' : 'Send recovery link'),
                   ),
                 OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
                   child: const Text('Back to sign in'),
                 ),
               ],
