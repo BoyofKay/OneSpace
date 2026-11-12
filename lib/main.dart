@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
+import 'core/secure_auth_storage.dart';
 import 'features/lists/lists_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/plans/plans_screen.dart';
@@ -17,6 +18,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: 'https://ugwrpeduzyzrujkizqfo.supabase.co',
     publishableKey: 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe',
+    authOptions: FlutterAuthClientOptions(
+      localStorage: SecureAuthStorage(),
+    ),
   );
   runApp(const OneSpaceApp());
 }
