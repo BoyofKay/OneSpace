@@ -76,7 +76,7 @@ class OneSpaceHome extends StatefulWidget {
 
 class _OneSpaceHomeState extends State<OneSpaceHome> {
   int selectedIndex = 0;
-  int _dashboardRefreshToken = 0;
+  final int _dashboardRefreshToken = 0;
   bool _showProfile = false;
   bool _profileVisited = false;
   final Set<int> _visited = {0};
