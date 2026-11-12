@@ -68,37 +68,46 @@ class OneSpaceHome extends StatefulWidget {
 
 class _OneSpaceHomeState extends State<OneSpaceHome> {
   int selectedIndex = 0;
+  int _dashboardRefreshToken = 0;
+  bool _showProfile = false;
+  bool _profileVisited = false;
+  final Set<int> _visited = {0};
 
   void _navigate(int index) {
-    if (mounted && selectedIndex != index) {
-      setState(() => selectedIndex = index);
-    }
+    if (!mounted || (selectedIndex == index && !_showProfile)) return;
+    setState(() {
+      if (index == 0 && selectedIndex != 0) _dashboardRefreshToken++;
+      selectedIndex = index;
+      _showProfile = false;
+      _visited.add(index);
+    });
+  }
+
+  void _openProfile() {
+    setState(() {
+      _showProfile = true;
+      _profileVisited = true;
+    });
+  }
+
+  void _closeProfile() {
+    setState(() => _showProfile = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Only mount the active screen. This reloads space membership when the
-    // user switches between accounts or returns to a previous screen.
-    final Widget content;
-    switch (selectedIndex) {
-      case 0:
-        content = SharedSpaceScreen(
-          onOpenPlans: () => _navigate(1),
-          onOpenLists: () => _navigate(2),
-          onOpenNotes: () => _navigate(3),
-        );
-      case 1:
-        content = PlansScreen(onOpenSpace: () => _navigate(0));
-      case 2:
-        content = const ListsScreen();
-      case 3:
-        content = const NotesScreen();
-      default:
-        content = const ProfileSettingsScreen();
-    }
-
+    // Lazy IndexedStack keeps previously visited tabs alive while not
+    // starting the network streams of tabs the user has never opened.
+    final visiblePage = _showProfile ? 4 : selectedIndex;
     return Scaffold(
       appBar: AppBar(
+        leading: _showProfile
+            ? IconButton(
+                tooltip: tr(context, 'backHome'),
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _closeProfile,
+              )
+            : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -108,9 +117,46 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
                 style: const TextStyle(fontSize: 12)),
           ],
         ),
+        actions: [
+          if (!_showProfile)
+            IconButton(
+              key: const Key('profileTopBarButton'),
+              tooltip: tr(context, 'profile'),
+              onPressed: _openProfile,
+              icon: const Icon(Icons.account_circle_outlined, size: 28),
+            ),
+        ],
       ),
-      body: SafeArea(child: content),
-      bottomNavigationBar: NavigationBar(
+      body: SafeArea(
+        child: IndexedStack(
+          index: visiblePage,
+          children: [
+            SharedSpaceScreen(
+              refreshToken: _dashboardRefreshToken,
+              onOpenPlans: () => _navigate(1),
+              onOpenLists: () => _navigate(2),
+              onOpenNotes: () => _navigate(3),
+            ),
+            if (_visited.contains(1))
+              PlansScreen(onOpenSpace: () => _navigate(0))
+            else
+              const SizedBox.shrink(),
+            if (_visited.contains(2))
+              const ListsScreen()
+            else
+              const SizedBox.shrink(),
+            if (_visited.contains(3))
+              const NotesScreen()
+            else
+              const SizedBox.shrink(),
+            if (_profileVisited)
+              const ProfileSettingsScreen()
+            else
+              const SizedBox.shrink(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _showProfile ? null : NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: _navigate,
         destinations: [
@@ -130,10 +176,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           NavigationDestination(
             icon: const Icon(Icons.sticky_note_2_outlined),
             label: tr(context, 'notes'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.grid_view_rounded),
-            label: tr(context, 'more'),
           ),
         ],
       ),
