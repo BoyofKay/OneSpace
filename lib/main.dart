@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'features/plans/plans_screen.dart';
+import 'features/profile/profile_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
 
 Future<void> main() async {
@@ -51,7 +52,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
 
   @override
   Widget build(BuildContext context) {
-    const sections = ['Home', 'Plans', 'Memories', 'More'];
+    const sections = ['Home', 'Plans', 'Memories'];
     return Scaffold(
       appBar: AppBar(
         title: const Column(
@@ -69,7 +70,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             const SharedSpaceScreen(),
             const PlansScreen(),
             _section(sections[2]),
-            _section(sections[3]),
+            const ProfileSettingsScreen(),
           ],
         ),
       ),
