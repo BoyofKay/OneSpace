@@ -17,6 +17,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   String? spaceId;
   String? spaceName;
   int memberCount = 0;
+  List<String> memberDisplayNames = const [];
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool working = false;
@@ -52,6 +53,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           spaceId = null;
           spaceName = null;
           memberCount = 0;
+          memberDisplayNames = const [];
           pendingInviteExpiry = null;
         });
       } else {
@@ -61,6 +63,20 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             .from('space_members')
             .select('user_id')
             .eq('space_id', id);
+        final memberIds =
+            members.map((member) => member['user_id'] as String).toList();
+        final profiles = await client
+            .from('profiles')
+            .select('id,display_name')
+            .inFilter('id', memberIds);
+        final names = <String>[];
+        for (final memberId in memberIds) {
+          final matches = profiles.where((profile) => profile['id'] == memberId);
+          final foundName = matches.isEmpty
+              ? 'Member'
+              : (matches.first['display_name'] as String? ?? 'Member');
+          names.add(memberId == userId ? '$foundName (you)' : foundName);
+        }
         final invitations = await client
             .from('space_invitations')
             .select('expires_at, revoked_at, accepted_at')
@@ -84,6 +100,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           spaceId = id;
           spaceName = space['name'] as String?;
           memberCount = members.length;
+          memberDisplayNames = names;
           pendingInviteExpiry = pending;
         });
       }
@@ -290,6 +307,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Members: $memberCount of 2'),
+                  const SizedBox(height: 8),
+                  for (final memberName in memberDisplayNames)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_outline, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(memberName)),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 12),
                   if (memberCount < 2) ...[
                     FilledButton.icon(
