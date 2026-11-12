@@ -63,16 +63,19 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           ],
         ),
       ),
+      // Remount the active tab on navigation so newly created/joined spaces
+      // and account profiles load fresh from Supabase, rather than keeping
+      // stale membership information from an inactive IndexedStack child.
       body: SafeArea(
-        child: IndexedStack(
-          index: selectedIndex,
-          children: [
-            const SharedSpaceScreen(),
-            PlansScreen(onOpenSpace: () => setState(() => selectedIndex = 0)),
-            _section(sections[2]),
-            const ProfileSettingsScreen(),
-          ],
-        ),
+        child: selectedIndex == 0
+            ? const SharedSpaceScreen()
+            : selectedIndex == 1
+                ? PlansScreen(
+                    onOpenSpace: () => setState(() => selectedIndex = 0),
+                  )
+                : selectedIndex == 2
+                    ? _section(sections[2])
+                    : const ProfileSettingsScreen(),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
