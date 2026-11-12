@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/auth_redirect.dart';
+import 'password_recovery_screen.dart';
+
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.signedIn});
   final Widget signedIn;
@@ -13,13 +16,26 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   StreamSubscription<AuthState>? _subscription;
+  bool _recoveryInProgress = false;
 
   @override
   void initState() {
     super.initState();
     _subscription = Supabase.instance.client.auth.onAuthStateChange.listen(
-      (_) {
-        if (mounted) setState(() {});
+      (state) {
+        if (!mounted) return;
+        setState(() {
+          if (state.event == AuthChangeEvent.passwordRecovery) {
+            _recoveryInProgress = true;
+          } else if (state.event == AuthChangeEvent.signedOut) {
+            _recoveryInProgress = false;
+          }
+        });
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        // Auth can emit transient network errors while offline. Ignore these
+        // here and let the account screens show actionable request failures.
+        debugPrint('OneSpace auth state temporarily unavailable.');
       },
     );
   }
@@ -33,6 +49,9 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     final signedIn = Supabase.instance.client.auth.currentSession != null;
+    if (_recoveryInProgress && signedIn) {
+      return const ResetPasswordScreen();
+    }
     return signedIn ? widget.signedIn : const SignInScreen();
   }
 }
@@ -80,6 +99,7 @@ class _SignInScreenState extends State<SignInScreen> {
           email: email,
           password: password,
           data: {'display_name': displayNameController.text.trim()},
+          emailRedirectTo: oneSpaceAuthRedirectTo,
         );
         if (mounted && result.session == null) {
           setState(() {
@@ -114,6 +134,7 @@ class _SignInScreenState extends State<SignInScreen> {
       await Supabase.instance.client.auth.resend(
         type: OtpType.signup,
         email: email,
+        emailRedirectTo: oneSpaceAuthRedirectTo,
       );
       if (mounted) {
         setState(() => info =
@@ -238,6 +259,19 @@ class _SignInScreenState extends State<SignInScreen> {
                         : registering ? 'Create account' : 'Sign in'),
                   ),
                 ),
+                if (!registering)
+                  TextButton(
+                    onPressed: loading
+                        ? null
+                        : () => Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ForgotPasswordScreen(
+                                  initialEmail: emailController.text.trim(),
+                                ),
+                              ),
+                            ),
+                    child: const Text('Forgot password?'),
+                  ),
                 TextButton(
                   onPressed: loading
                       ? null
