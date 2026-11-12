@@ -193,7 +193,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   title:Text('[${item['kind']}] ${item['label']}'),
                   subtitle:Text('${(item['payload'] as Map?)?['value']??''}\n${when(item['created_at'])}'),
                   isThreeLine:true,
-                  trailing:Wrap(mainAxisSize:MainAxisSize.min,children:[
+                  trailing:Row(mainAxisSize:MainAxisSize.min,children:[
                     IconButton(tooltip:'Like',icon:Icon(Icons.thumb_up_outlined,
                       color:all.any((r)=>r['component_id']==item['id']&&r['user_id']==db.auth.currentUser?.id&&r['opinion']==1)
                         ?Theme.of(context).colorScheme.primary:null),
