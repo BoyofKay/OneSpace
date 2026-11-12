@@ -200,6 +200,17 @@ class OneSpaceStrings {
     'signupCheckEmail': 'Check your email to confirm your account, then sign in.',
     'resendConfirmation': 'Resend confirmation email',
     'confirmationResent': 'If your account is pending confirmation, a new email has been requested.',
+    'viewOnly': 'View only · Shared with you',
+    'shareViewOnly': 'Share view-only with partner',
+    'stopSharing': 'Stop sharing',
+    'shareExplanation': 'Your partner will be able to read this private item, but not edit it. You can revoke access at any time.',
+    'shareEnabled': 'Your partner can now view this item.',
+    'shareRevoked': 'View access revoked.',
+    'unassigned': 'Unassigned',
+    'securitySessionLocked': 'Session locked for your privacy',
+    'pinOrBiometric': 'Fingerprint or phone PIN',
+    'unlockWithDevice': 'Unlock with device security',
+
   };
   static const Map<String, String> ar = {
     'home': 'الرئيسية',
@@ -396,6 +407,17 @@ class OneSpaceStrings {
     'signupCheckEmail': 'تحقق من بريدك الإلكتروني لتأكيد الحساب، ثم سجّل الدخول.',
     'resendConfirmation': 'إعادة إرسال رسالة التأكيد',
     'confirmationResent': 'إذا كان الحساب بانتظار التأكيد، فقد طُلب إرسال رسالة جديدة.',
+    'viewOnly': 'للعرض فقط · تمت مشاركته معك',
+    'shareViewOnly': 'مشاركة للعرض فقط مع الشريك',
+    'stopSharing': 'إيقاف المشاركة',
+    'shareExplanation': 'يمكن لشريكك قراءة هذا العنصر الخاص دون تعديله. يمكنك إلغاء الإذن في أي وقت.',
+    'shareEnabled': 'يمكن لشريكك الآن عرض هذا العنصر.',
+    'shareRevoked': 'تم إلغاء إذن العرض.',
+    'unassigned': 'غير مسندة',
+    'securitySessionLocked': 'تم قفل الجلسة لحماية خصوصيتك',
+    'pinOrBiometric': 'البصمة أو رمز قفل الهاتف',
+    'unlockWithDevice': 'فتح باستخدام قفل الجهاز',
+
   };
 
   static String forLanguage(String language, String key) =>
