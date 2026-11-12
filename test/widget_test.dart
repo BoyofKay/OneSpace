@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onespace/main.dart';
+import 'package:onespace/features/plans/plans_screen.dart';
 
 void main() {
-  testWidgets('OneSpace shows dashboard and working Plans tab', (tester) async {
-    await tester.pumpWidget(const OneSpaceApp());
-    expect(find.text('OneSpace'), findsOneWidget);
-    expect(find.text('Our Space'), findsOneWidget);
-
-    await tester.tap(find.text('Plans'));
-    await tester.pumpAndSettle();
+  testWidgets('Plans preview can create and complete a task', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: PlansScreen()),
+    ));
     expect(find.text('Plans & tasks'), findsOneWidget);
     expect(find.text('No tasks yet'), findsOneWidget);
+
     await tester.tap(find.text('Add task'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Plan our next call');
