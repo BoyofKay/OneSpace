@@ -185,6 +185,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   }
 
   Future<void> _showPerformanceDiagnostics() async {
+    // Measure an authenticated API request separately from Flutter rendering.
+    // This query returns only the signed-in user's own membership ID, not
+    // private user content; no identifiers are retained in the report.
+    final id = _client.auth.currentUser?.id;
+    if (id != null) {
+      final sample = Stopwatch()..start();
+      try {
+        await _client.from('space_members').select('space_id')
+            .eq('user_id',id).limit(1)
+            .timeout(const Duration(seconds:12));
+        PerformanceTimings.instance.record(
+          'Seoul API round trip', sample.elapsed);
+      } catch (_) {
+        PerformanceTimings.instance.record(
+          'API failed or timed out', sample.elapsed);
+      }
+    }
+    if (!mounted) return;
     final report = PerformanceTimings.instance.report;
     await showDialog<void>(
       context: context,
