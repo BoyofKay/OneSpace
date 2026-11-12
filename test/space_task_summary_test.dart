@@ -7,7 +7,8 @@ void main() {
       {'visibility': 'shared', 'status': 'open', 'assigned_to': 'me'},
       {'visibility': 'shared', 'status': 'open', 'assigned_to': 'other'},
       {'visibility': 'shared', 'status': 'completed', 'assigned_to': 'me'},
-      {'visibility': 'private', 'status': 'open', 'assigned_to': null},
+      {'visibility': 'private', 'status': 'open', 'assigned_to': null, 'created_by': 'me'},
+      {'visibility': 'private', 'status': 'open', 'assigned_to': null, 'created_by': 'other'},
       {'visibility': 'private', 'status': 'cancelled', 'assigned_to': null},
       {'visibility': 'shared', 'status': 'cancelled', 'assigned_to': null},
     ], 'me');
