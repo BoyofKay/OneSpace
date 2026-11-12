@@ -11,16 +11,19 @@ A Flutter companion app for couples, whether living together or apart.
 - Personal profiles: display names, per-person language preference, signed-in password change
 - Secure creation of one shared space per account, limited to two members
 - High-entropy invitation code, expires after 48 hours, one-time acceptance, invitation replacement revokes old codes
-- Eight Supabase tables: `profiles`, `spaces`, `space_members`, `space_invitations`, `tasks`, `lists`, `list_items`, and `notes`
-- Every exposed table has RLS; private tasks can be read/updated only by their creator, shared tasks only by space members, and assignment is restricted to space members.
+- Eleven RLS-protected Supabase tables: `profiles`, `spaces`, `space_members`, `space_invitations`, `tasks`, `lists`, `list_items`, `notes`, `object_shares`, `space_events`, and `memories`
+- Every exposed app table has RLS. Shared objects are visible to the two current space members, while private objects remain creator-controlled unless explicitly granted **revocable view-only** access; tasks, lists, notes, calendar entries and memories all participate.
 - **Persistent tasks** with real-time updates, priorities, optional target dates, editing and open/completed/cancelled states. Tasks may be **Shared** (both members) or **Private** (creator only), and shared tasks may be assigned to either partner.
 - Task visibility is immutable after creation to avoid stale realtime data exposure. Cancelled tasks stay in history (hard delete is not granted to application accounts).
-- Home provides RLS-filtered task totals and counts of active shopping lists, checklists, and notes, with quick links to each module.
+- Home uses a single **SECURITY INVOKER** database snapshot instead of multiple HTTP requests; displays RLS-filtered task, shopping, checklist, note, calendar and memory counts. The paired space ID is cached briefly in memory per account.
 - **Shopping & checklists:** realtime shared/private lists, quantity/unit details, editable items, check-off, recoverable removal, archive/restore lists and bulk clear completed items.
-- **Collaborative notes:** realtime shared/private notes, rich plain-text notes up to 30,000 characters, pinning, archive/restore, and conflict detection to prevent stale edits overwriting a partner's newer text.
+- **Collaborative notes:** realtime shared/private plain-text notes up to 30,000 characters, pinning, archive/restore and stale-edit conflict checks.
+- **Calendar and occasions:** month grid, private/shared dated events, yearly repeating celebrations and anniversaries, leap-day-safe countdowns, task target dates and archive/restore; day-based only (timed meetings, device reminders and push notifications are future features).
+- **Memories:** secure, dated shared/private text journal, editing, pinning, archiving and revocable view-only sharing; photo/video attachments require dedicated Storage security work.
 - English and Arabic RTL are configured and core screens localized; some secondary copy and localized date formatting still require QA.
 - Recent-email selection and native Samsung Pass/Google autofill for switching accounts; opt-in device fingerprint/PIN unlock for a saved session. No passwords or custom app PINs are saved by OneSpace.
-- Signed-out password-recovery and reset-password screens are implemented; the user configured the preview callback but **end-to-end email and device testing** is still required. Memories, calendar, account deletion and full Arabic QA are future milestones.
+- Signed-out password-recovery and reset-password screens are implemented; the preview callback is configured but **end-to-end email and device testing** is still required. Account deletion, timed reminders, photo storage and full Arabic QA remain future milestones.
+- **Performance investigation:** project hosted in Supabase Seoul (`ap-northeast-2`). Home now uses one RPC; other modules reuse the in-memory membership cache. Profile → App performance shows local startup/network timings without collecting email, passwords or activity content. Physical-device timings remain unverified.
 
 ## Install a standalone Android APK
 
@@ -38,12 +41,16 @@ Supabase project: `ugwrpeduzyzrujkizqfo`. Schema definitions are versioned in `s
 
 Privileged pairing logic lives in a private schema behind public invoker-only RPCs. Transactional SQL tests verify pairing, privacy, rejected invitations and shared/private content. The remaining Supabase Auth security advisor warning is **leaked-password protection disabled**. This setting must be evaluated/configured before public release.
 
-See [the shared-workspace acceptance checklist](docs/SHARED_WORKSPACE_ACCEPTANCE.md) for two-account verification scenarios.\n\n## Ordered milestones
+See the [shared-workspace checklist](docs/SHARED_WORKSPACE_ACCEPTANCE.md) and
+[Calendar, Memories and performance acceptance plan](docs/CALENDAR_MEMORIES_PERFORMANCE_QA.md)
+for two-account verification scenarios.
+
+## Ordered milestones
 
 1. **Foundation:** account creation, email confirmation, sign in, profile, secure pairing and direct APK previews
 2. **Validate foundation:** configure [Supabase preview redirect](docs/AUTH_CALLBACK_SETUP.md); end-to-end test with two real test users, password reset and deep link return, stable CI verification and auth edge cases
 3. **Shared data:** persistent synchronized tasks, shopping lists/checklists, and collaborative notes (initial implementations committed; Android device acceptance pending)
-4. **Daily experiences:** calendar, occasions/milestones, reminders, notifications, memories and flexible sharing
+4. **Daily experiences:** initial day-based calendar, occasions, countdowns and text Memories shipped in source; timed events, notifications, offline queue and photo/video Memories next
 5. **Production readiness:** English/Arabic RTL, privacy controls, account deletion, stable secret production signing, app store preparation
 
 ## Development
