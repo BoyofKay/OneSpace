@@ -290,13 +290,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           onTap: _showPerformanceDiagnostics,
         ),
         const SizedBox(height: 14),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.photo_library_outlined),
-          title: Text(tr(context, 'memoriesComingSoon')),
-          subtitle: Text(tr(context, 'comingSoon')),
-        ),
-        const SizedBox(height: 14),
         OutlinedButton.icon(
           onPressed: () => _client.auth.signOut(),
           icon: const Icon(Icons.logout),
