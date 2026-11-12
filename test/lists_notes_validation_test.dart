@@ -24,10 +24,10 @@ void main() {
     });
     test('enforces length restrictions without losing Arabic text', () {
       expect(ListItemRules.isValid(
-        label: 'Apple', quantity: 1, unit: 'A' * 25, note: '',
+        label: 'Apple', quantity: 1, unit: List.filled(25, 'A').join(), note: '',
       ), isFalse);
       expect(ListItemRules.isValid(
-        label: 'A' * 201, quantity: 1, unit: '', note: '',
+        label: List.filled(201, 'A').join(), quantity: 1, unit: '', note: '',
       ), isFalse);
     });
   });
@@ -40,8 +40,8 @@ void main() {
     });
     test('rejects empty titles and large documents', () {
       expect(NoteDraftRules.isValid(title: '  ', body: 'text'), isFalse);
-      expect(NoteDraftRules.isValid(title: 'A' * 121, body: 'text'), isFalse);
-      expect(NoteDraftRules.isValid(title: 'Idea', body: 'B' * 30001), isFalse);
+      expect(NoteDraftRules.isValid(title: List.filled(121, 'A').join(), body: 'text'), isFalse);
+      expect(NoteDraftRules.isValid(title: 'Idea', body: List.filled(30001, 'B').join()), isFalse);
     });
   });
 }
