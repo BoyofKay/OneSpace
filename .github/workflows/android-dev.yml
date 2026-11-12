@@ -30,8 +30,20 @@ jobs:
           flutter-version: '3.50.0'
           channel: stable
           cache: true
-      - name: Install dependencies
+      - name: Resolve Flutter dependencies
         run: flutter pub get
+      - name: Commit refreshed dependency lockfile if needed
+        shell: bash
+        run: |
+          if ! git diff --quiet -- pubspec.lock; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pubspec.lock
+            git commit -m "chore: lock Flutter dependency versions [skip ci]"
+            git push origin HEAD:refs/heads/main
+          fi
+      - name: Verify reproducible dependency resolution
+        run: flutter pub get --enforce-lockfile
       - name: Analyze
         run: flutter analyze
       - name: Test
@@ -64,5 +76,5 @@ jobs:
         run: |
           gh release create "preview-0.1.${{ github.run_number }}" "OneSpace-preview-0.1.${{ github.run_number }}.apk" \
             --title "OneSpace Preview 0.1.${{ github.run_number }}" \
-            --notes "Development preview (not a production release). Download the APK file directly. Android debug signing keys may differ between runs, so updating an already installed preview may require uninstalling the earlier preview, which removes its local data. Stable release signing is planned before real customer use." \
-            --prerelease --target "${{ github.sha }}"
+            --notes "Development preview, not a production release. Download the APK directly. OneSpace previews use a consistent development-only signing key and increasing Android version codes. Future previews should install as updates over this preview; production signing and full account recovery testing are separate release gates. If you installed the original unsuffixed Flutter sample app, it is a different package from the OneSpace Preview app." \
+            --prerelease --target "$(git rev-parse HEAD)"
