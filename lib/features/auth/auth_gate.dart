@@ -72,6 +72,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool loading = false;
   bool hidePassword = true;
   bool awaitingConfirmation = false;
+  bool showingRecoveryRequest = false;
   String? error;
   String? info;
 
@@ -153,6 +154,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (showingRecoveryRequest) {
+      return ForgotPasswordScreen(
+        initialEmail: emailController.text.trim(),
+        onBack: () => setState(() => showingRecoveryRequest = false),
+      );
+    }
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -263,13 +270,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   TextButton(
                     onPressed: loading
                         ? null
-                        : () => Navigator.of(context).push<void>(
-                              MaterialPageRoute<void>(
-                                builder: (_) => ForgotPasswordScreen(
-                                  initialEmail: emailController.text.trim(),
-                                ),
-                              ),
-                            ),
+                        : () => setState(() => showingRecoveryRequest = true),
                     child: const Text('Forgot password?'),
                   ),
                 TextButton(
