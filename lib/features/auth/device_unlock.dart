@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,7 +7,6 @@ class DeviceUnlock {
   const DeviceUnlock._();
   static const _prefix = 'onespace_device_unlock_v1_';
   static final _prefs = SharedPreferencesAsync();
-  static const _settings = MethodChannel('onespace/device_unlock');
 
   // Retained solely to read pre-existing preview preferences during migration.
   static Future<bool> isEnabled(String userId) async =>
@@ -35,22 +33,20 @@ class DeviceUnlock {
       return await auth.authenticate(
         localizedReason: reason,
         biometricOnly: false,
+        persistAcrossBackgrounding: false,
       );
     } catch (_) {
       return false;
     }
   }
 
-  /// Opens Android's native enrollment/settings screen. No fingerprint data
-  /// ever goes through the app; enrollment may differ across manufacturers.
-  static Future<bool> openSystemEnrollment() async {
+  /// Best-effort cancellation of an active Android authentication prompt.
+  /// The OS Back gesture also dismisses a biometric/PIN prompt.
+  static Future<void> cancel() async {
     try {
-      await _settings.invokeMethod<void>('openEnrollment');
-      return true;
-    } on PlatformException {
-      return false;
-    } on MissingPluginException {
-      return false;
+      await LocalAuthentication().stopAuthentication();
+    } catch (_) {
+      // The prompt may already be gone.
     }
   }
 }
