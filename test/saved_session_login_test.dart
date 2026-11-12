@@ -39,7 +39,13 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    expect(find.textContaining('screen-lock PIN also works'), findsOneWidget);
     expect(find.textContaining('Your session is saved'), findsOneWidget);
+    // The hint is below the fold on shorter Android displays.
+    await tester.scrollUntilVisible(
+      find.textContaining('screen-lock PIN also works'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.textContaining('screen-lock PIN also works'), findsOneWidget);
   });
 }
