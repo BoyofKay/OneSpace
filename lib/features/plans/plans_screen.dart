@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'task_date_rules.dart';
+
 enum TaskPriority { low, normal, high }
 enum TaskStatus { open, completed, cancelled }
 enum TaskVisibility { shared, private }
@@ -280,8 +282,9 @@ class _PlansScreenState extends State<PlansScreen> {
                           : () async {
                               final picked = await showDatePicker(
                                 context: sheetContext,
-                                initialDate: targetDate ?? DateTime.now(),
-                                firstDate: DateTime(2020),
+                                initialDate: TaskDateRules.initialForPicker(
+                                  targetDate, DateTime.now()),
+                                firstDate: TaskDateRules.localToday(DateTime.now()),
                                 lastDate: DateTime(2100),
                               );
                               if (picked != null && sheetContext.mounted) {
@@ -312,6 +315,13 @@ class _PlansScreenState extends State<PlansScreen> {
                                 if (title.isEmpty) {
                                   updateSheet(() =>
                                       dialogError = 'Enter a task title.');
+                                  return;
+                                }
+                                if (!TaskDateRules.isAllowed(
+                                    targetDate, DateTime.now())) {
+                                  updateSheet(() => dialogError =
+                                      'Target date cannot be in the past. '
+                                      'Choose today or later, or clear it.');
                                   return;
                                 }
                                 updateSheet(() {
