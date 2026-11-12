@@ -52,6 +52,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool registering = false;
   bool loading = false;
   bool hidePassword = true;
+  bool awaitingConfirmation = false;
   String? error;
   String? info;
 
@@ -82,6 +83,7 @@ class _SignInScreenState extends State<SignInScreen> {
         );
         if (mounted && result.session == null) {
           setState(() {
+            awaitingConfirmation = true;
             info = 'Check your email to confirm your account, then sign in.';
           });
         }
@@ -92,6 +94,37 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) setState(() => error = e.message);
     } catch (_) {
       if (mounted) setState(() => error = 'Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _resendConfirmation() async {
+    final email = emailController.text.trim().toLowerCase();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => error = 'Enter your email address first.');
+      return;
+    }
+    setState(() {
+      loading = true;
+      error = null;
+      info = null;
+    });
+    try {
+      await Supabase.instance.client.auth.resend(
+        type: OtpType.signup,
+        email: email,
+      );
+      if (mounted) {
+        setState(() => info =
+            'If your account is waiting for confirmation, another email was requested.');
+      }
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = 'Could not request confirmation email.');
+      }
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -171,9 +204,10 @@ class _SignInScreenState extends State<SignInScreen> {
                                 setState(() => hidePassword = !hidePassword),
                           ),
                         ),
-                        validator: (value) =>
-                            value == null || value.length < 6
-                                ? 'Use at least 6 characters'
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Enter your password'
+                            : registering && value.length < 8
+                                ? 'Use at least 8 characters'
                                 : null,
                       ),
                     ],
@@ -186,6 +220,13 @@ class _SignInScreenState extends State<SignInScreen> {
                 if (info != null) ...[
                   const SizedBox(height: 12),
                   Text(info!, style: const TextStyle(color: Color(0xFF167E81))),
+                ],
+                if (awaitingConfirmation) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: loading ? null : _resendConfirmation,
+                    child: const Text('Resend confirmation email'),
+                  ),
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
@@ -202,6 +243,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       ? null
                       : () => setState(() {
                           registering = !registering;
+                          awaitingConfirmation = false;
                           error = null;
                           info = null;
                         }),
