@@ -1,4 +1,5 @@
 import 'package:local_auth/local_auth.dart';
+import 'package:local_auth_android/local_auth_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Android's OS, not OneSpace, verifies fingerprint or device PIN.
@@ -34,6 +35,13 @@ class DeviceUnlock {
         localizedReason: reason,
         biometricOnly: false,
         persistAcrossBackgrounding: false,
+        authMessages: const [
+          AndroidAuthMessages(
+            signInTitle: 'Unlock OneSpace',
+            signInHint: 'Use your phone PIN or fingerprint',
+            cancelButton: 'Cancel',
+          ),
+        ],
       );
     } catch (_) {
       return false;
