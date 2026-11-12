@@ -36,8 +36,11 @@ android {
             versionNameSuffix = "-preview"
         }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Preserve the Android application ID of all existing preview APKs.
+            // This is NOT the future production build/signing configuration.
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+            // Stable preview-only keystore restored by GitHub Actions.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
