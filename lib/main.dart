@@ -10,6 +10,8 @@ import 'features/lists/lists_screen.dart';
 import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/memories/memories_screen.dart';
+import 'features/goals/goals_screen.dart';
+import 'features/checkins/checkins_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
@@ -101,6 +103,20 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     if (mounted) setState(() => _dashboardRefreshToken++);
   }
 
+  Future<void> _openGoals() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const GoalsScreen()),
+    );
+    if (mounted) setState(() => _dashboardRefreshToken++);
+  }
+
+  Future<void> _openCheckins() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const CheckinsScreen()),
+    );
+    if (mounted) setState(() => _dashboardRefreshToken++);
+  }
+
   void _openProfile() {
     setState(() {
       _showProfile = true;
@@ -154,6 +170,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
               onOpenPlans: () => _navigate(1),
               onOpenCalendar: () => _navigate(2),
               onOpenMemories: _openMemories,
+              onOpenGoals: _openGoals,
+              onOpenCheckins: _openCheckins,
               onOpenLists: () => _navigate(3),
               onOpenNotes: () => _navigate(4),
             ),
