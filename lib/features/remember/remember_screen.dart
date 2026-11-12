@@ -129,14 +129,15 @@ class _RememberScreenState extends State<RememberScreen> {
     ),
   );
 
-  Widget _sectionHeading(String title, Widget destination) => Row(
+  Widget _sectionHeading(String title, Widget? destination) => Row(
     children: [
       Expanded(child: Text(title,
           style: Theme.of(context).textTheme.titleLarge)),
-      TextButton(
-        onPressed: () => _open(destination),
-        child: Text(tr(context, 'rememberSeeAll')),
-      ),
+      if (destination != null)
+        TextButton(
+          onPressed: () => _open(destination),
+          child: Text(tr(context, 'rememberSeeAll')),
+        ),
     ],
   );
 
@@ -209,12 +210,12 @@ class _RememberScreenState extends State<RememberScreen> {
             ),
             const SizedBox(height: 18),
             _sectionHeading(
-                tr(context, 'rememberUpcomingDues'), const PlansScreen()),
+                tr(context, 'rememberUpcomingDues'), null),
             const SizedBox(height: 4),
             if (dues.isEmpty)
               _empty(tr(context, 'rememberNoDues'))
             else
-              for (final due in dues.take(6))
+              for (final due in dues)
                 Card(
                   elevation: 0,
                   child: ListTile(

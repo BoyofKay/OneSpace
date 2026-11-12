@@ -23,7 +23,7 @@ Previous development test content was cleared on 13 November 2026, while two exi
 - Personal profiles: display names, per-person language preference, signed-in password change
 - Secure creation of one shared space per account, limited to two members
 - High-entropy invitation code, expires after 48 hours, one-time acceptance, invitation replacement revokes old codes
-- Eleven RLS-protected Supabase tables: `profiles`, `spaces`, `space_members`, `space_invitations`, `tasks`, `lists`, `list_items`, `notes`, `object_shares`, `space_events`, and `memories`
+- RLS-protected Supabase tables for pairing, Remember, Coordinate, Connect and World; schemas are versioned under `supabase/schema/`.
 - Every exposed app table has RLS. Shared objects are visible to the two current space members, while private objects remain creator-controlled unless explicitly granted **revocable view-only** access; tasks, lists, notes, calendar entries and memories all participate.
 - **Persistent tasks** with real-time updates, priorities, optional target dates, editing and open/completed/cancelled states. Tasks may be **Shared** (both members) or **Private** (creator only), and shared tasks may be assigned to either partner.
 - Task visibility is immutable after creation to avoid stale realtime data exposure. Cancelled tasks stay in history (hard delete is not granted to application accounts).

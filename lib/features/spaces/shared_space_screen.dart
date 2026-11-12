@@ -401,10 +401,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(tr(context, 'ourSpace'),
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          Text(
+            spaceId == null ? tr(context, 'ourSpace') : tr(context, 'todayTab'),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 6),
-          Text(tr(context, 'spaceSubtitle')),
+          Text(spaceId == null
+              ? tr(context, 'spaceSubtitle')
+              : tr(context, 'todayDashboardSubtitle')),
           const SizedBox(height: 16),
           if (issue != null) ...[
             Text(issue!, style: const TextStyle(color: Colors.red)),
@@ -480,7 +484,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           ] else ...[
             _relationshipPanel(),
             const SizedBox(height:12),
-            _panel(
+            if (memberCount < 2) _panel(
               spaceName ?? 'Our Space',
               memberCount == 2
                   ? tr(context, 'connected')
@@ -537,7 +541,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           if (spaceId != null) ...[
             const SizedBox(height: 24),
             Text(
-              tr(context, 'plansAtGlance'),
+              tr(context, 'todayOverviewTitle'),
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 8),
@@ -602,7 +606,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               ),
               const SizedBox(height:12),
             ],
-            Text(tr(context, 'quickAccess'),
+            Text(tr(context, 'todayQuickAccess'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
             Wrap(
