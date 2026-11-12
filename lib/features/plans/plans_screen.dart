@@ -3,7 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum TaskPriority { low, normal, high }
 enum TaskStatus { open, completed, cancelled }
-enum TaskFilter { all, open, completed, cancelled }
+enum TaskVisibility { shared, private }
+enum TaskFilter { open, completed, cancelled, all }
+enum TaskScope { all, shared, private }
 
 class SharedTask {
   const SharedTask({
@@ -11,6 +13,9 @@ class SharedTask {
     required this.title,
     required this.priority,
     required this.status,
+    required this.createdBy,
+    required this.visibility,
+    this.assignedTo,
     this.targetDate,
   });
 
@@ -18,6 +23,9 @@ class SharedTask {
   final String title;
   final TaskPriority priority;
   final TaskStatus status;
+  final TaskVisibility visibility;
+  final String createdBy;
+  final String? assignedTo;
   final String? targetDate;
 
   factory SharedTask.fromMap(Map<String, dynamic> value) {
@@ -25,19 +33,26 @@ class SharedTask {
       id: value['id'] as String,
       title: value['title'] as String,
       priority: TaskPriority.values.firstWhere(
-        (p) => p.name == value['priority'],
+        (item) => item.name == value['priority'],
         orElse: () => TaskPriority.normal,
       ),
       status: TaskStatus.values.firstWhere(
-        (s) => s.name == value['status'],
+        (item) => item.name == value['status'],
         orElse: () => TaskStatus.open,
       ),
+      visibility: TaskVisibility.values.firstWhere(
+        (item) => item.name == (value['visibility'] ?? 'shared'),
+        orElse: () => TaskVisibility.shared,
+      ),
+      createdBy: value['created_by'] as String? ?? '',
+      assignedTo: value['assigned_to'] as String?,
       targetDate: value['target_date'] as String?,
     );
   }
 }
 
-/// Database-backed tasks shared by the two members of an existing space.
+/// RLS determines which tasks are visible. Filtering in the UI is convenience,
+/// not a privacy boundary: private rows are excluded by the database itself.
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key, this.onOpenSpace});
   final VoidCallback? onOpenSpace;
@@ -50,10 +65,14 @@ class _PlansScreenState extends State<PlansScreen> {
   final _client = Supabase.instance.client;
   String? _spaceId;
   Stream<List<Map<String, dynamic>>>? _tasksStream;
+  Map<String, String> _memberNames = const {};
   TaskFilter _filter = TaskFilter.open;
+  TaskScope _scope = TaskScope.all;
   bool _loadingSpace = true;
   bool _busy = false;
   String? _error;
+
+  String get _me => _client.auth.currentUser!.id;
 
   @override
   void initState() {
@@ -68,22 +87,40 @@ class _PlansScreenState extends State<PlansScreen> {
       _error = null;
     });
     try {
-      final userId = _client.auth.currentUser!.id;
       final memberships = await _client
           .from('space_members')
           .select('space_id')
-          .eq('user_id', userId)
+          .eq('user_id', _me)
           .limit(1);
       if (!mounted) return;
       if (memberships.isEmpty) {
         setState(() {
           _spaceId = null;
+          _memberNames = const {};
           _tasksStream = null;
         });
       } else {
         final id = memberships.first['space_id'] as String;
+        final members = await _client
+            .from('space_members')
+            .select('user_id')
+            .eq('space_id', id);
+        final ids = members
+            .map((entry) => entry['user_id'] as String)
+            .toList();
+        final profiles = await _client
+            .from('profiles')
+            .select('id, display_name')
+            .inFilter('id', ids);
+        final names = <String, String>{
+          for (final entry in profiles)
+            entry['id'] as String:
+                (entry['display_name'] as String? ?? 'Member'),
+        };
+        if (!mounted) return;
         setState(() {
           _spaceId = id;
+          _memberNames = names;
           _tasksStream = _client
               .from('tasks')
               .stream(primaryKey: ['id'])
@@ -94,25 +131,31 @@ class _PlansScreenState extends State<PlansScreen> {
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) {
-        setState(() => _error = 'Unable to load your shared space.');
-      }
+      if (mounted) setState(() => _error = 'Unable to load your space.');
     } finally {
       if (mounted) setState(() => _loadingSpace = false);
     }
   }
 
-  String _formatDate(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
+  String _displayName(String id) {
+    return id == _me ? 'Me' : (_memberNames[id] ?? 'Partner');
   }
 
-  Future<void> _addTask() async {
-    if (_spaceId == null || _busy) return;
-    final controller = TextEditingController();
-    var priority = TaskPriority.normal;
-    DateTime? targetDate;
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _taskEditor({SharedTask? existing}) async {
+    if (_busy || _spaceId == null) return;
+
+    final controller = TextEditingController(text: existing?.title ?? '');
+    var priority = existing?.priority ?? TaskPriority.normal;
+    var visibility = existing?.visibility ?? TaskVisibility.shared;
+    DateTime? targetDate = existing?.targetDate == null
+        ? null
+        : DateTime.tryParse(existing!.targetDate!);
+    String? assignee = existing?.assignedTo;
     bool saving = false;
     String? dialogError;
 
@@ -121,50 +164,112 @@ class _PlansScreenState extends State<PlansScreen> {
         context: context,
         showDragHandle: true,
         isScrollControlled: true,
-        builder: (bottomContext) => StatefulBuilder(
-          builder: (bottomContext, updateSheet) => SafeArea(
+        builder: (sheetContext) => StatefulBuilder(
+          builder: (sheetContext, updateSheet) => SafeArea(
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 20,
                 8,
                 20,
-                24 + MediaQuery.viewInsetsOf(bottomContext).bottom,
+                24 + MediaQuery.viewInsetsOf(sheetContext).bottom,
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('New shared task',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    Text(
+                      existing == null ? 'New task' : 'Edit task',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: controller,
+                      maxLength: 120,
                       autofocus: true,
                       textCapitalization: TextCapitalization.sentences,
-                      maxLength: 120,
                       decoration: const InputDecoration(
                         labelText: 'Task title',
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text('Priority',
+                    const SizedBox(height: 10),
+                    const Text('Visibility',
                         style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
-                      children: TaskPriority.values.map((option) {
+                      children: TaskVisibility.values.map((item) {
                         return ChoiceChip(
-                          label: Text(option.name),
-                          selected: option == priority,
-                          onSelected: saving
+                          label: Text(item == TaskVisibility.shared
+                              ? 'Shared with partner'
+                              : 'Only me'),
+                          selected: visibility == item,
+                          onSelected: saving || existing != null
                               ? null
-                              : (_) => updateSheet(() => priority = option),
+                              : (_) => updateSheet(() {
+                                    visibility = item;
+                                    if (item == TaskVisibility.private) {
+                                      assignee = null;
+                                    }
+                                  }),
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 5),
+                    Text(
+                      existing == null
+                          ? 'Choose carefully: visibility is fixed after saving.'
+                          : visibility == TaskVisibility.private
+                              ? 'Only you can see this task.'
+                              : 'Both partners can see and edit this task.',
+                      style: Theme.of(sheetContext).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 14),
+                    const Text('Priority',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    Wrap(
+                      spacing: 8,
+                      children: TaskPriority.values.map((item) => ChoiceChip(
+                            label: Text(item.name),
+                            selected: priority == item,
+                            onSelected: saving
+                                ? null
+                                : (_) => updateSheet(() => priority = item),
+                          )).toList(),
+                    ),
                     const SizedBox(height: 12),
+                    if (visibility == TaskVisibility.shared) ...[
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('assignee-${existing?.id ?? 'new'}'),
+                        initialValue: assignee ?? '',
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Assign to',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: '',
+                            child: Text('Unassigned'),
+                          ),
+                          for (final member in _memberNames.entries)
+                            DropdownMenuItem<String>(
+                              value: member.key,
+                              child: Text(_displayName(member.key)),
+                            ),
+                        ],
+                        onChanged: saving
+                            ? null
+                            : (value) => updateSheet(() {
+                                  assignee = value == null || value.isEmpty
+                                      ? null
+                                      : value;
+                                }),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     OutlinedButton.icon(
                       icon: const Icon(Icons.event_outlined),
                       label: Text(targetDate == null
@@ -174,12 +279,12 @@ class _PlansScreenState extends State<PlansScreen> {
                           ? null
                           : () async {
                               final picked = await showDatePicker(
-                                context: bottomContext,
+                                context: sheetContext,
                                 initialDate: targetDate ?? DateTime.now(),
                                 firstDate: DateTime(2020),
                                 lastDate: DateTime(2100),
                               );
-                              if (picked != null && bottomContext.mounted) {
+                              if (picked != null && sheetContext.mounted) {
                                 updateSheet(() => targetDate = picked);
                               }
                             },
@@ -196,7 +301,7 @@ class _PlansScreenState extends State<PlansScreen> {
                       Text(dialogError!,
                           style: const TextStyle(color: Colors.red)),
                     ],
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
@@ -214,34 +319,52 @@ class _PlansScreenState extends State<PlansScreen> {
                                   dialogError = null;
                                 });
                                 try {
-                                  await _client.from('tasks').insert({
-                                    'space_id': _spaceId,
-                                    'created_by': _client.auth.currentUser!.id,
+                                  final fields = <String, dynamic>{
                                     'title': title,
                                     'priority': priority.name,
-                                    'status': 'open',
-                                    if (targetDate != null)
-                                      'target_date': _formatDate(targetDate!),
-                                  });
-                                  if (bottomContext.mounted) {
-                                    Navigator.of(bottomContext).pop();
+                                    'target_date': targetDate == null
+                                        ? null
+                                        : _formatDate(targetDate!),
+                                    'assigned_to': visibility ==
+                                            TaskVisibility.private
+                                        ? null
+                                        : assignee,
+                                  };
+                                  if (existing == null) {
+                                    await _client.from('tasks').insert({
+                                      ...fields,
+                                      'space_id': _spaceId,
+                                      'created_by': _me,
+                                      'status': 'open',
+                                      'visibility': visibility.name,
+                                    });
+                                  } else {
+                                    await _client.from('tasks')
+                                        .update(fields)
+                                        .eq('id', existing.id)
+                                        .eq('space_id', _spaceId!);
+                                  }
+                                  if (sheetContext.mounted) {
+                                    Navigator.of(sheetContext).pop();
                                   }
                                 } on PostgrestException catch (e) {
-                                  if (bottomContext.mounted) {
+                                  if (sheetContext.mounted) {
                                     updateSheet(() => dialogError = e.message);
                                   }
                                 } catch (_) {
-                                  if (bottomContext.mounted) {
+                                  if (sheetContext.mounted) {
                                     updateSheet(() => dialogError =
-                                        'Unable to save task. Check your connection.');
+                                        'Could not save. Check your connection.');
                                   }
                                 } finally {
-                                  if (bottomContext.mounted) {
+                                  if (sheetContext.mounted) {
                                     updateSheet(() => saving = false);
                                   }
                                 }
                               },
-                        child: const Text('Save task'),
+                        child: Text(existing == null
+                            ? 'Create task'
+                            : 'Save changes'),
                       ),
                     ),
                   ],
@@ -257,19 +380,18 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
-    if (_busy || task.status == status) return;
+    if (_busy || task.status == status || _spaceId == null) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await _client.from('tasks').update({
-        'status': status.name,
-      }).eq('id', task.id).eq('space_id', _spaceId!);
+      await _client.from('tasks').update({'status': status.name})
+          .eq('id', task.id).eq('space_id', _spaceId!);
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not update the task.');
+      if (mounted) setState(() => _error = 'Could not update task.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -279,14 +401,14 @@ class _PlansScreenState extends State<PlansScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancel this task?'),
+        title: const Text('Cancel task?'),
         content: const Text(
-          'Cancelled tasks remain in your shared history and can be reopened.',
+          'Cancelled tasks remain in history and can be reopened.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep task'),
+            child: const Text('Keep'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
@@ -299,99 +421,107 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   bool _isVisible(SharedTask task) {
-    switch (_filter) {
-      case TaskFilter.all:
-        return true;
-      case TaskFilter.open:
-        return task.status == TaskStatus.open;
-      case TaskFilter.completed:
-        return task.status == TaskStatus.completed;
-      case TaskFilter.cancelled:
-        return task.status == TaskStatus.cancelled;
-    }
+    final matchingStatus = _filter == TaskFilter.all ||
+        task.status.name == _filter.name;
+    final matchingScope = _scope == TaskScope.all ||
+        task.visibility.name == _scope.name;
+    return matchingStatus && matchingScope;
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text('Plans & tasks',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        const Text('Shared plans for the two of you.'),
-        const SizedBox(height: 14),
-        if (_error != null) ...[
-          Text(_error!, style: const TextStyle(color: Colors.red)),
-          TextButton.icon(
-            onPressed: _loadSpace,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
-        if (_loadingSpace)
-          const Padding(
-            padding: EdgeInsets.all(40),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_spaceId == null)
-          _emptySpace()
-        else ...[
-          FilledButton.icon(
-            onPressed: _busy ? null : _addTask,
-            icon: const Icon(Icons.add),
-            label: const Text('Add task'),
-          ),
+    return RefreshIndicator(
+      onRefresh: _loadSpace,
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text('Plans & tasks',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          const Text('Shared plans and your own private to-dos.'),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: TaskFilter.values
-                .map((filter) => ChoiceChip(
-                      label: Text(filter.name),
-                      selected: filter == _filter,
-                      onSelected: (_) => setState(() => _filter = filter),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<List<Map<String, dynamic>>>(
-            stream: _tasksStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Column(
-                  children: [
-                    const Text('Could not refresh shared tasks.'),
-                    TextButton(
-                      onPressed: _loadSpace,
-                      child: const Text('Reconnect'),
-                    ),
-                  ],
-                );
-              }
-              if (!snapshot.hasData) {
-                return const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final tasks = snapshot.data!
-                  .map(SharedTask.fromMap)
-                  .where(_isVisible)
-                  .toList();
-              if (tasks.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(44),
-                  child: Center(child: Text('No tasks in this view.')),
-                );
-              }
-              return Column(
-                children: tasks.map(_taskTile).toList(),
-              );
-            },
-          ),
+          if (_error != null) ...[
+            Text(_error!, style: const TextStyle(color: Colors.red)),
+            TextButton.icon(
+              onPressed: _loadSpace,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+          if (_loadingSpace)
+            const Padding(
+              padding: EdgeInsets.all(40),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_spaceId == null)
+            _emptySpace()
+          else ...[
+            FilledButton.icon(
+              onPressed: _busy ? null : () => _taskEditor(),
+              icon: const Icon(Icons.add),
+              label: const Text('Add task'),
+            ),
+            const SizedBox(height: 16),
+            const Text('Show'),
+            Wrap(
+              spacing: 8,
+              children: TaskScope.values.map((scope) => ChoiceChip(
+                    label: Text(scope == TaskScope.all
+                        ? 'All visible'
+                        : scope == TaskScope.shared
+                            ? 'Shared'
+                            : 'Private'),
+                    selected: scope == _scope,
+                    onSelected: (_) => setState(() => _scope = scope),
+                  )).toList(),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: TaskFilter.values.map((filter) => ChoiceChip(
+                    label: Text(filter.name),
+                    selected: filter == _filter,
+                    onSelected: (_) => setState(() => _filter = filter),
+                  )).toList(),
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _tasksStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Column(
+                    children: [
+                      const Text('Could not refresh your tasks.'),
+                      TextButton(
+                        onPressed: _loadSpace,
+                        child: const Text('Reconnect'),
+                      ),
+                    ],
+                  );
+                }
+                if (!snapshot.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final tasks = snapshot.data!
+                    .map(SharedTask.fromMap)
+                    .where(_isVisible)
+                    .toList();
+                if (tasks.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(44),
+                    child: Center(child: Text('No tasks in this view.')),
+                  );
+                }
+                return Column(children: tasks.map(_taskTile).toList());
+              },
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -401,14 +531,15 @@ class _PlansScreenState extends State<PlansScreen> {
           child: Column(
             children: [
               const Icon(Icons.people_outline, size: 42),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               const Text('Create or join Our Space first'),
               const SizedBox(height: 8),
               const Text(
-                'Your tasks are shared only with your linked partner.',
+                'Your private tasks and shared tasks both live in your space. '
+                'Private tasks are visible only to you.',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               FilledButton(
                 onPressed: widget.onOpenSpace,
                 child: const Text('Go to Our Space'),
@@ -426,6 +557,14 @@ class _PlansScreenState extends State<PlansScreen> {
   Widget _taskTile(SharedTask task) {
     final cancelled = task.status == TaskStatus.cancelled;
     final completed = task.status == TaskStatus.completed;
+    final details = <String>[
+      task.visibility == TaskVisibility.private ? 'Private' : 'Shared',
+      '${task.priority.name} priority',
+      if (task.assignedTo != null)
+        'Assigned: ${_displayName(task.assignedTo!)}',
+      if (task.targetDate != null) 'Target ${task.targetDate}',
+      if (cancelled) 'Cancelled',
+    ];
     return Card(
       elevation: 0,
       child: CheckboxListTile(
@@ -433,12 +572,16 @@ class _PlansScreenState extends State<PlansScreen> {
         onChanged: cancelled || _busy
             ? null
             : (value) => _changeStatus(
-                  task, value == true ? TaskStatus.completed : TaskStatus.open),
+                  task,
+                  value == true ? TaskStatus.completed : TaskStatus.open,
+                ),
         controlAffinity: ListTileControlAffinity.leading,
         title: Text(
           task.title,
           style: TextStyle(
-            decoration: cancelled || completed ? TextDecoration.lineThrough : null,
+            decoration: cancelled || completed
+                ? TextDecoration.lineThrough
+                : null,
             color: cancelled
                 ? Colors.red.shade700
                 : completed
@@ -446,21 +589,20 @@ class _PlansScreenState extends State<PlansScreen> {
                     : null,
           ),
         ),
-        subtitle: Text([
-          '${task.priority.name} priority',
-          if (task.targetDate != null) 'Target ${task.targetDate}',
-          if (cancelled) 'Cancelled',
-        ].join(' • ')),
+        subtitle: Text(details.join(' • ')),
         secondary: PopupMenuButton<String>(
           tooltip: 'Task actions',
           onSelected: (choice) {
-            if (choice == 'cancel') {
+            if (choice == 'edit') {
+              _taskEditor(existing: task);
+            } else if (choice == 'cancel') {
               _cancelTask(task);
             } else if (choice == 'reopen') {
               _changeStatus(task, TaskStatus.open);
             }
           },
           itemBuilder: (_) => [
+            const PopupMenuItem(value: 'edit', child: Text('Edit task')),
             if (!cancelled)
               const PopupMenuItem(value: 'cancel', child: Text('Cancel task')),
             if (cancelled || completed)
