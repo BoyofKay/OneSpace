@@ -385,6 +385,7 @@ class _PlansScreenState extends State<PlansScreen> {
               PopupMenuItem(value: 'reopen', child: Text(tr(context, 'reopenTask'))),
           ],
         ),
+      ),
         if (canShare)
           Align(
             alignment: AlignmentDirectional.centerEnd,
