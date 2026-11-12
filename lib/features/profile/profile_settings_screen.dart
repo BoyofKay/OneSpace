@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
-import '../auth/device_unlock.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
@@ -18,8 +17,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final _name = TextEditingController();
   bool _loading = true;
   bool _saving = false;
-  bool _deviceUnlockEnabled = false;
-  bool _changingUnlock = false;
   String _language = 'en';
   String? _error;
   String? _status;
@@ -41,12 +38,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       final id = _client.auth.currentUser!.id;
       final profile =
           await _client.from('profiles').select('display_name,locale').eq('id', id).single();
-      final unlockEnabled = await DeviceUnlock.isEnabled(id);
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
         _language = (profile['locale'] as String?) ?? 'en';
-        _deviceUnlockEnabled = unlockEnabled;
       });
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -187,46 +182,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
-  Future<void> _configureDeviceUnlock(bool enable) async {
-    if (_changingUnlock) return;
-    setState(() {
-      _changingUnlock = true;
-      _error = null;
-      _status = null;
-    });
-    try {
-      if (enable) {
-        final available = await DeviceUnlock.isAvailable();
-        if (!available) {
-          throw StateError('Set a screen lock on your phone first.');
-        }
-        final permitted = await DeviceUnlock.authenticate(
-          reason: 'Enable device unlock for this OneSpace account',
-        );
-        if (!permitted) {
-          throw StateError('Device verification was cancelled or failed.');
-        }
-      }
-      await DeviceUnlock.setEnabled(_client.auth.currentUser!.id, enable);
-      if (mounted) {
-        setState(() {
-          _deviceUnlockEnabled = enable;
-          _status = enable
-              ? 'Device unlock enabled for this account.'
-              : 'Device unlock disabled for this account.';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _error = e is StateError
-            ? e.message.toString()
-            : 'Could not update your device unlock preference.');
-      }
-    } finally {
-      if (mounted) setState(() => _changingUnlock = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -286,16 +241,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           child: Text(tr(context, 'saveProfile')),
         ),
         const SizedBox(height: 22),
-        const Divider(),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          secondary: const Icon(Icons.fingerprint),
-          title: Text(tr(context, 'enablePhoneUnlock')),
-          subtitle: Text(tr(context, 'phoneUnlockHint')),
-          value: _deviceUnlockEnabled,
-          onChanged: _changingUnlock ? null : _configureDeviceUnlock,
-        ),
-        const SizedBox(height: 12),
         const Divider(),
         ListTile(
           contentPadding: EdgeInsets.zero,
