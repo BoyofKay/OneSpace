@@ -230,6 +230,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late bool _pinned;
   bool _busy = false;
   String? _error;
+  StreamSubscription<List<Map<String, dynamic>>>? _revocationWatcher;
 
   bool get _editing => widget.existing != null;
   bool get _canEdit => widget.existing == null ||
@@ -251,10 +252,33 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
     _visibility = widget.existing?['visibility'] as String? ?? 'shared';
     _pinned = widget.existing?['pinned'] == true;
+    if (_editing && !_canEdit) {
+      _revocationWatcher = watchObjectShares(
+        client: _client,
+        spaceId: widget.spaceId,
+        objectType: 'note',
+        onChanged: _validateViewingPermission,
+      );
+    }
+  }
+
+  Future<void> _validateViewingPermission() async {
+    final id = widget.existing?['id'] as String?;
+    if (id == null) return;
+    try {
+      final visible = await _client.from('notes')
+          .select('id').eq('id', id).limit(1);
+      if (mounted && visible.isEmpty) {
+        Navigator.of(context).pop();
+      }
+    } catch (_) {
+      // A network failure should not automatically close a note.
+    }
   }
 
   @override
   void dispose() {
+    _revocationWatcher?.cancel();
     _title.dispose();
     _body.dispose();
     super.dispose();
