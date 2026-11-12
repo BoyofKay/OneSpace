@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'features/plans/plans_screen.dart';
 
 void main() => runApp(const OneSpaceApp());
 
@@ -58,7 +59,15 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         ],
       ),
       body: SafeArea(
-        child: selectedIndex == 0 ? _home() : _section(sections[selectedIndex]),
+        child: IndexedStack(
+          index: selectedIndex,
+          children: [
+            _home(),
+            const PlansScreen(),
+            _section(sections[2]),
+            _section(sections[3]),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
