@@ -1,4 +1,8 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'l10n/onespace_locale_controller.dart';
+import 'l10n/onespace_strings.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
@@ -22,8 +26,17 @@ class OneSpaceApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const ink = Color(0xFF20334A);
     const teal = Color(0xFF167E81);
-    return MaterialApp(
+    return ValueListenableBuilder<Locale?>(
+      valueListenable: OneSpaceLocaleController.instance,
+      builder: (context, currentLocale, child) => MaterialApp(
       title: 'OneSpace',
+      locale: currentLocale,
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -36,6 +49,7 @@ class OneSpaceApp extends StatelessWidget {
         ),
       ),
       home: const AuthGate(signedIn: OneSpaceHome()),
+      ),
     );
   }
 }
@@ -55,11 +69,11 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     const sections = ['Home', 'Plans', 'Memories'];
     return Scaffold(
       appBar: AppBar(
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('OneSpace', style: TextStyle(fontWeight: FontWeight.w800)),
-            Text('Two lives. One space.', style: TextStyle(fontSize: 12)),
+            const Text('OneSpace', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(tr(context, 'tagline'), style: const TextStyle(fontSize: 12)),
           ],
         ),
       ),
@@ -80,23 +94,23 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (value) => setState(() => selectedIndex = value),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            label: tr(context, 'home'),
           ),
           NavigationDestination(
             icon: Icon(Icons.checklist_rounded),
-            label: 'Plans',
+            label: tr(context, 'plans'),
           ),
           NavigationDestination(
             icon: Icon(Icons.photo_library_outlined),
-            label: 'Memories',
+            label: tr(context, 'memories'),
           ),
           NavigationDestination(
             icon: Icon(Icons.grid_view_rounded),
-            label: 'More',
+            label: tr(context, 'more'),
           ),
         ],
       ),
@@ -117,14 +131,14 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
                 style: const TextStyle(
                     fontSize: 26, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text(
-              'Coming in a future release.',
+            Text(
+              tr(context, 'comingSoon'),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             OutlinedButton(
               onPressed: () => setState(() => selectedIndex = 0),
-              child: const Text('Back to home'),
+              child: Text(tr(context, 'backHome')),
             ),
           ],
         ),
