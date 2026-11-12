@@ -15,6 +15,7 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenLists,
     this.onOpenNotes,
     this.onOpenCalendar,
+    this.onOpenMemories,
     this.refreshToken = 0,
   });
 
@@ -22,6 +23,7 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenLists;
   final VoidCallback? onOpenNotes;
   final VoidCallback? onOpenCalendar;
+  final VoidCallback? onOpenMemories;
   final int refreshToken;
 
   @override
@@ -40,6 +42,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int activeOtherLists = 0;
   int activeNotes = 0;
   int activeCalendarEvents = 0;
+  int activeMemories = 0;
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool membershipResolved = false;
@@ -134,6 +137,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeOtherLists = metric('other_lists');
           activeNotes = metric('notes');
           activeCalendarEvents = metric('calendar_entries');
+          activeMemories = metric('memories_count');
           membershipResolved = true;
           summaryLoading = false;
           loading = false;
@@ -454,6 +458,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       _metric(tr(context, 'otherListsCount'), activeOtherLists),
                       _metric(tr(context, 'notesCount'), activeNotes),
                       _metric(tr(context, 'calendarEntries'), activeCalendarEvents),
+                      _metric(tr(context, 'memoriesCount'), activeMemories),
                     ],
                   ],
                 ),
@@ -486,6 +491,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                   onPressed: widget.onOpenCalendar,
                   icon: const Icon(Icons.calendar_today_outlined),
                   label: Text(tr(context, 'calendar')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: widget.onOpenMemories,
+                  icon: const Icon(Icons.auto_stories_outlined),
+                  label: Text(tr(context, 'openMemories')),
                 ),
               ],
             ),
