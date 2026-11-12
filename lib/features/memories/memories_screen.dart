@@ -135,8 +135,9 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               stream: _stream,
               builder: (context,snapshot) {
                 if (snapshot.hasError) return Text(tr(context,'loadFailed'));
-                if (!snapshot.hasData) return const Center(
-                    child: CircularProgressIndicator());
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
                 final shown = snapshot.data!.where((m) =>
                   (_archived || m['archived_at'] == null) &&
                   (_scope == 'all' || m['visibility'] == _scope))
