@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 
@@ -88,7 +89,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   final db=Supabase.instance.client;
   final comment=TextEditingController();
   late final Stream<List<Map<String,dynamic>>> activity,components,comments,revisions,reactions;
-  String? replyTo,issue;
+  String? replyTo,commentComponent,issue;
   @override void initState(){
     super.initState();
     final id=widget.id;
@@ -128,23 +129,133 @@ class _ActivityScreenState extends State<ActivityScreen> {
       if(changed.isEmpty)throw StateError('Your partner updated this activity; reopen and review before editing.');
     });
   }
-  Future<void> addComponent(String kind) async {
+  Future<void> addComponent(String kind,{String? parentId}) async {
     final title=await ask('Add $kind',max:180);
     if(title==null||title.isEmpty||!mounted)return;
-    final details=await ask('Details / value (optional)');
+    final details=await ask(kind=='link'?'Website URL (https://...)':
+      kind=='price'?'Amount and currency, e.g. 299 SAR':
+      kind=='date'?'Date (YYYY-MM-DD)':
+      kind=='reminder'?'When should we remember this? (no phone alert yet)':
+      'Details / value (optional)');
     if(details==null)return;
-    await execute(() async { await db.from('activity_components').insert({
-      'activity_id':widget.id,'kind':kind,'label':title,
-      'payload':{'value':details,'status':'open'},
-    }); });
+    if(kind=='link') {
+      final uri=Uri.tryParse(details.trim());
+      if(uri==null||!(uri.scheme=='http'||uri.scheme=='https')||uri.host.isEmpty) {
+        if(mounted)setState(()=>issue='Enter a valid http or https link.');
+        return;
+      }
+    }
+    if(kind=='date' && DateTime.tryParse(details.trim())==null) {
+      if(mounted)setState(()=>issue='Enter the date as YYYY-MM-DD.');
+      return;
+    }
+    await execute(() async {
+      await db.from('activity_components').insert({
+        'activity_id':widget.id,'kind':kind,'label':title,
+        'parent_component_id':parentId,
+        'payload':{'value':details.trim(),'status':'open'},
+      });
+    });
+  }
+  Future<void> editComponent(Map<String,dynamic> item) async {
+    final title=await ask('Edit ${item['kind']} title',
+      initial:item['label'] as String? ?? '',max:180);
+    if(title==null||title.isEmpty||!mounted)return;
+    final payload=Map<String,dynamic>.from(item['payload'] as Map? ?? const {});
+    final value=await ask('Edit details',
+      initial:payload['value']?.toString()??'');
+    if(value==null)return;
+    payload['value']=value;
+    await execute(() async {
+      final rows=await db.from('activity_components')
+        .update({'label':title,'payload':payload})
+        .eq('id',item['id'] as String)
+        .eq('updated_at',item['updated_at'] as String)
+        .select('id');
+      if(rows.isEmpty)throw StateError(
+        'This component changed. Reopen to review the latest version.');
+    });
+  }
+  Future<void> toggleStep(Map<String,dynamic> item) async {
+    final data=Map<String,dynamic>.from(item['payload'] as Map? ?? const {});
+    data['status']=data['status']=='done'?'open':'done';
+    await execute(() async {
+      final rows=await db.from('activity_components').update({'payload':data})
+        .eq('id',item['id'] as String)
+        .eq('updated_at',item['updated_at'] as String).select('id');
+      if(rows.isEmpty)throw StateError('This step was updated on another device.');
+    });
+  }
+  Future<void> componentActions(Map<String,dynamic> item) async {
+    final action=await showModalBottomSheet<String>(context:context,
+      showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
+        mainAxisSize:MainAxisSize.min,children:[
+        ListTile(leading:const Icon(Icons.edit_outlined),title:const Text('Edit component'),
+          onTap:()=>Navigator.pop(ctx,'edit')),
+        ListTile(leading:const Icon(Icons.reply_outlined),title:const Text('Discuss this component'),
+          onTap:()=>Navigator.pop(ctx,'comment')),
+        if(item['kind']=='option')
+          ListTile(leading:const Icon(Icons.add_link),title:const Text('Add detail to this option'),
+            onTap:()=>Navigator.pop(ctx,'child')),
+        if(item['kind']=='link')
+          ListTile(leading:const Icon(Icons.copy_outlined),title:const Text('Copy website URL'),
+            onTap:()=>Navigator.pop(ctx,'copy')),
+        ListTile(leading:const Icon(Icons.history),title:const Text('Component edit history'),
+          onTap:()=>Navigator.pop(ctx,'history')),
+      ])));
+    if(!mounted)return;
+    switch(action){
+      case 'edit': await editComponent(item);
+      case 'comment': setState(() {
+        commentComponent=item['id'] as String;
+        replyTo=null;
+      });
+      case 'child': await addComponent('note',parentId:item['id'] as String);
+      case 'copy':
+        final value=(item['payload'] as Map?)?['value']?.toString()??'';
+        await Clipboard.setData(ClipboardData(text:value));
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Link copied to clipboard')));
+      case 'history':
+        await execute(() async {
+          final rows=await db.from('activity_component_revisions').select()
+            .eq('component_id',item['id'] as String)
+            .order('changed_at',ascending:false);
+          if(!mounted)return;
+          await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+            title:const Text('Component history'),
+            content:SizedBox(width:420,child:ListView(shrinkWrap:true,
+              children:[
+              if(rows.isEmpty)const Text('No edits yet'),
+              for(final row in rows)ListTile(
+                title:Text(when(row['changed_at'])),
+                subtitle:Text('${row['old_label']} → ${row['new_label']}\n'
+                  '${row['old_payload']} → ${row['new_payload']}'),
+              ),
+            ])),
+            actions:[TextButton(onPressed:()=>Navigator.pop(ctx),
+              child:const Text('Close'))]));
+        });
+    }
+  }
+  Future<void> updateDueDate() async {
+    final now=DateTime.now();
+    final selected=await showDatePicker(context:context,
+      firstDate:DateTime(2000),lastDate:DateTime(2100),initialDate:now);
+    if(selected==null)return;
+    final value='${selected.year}-${selected.month.toString().padLeft(2,'0')}-'
+      '${selected.day.toString().padLeft(2,'0')}';
+    await execute(() async {
+      await db.from('activities').update({'due_on':value}).eq('id',widget.id);
+    });
   }
   Future<void> send() async {
     if(comment.text.trim().isEmpty)return;
     final body=comment.text.trim();
     await execute(() async {
       await db.from('activity_comments').insert({'activity_id':widget.id,
-        'body':body,'reply_to':replyTo});
-      comment.clear();if(mounted)setState(()=>replyTo=null);
+        'body':body,'reply_to':replyTo,'component_id':commentComponent});
+      comment.clear();if(mounted)setState(() {replyTo=null;commentComponent=null;});
     });
   }
   Widget section(String title,Widget child)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -164,12 +275,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
         Text('Created ${when(a['created_at'])} · ${a['visibility']}'),
         const SizedBox(height:10),
         Wrap(spacing:8,children:[
-          Chip(label:Text('Priority: ${a['priority']}')),
+          PopupMenuButton<String>(tooltip:'Change priority',
+            onSelected:(v)=>execute(() async {
+              await db.from('activities').update({'priority':v}).eq('id',widget.id);
+            }),
+            itemBuilder:(_)=>['low','normal','high','urgent']
+                .map((x)=>PopupMenuItem(value:x,child:Text(x))).toList(),
+            child:Chip(label:Text('Priority: ${a['priority']} ▾'))),
           PopupMenuButton<String>(tooltip:'Update status',
             onSelected:(v)=>execute(() async { await db.from('activities').update({'stage':v}).eq('id',widget.id); }),
             itemBuilder:(_)=>['exploring','comparing','decided','purchased','registered','completed','on_hold','cancelled']
                 .map((x)=>PopupMenuItem(value:x,child:Text(x))).toList(),
             child:Chip(label:Text('Status: ${a['stage']} ▾'))),
+          ActionChip(label:Text(a['due_on']==null?'Add due date':'Due ${a['due_on']}'),
+            avatar:const Icon(Icons.event_outlined,size:17),
+            onPressed:updateDueDate),
+          if(a['due_on']!=null)ActionChip(label:const Text('Clear date'),
+            onPressed:()=>execute(() async {
+              await db.from('activities').update({'due_on':null}).eq('id',widget.id);
+            })),
         ]),
         if(issue!=null)Text(issue!,style:const TextStyle(color:Colors.red)),
         Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(
@@ -189,7 +313,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
             return StreamBuilder<List<Map<String,dynamic>>>(stream:reactions,builder:(ctx,votes){
               final all=votes.data??[];
               return Column(children:[for(final item in s.data!)
-                Card(child:ListTile(
+                Padding(padding:EdgeInsetsDirectional.only(
+                  start:item['parent_component_id']==null?0:20),
+                 child:Card(child:ListTile(
+                  onTap:()=>componentActions(item),
+                  leading:item['kind']=='step'
+                    ?Checkbox(value:(item['payload'] as Map?)?['status']=='done',
+                       onChanged:(_)=>toggleStep(item))
+                    :const Icon(Icons.layers_outlined),
                   title:Text('[${item['kind']}] ${item['label']}'),
                   subtitle:Text('${(item['payload'] as Map?)?['value']??''}\n${when(item['created_at'])}'),
                   isThreeLine:true,
@@ -205,7 +336,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         'activity_id':widget.id,'component_id':item['id'],
                         'user_id':db.auth.currentUser!.id,'opinion':-1},onConflict:'component_id,user_id');})),
                   ]),
-                )),
+                ))),
               ]);
             });
           })),
@@ -215,12 +346,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
             return Column(children:[for(final c in s.data!)
               Card(child:ListTile(
                 title:Text(c['author_id']==db.auth.currentUser?.id?'You':'Partner'),
-                subtitle:Text('${c['body']}\n${when(c['created_at'])}'),
+                subtitle:Text('${c['component_id']==null?'':'On a component · '}${c['body']}\n${when(c['created_at'])}'),
                 trailing:IconButton(icon:const Icon(Icons.reply_outlined),
                   onPressed:()=>setState(()=>replyTo=c['id'] as String)),
               )),
             ]);
           })),
+        if(commentComponent!=null)TextButton(onPressed:()=>setState(()=>commentComponent=null),
+          child:const Text('Commenting on a component · Cancel')),
         if(replyTo!=null)TextButton(onPressed:()=>setState(()=>replyTo=null),
           child:const Text('Replying to comment · Cancel reply')),
         Row(children:[Expanded(child:TextField(controller:comment,maxLines:3,minLines:1,

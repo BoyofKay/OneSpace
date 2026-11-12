@@ -221,6 +221,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             onOpenMemories:()=>open(const MemoriesScreen()),
             onOpenGoals:()=>open(const GoalsScreen()),
             onOpenCheckins:()=>open(const CheckinsScreen()),
+            onOpenCoordinate:()=>navigate(2),
           )),
         ]),
         if(visited.contains(1))const SectionHub(section:'remember')

@@ -19,6 +19,7 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenMemories,
     this.onOpenGoals,
     this.onOpenCheckins,
+    this.onOpenCoordinate,
     this.refreshToken = 0,
   });
 
@@ -29,6 +30,7 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenMemories;
   final VoidCallback? onOpenGoals;
   final VoidCallback? onOpenCheckins;
+  final VoidCallback? onOpenCoordinate;
   final int refreshToken;
 
   @override
@@ -51,6 +53,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int activeGoals = 0;
   int achievedGoals = 0;
   int recentCheckins = 0;
+  int activeActivities = 0;
+  int completedActivities = 0;
+  int importantActivities = 0;
+  int upcomingActivities = 0;
+  List<Map<String,dynamic>> recentDiscussions = const [];
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool membershipResolved = false;
@@ -115,6 +122,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeGoals = 0;
           achievedGoals = 0;
           recentCheckins = 0;
+          activeActivities = 0;
+          completedActivities = 0;
+          importantActivities = 0;
+          upcomingActivities = 0;
+          recentDiscussions = const [];
           pendingInviteExpiry = null;
           membershipResolved = true;
           summaryLoading = false;
@@ -154,6 +166,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeGoals = metric('active_goals');
           achievedGoals = metric('completed_goals');
           recentCheckins = metric('recent_checkins');
+          activeActivities = metric('active_activities');
+          completedActivities = metric('completed_activities');
+          importantActivities = metric('important_activities');
+          upcomingActivities = metric('upcoming_activities');
+          recentDiscussions = [
+            for(final row in data['recent_activity_comments'] as List<dynamic>? ?? const [])
+              if(row is Map) Map<String,dynamic>.from(row),
+          ];
           membershipResolved = true;
           summaryLoading = false;
           loading = false;
@@ -470,6 +490,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       ),
                     ],
                     if (taskSummary != null) ...[
+                      _metric(tr(context, 'activeActivitiesCount'), activeActivities),
+                      _metric(tr(context, 'importantActivitiesCount'), importantActivities),
+                      _metric(tr(context, 'upcomingActivitiesCount'), upcomingActivities),
+                      _metric(tr(context, 'completedActivitiesCount'), completedActivities),
+                      const Divider(),
                       _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
                       _metric(tr(context, 'assignedToMe'), taskSummary!.assignedToMe),
                       _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
@@ -490,6 +515,21 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            if (recentDiscussions.isNotEmpty) ...[
+              Text(tr(context,'recentDiscussionsTitle'),
+                style: const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+              for(final entry in recentDiscussions) Card(
+                elevation:0,
+                child:ListTile(
+                  leading:const Icon(Icons.forum_outlined),
+                  title:Text(entry['activity']?.toString()??'Activity'),
+                  subtitle:Text('${entry['author']??'Partner'}: ${entry['message']??''}',
+                    maxLines:2,overflow:TextOverflow.ellipsis),
+                  onTap:widget.onOpenCoordinate,
+                ),
+              ),
+              const SizedBox(height:12),
+            ],
             Text(tr(context, 'quickAccess'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
@@ -497,6 +537,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
+                OutlinedButton.icon(
+                  onPressed:widget.onOpenCoordinate,
+                  icon:const Icon(Icons.hub_outlined),
+                  label:Text(tr(context,'coordinateTab')),
+                ),
                 OutlinedButton.icon(
                   onPressed: widget.onOpenPlans,
                   icon: const Icon(Icons.checklist_rounded),
