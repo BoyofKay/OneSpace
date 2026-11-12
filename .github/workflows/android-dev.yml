@@ -45,6 +45,14 @@ jobs:
           chmod 600 "$HOME/.android/debug.keystore"
       - name: Build installable preview APK
         run: flutter build apk --debug --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }}
+      - name: Verify signed APK uses OneSpace preview certificate
+        shell: bash
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/onespace-signature.txt
+          # Fail closed if signing unexpectedly changes; existing previews need this exact key.
+          grep -qi "90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043" /tmp/onespace-signature.txt
       - name: Name downloadable APK
         shell: bash
         run: |
