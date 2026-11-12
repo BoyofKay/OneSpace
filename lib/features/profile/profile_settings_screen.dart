@@ -1,8 +1,10 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
+import '../../core/performance_timings.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
@@ -182,6 +184,33 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  Future<void> _showPerformanceDiagnostics() async {
+    final report = PerformanceTimings.instance.report;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(tr(context, 'performanceDiagnostics')),
+        content: SingleChildScrollView(
+          child: SelectableText(report),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: report));
+              Navigator.of(dialogContext).pop();
+            },
+            icon: const Icon(Icons.copy_outlined),
+            label: Text(tr(context, 'copyDiagnostics')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(tr(context, 'done')),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -252,6 +281,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
         const SizedBox(height: 18),
         const Divider(),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.speed_outlined),
+          title: Text(tr(context, 'performanceDiagnostics')),
+          subtitle: Text(tr(context, 'performanceDiagnosticsHint')),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showPerformanceDiagnostics,
+        ),
+        const SizedBox(height: 14),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.photo_library_outlined),
