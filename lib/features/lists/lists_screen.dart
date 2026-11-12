@@ -565,14 +565,16 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
                     secondary: PopupMenuButton<String>(
                       tooltip: tr(context, 'actions'),
                       onSelected: (choice) {
-                        if (choice == 'edit') _itemEditor(existing: row);
-                        if (choice == 'remove') _update(
-                          row['id'] as String,
-                          {'removed_at': DateTime.now().toUtc().toIso8601String()},
-                        );
-                        if (choice == 'restore') _update(
-                          row['id'] as String, {'removed_at': null},
-                        );
+                        if (choice == 'edit') {
+                          _itemEditor(existing: row);
+                        } else if (choice == 'remove') {
+                          _update(
+                            row['id'] as String,
+                            {'removed_at': DateTime.now().toUtc().toIso8601String()},
+                          );
+                        } else if (choice == 'restore') {
+                          _update(row['id'] as String, {'removed_at': null});
+                        }
                       },
                       itemBuilder: (_) => [
                         if (!removed) ...[
