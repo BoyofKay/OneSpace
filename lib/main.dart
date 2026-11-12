@@ -7,6 +7,7 @@ import 'features/auth/auth_gate.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
 import 'features/lists/lists_screen.dart';
+import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
@@ -83,7 +84,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   void _navigate(int index) {
     if (!mounted || (selectedIndex == index && !_showProfile)) return;
     setState(() {
-      if (index == 0 && selectedIndex != 0) _dashboardRefreshToken++;
+      // Reuse the already-loaded Home snapshot on quick tab switches.
+      // Pull down in Home for an explicit refresh.
       selectedIndex = index;
       _showProfile = false;
       _visited.add(index);
@@ -105,7 +107,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   Widget build(BuildContext context) {
     // Lazy IndexedStack keeps previously visited tabs alive while not
     // starting the network streams of tabs the user has never opened.
-    final visiblePage = _showProfile ? 4 : selectedIndex;
+    final visiblePage = _showProfile ? 5 : selectedIndex;
     return Scaffold(
       appBar: AppBar(
         leading: _showProfile
@@ -141,18 +143,23 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             SharedSpaceScreen(
               refreshToken: _dashboardRefreshToken,
               onOpenPlans: () => _navigate(1),
-              onOpenLists: () => _navigate(2),
-              onOpenNotes: () => _navigate(3),
+              onOpenCalendar: () => _navigate(2),
+              onOpenLists: () => _navigate(3),
+              onOpenNotes: () => _navigate(4),
             ),
             if (_visited.contains(1))
               PlansScreen(onOpenSpace: () => _navigate(0))
             else
               const SizedBox.shrink(),
             if (_visited.contains(2))
-              const ListsScreen()
+              CalendarScreen(onOpenPlans: () => _navigate(1))
             else
               const SizedBox.shrink(),
             if (_visited.contains(3))
+              const ListsScreen()
+            else
+              const SizedBox.shrink(),
+            if (_visited.contains(4))
               const NotesScreen()
             else
               const SizedBox.shrink(),
@@ -175,6 +182,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           NavigationDestination(
             icon: const Icon(Icons.checklist_rounded),
             label: tr(context, 'plans'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.calendar_today_outlined),
+            label: tr(context, 'calendar'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.shopping_cart_outlined),
