@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'invitation_code.dart';
+import 'space_task_summary.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
   const SharedSpaceScreen({super.key});
@@ -18,6 +19,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   String? spaceName;
   int memberCount = 0;
   List<String> memberDisplayNames = const [];
+  SpaceTaskSummary? taskSummary;
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool working = false;
@@ -54,6 +56,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           spaceName = null;
           memberCount = 0;
           memberDisplayNames = const [];
+          taskSummary = null;
           pendingInviteExpiry = null;
         });
       } else {
@@ -95,12 +98,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             pending = expiry;
           }
         }
+        final tasks = await client
+            .from('tasks')
+            .select('status,visibility,assigned_to')
+            .eq('space_id', id);
+        final summary = SpaceTaskSummary.fromRows(tasks, userId);
         if (!mounted) return;
         setState(() {
           spaceId = id;
           spaceName = space['name'] as String?;
           memberCount = members.length;
           memberDisplayNames = names;
+          taskSummary = summary;
           pendingInviteExpiry = pending;
         });
       }
@@ -351,6 +360,33 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               ),
             ),
           ],
+          if (spaceId != null && taskSummary != null) ...[
+            const SizedBox(height: 24),
+            const Text(
+              'Your plans at a glance',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _metric('Open shared tasks', taskSummary!.openShared),
+                    _metric('Assigned to me', taskSummary!.assignedToMe),
+                    _metric('My private tasks', taskSummary!.myPrivate),
+                    _metric('Completed shared tasks',
+                        taskSummary!.completedShared),
+                  ],
+                ),
+              ),
+            ),
+            const Text(
+              'Pull down to refresh this summary. Private tasks are not visible to your partner.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
           const SizedBox(height: 24),
           const Text(
             'Your account',
@@ -363,6 +399,19 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             icon: const Icon(Icons.logout),
             label: const Text('Sign out'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metric(String title, int count) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(title)),
+          Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
