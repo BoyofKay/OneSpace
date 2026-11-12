@@ -39,6 +39,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   }
 
   Future<void> _load() async {
+    // Capture labels before awaiting; never use BuildContext across async gaps.
+    final memberLabel = tr(context, 'member');
+    final meLabel = tr(context, 'me');
     setState(() {
       loading = true;
       issue = null;
@@ -79,7 +82,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           final foundName = matches.isEmpty
               ? tr(context, 'member')
               : (matches.first['display_name'] as String? ?? 'Member');
-          names.add(memberId == userId ? '$foundName (${tr(context, 'me')})' : foundName);
+          names.add(memberId == userId ? '$foundName ($meLabel)' : foundName);
         }
         final invitations = await client
             .from('space_invitations')
