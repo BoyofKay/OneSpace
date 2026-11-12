@@ -1,58 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'task_date_rules.dart';
 import '../../l10n/onespace_strings.dart';
-
-enum TaskPriority { low, normal, high }
-enum TaskStatus { open, completed, cancelled }
-enum TaskVisibility { shared, private }
-enum TaskFilter { open, completed, cancelled, all }
-enum TaskScope { all, shared, private }
-
-class SharedTask {
-  const SharedTask({
-    required this.id,
-    required this.title,
-    required this.priority,
-    required this.status,
-    required this.createdBy,
-    required this.visibility,
-    this.assignedTo,
-    this.targetDate,
-  });
-
-  final String id;
-  final String title;
-  final TaskPriority priority;
-  final TaskStatus status;
-  final TaskVisibility visibility;
-  final String createdBy;
-  final String? assignedTo;
-  final String? targetDate;
-
-  factory SharedTask.fromMap(Map<String, dynamic> value) {
-    return SharedTask(
-      id: value['id'] as String,
-      title: value['title'] as String,
-      priority: TaskPriority.values.firstWhere(
-        (item) => item.name == value['priority'],
-        orElse: () => TaskPriority.normal,
-      ),
-      status: TaskStatus.values.firstWhere(
-        (item) => item.name == value['status'],
-        orElse: () => TaskStatus.open,
-      ),
-      visibility: TaskVisibility.values.firstWhere(
-        (item) => item.name == (value['visibility'] ?? 'shared'),
-        orElse: () => TaskVisibility.shared,
-      ),
-      createdBy: value['created_by'] as String? ?? '',
-      assignedTo: value['assigned_to'] as String?,
-      targetDate: value['target_date'] as String?,
-    );
-  }
-}
+import 'task_editor_sheet.dart';
+export 'task_editor_sheet.dart'
+    show SharedTask, TaskPriority, TaskStatus, TaskVisibility, TaskFilter, TaskScope;
 
 /// RLS determines which tasks are visible. Filtering in the UI is convenience,
 /// not a privacy boundary: private rows are excluded by the database itself.
@@ -115,10 +67,16 @@ class _PlansScreenState extends State<PlansScreen> {
             .from('profiles')
             .select('id, display_name')
             .inFilter('id', ids);
-        final names = <String, String>{
+        final knownNames = <String, String>{
           for (final entry in profiles)
             entry['id'] as String:
                 (entry['display_name'] as String? ?? 'Member'),
+        };
+        // Every space member is a valid assignment choice even if their
+        // profile is temporarily missing or unreadable.
+        final names = <String, String>{
+          for (final memberId in ids)
+            memberId: knownNames[memberId] ?? 'Partner',
         };
         if (!mounted) return;
         setState(() {
@@ -144,248 +102,40 @@ class _PlansScreenState extends State<PlansScreen> {
     return id == _me ? 'Me' : (_memberNames[id] ?? 'Partner');
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
-  }
-
   Future<void> _taskEditor({SharedTask? existing}) async {
-    if (_busy || _spaceId == null) return;
-
-    final controller = TextEditingController(text: existing?.title ?? '');
-    var priority = existing?.priority ?? TaskPriority.normal;
-    var visibility = existing?.visibility ?? TaskVisibility.shared;
-    DateTime? targetDate = existing?.targetDate == null
-        ? null
-        : DateTime.tryParse(existing!.targetDate!);
-    String? assignee = existing?.assignedTo;
-    bool saving = false;
-    String? dialogError;
-
-    try {
-      await showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (sheetContext) => StatefulBuilder(
-          builder: (sheetContext, updateSheet) => SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                8,
-                20,
-                24 + MediaQuery.viewInsetsOf(sheetContext).bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      existing == null ? tr(context, 'newTask') : tr(context, 'editTask'),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: controller,
-                      maxLength: 120,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: tr(context, 'taskTitle'),
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(tr(context, 'visibility'),
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    Wrap(
-                      spacing: 8,
-                      children: TaskVisibility.values.map((item) {
-                        return ChoiceChip(
-                          label: Text(item == TaskVisibility.shared
-                              ? tr(context, 'sharedWithPartner')
-                              : tr(context, 'onlyMe')),
-                          selected: visibility == item,
-                          onSelected: saving || existing != null
-                              ? null
-                              : (_) => updateSheet(() {
-                                    visibility = item;
-                                    if (item == TaskVisibility.private) {
-                                      assignee = null;
-                                    }
-                                  }),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      existing == null
-                          ? tr(context, 'chooseVisibility')
-                          : visibility == TaskVisibility.private
-                              ? tr(context, 'privateDescription')
-                              : tr(context, 'sharedDescription'),
-                      style: Theme.of(sheetContext).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 14),
-                    Text(tr(context, 'priority'),
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    Wrap(
-                      spacing: 8,
-                      children: TaskPriority.values.map((item) => ChoiceChip(
-                            label: Text(tr(context, item.name)),
-                            selected: priority == item,
-                            onSelected: saving
-                                ? null
-                                : (_) => updateSheet(() => priority = item),
-                          )).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    if (visibility == TaskVisibility.shared) ...[
-                      DropdownButtonFormField<String>(
-                        key: ValueKey('assignee-${existing?.id ?? 'new'}'),
-                        initialValue: assignee ?? '',
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: tr(context, 'assignTo'),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: '',
-                            child: Text('Unassigned'),
-                          ),
-                          for (final member in _memberNames.entries)
-                            DropdownMenuItem<String>(
-                              value: member.key,
-                              child: Text(_displayName(member.key)),
-                            ),
-                        ],
-                        onChanged: saving
-                            ? null
-                            : (value) => updateSheet(() {
-                                  assignee = value == null || value.isEmpty
-                                      ? null
-                                      : value;
-                                }),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(targetDate == null
-                          ? tr(context, 'optionalDate')
-                          : '${tr(context, 'target')}: ${_formatDate(targetDate!)}'),
-                      onPressed: saving
-                          ? null
-                          : () async {
-                              final picked = await showDatePicker(
-                                context: sheetContext,
-                                initialDate: TaskDateRules.initialForPicker(
-                                  targetDate, DateTime.now()),
-                                firstDate: TaskDateRules.localToday(DateTime.now()),
-                                lastDate: DateTime(2100),
-                              );
-                              if (picked != null && sheetContext.mounted) {
-                                updateSheet(() => targetDate = picked);
-                              }
-                            },
-                    ),
-                    if (targetDate != null)
-                      TextButton(
-                        onPressed: saving
-                            ? null
-                            : () => updateSheet(() => targetDate = null),
-                        child: Text(tr(context, 'clearDate')),
-                      ),
-                    if (dialogError != null) ...[
-                      const SizedBox(height: 12),
-                      Text(dialogError!,
-                          style: const TextStyle(color: Colors.red)),
-                    ],
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: saving
-                            ? null
-                            : () async {
-                                final title = controller.text.trim();
-                                if (title.isEmpty) {
-                                  updateSheet(() =>
-                                      dialogError = tr(context, 'emptyTaskTitle'));
-                                  return;
-                                }
-                                if (!TaskDateRules.isAllowed(
-                                    targetDate, DateTime.now())) {
-                                  updateSheet(() => dialogError = tr(context, 'pastDateError'));
-                                  return;
-                                }
-                                updateSheet(() {
-                                  saving = true;
-                                  dialogError = null;
-                                });
-                                try {
-                                  final fields = <String, dynamic>{
-                                    'title': title,
-                                    'priority': priority.name,
-                                    'target_date': targetDate == null
-                                        ? null
-                                        : _formatDate(targetDate!),
-                                    'assigned_to': visibility ==
-                                            TaskVisibility.private
-                                        ? null
-                                        : assignee,
-                                  };
-                                  if (existing == null) {
-                                    await _client.from('tasks').insert({
-                                      ...fields,
-                                      'space_id': _spaceId,
-                                      'created_by': _me,
-                                      'status': 'open',
-                                      'visibility': visibility.name,
-                                    });
-                                  } else {
-                                    await _client.from('tasks')
-                                        .update(fields)
-                                        .eq('id', existing.id)
-                                        .eq('space_id', _spaceId!);
-                                  }
-                                  if (sheetContext.mounted) {
-                                    Navigator.of(sheetContext).pop();
-                                  }
-                                } on PostgrestException catch (e) {
-                                  if (sheetContext.mounted) {
-                                    updateSheet(() => dialogError = e.message);
-                                  }
-                                } catch (_) {
-                                  if (sheetContext.mounted) {
-                                    updateSheet(() => dialogError =
-                                        'Could not save. Check your connection.');
-                                  }
-                                } finally {
-                                  if (sheetContext.mounted) {
-                                    updateSheet(() => saving = false);
-                                  }
-                                }
-                              },
-                        child: Text(existing == null
-                            ? tr(context, 'createTask')
-                            : tr(context, 'saveChanges')),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    } finally {
-      controller.dispose();
-    }
+    final spaceId = _spaceId;
+    if (_busy || spaceId == null || !mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => TaskEditorSheet(
+        existing: existing,
+        members: _memberNames,
+        currentUserId: _me,
+        onSave: (draft) async {
+          final fields = draft.toEditableFields();
+          if (existing == null) {
+            await _client.from('tasks').insert({
+              ...fields,
+              'space_id': spaceId,
+              'created_by': _me,
+              'status': 'open',
+              'visibility': draft.visibility.name,
+            });
+          } else {
+            final rows = await _client.from('tasks')
+              .update(fields)
+              .eq('id', existing.id)
+              .eq('space_id', spaceId)
+              .select('id');
+            if (rows.isEmpty) {
+              throw StateError('Task is no longer available for editing.');
+            }
+          }
+        },
+      ),
+    );
   }
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
