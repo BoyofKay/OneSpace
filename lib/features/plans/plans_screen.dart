@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A local-only planning preview. Server persistence and partner sync come later.
 enum PlanPriority { low, normal, high }
