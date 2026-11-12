@@ -12,11 +12,13 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenPlans,
     this.onOpenLists,
     this.onOpenNotes,
+    this.refreshToken = 0,
   });
 
   final VoidCallback? onOpenPlans;
   final VoidCallback? onOpenLists;
   final VoidCallback? onOpenNotes;
+  final int refreshToken;
 
   @override
   State<SharedSpaceScreen> createState() => _SharedSpaceScreenState();
@@ -35,6 +37,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int activeNotes = 0;
   DateTime? pendingInviteExpiry;
   bool loading = true;
+  bool summaryLoading = false;
+  String? summaryIssue;
+  int _requestVersion = 0;
   bool working = false;
   String? issue;
 
@@ -45,27 +50,36 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant SharedSpaceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken) _load();
+  }
+
+  @override
   void dispose() {
+    _requestVersion++;
     invitationController.dispose();
     super.dispose();
   }
 
+  /// First load membership; render the space as soon as we have its ID.
+  /// Remaining independent groups load concurrently, so one failing optional
+  /// query cannot hide the entire dashboard.
   Future<void> _load() async {
-    // Capture labels before awaiting; never use BuildContext across async gaps.
-    final memberLabel = tr(context, 'member');
-    final meLabel = tr(context, 'me');
+    final request = ++_requestVersion;
+    if (!mounted) return;
     setState(() {
-      loading = true;
+      loading = spaceId == null;
       issue = null;
+      summaryIssue = null;
     });
     try {
-      final userId = client.auth.currentUser!.id;
-      final memberships = await client
-          .from('space_members')
-          .select('space_id')
-          .eq('user_id', userId)
-          .limit(1);
-      if (!mounted) return;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Not signed in');
+      final memberships = await client.from('space_members')
+          .select('space_id').eq('user_id', userId).limit(1)
+          .timeout(const Duration(seconds: 12));
+      if (!mounted || request != _requestVersion) return;
       if (memberships.isEmpty) {
         setState(() {
           spaceId = null;
@@ -77,79 +91,159 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeOtherLists = 0;
           activeNotes = 0;
           pendingInviteExpiry = null;
+          summaryLoading = false;
+          loading = false;
         });
-      } else {
-        final id = memberships.first['space_id'] as String;
-        final space = await client.from('spaces').select('name').eq('id', id).single();
-        final members = await client
-            .from('space_members')
-            .select('user_id')
-            .eq('space_id', id);
-        final memberIds =
-            members.map((member) => member['user_id'] as String).toList();
-        final profiles = await client
-            .from('profiles')
-            .select('id,display_name')
-            .inFilter('id', memberIds);
-        final names = <String>[];
-        for (final memberId in memberIds) {
-          final matches = profiles.where((profile) => profile['id'] == memberId);
-          final foundName = matches.isEmpty
-              ? memberLabel
-              : (matches.first['display_name'] as String? ?? memberLabel);
-          names.add(memberId == userId ? '$foundName ($meLabel)' : foundName);
-        }
-        final invitations = await client
-            .from('space_invitations')
-            .select('expires_at, revoked_at, accepted_at')
-            .eq('space_id', id)
-            .eq('invited_by', userId)
-            .order('created_at', ascending: false)
-            .limit(1);
-        DateTime? pending;
-        if (invitations.isNotEmpty) {
-          final invite = invitations.first;
-          final expiry = DateTime.tryParse(invite['expires_at'] as String);
-          if (invite['revoked_at'] == null &&
-              invite['accepted_at'] == null &&
-              expiry != null &&
-              expiry.isAfter(DateTime.now())) {
-            pending = expiry;
-          }
-        }
-        final tasks = await client
-            .from('tasks')
-            .select('status,visibility,assigned_to')
-            .eq('space_id', id);
-        final summary = SpaceTaskSummary.fromRows(tasks, userId);
-        final listRows = await client.from('lists')
-            .select('kind,archived_at').eq('space_id', id);
-        final noteRows = await client.from('notes')
-            .select('archived_at').eq('space_id', id);
-        final currentLists = listRows.where((row) => row['archived_at'] == null);
-        final shoppingCount =
-            currentLists.where((row) => row['kind'] == 'shopping').length;
-        final otherCount =
-            currentLists.where((row) => row['kind'] != 'shopping').length;
-        final noteCount =
-            noteRows.where((row) => row['archived_at'] == null).length;
-        if (!mounted) return;
-        setState(() {
+        return;
+      }
+      final id = memberships.first['space_id'] as String;
+      setState(() {
+        if (spaceId != id) {
           spaceId = id;
-          spaceName = space['name'] as String?;
-          memberCount = members.length;
-          memberDisplayNames = names;
-          taskSummary = summary;
-          activeShoppingLists = shoppingCount;
-          activeOtherLists = otherCount;
-          activeNotes = noteCount;
-          pendingInviteExpiry = pending;
+          spaceName = null;
+          memberCount = 0;
+          memberDisplayNames = const [];
+          taskSummary = null;
+          activeShoppingLists = 0;
+          activeOtherLists = 0;
+          activeNotes = 0;
+          pendingInviteExpiry = null;
+        }
+        loading = false;
+        summaryLoading = true;
+      });
+      await Future.wait<void>([
+        _loadHeader(id, userId, request),
+        _loadInvitation(id, userId, request),
+        _loadSummary(id, userId, request),
+      ]);
+    } on PostgrestException catch (e) {
+      if (mounted && request == _requestVersion) {
+        setState(() => issue = e.message);
+      }
+    } catch (_) {
+      if (mounted && request == _requestVersion) {
+        setState(() => issue = tr(context, 'loadedError'));
+      }
+    } finally {
+      if (mounted && request == _requestVersion) {
+        setState(() => loading = false);
+      }
+    }
+  }
+
+  Future<void> _loadHeader(String id, String userId, int request) async {
+    final memberLabel = tr(context, 'member');
+    final meLabel = tr(context, 'me');
+    try {
+      // Launch independent requests together.
+      final spaceFuture = client.from('spaces')
+          .select('name').eq('id', id).maybeSingle();
+      final membersFuture = client.from('space_members')
+          .select('user_id').eq('space_id', id);
+      final space = await spaceFuture.timeout(const Duration(seconds: 10));
+      final members = await membersFuture.timeout(const Duration(seconds: 10));
+      if (!mounted || request != _requestVersion) return;
+      final ids = members.map((e) => e['user_id'] as String).toList();
+      // Display the member count immediately, even if profiles are slow.
+      setState(() {
+        spaceName = space?['name'] as String?;
+        memberCount = ids.length;
+        memberDisplayNames = [
+          for (final memberId in ids)
+            memberId == userId ? '$memberLabel ($meLabel)' : memberLabel,
+        ];
+      });
+      if (ids.isEmpty) return;
+      try {
+        final profiles = await client.from('profiles')
+            .select('id,display_name').inFilter('id', ids)
+            .timeout(const Duration(seconds: 10));
+        if (!mounted || request != _requestVersion) return;
+        final nameById = {
+          for (final p in profiles)
+            p['id'] as String: p['display_name'] as String? ?? memberLabel,
+        };
+        setState(() => memberDisplayNames = [
+          for (final memberId in ids)
+            memberId == userId
+                ? '${nameById[memberId] ?? memberLabel} ($meLabel)'
+                : nameById[memberId] ?? memberLabel,
+        ]);
+      } catch (_) {
+        // A missing/slow profile must not keep Home loading.
+      }
+    } catch (_) {
+      // Space and membership are already known; still render the dashboard.
+    }
+  }
+
+  Future<void> _loadInvitation(String id, String userId, int request) async {
+    try {
+      final invitations = await client.from('space_invitations')
+          .select('expires_at,revoked_at,accepted_at')
+          .eq('space_id', id).eq('invited_by', userId)
+          .order('created_at', ascending: false).limit(1)
+          .timeout(const Duration(seconds: 10));
+      DateTime? pending;
+      if (invitations.isNotEmpty) {
+        final invitation = invitations.first;
+        final expiry = DateTime.tryParse(invitation['expires_at'] as String);
+        if (invitation['revoked_at'] == null &&
+            invitation['accepted_at'] == null &&
+            expiry != null && expiry.isAfter(DateTime.now())) {
+          pending = expiry;
+        }
+      }
+      if (mounted && request == _requestVersion) {
+        setState(() => pendingInviteExpiry = pending);
+      }
+    } catch (_) {
+      // Invitation history is optional; never block the Home screen.
+    }
+  }
+
+  Future<void> _loadSummary(String id, String userId, int request) async {
+    try {
+      final rows = await Future.wait<List<Map<String, dynamic>>>([
+        client.from('tasks')
+            .select('status,visibility,assigned_to,created_by')
+            .eq('space_id', id),
+        client.from('lists')
+            .select('kind,archived_at')
+            .eq('space_id', id),
+        client.from('notes')
+            .select('archived_at')
+            .eq('space_id', id),
+      ]).timeout(const Duration(seconds: 12));
+      final summary = SpaceTaskSummary.fromRows(rows[0], userId);
+      final currentLists = rows[1].where((e) => e['archived_at'] == null);
+      if (!mounted || request != _requestVersion) return;
+      setState(() {
+        taskSummary = summary;
+        activeShoppingLists =
+            currentLists.where((e) => e['kind'] == 'shopping').length;
+        activeOtherLists =
+            currentLists.where((e) => e['kind'] != 'shopping').length;
+        activeNotes =
+            rows[2].where((e) => e['archived_at'] == null).length;
+        summaryIssue = null;
+        summaryLoading = false;
+      });
+    } on PostgrestException catch (e) {
+      if (mounted && request == _requestVersion) {
+        setState(() {
+          summaryIssue = e.message;
+          summaryLoading = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => issue = tr(context, 'loadedError'));
-    } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted && request == _requestVersion) {
+        setState(() {
+          summaryIssue = tr(context, 'dashboardStatsUnavailable');
+          summaryLoading = false;
+        });
+      }
     }
   }
 
@@ -386,7 +480,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               ),
             ),
           ],
-          if (spaceId != null && taskSummary != null) ...[
+          if (spaceId != null) ...[
             const SizedBox(height: 24),
             Text(
               tr(context, 'plansAtGlance'),
@@ -399,15 +493,32 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
-                    _metric(tr(context, 'assignedToMe'), taskSummary!.assignedToMe),
-                    _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
-                    _metric(tr(context, 'completedSharedTasks'),
-                        taskSummary!.completedShared),
-                    const Divider(),
-                    _metric(tr(context, 'shoppingListsCount'), activeShoppingLists),
-                    _metric(tr(context, 'otherListsCount'), activeOtherLists),
-                    _metric(tr(context, 'notesCount'), activeNotes),
+                    if (summaryLoading && taskSummary == null)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    if (summaryIssue != null) ...[
+                      Text(tr(context, 'dashboardStatsUnavailable')),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => _loadSummary(
+                          spaceId!, client.auth.currentUser!.id, _requestVersion),
+                        icon: const Icon(Icons.refresh),
+                        label: Text(tr(context, 'retry')),
+                      ),
+                    ],
+                    if (taskSummary != null) ...[
+                      _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
+                      _metric(tr(context, 'assignedToMe'), taskSummary!.assignedToMe),
+                      _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
+                      _metric(tr(context, 'completedSharedTasks'),
+                          taskSummary!.completedShared),
+                      const Divider(),
+                      _metric(tr(context, 'shoppingListsCount'), activeShoppingLists),
+                      _metric(tr(context, 'otherListsCount'), activeOtherLists),
+                      _metric(tr(context, 'notesCount'), activeNotes),
+                    ],
                   ],
                 ),
               ),
@@ -443,18 +554,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               style: TextStyle(fontSize: 12),
             ),
           ],
-          const SizedBox(height: 24),
-          Text(
-            tr(context, 'yourAccount'),
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-          ),
-          const SizedBox(height: 8),
-          Text(client.auth.currentUser?.email ?? 'Signed in'),
-          TextButton.icon(
-            onPressed: working ? null : () => client.auth.signOut(),
-            icon: const Icon(Icons.logout),
-            label: Text(tr(context, 'signOut')),
-          ),
         ],
       ),
     );
