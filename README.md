@@ -7,7 +7,7 @@ A Flutter companion app for couples, whether living together or apart.
 ## Current foundation preview
 
 - Email/password sign up, sign in, session restoration and sign out (Supabase Auth)
-- Sign-up confirmation emails can be resent; email delivery follows Supabase project limits
+- Sign-up confirmation emails can be resent. Email confirmation and password recovery redirect into the preview app once the Supabase Auth callback is allowed (see [callback setup](docs/AUTH_CALLBACK_SETUP.md)); email delivery follows Supabase project limits
 - Personal profiles: display names, per-person language preference, signed-in password change
 - Secure creation of one shared space per account, limited to two members
 - High-entropy invitation code, expires after 48 hours, one-time acceptance, invitation replacement revokes old codes
@@ -15,7 +15,7 @@ A Flutter companion app for couples, whether living together or apart.
 - Every exposed table has RLS; shared tasks can be read/updated only by members
 - **Persistent shared tasks** with real-time updates, priorities, optional target dates and open/completed/cancelled states
 - Cancelled tasks stay in history (hard delete is not granted to application accounts)
-- Memories is currently a placeholder; Arabic RTL interface translation, account recovery while signed out, and account deletion are future milestones
+- Signed-out password-recovery and reset-password screens are implemented but **require Supabase redirect URL configuration and real-device testing** before being called operational. Memories, Arabic RTL UI translation, and account deletion are future milestones.
 
 ## Install a standalone Android APK
 
@@ -36,11 +36,11 @@ The Supabase advisor currently flags the three intentionally authenticated `SECU
 ## Ordered milestones
 
 1. **Foundation:** account creation, email confirmation, sign in, profile, secure pairing and direct APK previews
-2. **Validate foundation:** end-to-end test with two real test users, password reset and deep link return, stable CI verification and auth edge cases
+2. **Validate foundation:** configure [Supabase preview redirect](docs/AUTH_CALLBACK_SETUP.md); end-to-end test with two real test users, password reset and deep link return, stable CI verification and auth edge cases
 3. **Shared data:** persistent synchronized tasks (initial implementation), reminders, shopping lists and notes
 4. **Daily experiences:** calendar, dashboards, notifications and flexible sharing
 5. **Production readiness:** English/Arabic RTL, privacy controls, account deletion, stable secret production signing, app store preparation
 
 ## Development
 
-Flutter stable 3.50.0. Use `flutter pub get`, `flutter analyze`, and `flutter test`.
+Flutter stable 3.50.0. Use `flutter pub get`, `flutter analyze`, and `flutter test`. The GitHub build refreshes the dependency lockfile when necessary, commits it to the repository, then checks `flutter pub get --enforce-lockfile` for reproducibility.
