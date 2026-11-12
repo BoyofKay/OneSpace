@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import 'list_item_rules.dart';
+import '../sharing/object_permissions.dart';
+import '../sharing/private_share_button.dart';
 
 /// Lists and shopping use the same reliable data model, while each list has its
 /// own privacy boundary and separate, realtime item stream.
@@ -272,9 +274,21 @@ class _ListsScreenState extends State<ListsScreen> {
                   children: visible.map((entry) {
                     final archived = entry['archived_at'] != null;
                     final shopping = entry['kind'] == 'shopping';
+                    final canEdit = ObjectPermissions.canEdit(
+                      visibility: entry['visibility'] as String,
+                      createdBy: entry['created_by'] as String,
+                      userId: _client.auth.currentUser!.id,
+                    );
+                    final canShare = ObjectPermissions.canManagePrivateShare(
+                      visibility: entry['visibility'] as String,
+                      createdBy: entry['created_by'] as String,
+                      userId: _client.auth.currentUser!.id,
+                    );
                     return Card(
                       elevation: 0,
-                      child: ListTile(
+                      child: Column(
+                        children: [
+                      ListTile(
                         leading: Icon(shopping
                             ? Icons.shopping_cart_outlined
                             : Icons.checklist_rounded),
@@ -283,6 +297,7 @@ class _ListsScreenState extends State<ListsScreen> {
                           tr(context, entry['kind'] as String),
                           tr(context, entry['visibility'] as String),
                           if (archived) tr(context, 'archived'),
+                          if (!canEdit) tr(context, 'viewOnly'),
                         ].join(' • ')),
                         onTap: archived ? null : () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -290,10 +305,12 @@ class _ListsScreenState extends State<ListsScreen> {
                               listId: entry['id'] as String,
                               title: entry['title'] as String,
                               isShopping: shopping,
+                              canEdit: canEdit,
                             ),
                           ),
                         ),
-                        trailing: PopupMenuButton<String>(
+                        trailing: !canEdit ? const Icon(Icons.lock_outline)
+                          : PopupMenuButton<String>(
                           tooltip: tr(context, 'actions'),
                           onSelected: (value) {
                             if (value == 'edit') _editList(existing: entry);
@@ -308,6 +325,15 @@ class _ListsScreenState extends State<ListsScreen> {
                             ),
                           ],
                         ),
+                        if (canShare)
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: PrivateShareButton(
+                              objectType: 'list',
+                              objectId: entry['id'] as String,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }).toList(),
@@ -327,11 +353,13 @@ class ListItemsScreen extends StatefulWidget {
     required this.listId,
     required this.title,
     required this.isShopping,
+    required this.canEdit,
   });
 
   final String listId;
   final String title;
   final bool isShopping;
+  final bool canEdit;
 
   @override
   State<ListItemsScreen> createState() => _ListItemsScreenState();
@@ -353,6 +381,7 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
   }
 
   Future<void> _itemEditor({Map<String, dynamic>? existing}) async {
+    if (!widget.canEdit) return;
     final title = TextEditingController(text: existing?['label'] as String? ?? '');
     final amount = TextEditingController(
       text: existing == null ? '1' : existing['quantity'].toString());
@@ -479,6 +508,7 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
   }
 
   Future<void> _update(String id, Map<String, dynamic> fields) async {
+    if (!widget.canEdit) return;
     try {
       await _client.from('list_items').update(fields)
           .eq('id', id).eq('list_id', widget.listId);
@@ -490,6 +520,7 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
   }
 
   Future<void> _clearChecked() async {
+    if (!widget.canEdit) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -552,12 +583,17 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
               const SizedBox(height: 12),
               if (_error != null) Text(_error!,
                   style: const TextStyle(color: Colors.red)),
-              FilledButton.icon(
+              if (!widget.canEdit)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(tr(context, 'viewOnly')),
+                ),
+              if (widget.canEdit) FilledButton.icon(
                 onPressed: () => _itemEditor(),
                 icon: const Icon(Icons.add),
                 label: Text(tr(context, 'addItem')),
               ),
-              if (done > 0)
+              if (widget.canEdit && done > 0)
                 TextButton.icon(
                   onPressed: _clearChecked,
                   icon: const Icon(Icons.done_all),
@@ -589,7 +625,7 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
                   elevation: 0,
                   child: CheckboxListTile(
                     value: checked,
-                    onChanged: removed ? null : (value) =>
+                    onChanged: removed || !widget.canEdit ? null : (value) =>
                         _update(row['id'] as String, {'checked': value == true}),
                     controlAffinity: ListTileControlAffinity.leading,
                     title: Text(row['label'] as String,
@@ -598,7 +634,8 @@ class _ListItemsScreenState extends State<ListItemsScreen> {
                             ? TextDecoration.lineThrough : null,
                       )),
                     subtitle: subtitle.isEmpty ? null : Text(subtitle),
-                    secondary: PopupMenuButton<String>(
+                    secondary: !widget.canEdit ? const Icon(Icons.lock_outline)
+                        : PopupMenuButton<String>(
                       tooltip: tr(context, 'actions'),
                       onSelected: (choice) {
                         if (choice == 'edit') {
