@@ -4,7 +4,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_redirect.dart';
+import '../../l10n/onespace_locale_controller.dart';
+import '../../l10n/onespace_strings.dart';
+import 'device_unlock.dart';
 import 'password_recovery_screen.dart';
+import 'remembered_accounts.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.signedIn});
@@ -17,27 +21,106 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   StreamSubscription<AuthState>? _subscription;
   bool _recoveryInProgress = false;
+  bool _checkingSavedSession = true;
+  bool _sessionLocked = false;
+  bool _authenticating = false;
+  String? _unlockError;
 
   @override
   void initState() {
     super.initState();
-    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen(
+    final auth = Supabase.instance.client.auth;
+    if (auth.currentSession != null) {
+      _checkSavedSession();
+      _loadAccountLocale();
+    } else {
+      _checkingSavedSession = false;
+    }
+    _subscription = auth.onAuthStateChange.listen(
       (state) {
         if (!mounted) return;
-        setState(() {
-          if (state.event == AuthChangeEvent.passwordRecovery) {
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          setState(() {
             _recoveryInProgress = true;
-          } else if (state.event == AuthChangeEvent.signedOut) {
+            _sessionLocked = false;
+            _checkingSavedSession = false;
+          });
+          return;
+        }
+        if (state.event == AuthChangeEvent.signedOut) {
+          OneSpaceLocaleController.instance.selectLanguage(null);
+          setState(() {
             _recoveryInProgress = false;
-          }
-        });
+            _sessionLocked = false;
+            _checkingSavedSession = false;
+            _unlockError = null;
+          });
+          return;
+        }
+        if (state.event == AuthChangeEvent.signedIn) {
+          setState(() {
+            _checkingSavedSession = false;
+            _sessionLocked = false;
+            _unlockError = null;
+          });
+          _loadAccountLocale();
+        }
       },
       onError: (Object error, StackTrace stackTrace) {
-        // Auth can emit transient network errors while offline. Ignore these
-        // here and let the account screens show actionable request failures.
         debugPrint('OneSpace auth state temporarily unavailable.');
       },
     );
+  }
+
+  Future<void> _checkSavedSession() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      if (mounted) setState(() => _checkingSavedSession = false);
+      return;
+    }
+    final enabled = await DeviceUnlock.isEnabled(userId);
+    if (!mounted) return;
+    if (Supabase.instance.client.auth.currentUser?.id != userId) return;
+    setState(() {
+      _checkingSavedSession = false;
+      _sessionLocked = enabled;
+    });
+  }
+
+  Future<void> _loadAccountLocale() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('locale')
+          .eq('id', userId)
+          .single();
+      if (Supabase.instance.client.auth.currentUser?.id == userId) {
+        OneSpaceLocaleController.instance.selectLanguage(
+          profile['locale'] as String?,
+        );
+      }
+    } catch (_) {
+      // Offline users can continue with the device's language.
+    }
+  }
+
+  Future<void> _unlock() async {
+    if (_authenticating) return;
+    setState(() {
+      _authenticating = true;
+      _unlockError = null;
+    });
+    final granted = await DeviceUnlock.authenticate(
+      reason: 'Unlock your saved OneSpace session',
+    );
+    if (!mounted) return;
+    setState(() {
+      _authenticating = false;
+      _sessionLocked = !granted;
+      _unlockError = granted ? null : 'Device unlock failed or was cancelled.';
+    });
   }
 
   @override
@@ -52,7 +135,52 @@ class _AuthGateState extends State<AuthGate> {
     if (_recoveryInProgress && signedIn) {
       return const ResetPasswordScreen();
     }
-    return signedIn ? widget.signedIn : const SignInScreen();
+    if (!signedIn) return const SignInScreen();
+    if (_checkingSavedSession) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_sessionLocked) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.fingerprint, size: 66, color: Color(0xFF167E81)),
+                    const SizedBox(height: 16),
+                    Text(tr(context, 'unlockOneSpace'),
+                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text(Supabase.instance.client.auth.currentUser?.email ?? ''),
+                    const SizedBox(height: 20),
+                    if (_unlockError != null)
+                      Text(_unlockError!, style: const TextStyle(color: Colors.red)),
+                    FilledButton.icon(
+                      onPressed: _authenticating ? null : _unlock,
+                      icon: const Icon(Icons.lock_open),
+                      label: Text(tr(context, 'unlockButton')),
+                    ),
+                    TextButton(
+                      onPressed: _authenticating
+                          ? null
+                          : () => Supabase.instance.client.auth.signOut(),
+                      child: Text(tr(context, 'differentAccount')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return widget.signedIn;
   }
 }
 
@@ -75,6 +203,40 @@ class _SignInScreenState extends State<SignInScreen> {
   bool showingRecoveryRequest = false;
   String? error;
   String? info;
+  bool rememberEmail = false;
+  List<String> rememberedEmails = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreRemembered();
+  }
+
+  Future<void> _restoreRemembered() async {
+    try {
+      final emails = await RememberedAccounts.list();
+      if (!mounted) return;
+      setState(() {
+        rememberedEmails = emails;
+        if (emails.isNotEmpty && emailController.text.isEmpty) {
+          emailController.text = emails.first;
+          rememberEmail = true;
+        }
+      });
+    } catch (_) {
+      // Remembered emails are only a convenience; login works without them.
+    }
+  }
+
+  Future<void> _forgetRemembered() async {
+    await RememberedAccounts.forgetAll();
+    if (!mounted) return;
+    setState(() {
+      rememberedEmails = const [];
+      rememberEmail = false;
+      emailController.clear();
+    });
+  }
 
   @override
   void dispose() {
@@ -110,6 +272,9 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       } else {
         await auth.signInWithPassword(email: email, password: password);
+        if (rememberEmail) {
+          await RememberedAccounts.remember(email);
+        }
       }
     } on AuthException catch (e) {
       if (mounted) setState(() => error = e.message);
@@ -175,12 +340,37 @@ class _SignInScreenState extends State<SignInScreen> {
                 const Text('OneSpace',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
-                const Text('Two lives. One space.',
+                Text(tr(context, 'tagline'),
                     textAlign: TextAlign.center),
                 const SizedBox(height: 32),
-                Text(registering ? 'Create your account' : 'Welcome back',
+                Text(registering ? tr(context, 'createAccount') : tr(context, 'welcome'),
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 18),
+                if (!registering && rememberedEmails.isNotEmpty) ...[
+                  Text(tr(context, 'recentAccounts')),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: rememberedEmails
+                        .map((email) => ActionChip(
+                              label: Text(email),
+                              onPressed: loading
+                                  ? null
+                                  : () => setState(() {
+                                        emailController.text = email;
+                                        passwordController.clear();
+                                        error = null;
+                                      }),
+                            ))
+                        .toList(),
+                  ),
+                  TextButton(
+                    onPressed: loading ? null : _forgetRemembered,
+                    child: Text(tr(context, 'forgetEmails')),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Form(
                   key: formKey,
                   child: Column(
@@ -190,7 +380,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           controller: displayNameController,
                           maxLength: 80,
                           decoration: const InputDecoration(
-                            labelText: 'Your display name',
+                            labelText: tr(context, 'yourName'),
                             border: OutlineInputBorder(),
                           ),
                           validator: (value) =>
@@ -205,7 +395,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
                         decoration: const InputDecoration(
-                          labelText: 'Email',
+                          labelText: tr(context, 'email'),
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) =>
@@ -221,7 +411,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             ? AutofillHints.newPassword
                             : AutofillHints.password],
                         decoration: InputDecoration(
-                          labelText: 'Password',
+                          labelText: tr(context, 'password'),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             tooltip: hidePassword ? 'Show password' : 'Hide password',
@@ -240,6 +430,16 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ],
                   ),
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tr(context, 'rememberEmail')),
+                  subtitle: const Text('Passwords are never saved.'),
+                  value: rememberEmail,
+                  onChanged: loading
+                      ? null
+                      : (enabled) =>
+                          setState(() => rememberEmail = enabled ?? false),
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
@@ -262,8 +462,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(10),
                     child: Text(loading
-                        ? 'Please wait...'
-                        : registering ? 'Create account' : 'Sign in'),
+                        ? tr(context, 'pleaseWait')
+                        : registering ? tr(context, 'register') : tr(context, 'signIn')),
                   ),
                 ),
                 if (!registering)
@@ -271,7 +471,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     onPressed: loading
                         ? null
                         : () => setState(() => showingRecoveryRequest = true),
-                    child: const Text('Forgot password?'),
+                    child: Text(tr(context, 'forgotPassword')),
                   ),
                 TextButton(
                   onPressed: loading
@@ -283,8 +483,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           info = null;
                         }),
                   child: Text(registering
-                      ? 'Already have an account? Sign in'
-                      : 'New to OneSpace? Create an account'),
+                      ? tr(context, 'alreadyRegistered')
+                      : tr(context, 'needAccount')),
                 ),
               ],
             ),
