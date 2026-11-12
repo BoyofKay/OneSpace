@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import 'task_editor_sheet.dart';
+import '../sharing/object_permissions.dart';
+import '../sharing/private_share_button.dart';
 export 'task_editor_sheet.dart'
     show SharedTask, TaskPriority, TaskStatus, TaskVisibility, TaskFilter, TaskScope;
 
@@ -316,6 +318,16 @@ class _PlansScreenState extends State<PlansScreen> {
   Widget _taskTile(SharedTask task) {
     final cancelled = task.status == TaskStatus.cancelled;
     final completed = task.status == TaskStatus.completed;
+    final canEdit = ObjectPermissions.canEdit(
+      visibility: task.visibility.name,
+      createdBy: task.createdBy,
+      userId: _me,
+    );
+    final canShare = ObjectPermissions.canManagePrivateShare(
+      visibility: task.visibility.name,
+      createdBy: task.createdBy,
+      userId: _me,
+    );
     final details = <String>[
       task.visibility == TaskVisibility.private ? tr(context, 'private') : tr(context, 'shared'),
       '${tr(context, task.priority.name)} ${tr(context, 'priority')}',
@@ -323,12 +335,15 @@ class _PlansScreenState extends State<PlansScreen> {
         'Assigned: ${_displayName(task.assignedTo!)}',
       if (task.targetDate != null) 'Target ${task.targetDate}',
       if (cancelled) tr(context, 'cancelled'),
+      if (!canEdit) tr(context, 'viewOnly'),
     ];
     return Card(
       elevation: 0,
-      child: CheckboxListTile(
+      child: Column(
+        children: [
+      CheckboxListTile(
         value: completed,
-        onChanged: cancelled || _busy
+        onChanged: !canEdit || cancelled || _busy
             ? null
             : (value) => _changeStatus(
                   task,
@@ -349,7 +364,9 @@ class _PlansScreenState extends State<PlansScreen> {
           ),
         ),
         subtitle: Text(details.join(' • ')),
-        secondary: PopupMenuButton<String>(
+        secondary: !canEdit
+            ? const Icon(Icons.lock_outline)
+            : PopupMenuButton<String>(
           tooltip: tr(context, 'taskActions'),
           onSelected: (choice) {
             if (choice == 'edit') {
@@ -368,6 +385,15 @@ class _PlansScreenState extends State<PlansScreen> {
               PopupMenuItem(value: 'reopen', child: Text(tr(context, 'reopenTask'))),
           ],
         ),
+        if (canShare)
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: PrivateShareButton(
+              objectType: 'task',
+              objectId: task.id,
+            ),
+          ),
+        ],
       ),
     );
   }
