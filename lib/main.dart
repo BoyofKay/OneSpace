@@ -1,14 +1,16 @@
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalWidgetsLocalizations;
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_localizations/flutter_localizations.dart' show GlobalWidgetsLocalizations;
-
-import 'l10n/onespace_locale_controller.dart';
-import 'l10n/onespace_strings.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
+import 'features/lists/lists_screen.dart';
+import 'features/notes/notes_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
+import 'l10n/onespace_locale_controller.dart';
+import 'l10n/onespace_strings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,25 +31,25 @@ class OneSpaceApp extends StatelessWidget {
     return ValueListenableBuilder<Locale?>(
       valueListenable: OneSpaceLocaleController.instance,
       builder: (context, currentLocale, child) => MaterialApp(
-      title: 'OneSpace',
-      locale: currentLocale,
-      supportedLocales: const [Locale('en'), Locale('ar')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ],
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-        colorScheme: ColorScheme.fromSeed(seedColor: teal),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF7F8FA),
-          foregroundColor: ink,
-          centerTitle: false,
+        title: 'OneSpace',
+        locale: currentLocale,
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+          colorScheme: ColorScheme.fromSeed(seedColor: teal),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFFF7F8FA),
+            foregroundColor: ink,
+            centerTitle: false,
+          ),
         ),
-      ),
-      home: const AuthGate(signedIn: OneSpaceHome()),
+        home: const AuthGate(signedIn: OneSpaceHome()),
       ),
     );
   }
@@ -63,84 +65,73 @@ class OneSpaceHome extends StatefulWidget {
 class _OneSpaceHomeState extends State<OneSpaceHome> {
   int selectedIndex = 0;
 
+  void _navigate(int index) {
+    if (mounted && selectedIndex != index) {
+      setState(() => selectedIndex = index);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const sections = ['Home', 'Plans', 'Memories'];
+    // Only mount the active screen. This reloads space membership when the
+    // user switches between accounts or returns to a previous screen.
+    final Widget content;
+    switch (selectedIndex) {
+      case 0:
+        content = SharedSpaceScreen(
+          onOpenPlans: () => _navigate(1),
+          onOpenLists: () => _navigate(2),
+          onOpenNotes: () => _navigate(3),
+        );
+      case 1:
+        content = PlansScreen(onOpenSpace: () => _navigate(0));
+      case 2:
+        content = const ListsScreen();
+      case 3:
+        content = const NotesScreen();
+      default:
+        content = const ProfileSettingsScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('OneSpace', style: TextStyle(fontWeight: FontWeight.w800)),
-            Text(tr(context, 'tagline'), style: const TextStyle(fontSize: 12)),
+            const Text('OneSpace',
+                style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(tr(context, 'tagline'),
+                style: const TextStyle(fontSize: 12)),
           ],
         ),
       ),
-      // Remount the active tab on navigation so newly created/joined spaces
-      // and account profiles load fresh from Supabase, rather than keeping
-      // stale membership information from an inactive IndexedStack child.
-      body: SafeArea(
-        child: selectedIndex == 0
-            ? const SharedSpaceScreen()
-            : selectedIndex == 1
-                ? PlansScreen(
-                    onOpenSpace: () => setState(() => selectedIndex = 0),
-                  )
-                : selectedIndex == 2
-                    ? _section(sections[2])
-                    : const ProfileSettingsScreen(),
-      ),
+      body: SafeArea(child: content),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-        onDestinationSelected: (value) => setState(() => selectedIndex = value),
+        onDestinationSelected: _navigate,
         destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
             label: tr(context, 'home'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.checklist_rounded),
+            icon: const Icon(Icons.checklist_rounded),
             label: tr(context, 'plans'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.photo_library_outlined),
-            label: tr(context, 'memories'),
+            icon: const Icon(Icons.shopping_cart_outlined),
+            label: tr(context, 'lists'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.grid_view_rounded),
+            icon: const Icon(Icons.sticky_note_2_outlined),
+            label: tr(context, 'notes'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.grid_view_rounded),
             label: tr(context, 'more'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _section(String title) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.auto_awesome_outlined,
-                size: 56, color: Color(0xFF167E81)),
-            const SizedBox(height: 18),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 26, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(
-              tr(context, 'comingSoon'),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: () => setState(() => selectedIndex = 0),
-              child: Text(tr(context, 'backHome')),
-            ),
-          ],
-        ),
       ),
     );
   }
