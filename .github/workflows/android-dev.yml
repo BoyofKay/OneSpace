@@ -37,7 +37,7 @@ jobs:
       - name: Test
         run: flutter test
       - name: Build installable preview APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }}
       - name: Name downloadable APK
         shell: bash
         run: |
