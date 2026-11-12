@@ -19,21 +19,104 @@ import 'l10n/onespace_locale_controller.dart';
 import 'l10n/onespace_strings.dart';
 
 Future<void> main() async {
-  final startupClock = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: 'https://ugwrpeduzyzrujkizqfo.supabase.co',
-    publishableKey: 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe',
-    authOptions: FlutterAuthClientOptions(
-      localStorage: SecureAuthStorage(),
-    ),
-  );
-  PerformanceTimings.instance.record(
-    'Supabase initialization', startupClock.elapsed);
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    PerformanceTimings.instance.record('First app frame', startupClock.elapsed);
-  });
-  runApp(const OneSpaceApp());
+  final timer = Stopwatch()..start();
+  // Render a real frame before initializing secure storage and the network
+  // session. Previously OneSpace displayed a blank startup while awaiting
+  // Supabase.initialize(), which can be slow on a remote region.
+  runApp(OneSpaceBootstrap(startupClock: timer));
+}
+
+/// Runs immediately; it does not require an initialized Supabase singleton.
+/// Client-backed screens are never mounted until startup is complete.
+class OneSpaceBootstrap extends StatefulWidget {
+  const OneSpaceBootstrap({super.key, required this.startupClock});
+  final Stopwatch startupClock;
+
+  @override
+  State<OneSpaceBootstrap> createState() => _OneSpaceBootstrapState();
+}
+
+class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
+  bool _ready = false;
+  bool _busy = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PerformanceTimings.instance.record(
+        'First app frame', widget.startupClock.elapsed);
+    });
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    setState(() { _busy = true; _error = null; });
+    final clock = Stopwatch()..start();
+    try {
+      await Supabase.initialize(
+        url: 'https://ugwrpeduzyzrujkizqfo.supabase.co',
+        publishableKey: 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe',
+        authOptions: FlutterAuthClientOptions(
+          localStorage: SecureAuthStorage(),
+        ),
+      );
+      PerformanceTimings.instance.record(
+        'Supabase session initialization', clock.elapsed);
+      if (mounted) setState(() { _ready = true; _busy = false; });
+    } catch (_) {
+      PerformanceTimings.instance.record(
+        'Session initialization failed',clock.elapsed);
+      if (mounted) setState(() {
+        _busy = false;
+        _error = 'OneSpace could not open its saved session. '
+          'Check the device and network, then retry.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_ready) return const OneSpaceApp();
+    return MaterialApp(
+      debugShowCheckedModeBanner:false,
+      home:Scaffold(
+        body:SafeArea(
+          child:Center(child:ConstrainedBox(
+            constraints:const BoxConstraints(maxWidth:360),
+            child:Padding(
+              padding:const EdgeInsets.all(28),
+              child:Column(mainAxisSize:MainAxisSize.min,children:[
+                const Icon(Icons.favorite_rounded,
+                  color:Color(0xFF167E81),size:60),
+                const SizedBox(height:12),
+                const Text('OneSpace',style:TextStyle(
+                  fontSize:30,fontWeight:FontWeight.w800)),
+                const SizedBox(height:6),
+                const Text('Two lives. One space.'),
+                const SizedBox(height:25),
+                if (_busy) ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height:16),
+                  const Text('Opening your secure space…'),
+                ],
+                if (_error != null) ...[
+                  Text(_error!,textAlign:TextAlign.center),
+                  const SizedBox(height:14),
+                  FilledButton.icon(
+                    onPressed:_initialize,
+                    icon:const Icon(Icons.refresh),
+                    label:const Text('Retry')),
+                ],
+              ]),
+            ),
+          )),
+        ),
+      ),
+    );
+  }
 }
 
 class OneSpaceApp extends StatelessWidget {
