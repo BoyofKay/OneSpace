@@ -257,6 +257,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!launched && mounted) {
         await Clipboard.setData(ClipboardData(text: url));
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cannot open website; link copied.')));
       }
@@ -423,11 +424,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
         'component_id': onComponent,
       });
       composer.clear();
-      if (mounted) setState(() {
-        replyingTo = null;
-        onComponent = null;
-        onComponentTitle = null;
-      });
+      if (mounted) {
+        setState(() {
+          replyingTo = null;
+          onComponent = null;
+          onComponentTitle = null;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => issue = 'Message was not sent. Please retry.');
     } finally {
@@ -835,15 +838,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
       StreamBuilder<List<Map<String,dynamic>>>(
     stream: activity,
     builder: (context, s) {
-      if (s.hasError) return Scaffold(
-        appBar: AppBar(title: const Text('Activity')),
-        body: const Center(child: Text('This Activity could not be loaded.')));
-      if (!s.hasData) return Scaffold(
-        appBar: AppBar(title: const Text('Activity')),
-        body: const Center(child: CircularProgressIndicator()));
-      if (s.data!.isEmpty) return Scaffold(
-        appBar: AppBar(title: const Text('Activity')),
-        body: const Center(child: Text('Activity not available.')));
+      if (s.hasError) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Activity')),
+          body: const Center(child: Text('This Activity could not be loaded.')));
+      }
+      if (!s.hasData) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Activity')),
+          body: const Center(child: CircularProgressIndicator()));
+      }
+      if (s.data!.isEmpty) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Activity')),
+          body: const Center(child: Text('Activity not available.')));
+      }
       final item = s.data!.first;
       return Scaffold(
         resizeToAvoidBottomInset: true,
