@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -68,6 +69,7 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
         password: _password.text,
       );
       if (mounted && result.session != null) {
+        TextInput.finishAutofillContext(shouldSave: true);
         widget.onUnlocked();
       }
     } on AuthException catch (e) {
@@ -103,7 +105,10 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
               Text(tr(context, 'savedSessionHelp'),
                 style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 12),
-              TextFormField(
+              AutofillGroup(
+                child: Column(
+                  children: [
+                    TextFormField(
                 initialValue: widget.email,
                 readOnly: true,
                 autofillHints: const [AutofillHints.username, AutofillHints.email],
@@ -149,6 +154,9 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
                     ),
                   ),
                 ],
+              ),
+                  ],
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
