@@ -29,16 +29,6 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
   String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    // Fingerprint / device PIN is the primary action on a restored session.
-    // Keep password available if the OS prompt is cancelled.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _unlockWithDevice();
-    });
-  }
-
-  @override
   void dispose() {
     _password.dispose();
     super.dispose();
@@ -52,7 +42,7 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
     if (!available) {
       setState(() {
         _busy = false;
-        _error = tr(context, 'deviceEnrollmentNeeded');
+        _error = tr(context, 'phoneUnlockUnavailable');
       });
       return;
     }
@@ -77,21 +67,15 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
         email: widget.email,
         password: _password.text,
       );
-      if (mounted && result.session != null) widget.onUnlocked();
+      if (mounted && result.session != null) {
+        widget.onUnlocked();
+      }
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) setState(() => _error = tr(context, 'loginFailed'));
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _openEnrollment() async {
-    final success = await DeviceUnlock.openSystemEnrollment();
-    if (!mounted) return;
-    if (!success) {
-      setState(() => _error = tr(context, 'deviceEnrollmentNeeded'));
     }
   }
 
@@ -115,10 +99,14 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
               const SizedBox(height: 12),
               Text(tr(context, 'welcome'), style: const TextStyle(
                   fontSize: 23, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              Text(tr(context, 'savedSessionHelp'),
+                style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 12),
               TextFormField(
                 initialValue: widget.email,
                 readOnly: true,
+                autofillHints: const [AutofillHints.username, AutofillHints.email],
                 decoration: InputDecoration(
                   labelText: tr(context, 'email'),
                   border: const OutlineInputBorder(),
@@ -166,6 +154,10 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
                 const SizedBox(height: 10),
                 Text(_error!, style: const TextStyle(color: Colors.red)),
               ],
+              const SizedBox(height: 8),
+              Text(tr(context, 'pinOrBiometric'),
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 14),
               FilledButton(
                 key: const Key('savedSessionSignIn'),
@@ -176,11 +168,9 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
                 onPressed: _busy ? null : widget.onSwitchAccount,
                 child: Text(tr(context, 'switchAccount')),
               ),
-              TextButton.icon(
-                onPressed: _busy ? null : _openEnrollment,
-                icon: const Icon(Icons.settings_outlined, size: 18),
-                label: Text(tr(context, 'setupFingerprint')),
-              ),
+              Text(tr(context, 'phoneUnlockNotSetupHint'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
