@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'invitation_code.dart';
 import 'space_task_summary.dart';
 import '../../core/performance_timings.dart';
+import '../../core/current_space_cache.dart';
 import '../../l10n/onespace_strings.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
@@ -88,6 +89,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
       if (!mounted || request != _requestVersion) return;
 
       if (result == null) {
+        CurrentSpaceCache.instance.seed(client.auth.currentUser!.id, null);
         setState(() {
           spaceId = null;
           spaceName = null;
@@ -136,6 +138,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           summaryLoading = false;
           loading = false;
         });
+      }
+      if (spaceId != null) {
+        CurrentSpaceCache.instance.seed(client.auth.currentUser!.id, spaceId);
       }
       PerformanceTimings.instance.record('Home overview network', watch.elapsed);
     } on PostgrestException catch (error) {
