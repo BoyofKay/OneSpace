@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
+import '../../core/current_space_cache.dart';
+import '../../core/performance_timings.dart';
 import 'task_editor_sheet.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
@@ -63,6 +65,9 @@ class _PlansScreenState extends State<PlansScreen> {
     );
   }
 
+  final Stopwatch _firstTasksClock = Stopwatch();
+  bool _tasksFirstDataRecorded = false;
+
   Future<void> _loadSpace() async {
     if (!mounted) return;
     setState(() {
@@ -70,60 +75,58 @@ class _PlansScreenState extends State<PlansScreen> {
       _error = null;
     });
     try {
-      final memberships = await _client
-          .from('space_members')
-          .select('space_id')
-          .eq('user_id', _me)
-          .limit(1);
+      final id = await CurrentSpaceCache.instance.get();
       if (!mounted) return;
-      if (memberships.isEmpty) {
+      if (id == null) {
         setState(() {
           _spaceId = null;
           _memberNames = const {};
           _tasksStream = null;
         });
-      } else {
-        final id = memberships.first['space_id'] as String;
-        final members = await _client
-            .from('space_members')
-            .select('user_id')
-            .eq('space_id', id);
-        final ids = members
-            .map((entry) => entry['user_id'] as String)
-            .toList();
-        final profiles = await _client
-            .from('profiles')
-            .select('id, display_name')
-            .inFilter('id', ids);
-        final knownNames = <String, String>{
-          for (final entry in profiles)
-            entry['id'] as String:
-                (entry['display_name'] as String? ?? 'Member'),
-        };
-        // Every space member is a valid assignment choice even if their
-        // profile is temporarily missing or unreadable.
-        final names = <String, String>{
-          for (final memberId in ids)
-            memberId: knownNames[memberId] ?? 'Partner',
-        };
-        if (!mounted) return;
-        setState(() {
-          _spaceId = id;
-          _memberNames = names;
-          _tasksStream = _client
-              .from('tasks')
-              .stream(primaryKey: ['id'])
-              .eq('space_id', id)
-              .order('created_at', ascending: false);
-        });
-        _watchGrants(id);
+        return;
       }
+      // The task stream starts immediately. Member display-name lookup is
+      // optional and must not hold up the entire Plans tab.
+      _firstTasksClock..reset()..start();
+      _tasksFirstDataRecorded = false;
+      setState(() {
+        _spaceId = id;
+        _memberNames = {_me: tr(context, 'me')};
+        _tasksStream = _client.from('tasks')
+            .stream(primaryKey: ['id'])
+            .eq('space_id', id)
+            .order('created_at', ascending: false);
+      });
+      _watchGrants(id);
+      unawaited(_loadMemberNames(id));
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Unable to load your space.');
+      if (mounted) setState(() => _error = tr(context, 'loadFailed'));
     } finally {
       if (mounted) setState(() => _loadingSpace = false);
+    }
+  }
+
+  Future<void> _loadMemberNames(String id) async {
+    try {
+      final members = await _client.from('space_members')
+          .select('user_id').eq('space_id', id);
+      final ids = members.map((entry) => entry['user_id'] as String).toList();
+      if (ids.isEmpty) return;
+      final profiles = await _client.from('profiles')
+          .select('id,display_name').inFilter('id', ids);
+      final names = {
+        for (final memberId in ids)
+          memberId: profiles.where((profile) => profile['id'] == memberId)
+              .map((profile) => profile['display_name'] as String? ?? 'Partner')
+              .firstOrNull ?? 'Partner',
+      };
+      if (mounted && _spaceId == id) {
+        setState(() => _memberNames = names);
+      }
+    } catch (_) {
+      // Missing optional names must not stall access to tasks.
     }
   }
 
@@ -277,6 +280,12 @@ class _PlansScreenState extends State<PlansScreen> {
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: _tasksStream,
               builder: (context, snapshot) {
+                if (snapshot.hasData && !_tasksFirstDataRecorded) {
+                  _tasksFirstDataRecorded = true;
+                  _firstTasksClock.stop();
+                  PerformanceTimings.instance.record(
+                    'Tasks first data', _firstTasksClock.elapsed);
+                }
                 if (snapshot.hasError) {
                   return Column(
                     children: [
