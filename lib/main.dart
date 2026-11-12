@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'core/secure_auth_storage.dart';
+import 'core/performance_timings.dart';
 import 'features/lists/lists_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/plans/plans_screen.dart';
@@ -14,6 +15,7 @@ import 'l10n/onespace_locale_controller.dart';
 import 'l10n/onespace_strings.dart';
 
 Future<void> main() async {
+  final startupClock = Stopwatch()..start();
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
     url: 'https://ugwrpeduzyzrujkizqfo.supabase.co',
@@ -22,6 +24,11 @@ Future<void> main() async {
       localStorage: SecureAuthStorage(),
     ),
   );
+  PerformanceTimings.instance.record(
+    'Supabase initialization', startupClock.elapsed);
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PerformanceTimings.instance.record('First app frame', startupClock.elapsed);
+  });
   runApp(const OneSpaceApp());
 }
 
