@@ -1,5 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
-    <application android:label="OneSpace Preview" tools:replace="android:label" />
+    <application android:label="OneSpace Preview" tools:replace="android:label">
+        <activity android:name="com.onespace.onespace.MainActivity">
+            <!-- Supabase Flutter uses app_links; disable Flutter's competing handler. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false"/>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="onespace-preview"
+                    android:host="auth-callback"/>
+            </intent-filter>
+        </activity>
+    </application>
 </manifest>
