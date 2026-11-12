@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -6,14 +8,16 @@ import '../../core/performance_timings.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
+import '../sharing/share_grant_watcher.dart';
 import 'calendar_event_editor.dart';
 import 'calendar_rules.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
 /// calculated locally without moving birthdays across timezones.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key, this.onOpenPlans});
+  const CalendarScreen({super.key, this.onOpenPlans, this.active = true});
   final VoidCallback? onOpenPlans;
+  final bool active;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -30,11 +34,88 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<Map<String, dynamic>> _events = const [];
   List<Map<String, dynamic>> _tasks = const [];
   int _loadVersion = 0;
+  String? _watchedSpace;
+  RealtimeChannel? _changes;
+  StreamSubscription<List<Map<String, dynamic>>>? _shareWatcher;
+  Timer? _reloadDebounce;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.active) _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.active == widget.active) return;
+    if (widget.active) {
+      // Recheck RLS on re-entry: access to a privately shared occasion may
+      // have been revoked while this tab was not visible.
+      _load();
+    } else {
+      _reloadDebounce?.cancel();
+      _stopWatching();
+    }
+  }
+
+  @override
+  void dispose() {
+    _loadVersion++;
+    _reloadDebounce?.cancel();
+    _stopWatching();
+    super.dispose();
+  }
+
+  void _stopWatching() {
+    _watchedSpace = null;
+    _shareWatcher?.cancel();
+    _shareWatcher = null;
+    final channel = _changes;
+    _changes = null;
+    if (channel != null) unawaited(_client.removeChannel(channel));
+  }
+
+  void _scheduleRefresh() {
+    if (!mounted || !widget.active) return;
+    _reloadDebounce?.cancel();
+    // Coalesce bursts (bulk task edits and partner updates) into one fetch.
+    _reloadDebounce = Timer(const Duration(milliseconds: 700), () {
+      if (mounted && widget.active) _load();
+    });
+  }
+
+  void _watchChanges(String id) {
+    if (!widget.active || _watchedSpace == id) return;
+    _stopWatching();
+    _watchedSpace = id;
+    final bySpace = PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'space_id',
+      value: id,
+    );
+    _changes = _client.channel('calendar-' + id)
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'space_events',
+        filter: bySpace,
+        callback: (_) => _scheduleRefresh(),
+      )
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'tasks',
+        filter: bySpace,
+        callback: (_) => _scheduleRefresh(),
+      )
+      .subscribe();
+    _shareWatcher = watchObjectShares(
+      client: _client,
+      spaceId: id,
+      objectType: 'event',
+      onChanged: _scheduleRefresh,
+    );
   }
 
   Future<void> _load() async {
@@ -45,6 +126,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final id = await CurrentSpaceCache.instance.get();
       if (!mounted || version != _loadVersion) return;
       if (id == null) {
+        _stopWatching();
         setState(() {
           _spaceId = null;
           _events = const [];
@@ -54,6 +136,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         return;
       }
       _spaceId = id;
+      _watchChanges(id);
       final results = await Future.wait<List<Map<String, dynamic>>>([
         _client.from('space_events')
             .select('id,space_id,created_by,title,details,event_date,kind,recurrence,visibility,archived_at')

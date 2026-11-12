@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_redirect.dart';
+import '../../core/current_space_cache.dart';
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
@@ -50,6 +51,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             _locked = false;
           });
         } else if (state.event == AuthChangeEvent.signedOut) {
+          // Never reuse an earlier account's partner identity or space ID.
+          CurrentSpaceCache.instance.clear();
           _idleTimer?.cancel();
           OneSpaceLocaleController.instance.selectLanguage(null);
           setState(() {

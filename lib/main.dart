@@ -265,7 +265,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             else
               const SizedBox.shrink(),
             if (_visited.contains(2))
-              CalendarScreen(onOpenPlans: () => _navigate(1))
+              CalendarScreen(
+                active: visiblePage == 2,
+                onOpenPlans: () => _navigate(1),
+              )
             else
               const SizedBox.shrink(),
             if (_visited.contains(3))

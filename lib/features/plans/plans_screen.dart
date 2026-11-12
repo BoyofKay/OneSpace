@@ -85,20 +85,25 @@ class _PlansScreenState extends State<PlansScreen> {
         });
         return;
       }
-      // The task stream starts immediately. Member display-name lookup is
-      // optional and must not hold up the entire Plans tab.
+      // Home has already fetched partner names in the same secure snapshot.
+      // Reuse them to avoid two more Seoul network round trips.
+      final cachedNames = CurrentSpaceCache.instance.memberNamesFor(id);
       _firstTasksClock..reset()..start();
       _tasksFirstDataRecorded = false;
       setState(() {
         _spaceId = id;
-        _memberNames = {_me: tr(context, 'me')};
+        _memberNames = {
+          ...?cachedNames,
+          _me: tr(context, 'me'),
+        };
         _tasksStream = _client.from('tasks')
             .stream(primaryKey: ['id'])
             .eq('space_id', id)
             .order('created_at', ascending: false);
       });
       _watchGrants(id);
-      unawaited(_loadMemberNames(id));
+      // Direct Plans entry (before Home completes) still has a safe fallback.
+      if (cachedNames == null) unawaited(_loadMemberNames(id));
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -131,7 +136,8 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   String _displayName(String id) {
-    return id == _me ? 'Me' : (_memberNames[id] ?? 'Partner');
+    return id == _me ? (_memberNames[id] ?? tr(context, 'me'))
+        : (_memberNames[id] ?? tr(context, 'partner'));
   }
 
   Future<void> _taskEditor({SharedTask? existing}) async {

@@ -10,19 +10,36 @@ class CurrentSpaceCache {
 
   String? _userId;
   String? _spaceId;
+  Map<String, String>? _memberNames;
   DateTime? _loadedAt;
   Future<String?>? _pending;
 
-  void seed(String userId, String? spaceId) {
+  void seed(String userId, String? spaceId,
+      {Map<String, String>? memberNames}) {
     _userId = userId;
     _spaceId = spaceId;
+    // Only cache names returned by an authenticated, RLS-checked snapshot.
+    // They never touch local disk and expire with the membership lookup.
+    _memberNames = memberNames == null
+        ? null : Map<String, String>.unmodifiable(memberNames);
     _loadedAt = DateTime.now();
     _pending = null;
+  }
+
+  Map<String, String>? memberNamesFor(String spaceId) {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null || _userId != userId || _spaceId != spaceId ||
+        _loadedAt == null ||
+        DateTime.now().difference(_loadedAt!) >= const Duration(minutes: 2)) {
+      return null;
+    }
+    return _memberNames;
   }
 
   void clear() {
     _userId = null;
     _spaceId = null;
+    _memberNames = null;
     _loadedAt = null;
     _pending = null;
   }
@@ -48,6 +65,7 @@ class CurrentSpaceCache {
         .then((rows) {
           final spaceId = rows.isEmpty ? null : rows.first['space_id'] as String?;
           if (_userId == id) {
+            if (_spaceId != spaceId) _memberNames = null;
             _spaceId = spaceId;
             _loadedAt = DateTime.now();
             _pending = null;

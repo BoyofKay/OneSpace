@@ -5,6 +5,8 @@
 ### Performance and instrumentation
 - One `get_home_snapshot()` request replaces multiple space/member/summary calls.
 - A two-minute user-scoped memory cache avoids duplicate membership queries for tabs.
+- Home reuses authenticated partner display names in Plans, avoiding two sequential
+  Seoul queries in the common Home → Plans path; direct Plans entry still fetches safely.
 - Tasks stream starts before optional member-name lookups finish.
 - Home does not re-request data on every quick tab switch. Pull down to refresh.
 - App performance (Profile icon → App performance) displays timing numbers only.
@@ -16,6 +18,9 @@
 - Date-only events and annual occasions; includes task target dates.
 - Future countdowns; annual dates recur, including Feb 29 only on leap years.
 - Create, edit, archive/restore; private/shared RLS.
+- Live Calendar refreshes for event/task edits and private grant changes while
+  visible; on tab return, it requeries RLS before treating cached data as current.
+  Subscriptions are suspended when Calendar is not on screen.
 - Private owners can grant and revoke read-only access.
 - Not delivered: timed meetings, time zone selection, scheduled push notifications.
 
@@ -35,6 +40,9 @@
       be launched on every switch.
 - [ ] Test over Wi-Fi and cellular and on the older Android device. Record
       cold-launch time, Home time, and Tasks time separately.
+- [ ] Verify partner event edits and due-date changes update the open Calendar
+      without pull-to-refresh; check Calendar tab switching stops unnecessary
+      background subscriptions.
 - [ ] Account A creates a shared calendar event, an annual occasion, and a
       private occasion. Account B sees only the shared entries.
 - [ ] Account A shares the private occasion view-only. B can read but not edit.

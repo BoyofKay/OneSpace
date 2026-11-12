@@ -6,6 +6,7 @@ import 'invitation_code.dart';
 import 'space_task_summary.dart';
 import '../../core/performance_timings.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/home_member_names.dart';
 import '../../l10n/onespace_strings.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
@@ -109,6 +110,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeShoppingLists = 0;
           activeOtherLists = 0;
           activeNotes = 0;
+          activeCalendarEvents = 0;
+          activeMemories = 0;
+          activeGoals = 0;
+          achievedGoals = 0;
+          recentCheckins = 0;
           pendingInviteExpiry = null;
           membershipResolved = true;
           summaryLoading = false;
@@ -153,8 +159,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           loading = false;
         });
       }
-      if (spaceId != null) {
-        CurrentSpaceCache.instance.seed(client.auth.currentUser!.id, spaceId);
+      if (spaceId != null && result != null) {
+        CurrentSpaceCache.instance.seed(
+          client.auth.currentUser!.id,
+          spaceId,
+          memberNames: HomeMemberNames.parse(
+            (result as Map)['members'],
+          ),
+        );
       }
       PerformanceTimings.instance.record('Home overview network', watch.elapsed);
     } on PostgrestException catch (error) {
