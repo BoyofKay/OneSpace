@@ -44,12 +44,16 @@ class _PrivateShareButtonState extends State<PrivateShareButton> {
           .eq('shared_by', userId)
           .isFilter('revoked_at', null)
           .limit(1);
-      if (mounted) setState(() {
-        _shared = rows.isNotEmpty;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _shared = rows.isNotEmpty;
+          _loading = false;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -91,15 +95,21 @@ class _PrivateShareButtonState extends State<PrivateShareButton> {
       ));
       widget.onChanged?.call();
     } on PostgrestException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr(context, 'saveFailed'))),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tr(context, 'saveFailed'))),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
