@@ -4,35 +4,43 @@
 
 A Flutter companion app for couples, whether living together or apart.
 
-## Foundation (current work)
+## Current foundation preview
 
-- Supabase-backed individual account creation, email/password sign in, and session management
-- Profile editing (display name and personal locale preference), signed-in password change and sign-out
-- Profiles with independent language preference (English/Arabic ready at the data level)
-- One private shared space per person, up to two members per space
-- Invitation codes expire after 48 hours, can be revoked, and cannot be reused after acceptance
-- Database Row Level Security (RLS) protects personal and shared records
-- Plans & Tasks is currently a **local-only preview** and does not persist or synchronize data
-- Memories is a placeholder. Password recovery while signed out, account deletion, and production-grade authentication testing are still outstanding.
+- Email/password sign up, sign in, session restoration and sign out (Supabase Auth)
+- Sign-up confirmation emails can be resent; email delivery follows Supabase project limits
+- Personal profiles: display names, per-person language preference, signed-in password change
+- Secure creation of one shared space per account, limited to two members
+- High-entropy invitation code, expires after 48 hours, one-time acceptance, invitation replacement revokes old codes
+- Five Supabase tables: `profiles`, `spaces`, `space_members`, `space_invitations` and `tasks`
+- Every exposed table has RLS; shared tasks can be read/updated only by members
+- **Persistent shared tasks** with real-time updates, priorities, optional target dates and open/completed/cancelled states
+- Cancelled tasks stay in history (hard delete is not granted to application accounts)
+- Memories is currently a placeholder; Arabic RTL interface translation, account recovery while signed out, and account deletion are future milestones
 
-## Download one APK file directly from GitHub Releases
+## Install a standalone Android APK
 
-Every push to `main` triggers the automated analysis, tests, and Android preview build. When the workflow succeeds, a versioned **pre-release** is published under [GitHub Releases](../../releases), with a directly downloadable `OneSpace-preview-*.apk` file. No artifact ZIP extraction is required.
+Each successful push build publishes a GitHub pre-release with a direct `OneSpace-preview-*.apk` file on [GitHub Releases](../../releases). There is no ZIP to extract.
 
-**Preview-signing limitation:** Current builds use Android *debug* signing. Android version codes increment automatically with each GitHub run, but this does **not** solve signing mismatches. GitHub runners may create a different debug key for each build. This can prevent installing a new APK as an update over an older build. If that happens, uninstall the earlier preview and install the new one; this can delete data stored locally. We will establish a private, stable production keystore in GitHub Actions secrets before moving to user-data-sensitive update testing or public distribution. Do not use these previews for important data.
+Preview APKs are now signed with a **fixed, non-secret development-only debug key** stored as a base64 file under `tools/dev-signing/`. This key must **never** be used for production distribution. It gives new preview builds a consistent signature so they can be installed over earlier previews (when Android build numbers increase).
 
-## Backend
+**Important one-time transition:** The preview Android application ID is `com.onespace.onespace.preview`, distinct from the original Flutter sample's `com.onespace.onespace`. The first preview with the new package ID installs as a *separate app*. Subsequent previews use the same package ID and debug signing key for updates. A future production app will have its own application ID and a securely stored production signing key.
 
-Supabase project: `ugwrpeduzyzrujkizqfo`. Database schema is versioned in `supabase/schema/0001_foundation.sql`. The application includes only the **publishable** Supabase key, never an admin/service key.
+These are **development previews**, not public/commercial releases. Avoid storing critical personal data until authentication, security, recovery and device-install tests have been completed.
 
-## Roadmap
+## Database and security
 
-1. **Foundation:** auth, RLS, profiles, secure pairing, direct APK distribution
-2. **Complete foundation:** password reset, email verification return flow, stable signed updates, authentication testing
-3. **Shared data:** persistent and synchronized tasks, reminders, and lists
-4. **Experience:** calendar, photos, memories, sharing, localization (English and Arabic RTL)
-5. **Production:** privacy review, comprehensive tests, signing, store readiness
+Supabase project: `ugwrpeduzyzrujkizqfo`. Schema definitions are versioned in `supabase/schema/`. The Flutter app uses a **publishable** key, never an admin or service-role key.
+
+The Supabase advisor currently flags the three intentionally authenticated `SECURITY DEFINER` pairing RPCs, which each perform an authorization check. They require dedicated negative-path and concurrency tests before general availability. The tables have RLS and least-privilege grants.
+
+## Ordered milestones
+
+1. **Foundation:** account creation, email confirmation, sign in, profile, secure pairing and direct APK previews
+2. **Validate foundation:** end-to-end test with two real test users, password reset and deep link return, stable CI verification and auth edge cases
+3. **Shared data:** persistent synchronized tasks (initial implementation), reminders, shopping lists and notes
+4. **Daily experiences:** calendar, dashboards, notifications and flexible sharing
+5. **Production readiness:** English/Arabic RTL, privacy controls, account deletion, stable secret production signing, app store preparation
 
 ## Development
 
-Flutter 3.50.0 (stable). Run `flutter pub get`, `flutter analyze` and `flutter test`.
+Flutter stable 3.50.0. Use `flutter pub get`, `flutter analyze`, and `flutter test`.
