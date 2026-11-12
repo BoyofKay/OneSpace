@@ -68,7 +68,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           index: selectedIndex,
           children: [
             const SharedSpaceScreen(),
-            const PlansScreen(),
+            PlansScreen(onOpenSpace: () => setState(() => selectedIndex = 0)),
             _section(sections[2]),
             const ProfileSettingsScreen(),
           ],
