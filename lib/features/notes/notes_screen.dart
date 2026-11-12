@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -5,6 +7,7 @@ import '../../l10n/onespace_strings.dart';
 import 'note_draft_rules.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
+import '../sharing/share_grant_watcher.dart';
 
 /// Partner-visible and creator-only notes. Live list updates are streamed, while
 /// edits use optimistic concurrency to avoid silently overwriting another edit.
@@ -18,6 +21,7 @@ class _NotesScreenState extends State<NotesScreen> {
   final _client = Supabase.instance.client;
   String? _spaceId;
   Stream<List<Map<String, dynamic>>>? _stream;
+  StreamSubscription<List<Map<String, dynamic>>>? _shareWatcher;
   bool _loading = true;
   bool _showArchived = false;
   String _scope = 'all';
@@ -27,6 +31,28 @@ class _NotesScreenState extends State<NotesScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _shareWatcher?.cancel();
+    super.dispose();
+  }
+
+  void _watchGrants(String id) {
+    _shareWatcher?.cancel();
+    _shareWatcher = watchObjectShares(
+      client: _client,
+      spaceId: id,
+      objectType: 'note',
+      onChanged: () {
+        if (!mounted || _spaceId != id) return;
+        setState(() => _stream = _client.from('notes')
+            .stream(primaryKey: ['id'])
+            .eq('space_id', id)
+            .order('updated_at', ascending: false));
+      },
+    );
   }
 
   Future<void> _load() async {
@@ -45,6 +71,7 @@ class _NotesScreenState extends State<NotesScreen> {
             .eq('space_id', id)
             .order('updated_at', ascending: false);
       });
+      if (id != null) _watchGrants(id);
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
