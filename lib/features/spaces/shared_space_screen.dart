@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'invitation_code.dart';
+
 class SharedSpaceScreen extends StatefulWidget {
   const SharedSpaceScreen({super.key});
 
@@ -113,12 +115,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
         await client.rpc('create_space');
       });
 
-  Future<void> _accept() => _perform(() async {
-        final token = invitationController.text.trim().toLowerCase();
-        if (token.isEmpty) throw const FormatException('Enter an invitation code');
-        await client.rpc('accept_invitation', params: {'p_token': token});
-        invitationController.clear();
-      });
+  Future<void> _accept() async {
+    final code = normalizedInvitationCode(invitationController.text);
+    if (code == null) {
+      setState(() => issue = 'Enter a valid 64-character invitation code.');
+      return;
+    }
+    await _perform(() async {
+      await client.rpc('accept_invitation', params: {'p_token': code});
+      invitationController.clear();
+    });
+  }
 
   Future<void> _invite() async {
     final id = spaceId;
@@ -137,18 +144,34 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Invitation copied'),
-          content: const Text(
-            'Your secure invitation code is copied to the clipboard. '
-            'Send it privately to your partner. They can create their own '
-            'OneSpace account and paste it under Join a space. '
-            'The invitation expires after 48 hours. Generating another code '
-            'revokes the previous one.',
+          title: const Text('Invite your partner'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This invitation code has been copied. Share it privately '
+                  'or switch accounts on this phone and paste it under Join a space. '
+                  'It expires after 48 hours.',
+                ),
+                const SizedBox(height: 16),
+                SelectableText(
+                  token,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
+              ],
+            ),
           ),
           actions: [
+            TextButton.icon(
+              onPressed: () => Clipboard.setData(ClipboardData(text: token)),
+              icon: const Icon(Icons.copy),
+              label: const Text('Copy again'),
+            ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Got it'),
+              child: const Text('Done'),
             ),
           ],
         ),
@@ -231,9 +254,21 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                     controller: invitationController,
                     autocorrect: false,
                     enableSuggestions: false,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Invitation code',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        tooltip: 'Paste invitation code',
+                        icon: const Icon(Icons.content_paste),
+                        onPressed: () async {
+                          final clip = await Clipboard.getData('text/plain');
+                          if (!mounted) return;
+                          final text = clip?.text;
+                          if (text != null) {
+                            invitationController.text = text.trim();
+                          }
+                        },
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -261,7 +296,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       onPressed: working ? null : _invite,
                       icon: const Icon(Icons.person_add_alt_1),
                       label: Text(pendingInviteExpiry == null
-                          ? 'Copy partner invitation'
+                          ? 'Create invitation code'
                           : 'Generate a replacement code'),
                     ),
                     if (pendingInviteExpiry != null) ...[
