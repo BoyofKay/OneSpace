@@ -212,6 +212,12 @@ class OneSpaceStrings {
     'securitySessionLocked': 'Session locked for your privacy',
     'pinOrBiometric': 'Fingerprint or phone PIN',
     'unlockWithDevice': 'Unlock with device security',
+    'savedSessionHelp': 'Your session is saved, not your password. Tap the square icon for phone PIN/fingerprint, or enter your account password.',
+    'phoneUnlockUnavailable': 'Phone unlock is unavailable. Use your OneSpace password. You can configure a screen-lock PIN in Android Settings.',
+    'phoneUnlockNotSetupHint': 'OneSpace does not set up fingerprints. Your existing Android screen-lock PIN also works. Use Android Back to cancel the phone prompt.',
+    'firstSignInHelp': 'Sign in with your account password once to save a session. Then this phone can unlock it with its screen-lock PIN or fingerprint. No setup in OneSpace is needed.',
+    'savedSessionPasswordAction': 'Continue with password',
+
 
   };
   static const Map<String, String> ar = {
@@ -421,6 +427,12 @@ class OneSpaceStrings {
     'securitySessionLocked': 'تم قفل الجلسة لحماية خصوصيتك',
     'pinOrBiometric': 'البصمة أو رمز قفل الهاتف',
     'unlockWithDevice': 'فتح باستخدام قفل الجهاز',
+    'savedSessionHelp': 'الجلسة محفوظة، وليست كلمة المرور. اضغط الرمز المربع لاستخدام رمز قفل الهاتف أو البصمة، أو أدخل كلمة مرور الحساب.',
+    'phoneUnlockUnavailable': 'فتح القفل عبر الهاتف غير متاح. استخدم كلمة مرور OneSpace، ويمكنك إعداد رمز قفل من إعدادات أندرويد.',
+    'phoneUnlockNotSetupHint': 'لا تحتاج إلى إعداد البصمة في OneSpace. يمكنك استخدام رمز قفل الهاتف الموجود. استخدم زر الرجوع لإلغاء مطالبة الهاتف.',
+    'firstSignInHelp': 'سجّل الدخول بكلمة مرور حسابك مرة واحدة لحفظ الجلسة. بعدها يمكن فتحها برمز قفل الهاتف أو البصمة دون إعداد داخل OneSpace.',
+    'savedSessionPasswordAction': 'المتابعة بكلمة المرور',
+
 
   };
 
