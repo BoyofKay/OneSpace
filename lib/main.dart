@@ -9,6 +9,7 @@ import 'core/performance_timings.dart';
 import 'features/lists/lists_screen.dart';
 import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
+import 'features/memories/memories_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
@@ -76,7 +77,7 @@ class OneSpaceHome extends StatefulWidget {
 
 class _OneSpaceHomeState extends State<OneSpaceHome> {
   int selectedIndex = 0;
-  final int _dashboardRefreshToken = 0;
+  int _dashboardRefreshToken = 0;
   bool _showProfile = false;
   bool _profileVisited = false;
   final Set<int> _visited = {0};
@@ -90,6 +91,14 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       _showProfile = false;
       _visited.add(index);
     });
+  }
+
+  Future<void> _openMemories() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const MemoriesScreen()),
+    );
+    // A return from this dedicated journal screen refreshes Home once.
+    if (mounted) setState(() => _dashboardRefreshToken++);
   }
 
   void _openProfile() {
@@ -144,6 +153,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
               refreshToken: _dashboardRefreshToken,
               onOpenPlans: () => _navigate(1),
               onOpenCalendar: () => _navigate(2),
+              onOpenMemories: _openMemories,
               onOpenLists: () => _navigate(3),
               onOpenNotes: () => _navigate(4),
             ),
