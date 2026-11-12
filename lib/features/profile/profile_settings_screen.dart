@@ -64,7 +64,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await _client.from('profiles').update({
         'display_name': name,
         'locale': _language,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', _client.auth.currentUser!.id);
       if (mounted) setState(() => _status = 'Profile saved.');
     } on PostgrestException catch (e) {
