@@ -20,6 +20,7 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenGoals,
     this.onOpenCheckins,
     this.onOpenCoordinate,
+    this.onOpenWorld,
     this.refreshToken = 0,
   });
 
@@ -31,6 +32,7 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenGoals;
   final VoidCallback? onOpenCheckins;
   final VoidCallback? onOpenCoordinate;
+  final VoidCallback? onOpenWorld;
   final int refreshToken;
 
   @override
@@ -58,6 +60,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int importantActivities = 0;
   int upcomingActivities = 0;
   List<Map<String,dynamic>> recentDiscussions = const [];
+  String relationshipMode = 'not_set';
+  DateTime? lastMetOn;
+  DateTime? nextMeetOn;
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool membershipResolved = false;
@@ -127,6 +132,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           importantActivities = 0;
           upcomingActivities = 0;
           recentDiscussions = const [];
+          relationshipMode = 'not_set';
+          lastMetOn = null;
+          nextMeetOn = null;
           pendingInviteExpiry = null;
           membershipResolved = true;
           summaryLoading = false;
@@ -174,6 +182,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             for(final row in data['recent_activity_comments'] as List<dynamic>? ?? const [])
               if(row is Map) Map<String,dynamic>.from(row),
           ];
+          relationshipMode = data['relationship_mode']?.toString() ?? 'not_set';
+          lastMetOn = DateTime.tryParse(data['last_met_on']?.toString() ?? '');
+          nextMeetOn = DateTime.tryParse(data['next_meet_on']?.toString() ?? '');
           membershipResolved = true;
           summaryLoading = false;
           loading = false;
@@ -324,6 +335,65 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
     });
   }
 
+  String _modeLabel() {
+    switch (relationshipMode) {
+      case 'living_together': return tr(context,'modeTogether');
+      case 'apart_same_tz': return tr(context,'modeApartSame');
+      case 'apart_different_tz': return tr(context,'modeLdr');
+      default: return tr(context,'modeUnset');
+    }
+  }
+
+  int? _dayDistance(DateTime? target) {
+    if (target == null) return null;
+    final now=DateTime.now();
+    return DateTime(target.year,target.month,target.day)
+      .difference(DateTime(now.year,now.month,now.day)).inDays;
+  }
+
+  Widget _relationshipPanel() {
+    final ago=_dayDistance(lastMetOn);
+    final until=_dayDistance(nextMeetOn);
+    return Card(
+      elevation:0,
+      child:Padding(
+        padding:const EdgeInsets.all(16),
+        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[
+            const Icon(Icons.favorite_outline,color:Color(0xFF167E81)),
+            const SizedBox(width:8),
+            Expanded(child:Text(tr(context,'ourRelationship'),
+              style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17))),
+            IconButton(
+              onPressed:widget.onOpenWorld,
+              tooltip:tr(context,'relationshipEdit'),
+              icon:const Icon(Icons.tune_outlined)),
+          ]),
+          Text(_modeLabel()),
+          const SizedBox(height:10),
+          Row(children:[
+            Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text(tr(context,'lastMetLabel'),
+                style:Theme.of(context).textTheme.bodySmall),
+              Text(ago==null?tr(context,'dateNotSet'):
+                '${ago<0?-ago:0} ${tr(context,'daysAgo')}',
+                style:const TextStyle(fontWeight:FontWeight.bold)),
+            ])),
+            Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text(tr(context,'nextMeetingLabel'),
+                style:Theme.of(context).textTheme.bodySmall),
+              Text(until==null?tr(context,'dateNotSet'):
+                until<0?tr(context,'meetingPassed'):
+                until==0?tr(context,'meetingToday'):
+                  '$until ${tr(context,'daysToGo')}',
+                style:const TextStyle(fontWeight:FontWeight.bold)),
+            ])),
+          ]),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -408,6 +478,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
               ),
             ),
           ] else ...[
+            _relationshipPanel(),
+            const SizedBox(height:12),
             _panel(
               spaceName ?? 'Our Space',
               memberCount == 2
