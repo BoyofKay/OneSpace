@@ -47,6 +47,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int activeNotes = 0;
   int activeCalendarEvents = 0;
   int activeMemories = 0;
+  int activeGoals = 0;
+  int achievedGoals = 0;
+  int recentCheckins = 0;
   DateTime? pendingInviteExpiry;
   bool loading = true;
   bool membershipResolved = false;
@@ -142,6 +145,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           activeNotes = metric('notes');
           activeCalendarEvents = metric('calendar_entries');
           activeMemories = metric('memories_count');
+          activeGoals = metric('active_goals');
+          achievedGoals = metric('completed_goals');
+          recentCheckins = metric('recent_checkins');
           membershipResolved = true;
           summaryLoading = false;
           loading = false;
@@ -463,6 +469,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       _metric(tr(context, 'notesCount'), activeNotes),
                       _metric(tr(context, 'calendarEntries'), activeCalendarEvents),
                       _metric(tr(context, 'memoriesCount'), activeMemories),
+                      _metric(tr(context, 'activeGoalsCount'), activeGoals),
+                      _metric(tr(context, 'achievedGoalsCount'), achievedGoals),
+                      _metric(tr(context, 'recentCheckinsCount'), recentCheckins),
                     ],
                   ],
                 ),
