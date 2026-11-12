@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import 'note_draft_rules.dart';
+import '../sharing/object_permissions.dart';
+import '../sharing/private_share_button.dart';
 
 /// Partner-visible and creator-only notes. Live list updates are streamed, while
 /// edits use optimistic concurrency to avoid silently overwriting another edit.
@@ -127,9 +129,21 @@ class _NotesScreenState extends State<NotesScreen> {
                   children: shown.map((note) {
                     final archived = note['archived_at'] != null;
                     final body = note['body'] as String? ?? '';
+                    final canEdit = ObjectPermissions.canEdit(
+                      visibility: note['visibility'] as String,
+                      createdBy: note['created_by'] as String,
+                      userId: _client.auth.currentUser!.id,
+                    );
+                    final canShare = ObjectPermissions.canManagePrivateShare(
+                      visibility: note['visibility'] as String,
+                      createdBy: note['created_by'] as String,
+                      userId: _client.auth.currentUser!.id,
+                    );
                     return Card(
                       elevation: 0,
-                      child: ListTile(
+                      child: Column(
+                        children: [
+                      ListTile(
                         leading: Icon(note['pinned'] == true
                             ? Icons.push_pin : Icons.sticky_note_2_outlined),
                         title: Text(note['title'] as String,
@@ -138,12 +152,23 @@ class _NotesScreenState extends State<NotesScreen> {
                           [
                             tr(context, note['visibility'] as String),
                             if (archived) tr(context, 'archived'),
+                            if (!canEdit) tr(context, 'viewOnly'),
                             if (body.isNotEmpty) body.replaceAll('\n',' '),
                           ].join(' • '),
                           maxLines: 2, overflow: TextOverflow.ellipsis,
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => _openEditor(note: note),
+                      ),
+                      if (canShare)
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: PrivateShareButton(
+                            objectType: 'note',
+                            objectId: note['id'] as String,
+                          ),
+                        ),
+                      ],
                       ),
                     );
                   }).toList(),
@@ -180,6 +205,12 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   String? _error;
 
   bool get _editing => widget.existing != null;
+  bool get _canEdit => widget.existing == null ||
+      ObjectPermissions.canEdit(
+        visibility: widget.existing!['visibility'] as String,
+        createdBy: widget.existing!['created_by'] as String,
+        userId: _client.auth.currentUser!.id,
+      );
   bool get _archived => widget.existing?['archived_at'] != null;
 
   @override
@@ -203,6 +234,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future<void> _save() async {
+    if (!_canEdit) return;
     final title = _title.text.trim();
     final body = _body.text.trim();
     if (!NoteDraftRules.isValid(title: title, body: body)) {
@@ -247,7 +279,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future<void> _archiveOrRestore() async {
-    if (!_editing) return;
+    if (!_editing || !_canEdit) return;
     final restoring = _archived;
     if (!restoring) {
       final proceed = await showDialog<bool>(
@@ -301,12 +333,18 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (!_canEdit)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(tr(context, 'viewOnly')),
+              ),
             if (_archived)
               Text(tr(context, 'archived'), style: const TextStyle(
                 fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             TextField(
               controller: _title, maxLength: 120,
+              readOnly: !_canEdit,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: tr(context, 'noteTitle'),
@@ -316,6 +354,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: _body,
+              readOnly: !_canEdit,
               maxLength: 30000, maxLines: 12, minLines: 5,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
@@ -344,18 +383,18 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               contentPadding: EdgeInsets.zero,
               title: Text(tr(context, 'pinNote')),
               value: _pinned,
-              onChanged: _busy ? null
+              onChanged: _busy || !_canEdit ? null
                   : (value) => setState(() => _pinned = value),
             ),
             if (_error != null)
               Text(_error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 12),
-            FilledButton.icon(
+            if (_canEdit) FilledButton.icon(
               onPressed: _busy || _archived ? null : _save,
               icon: const Icon(Icons.save_outlined),
               label: Text(tr(context, 'saveNote')),
             ),
-            if (_editing) ...[
+            if (_editing && _canEdit) ...[
               const SizedBox(height: 14),
               OutlinedButton(
                 onPressed: _busy ? null : _archiveOrRestore,
