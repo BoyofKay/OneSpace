@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'task_date_rules.dart';
+import '../../l10n/onespace_strings.dart';
 
 enum TaskPriority { low, normal, high }
 enum TaskStatus { open, completed, cancelled }
@@ -181,7 +182,7 @@ class _PlansScreenState extends State<PlansScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      existing == null ? 'New task' : 'Edit task',
+                      existing == null ? tr(context, 'newTask') : tr(context, 'editTask'),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -193,21 +194,21 @@ class _PlansScreenState extends State<PlansScreen> {
                       maxLength: 120,
                       autofocus: true,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Task title',
+                      decoration: InputDecoration(
+                        labelText: tr(context, 'taskTitle'),
                         border: OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text('Visibility',
+                    Text(tr(context, 'visibility'),
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     Wrap(
                       spacing: 8,
                       children: TaskVisibility.values.map((item) {
                         return ChoiceChip(
                           label: Text(item == TaskVisibility.shared
-                              ? 'Shared with partner'
-                              : 'Only me'),
+                              ? tr(context, 'sharedWithPartner')
+                              : tr(context, 'onlyMe')),
                           selected: visibility == item,
                           onSelected: saving || existing != null
                               ? null
@@ -223,19 +224,19 @@ class _PlansScreenState extends State<PlansScreen> {
                     const SizedBox(height: 5),
                     Text(
                       existing == null
-                          ? 'Choose carefully: visibility is fixed after saving.'
+                          ? tr(context, 'chooseVisibility')
                           : visibility == TaskVisibility.private
-                              ? 'Only you can see this task.'
-                              : 'Both partners can see and edit this task.',
+                              ? tr(context, 'privateDescription')
+                              : tr(context, 'sharedDescription'),
                       style: Theme.of(sheetContext).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 14),
-                    const Text('Priority',
+                    Text(tr(context, 'priority'),
                         style: TextStyle(fontWeight: FontWeight.w600)),
                     Wrap(
                       spacing: 8,
                       children: TaskPriority.values.map((item) => ChoiceChip(
-                            label: Text(item.name),
+                            label: Text(tr(context, item.name)),
                             selected: priority == item,
                             onSelected: saving
                                 ? null
@@ -247,9 +248,9 @@ class _PlansScreenState extends State<PlansScreen> {
                       DropdownButtonFormField<String>(
                         key: ValueKey('assignee-${existing?.id ?? 'new'}'),
                         initialValue: assignee ?? '',
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Assign to',
+                          labelText: tr(context, 'assignTo'),
                         ),
                         items: [
                           const DropdownMenuItem<String>(
@@ -275,8 +276,8 @@ class _PlansScreenState extends State<PlansScreen> {
                     OutlinedButton.icon(
                       icon: const Icon(Icons.event_outlined),
                       label: Text(targetDate == null
-                          ? 'Optional target date'
-                          : 'Target: ${_formatDate(targetDate!)}'),
+                          ? tr(context, 'optionalDate')
+                          : '${tr(context, 'target')}: ${_formatDate(targetDate!)}'),
                       onPressed: saving
                           ? null
                           : () async {
@@ -297,7 +298,7 @@ class _PlansScreenState extends State<PlansScreen> {
                         onPressed: saving
                             ? null
                             : () => updateSheet(() => targetDate = null),
-                        child: const Text('Clear target date'),
+                        child: Text(tr(context, 'clearDate')),
                       ),
                     if (dialogError != null) ...[
                       const SizedBox(height: 12),
@@ -314,14 +315,12 @@ class _PlansScreenState extends State<PlansScreen> {
                                 final title = controller.text.trim();
                                 if (title.isEmpty) {
                                   updateSheet(() =>
-                                      dialogError = 'Enter a task title.');
+                                      dialogError = tr(context, 'emptyTaskTitle'));
                                   return;
                                 }
                                 if (!TaskDateRules.isAllowed(
                                     targetDate, DateTime.now())) {
-                                  updateSheet(() => dialogError =
-                                      'Target date cannot be in the past. '
-                                      'Choose today or later, or clear it.');
+                                  updateSheet(() => dialogError = tr(context, 'pastDateError'));
                                   return;
                                 }
                                 updateSheet(() {
@@ -373,8 +372,8 @@ class _PlansScreenState extends State<PlansScreen> {
                                 }
                               },
                         child: Text(existing == null
-                            ? 'Create task'
-                            : 'Save changes'),
+                            ? tr(context, 'createTask')
+                            : tr(context, 'saveChanges')),
                       ),
                     ),
                   ],
@@ -445,17 +444,17 @@ class _PlansScreenState extends State<PlansScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Plans & tasks',
+          Text(tr(context, 'plansAndTasks'),
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
-          const Text('Shared plans and your own private to-dos.'),
+          Text(tr(context, 'tasksSubtitle')), 
           const SizedBox(height: 14),
           if (_error != null) ...[
             Text(_error!, style: const TextStyle(color: Colors.red)),
             TextButton.icon(
               onPressed: _loadSpace,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(tr(context, 'retry')),
             ),
           ],
           if (_loadingSpace)
@@ -469,7 +468,7 @@ class _PlansScreenState extends State<PlansScreen> {
             FilledButton.icon(
               onPressed: _busy ? null : () => _taskEditor(),
               icon: const Icon(Icons.add),
-              label: const Text('Add task'),
+              label: Text(tr(context, 'addTask')),
             ),
             const SizedBox(height: 16),
             const Text('Show'),
@@ -477,10 +476,10 @@ class _PlansScreenState extends State<PlansScreen> {
               spacing: 8,
               children: TaskScope.values.map((scope) => ChoiceChip(
                     label: Text(scope == TaskScope.all
-                        ? 'All visible'
+                        ? tr(context, 'allVisible')
                         : scope == TaskScope.shared
-                            ? 'Shared'
-                            : 'Private'),
+                            ? tr(context, 'shared')
+                            : tr(context, 'private')),
                     selected: scope == _scope,
                     onSelected: (_) => setState(() => _scope = scope),
                   )).toList(),
@@ -490,7 +489,7 @@ class _PlansScreenState extends State<PlansScreen> {
               spacing: 8,
               runSpacing: 4,
               children: TaskFilter.values.map((filter) => ChoiceChip(
-                    label: Text(filter.name),
+                    label: Text(tr(context, filter.name)),
                     selected: filter == _filter,
                     onSelected: (_) => setState(() => _filter = filter),
                   )).toList(),
@@ -542,7 +541,7 @@ class _PlansScreenState extends State<PlansScreen> {
             children: [
               const Icon(Icons.people_outline, size: 42),
               const SizedBox(height: 12),
-              const Text('Create or join Our Space first'),
+              Text(tr(context, 'noSpace')),
               const SizedBox(height: 8),
               const Text(
                 'Your private tasks and shared tasks both live in your space. '
@@ -552,12 +551,12 @@ class _PlansScreenState extends State<PlansScreen> {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: widget.onOpenSpace,
-                child: const Text('Go to Our Space'),
+                child: Text(tr(context, 'goToSpace')),
               ),
               TextButton.icon(
                 onPressed: _loadSpace,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Refresh membership'),
+                label: Text(tr(context, 'refreshMembership')),
               ),
             ],
           ),
@@ -568,12 +567,12 @@ class _PlansScreenState extends State<PlansScreen> {
     final cancelled = task.status == TaskStatus.cancelled;
     final completed = task.status == TaskStatus.completed;
     final details = <String>[
-      task.visibility == TaskVisibility.private ? 'Private' : 'Shared',
-      '${task.priority.name} priority',
+      task.visibility == TaskVisibility.private ? tr(context, 'private') : tr(context, 'shared'),
+      '${tr(context, task.priority.name)} ${tr(context, 'priority')}',
       if (task.assignedTo != null)
         'Assigned: ${_displayName(task.assignedTo!)}',
       if (task.targetDate != null) 'Target ${task.targetDate}',
-      if (cancelled) 'Cancelled',
+      if (cancelled) tr(context, 'cancelled'),
     ];
     return Card(
       elevation: 0,
@@ -601,7 +600,7 @@ class _PlansScreenState extends State<PlansScreen> {
         ),
         subtitle: Text(details.join(' • ')),
         secondary: PopupMenuButton<String>(
-          tooltip: 'Task actions',
+          tooltip: tr(context, 'taskActions'),
           onSelected: (choice) {
             if (choice == 'edit') {
               _taskEditor(existing: task);
@@ -612,11 +611,11 @@ class _PlansScreenState extends State<PlansScreen> {
             }
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'edit', child: Text('Edit task')),
+            PopupMenuItem(value: 'edit', child: Text(tr(context, 'edit'))),
             if (!cancelled)
-              const PopupMenuItem(value: 'cancel', child: Text('Cancel task')),
+              PopupMenuItem(value: 'cancel', child: Text(tr(context, 'cancelTask'))),
             if (cancelled || completed)
-              const PopupMenuItem(value: 'reopen', child: Text('Reopen task')),
+              PopupMenuItem(value: 'reopen', child: Text(tr(context, 'reopenTask'))),
           ],
         ),
       ),
