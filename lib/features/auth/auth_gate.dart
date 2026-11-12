@@ -261,7 +261,12 @@ class _SignInScreenState extends State<SignInScreen> {
         final result = await auth.signUp(
           email: email,
           password: password,
-          data: {'display_name': displayNameController.text.trim()},
+          data: {
+            'display_name': displayNameController.text.trim(),
+            'locale': Localizations.localeOf(context).languageCode == 'ar'
+                ? 'ar'
+                : 'en',
+          },
           emailRedirectTo: oneSpaceAuthRedirectTo,
         );
         if (mounted && result.session == null) {
@@ -342,7 +347,28 @@ class _SignInScreenState extends State<SignInScreen> {
                     style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
                 Text(tr(context, 'tagline'),
                     textAlign: TextAlign.center),
-                const SizedBox(height: 32),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: loading
+                          ? null
+                          : () => OneSpaceLocaleController.instance
+                              .selectLanguage('en'),
+                      child: const Text('English'),
+                    ),
+                    const Text(' • '),
+                    TextButton(
+                      onPressed: loading
+                          ? null
+                          : () => OneSpaceLocaleController.instance
+                              .selectLanguage('ar'),
+                      child: const Text('العربية'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
                 Text(registering ? tr(context, 'createAccount') : tr(context, 'welcome'),
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 18),
