@@ -94,7 +94,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
             ];
             return Card(elevation:0,child:Column(children:[
               ListTile(
-                leading:Icon(moodIcons[mood.clamp(1,5)-1]),
+                leading:Icon(moodIcons[mood.clamp(1,5).toInt()-1]),
                 title:Text(entry['checkin_date'] as String? ?? ''),
                 subtitle:Text([
                   tr(context,entry['visibility'] as String? ?? 'shared'),
