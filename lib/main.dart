@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/coordinate/coordinate_screen.dart';
 import 'features/hubs/section_hubs.dart';
+import 'features/remember/remember_screen.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
 import 'features/lists/lists_screen.dart';
@@ -99,7 +100,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 const Text('OneSpace',style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                const Text('Two lives. One space.'),
+                const Text('One Life, Two Places'),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
@@ -172,7 +173,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
 
   void navigate(int index) {
     setState(() {
-      if (index == 0 && selectedIndex != 0) refreshToken++;
+      if ((index == 0 || index == 1) && selectedIndex != index) refreshToken++;
       selectedIndex = index;
       showProfile = false;
       visited.add(index);
@@ -223,7 +224,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           onOpenCoordinate:()=>navigate(2),
           onOpenWorld:()=>navigate(4),
         ),
-        if(visited.contains(1))const SectionHub(section:'remember')
+        if(visited.contains(1)) RememberScreen(refreshToken:refreshToken)
           else const SizedBox.shrink(),
         if(visited.contains(2))const CoordinateScreen()
           else const SizedBox.shrink(),

@@ -1,8 +1,20 @@
 # OneSpace
 
-**Two lives. One space.**
+**One Life, Two Places**
 
 A Flutter companion app for couples, whether living together or apart.
+
+## Current navigation
+
+**Today | Remember | Coordinate | Connect | World**
+
+- **Today:** the couple's shared dashboard, status, meeting counters and latest activity.
+- **Remember:** calendar, to-do list, notes, upcoming dues and upcoming events (via a single RLS-filtered summary).
+- **Coordinate:** reusable Activities and contributions for shared research and decisions.
+- **Connect:** check-ins, memories and relationship experiences.
+- **World:** people, context and relationship-mode settings.
+
+Previous development test content was cleared on 13 November 2026, while two existing login accounts, one shared space and partner memberships remained intact.
 
 ## Current foundation preview
 

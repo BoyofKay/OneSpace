@@ -37,11 +37,12 @@ The app must not become a generic task/calendar/notes bundle. Partners need a pe
 6. All information remains searchable; none disappears simply because the Activity is done.
 
 ## Experience architecture
-**Bottom tabs (target): Today | Activities | Together | Memories | World**
+**Bottom tabs: Today | Remember | Coordinate | Connect | World**
 - **Today:** Our Day/My Day, clocks, moments that matter, reply requests, recent partner updates, next decisions, upcoming commitments.
-- **Activities:** the collaboration engine; Waiting for me / Updated by partner / Comparing / Decided / Completed. Start with minimal title/body; optional templates thereafter.
-- **Together:** check-ins, connection, shared rituals, entertainment and conversation prompts.
-- **Memories:** original stories, photo albums, shared occasions and recollections; protect each author's contribution.
+- **Coordinate:** the collaboration engine; Waiting for me / Updated by partner / Comparing / Decided / Completed. Start with minimal title/body; optional templates thereafter.
+- **Remember:** shared calendar, to-do lists, notes, upcoming dues and upcoming events.
+- **Connect:** check-ins, memories, connection, shared rituals, entertainment and conversation prompts.
+- **Memories (within Connect):** original stories, photo albums, shared occasions and recollections; protect each author's contribution.
 - **World:** people/family context, travel/reunions, safe knowledge library and references.
 Calendar access is contextual (Today, Activity, global search), not the app's identity. Activity inbox, search and profile appear in the header. Existing Tasks/Lists/Notes/Goals/Calendar remain available during migration.
 
