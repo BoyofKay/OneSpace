@@ -12,9 +12,10 @@ A Flutter companion app for couples, whether living together or apart.
 - Secure creation of one shared space per account, limited to two members
 - High-entropy invitation code, expires after 48 hours, one-time acceptance, invitation replacement revokes old codes
 - Five Supabase tables: `profiles`, `spaces`, `space_members`, `space_invitations` and `tasks`
-- Every exposed table has RLS; shared tasks can be read/updated only by members
-- **Persistent shared tasks** with real-time updates, priorities, optional target dates and open/completed/cancelled states
-- Cancelled tasks stay in history (hard delete is not granted to application accounts)
+- Every exposed table has RLS; private tasks can be read/updated only by their creator, shared tasks only by space members, and assignment is restricted to space members.
+- **Persistent tasks** with real-time updates, priorities, optional target dates, editing and open/completed/cancelled states. Tasks may be **Shared** (both members) or **Private** (creator only), and shared tasks may be assigned to either partner.
+- Task visibility is immutable after creation to avoid stale realtime data exposure. Cancelled tasks stay in history (hard delete is not granted to application accounts).
+- Home provides task totals from RLS-filtered database rows: open shared, assigned to me, my private, completed shared.
 - Signed-out password-recovery and reset-password screens are implemented but **require Supabase redirect URL configuration and real-device testing** before being called operational. Memories, Arabic RTL UI translation, and account deletion are future milestones.
 
 ## Install a standalone Android APK
