@@ -1,4 +1,4 @@
-name: Android development APK
+name: Build and publish OneSpace APK
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: android-dev-${{ github.ref }}
+  group: android-preview-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,12 +36,18 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
-      - name: Build installable development APK
+      - name: Build installable preview APK
         run: flutter build apk --debug
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: OneSpace-development-APK
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
+      - name: Name downloadable APK
+        shell: bash
+        run: |
+          cp build/app/outputs/flutter-apk/app-debug.apk "OneSpace-preview-0.1.${{ github.run_number }}.apk"
+      - name: Publish APK directly to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "preview-0.1.${{ github.run_number }}" "OneSpace-preview-0.1.${{ github.run_number }}.apk" \
+            --title "OneSpace Preview 0.1.${{ github.run_number }}" \
+            --notes "Development preview (not a production release). Download the APK file directly. Android debug signing keys may differ between runs, so updating an already installed preview may require uninstalling the earlier preview, which removes its local data. Stable release signing is planned before real customer use." \
+            --prerelease --target "${{ github.sha }}"
