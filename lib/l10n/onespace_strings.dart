@@ -184,6 +184,8 @@ class OneSpaceStrings {
     'openNotes': 'Open notes',
     'quickAccess': 'Explore together',
     'memoriesComingSoon': 'Memories — coming soon',
+    'clearChecked': 'Clear completed items',
+    'clearCheckedPrompt': 'Move all completed items to Removed? You can restore them later.',
   };
   static const Map<String, String> ar = {
     'home': 'الرئيسية',
@@ -364,6 +366,8 @@ class OneSpaceStrings {
     'openNotes': 'فتح الملاحظات',
     'quickAccess': 'استكشفا معًا',
     'memoriesComingSoon': 'الذكريات — قريبًا',
+    'clearChecked': 'إزالة العناصر المكتملة',
+    'clearCheckedPrompt': 'هل تريد نقل جميع العناصر المكتملة إلى المحذوفة؟ يمكنك استعادتها لاحقًا.',
   };
 
   static String forLanguage(String language, String key) =>
