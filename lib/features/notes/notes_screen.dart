@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
+import 'note_draft_rules.dart';
 
 /// Partner-visible and creator-only notes. Live list updates are streamed, while
 /// edits use optimistic concurrency to avoid silently overwriting another edit.
@@ -204,7 +205,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Future<void> _save() async {
     final title = _title.text.trim();
     final body = _body.text.trim();
-    if (title.isEmpty || body.length > 30000) {
+    if (!NoteDraftRules.isValid(title: title, body: body)) {
       setState(() => _error = tr(context, 'noteValidation'));
       return;
     }
