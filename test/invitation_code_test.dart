@@ -13,6 +13,6 @@ void main() {
   test('Rejects empty, truncated and non-hex invitations', () {
     expect(normalizedInvitationCode(''), isNull);
     expect(normalizedInvitationCode('12345'), isNull);
-    expect(normalizedInvitationCode('x' * 64), isNull);
+    expect(normalizedInvitationCode(List.filled(64, 'x').join()), isNull);
   });
 }
