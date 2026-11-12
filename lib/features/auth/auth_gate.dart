@@ -91,9 +91,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (mounted && Supabase.instance.client.auth.currentSession != null) {
       setState(() {
         _locked = false;
-        _coveredForBackground = false;
+        // Keep the privacy shield until Android signals resumed.
       });
-      _startIdleTimer();
+      if (!_coveredForBackground) _startIdleTimer();
     }
   }
 
@@ -159,24 +159,37 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     final session = auth.currentSession;
     if (_recovery && session != null) return const ResetPasswordScreen();
     if (session == null) return const SignInScreen();
-    if (_coveredForBackground) {
-      // Hide private content in the Android app switcher/snapshot.
-      return const Scaffold(
-        body: Center(child: Icon(Icons.lock_outline, size: 48)),
-      );
-    }
+    // Android's credential prompt may temporarily send the Activity to
+    // inactive. Keep the underlying screen mounted while hiding its content:
+    // replacing it would dispose the widget awaiting the OS auth result.
+    final Widget content;
     if (_locked) {
-      return SavedSessionLogin(
+      content = SavedSessionLogin(
         email: auth.currentUser?.email ?? '',
         onUnlocked: _unlockCurrentAccount,
         onSwitchAccount: _switchAccount,
       );
+    } else {
+      content = Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _registerInteraction(),
+        onPointerSignal: (_) => _registerInteraction(),
+        child: widget.signedIn,
+      );
     }
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) => _registerInteraction(),
-      onPointerSignal: (_) => _registerInteraction(),
-      child: widget.signedIn,
+    return Stack(
+      children: [
+        content,
+        if (_coveredForBackground)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Color(0xFFF7F8FA),
+              child: Center(
+                child: Icon(Icons.lock_outline, size: 48),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
