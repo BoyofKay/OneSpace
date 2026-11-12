@@ -7,6 +7,11 @@ class OneSpaceStrings {
 
   static const Map<String, String> en = {
     'home': 'Home',
+    'todayTab': 'Today',
+    'rememberTab': 'Remember',
+    'coordinateTab': 'Coordinate',
+    'connectTab': 'Connect',
+    'worldTab': 'World',
     'plans': 'Plans',
     'memories': 'Memories',
     'more': 'More',
@@ -294,6 +299,11 @@ class OneSpaceStrings {
 
   };
   static const Map<String, String> ar = {
+    'todayTab': 'اليوم',
+    'rememberTab': 'نتذكّر',
+    'coordinateTab': 'ننسّق',
+    'connectTab': 'نتواصل',
+    'worldTab': 'عالمنا',
     'home': 'الرئيسية',
     'plans': 'الخطط',
     'memories': 'الذكريات',

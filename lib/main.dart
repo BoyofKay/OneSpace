@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
+import 'features/coordinate/coordinate_screen.dart';
+import 'features/hubs/section_hubs.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
 import 'features/lists/lists_screen.dart';
@@ -164,153 +166,88 @@ class OneSpaceHome extends StatefulWidget {
 
 class _OneSpaceHomeState extends State<OneSpaceHome> {
   int selectedIndex = 0;
-  int _dashboardRefreshToken = 0;
-  bool _showProfile = false;
-  bool _profileVisited = false;
-  final Set<int> _visited = {0};
+  int refreshToken = 0;
+  bool showProfile = false;
+  final Set<int> visited = {0};
 
-  void _navigate(int index) {
-    if (!mounted || (selectedIndex == index && !_showProfile)) return;
+  void navigate(int index) {
     setState(() {
-      // Reuse the already-loaded Home snapshot on quick tab switches.
-      // Pull down in Home for an explicit refresh.
       selectedIndex = index;
-      _showProfile = false;
-      _visited.add(index);
+      showProfile = false;
+      visited.add(index);
     });
   }
 
-  Future<void> _openMemories() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const MemoriesScreen()),
-    );
-    // A return from this dedicated journal screen refreshes Home once.
-    if (mounted) setState(() => _dashboardRefreshToken++);
-  }
-
-  Future<void> _openGoals() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const GoalsScreen()),
-    );
-    if (mounted) setState(() => _dashboardRefreshToken++);
-  }
-
-  Future<void> _openCheckins() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const CheckinsScreen()),
-    );
-    if (mounted) setState(() => _dashboardRefreshToken++);
-  }
-
-  void _openProfile() {
-    setState(() {
-      _showProfile = true;
-      _profileVisited = true;
+  void open(Widget screen) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => screen),
+    ).then((_) {
+      if (mounted) setState(() => refreshToken++);
     });
-  }
-
-  void _closeProfile() {
-    setState(() => _showProfile = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Lazy IndexedStack keeps previously visited tabs alive while not
-    // starting the network streams of tabs the user has never opened.
-    final visiblePage = _showProfile ? 5 : selectedIndex;
+    final visible = showProfile ? 5 : selectedIndex;
     return Scaffold(
       appBar: AppBar(
-        leading: _showProfile
-            ? IconButton(
-                tooltip: tr(context, 'backHome'),
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _closeProfile,
-              )
-            : null,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('OneSpace',
-                style: TextStyle(fontWeight: FontWeight.w800)),
-            Text(tr(context, 'tagline'),
-                style: const TextStyle(fontSize: 12)),
-          ],
-        ),
+        leading: showProfile ? IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => setState(() => showProfile = false),
+          tooltip: tr(context, 'backHome'),
+        ) : null,
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start,children: [
+          const Text('OneSpace',style:TextStyle(fontWeight:FontWeight.w800)),
+          Text(tr(context,'tagline'),style:const TextStyle(fontSize:12)),
+        ]),
         actions: [
-          if (!_showProfile)
-            IconButton(
-              key: const Key('profileTopBarButton'),
-              tooltip: tr(context, 'profile'),
-              onPressed: _openProfile,
-              icon: const Icon(Icons.account_circle_outlined, size: 28),
-            ),
+          if (!showProfile) IconButton(
+            key: const Key('profileTopBarButton'),
+            icon: const Icon(Icons.account_circle_outlined,size:28),
+            tooltip: tr(context,'profile'),
+            onPressed: () => setState(() => showProfile = true),
+          ),
         ],
       ),
-      body: SafeArea(
-        child: IndexedStack(
-          index: visiblePage,
-          children: [
-            SharedSpaceScreen(
-              refreshToken: _dashboardRefreshToken,
-              onOpenPlans: () => _navigate(1),
-              onOpenCalendar: () => _navigate(2),
-              onOpenMemories: _openMemories,
-              onOpenGoals: _openGoals,
-              onOpenCheckins: _openCheckins,
-              onOpenLists: () => _navigate(3),
-              onOpenNotes: () => _navigate(4),
-            ),
-            if (_visited.contains(1))
-              PlansScreen(onOpenSpace: () => _navigate(0))
-            else
-              const SizedBox.shrink(),
-            if (_visited.contains(2))
-              CalendarScreen(
-                active: visiblePage == 2,
-                onOpenPlans: () => _navigate(1),
-              )
-            else
-              const SizedBox.shrink(),
-            if (_visited.contains(3))
-              const ListsScreen()
-            else
-              const SizedBox.shrink(),
-            if (_visited.contains(4))
-              const NotesScreen()
-            else
-              const SizedBox.shrink(),
-            if (_profileVisited)
-              const ProfileSettingsScreen()
-            else
-              const SizedBox.shrink(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _showProfile ? null : NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: _navigate,
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home),
-            label: tr(context, 'home'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.checklist_rounded),
-            label: tr(context, 'plans'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.calendar_today_outlined),
-            label: tr(context, 'calendar'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            label: tr(context, 'lists'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.sticky_note_2_outlined),
-            label: tr(context, 'notes'),
-          ),
+      body:SafeArea(child:IndexedStack(index:visible,children:[
+        Column(children:[
+          const RelationshipSettings(compact:true),
+          Expanded(child:SharedSpaceScreen(
+            refreshToken:refreshToken,
+            onOpenPlans:()=>open(const PlansScreen()),
+            onOpenLists:()=>open(const ListsScreen()),
+            onOpenNotes:()=>open(const NotesScreen()),
+            onOpenCalendar:()=>open(const CalendarScreen()),
+            onOpenMemories:()=>open(const MemoriesScreen()),
+            onOpenGoals:()=>open(const GoalsScreen()),
+            onOpenCheckins:()=>open(const CheckinsScreen()),
+          )),
+        ]),
+        if(visited.contains(1))const SectionHub(section:'remember')
+          else const SizedBox.shrink(),
+        if(visited.contains(2))const CoordinateScreen()
+          else const SizedBox.shrink(),
+        if(visited.contains(3))const SectionHub(section:'connect')
+          else const SizedBox.shrink(),
+        if(visited.contains(4))const SectionHub(section:'world')
+          else const SizedBox.shrink(),
+        if(showProfile)const ProfileSettingsScreen()
+          else const SizedBox.shrink(),
+      ])),
+      bottomNavigationBar:showProfile?null:NavigationBar(
+        selectedIndex:selectedIndex,
+        onDestinationSelected:navigate,
+        destinations:[
+          NavigationDestination(icon:const Icon(Icons.today_outlined),
+            selectedIcon:const Icon(Icons.today),label:tr(context,'todayTab')),
+          NavigationDestination(icon:const Icon(Icons.bookmark_border),
+            selectedIcon:const Icon(Icons.bookmark),label:tr(context,'rememberTab')),
+          NavigationDestination(icon:const Icon(Icons.hub_outlined),
+            selectedIcon:const Icon(Icons.hub),label:tr(context,'coordinateTab')),
+          NavigationDestination(icon:const Icon(Icons.favorite_border),
+            selectedIcon:const Icon(Icons.favorite),label:tr(context,'connectTab')),
+          NavigationDestination(icon:const Icon(Icons.public_outlined),
+            selectedIcon:const Icon(Icons.public),label:tr(context,'worldTab')),
         ],
       ),
     );
