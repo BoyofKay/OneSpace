@@ -22,6 +22,10 @@
   built-in messages and edit/delete of personal variants.
   Sender randomizes over active built-in variants plus custom messages of
   the same type; avoids immediately repeating the last sent text.
+  Morning, support/after-work and goodnight each include their original ten
+  backend ritual phrases alongside three UI presets (13 built-in choices).
+  Edited/hidden presets affect both manual sending and scheduled delivery;
+  explicitly scheduled custom messages of the same type join the ritual pool.
 - You Got This and Miss Us Together use recognizable 💪 and 👩‍❤️‍💋‍👨
   artwork in matching colored circles. Gesture notifications show the
   same type-specific icon; received gestures retain their dialog.
@@ -45,6 +49,7 @@
 5. Create a private and a shared check-in, send partner request, respond.
    Inspect expanded logs and privacy.
 6. In gesture Settings, expand every type and verify the active count,
+   including 13 initial presets for morning, support/after-work and goodnight.
    edit/disable one default and add one custom in the same type. Send many
    times; confirm randomization includes both sources, never disabled text.
 7. Confirm custom editing never appears in A Little Love sending view;
@@ -62,7 +67,8 @@
 ## Caveats
 - No phone push transport is added here; notifications remain in-app.
 - Automatic gesture delivery has its established server-side ritual source;
-  per-user edit overrides are used for **manual send pools**, not yet
-  mirrored into the automatic server-side generator.
+  per-user edits to 13 preset messages are honored by automatic rituals
+  as well as manual sending. Only explicitly scheduled custom messages can
+  be automatically delivered; unscheduled custom messages remain manual-only.
 - 30-day eligible-for-purge metadata does **not** imply the system silently
   hard-deletes shared contacts. The irreversible deletion policy is pending.

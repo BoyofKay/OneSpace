@@ -16,6 +16,21 @@ void main(){
    custom:[{'kind':'support','message':'support two'}]);
   expect(pool,['support two']);
  });
+ test('13 built-in ritual choices, including ten server phrases, share editable indices',(){
+  final builtIn=List.generate(13,(i)=>'choice $i');
+  final active=GesturePoolRules.activeMessages(
+   kind:'morning',builtIn:builtIn,
+   overrides:[
+    {'kind':'morning','message_index':12,'message':'customized server phrase','disabled':false},
+    {'kind':'morning','message_index':3,'message':'choice 3','disabled':true},
+   ],
+   custom:[{'kind':'morning','message':'my additional morning thought'}]);
+  expect(active.length,13);
+  expect(active,contains('customized server phrase'));
+  expect(active,contains('my additional morning thought'));
+  expect(active,isNot(contains('choice 3')));
+  expect(active,isNot(contains('choice 12')));
+ });
  test('Empty pools are permitted; caller must not send',(){
   final pool=GesturePoolRules.activeMessages(
    kind:'thinking',builtIn:['x'],
