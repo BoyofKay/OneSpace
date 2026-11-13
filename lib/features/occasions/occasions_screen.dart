@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
+import '../../core/responsive_field_pair.dart';
 
 const occasionKinds=<String,String>{
  'birthday':'Birthday','anniversary':'Anniversary',
@@ -275,23 +276,21 @@ class _OccasionEditorState extends State<OccasionEditor>{
      DropdownMenuItem(value:e.key,child:Text(e.value))],
     onChanged:(v)=>setState(()=>status=v??status)),
    const SizedBox(height:12),
-   Row(children:[
-    Expanded(child:TextField(controller:prep,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Prepare days ahead',border:OutlineInputBorder()))),
-    const SizedBox(width:10),
-    Expanded(child:TextField(controller:saving,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Start saving days ahead',border:OutlineInputBorder()))),
-   ]),
+   ResponsiveFieldPair(firstFlex:1,
+    first:TextField(controller:prep,keyboardType:TextInputType.number,
+     decoration:const InputDecoration(labelText:'Prepare days ahead',border:OutlineInputBorder())),
+    second:TextField(controller:saving,keyboardType:TextInputType.number,
+     decoration:const InputDecoration(labelText:'Start saving days ahead',border:OutlineInputBorder())),
+   ),
    const SizedBox(height:12),
-   Row(children:[
-    Expanded(flex:2,child:TextField(controller:budget,
+   ResponsiveFieldPair(
+    first:TextField(controller:budget,
      keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     decoration:const InputDecoration(labelText:'Budget (optional)',border:OutlineInputBorder()))),
-    const SizedBox(width:10),
-    Expanded(child:TextField(controller:currency,maxLength:3,
+     decoration:const InputDecoration(labelText:'Budget (optional)',border:OutlineInputBorder())),
+    second:TextField(controller:currency,maxLength:3,
      textCapitalization:TextCapitalization.characters,
-     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder()))),
-   ]),
+     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
+   ),
    const SizedBox(height:12),
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:5,
     decoration:const InputDecoration(labelText:'Gift ideas, plans or wishes',
@@ -369,15 +368,14 @@ class _OccasionStepEditorState extends State<OccasionStepEditor>{
    ListTile(title:const Text('Due on'),subtitle:Text(due==null?'No deadline':CalendarRules.sqlDate(due!)),
     onTap:choose,trailing:IconButton(tooltip:'Clear date',icon:const Icon(Icons.clear),
      onPressed:()=>setState(()=>due=null))),
-   Row(children:[
-    Expanded(flex:2,child:TextField(controller:cost,
+   ResponsiveFieldPair(
+    first:TextField(controller:cost,
      keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     decoration:const InputDecoration(labelText:'Estimated cost',border:OutlineInputBorder()))),
-    const SizedBox(width:10),
-    Expanded(child:TextField(controller:currency,maxLength:3,
+     decoration:const InputDecoration(labelText:'Estimated cost',border:OutlineInputBorder())),
+    second:TextField(controller:currency,maxLength:3,
      textCapitalization:TextCapitalization.characters,
-     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder()))),
-   ]),
+     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
+   ),
    SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Completed'),
     value:done,onChanged:(v)=>setState(()=>done=v)),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),

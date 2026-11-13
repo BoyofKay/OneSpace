@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../calendar/calendar_rules.dart';
+import '../../core/responsive_field_pair.dart';
 
 const tripItemKinds=<String,String>{
  'flight':'Flight','stay':'Accommodation','transport':'Transport',
@@ -183,13 +184,14 @@ class _TripItemEditorState extends State<TripItemEditor> {
    TextField(controller:details,maxLength:5000,maxLines:4,
     decoration:const InputDecoration(labelText:'Notes and details',border:OutlineInputBorder())),
    const SizedBox(height:10),
-   Row(children:[
-    Expanded(flex:2,child:TextField(controller:cost,keyboardType:const TextInputType.numberWithOptions(decimal:true),
-      decoration:const InputDecoration(labelText:'Estimated cost',border:OutlineInputBorder()))),
-    const SizedBox(width:10),
-    Expanded(child:TextField(controller:currency,maxLength:3,textCapitalization:TextCapitalization.characters,
-      decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder()))),
-   ]),
+   ResponsiveFieldPair(
+    first:TextField(controller:cost,
+     keyboardType:const TextInputType.numberWithOptions(decimal:true),
+     decoration:const InputDecoration(labelText:'Estimated cost',border:OutlineInputBorder())),
+    second:TextField(controller:currency,maxLength:3,
+     textCapitalization:TextCapitalization.characters,
+     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
+   ),
    SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Completed'),
     value:done,onChanged:(v)=>setState(()=>done=v)),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
