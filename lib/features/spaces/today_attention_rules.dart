@@ -159,6 +159,7 @@ class TodayCalendarEntry {
     this.activityId,
     this.experienceId,
     this.tripId,
+    this.occasionId,
   });
   final String title;
   final DateTime date;
@@ -167,4 +168,5 @@ class TodayCalendarEntry {
   final String? activityId;
   final String? experienceId;
   final String? tripId;
+  final String? occasionId;
 }

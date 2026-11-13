@@ -8,6 +8,7 @@ import '../calendar/calendar_screen.dart';
 import '../notes/notes_screen.dart';
 import '../plans/plans_screen.dart';
 import '../world/world_contacts_screen.dart';
+import '../occasions/occasions_screen.dart';
 
 /// The Remember section keeps daily reference information visible in one place.
 /// One invoker-only RPC returns the partner's RLS-filtered overview.
@@ -176,6 +177,12 @@ class _RememberScreenState extends State<RememberScreen> {
               subtitle: tr(context, 'rememberNotesSubtitle'),
               count: _count('notes_count'),
               destination: const NotesScreen(),
+            ),
+            _destination(
+              icon:Icons.card_giftcard_outlined,
+              title:'Occasions & surprises',
+              subtitle:'Gifts, holidays, budgets and early preparation',
+              destination:const OccasionsScreen(),
             ),
             _destination(
               icon:Icons.contacts_outlined,

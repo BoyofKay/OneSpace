@@ -8,6 +8,7 @@ import '../plans/plans_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
+import '../occasions/occasions_screen.dart';
 import '../../core/current_space_cache.dart';
 
 /// A single RLS-filtered search surface. No cross-space indexing or copying.
@@ -60,9 +61,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .ilike('title',pattern).limit(30),
        db.from('trip_attachments').select('id,trip_id,title')
          .ilike('title',pattern).limit(30),
+       db.from('occasion_plans').select('id,title').eq('space_id',id)
+         .ilike('title',pattern).limit(30),
      ]);
      if(!mounted||request!=version)return;
-     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document'];
+     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
@@ -90,6 +93,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Trip item':
      case 'Travel document':target=TripsScreen(initialTripId:hit.id);break;
      case 'Experience':target=SharedExperiencesScreen(initialExperienceId:hit.id);break;
+     case 'Occasion':target=OccasionsScreen(initialPlanId:hit.id);break;
      default:target=const CoupleLettersScreen();
    }
    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
@@ -120,6 +124,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
            hit.kind=='To-do'?Icons.checklist_outlined:
            hit.kind=='Note'?Icons.note_outlined:
            hit.kind=='Tag'?Icons.sell_outlined:
+           hit.kind=='Occasion'?Icons.card_giftcard_outlined:
            hit.kind=='Travel document'?Icons.attach_file:
            hit.kind=='Trip'||hit.kind=='Trip item'?Icons.flight_outlined:
            hit.kind=='Experience'?Icons.movie_outlined:Icons.mail_outline),

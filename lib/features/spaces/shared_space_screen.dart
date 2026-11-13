@@ -18,6 +18,7 @@ import '../coordinate/activity_detail_screen.dart';
 import '../connect/partner_gestures_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
+import '../occasions/occasions_screen.dart';
 import '../../core/performance_timings.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
@@ -280,6 +281,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             activityId:item['activity_id']?.toString(),
             experienceId:item['source']=='experience'?item['id']?.toString():null,
             tripId:item['trip_id']?.toString(),
+            occasionId:item['occasion_id']?.toString(),
           ));
         }
       }
@@ -817,7 +819,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               onOpenExperience:(id)=>Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(builder:(_)=>SharedExperiencesScreen(initialExperienceId:id))),
               onOpenTrip:(id)=>Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder:(_)=>TripsScreen(initialTripId:id)))),
+                MaterialPageRoute<void>(builder:(_)=>TripsScreen(initialTripId:id))),
+              onOpenOccasion:(id)=>Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder:(_)=>OccasionsScreen(initialPlanId:id)))),
             const SizedBox(height:12),
             Card(elevation:0,clipBehavior:Clip.antiAlias,
               child:ListTile(
