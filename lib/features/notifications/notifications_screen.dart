@@ -137,7 +137,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                      subtitle:Text(kind=='mention'?'Your partner mentioned you':
                        kind=='reply'?'Your partner replied':
                        kind=='letter'?'New letter':
-                       kind=='gesture'?'A little love from your partner':
+                       kind=='gesture'?
+                         (item['generated_automatically']==true
+                           ?'Scheduled by your partner'
+                           :'Personally sent by your partner'):
                        kind=='event'?'New shared event':
                        kind=='reminder'?'Your partner sent an event reminder':
                          'Shared update'),

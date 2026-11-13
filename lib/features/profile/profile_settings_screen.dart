@@ -36,6 +36,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final _partnerLabel=TextEditingController();
   TimeOfDay? _workStart,_workEnd,_bedTime,_wakeTime;
   Set<int> _workDays={7,1,2,3,4};
+  bool _receiveAutomaticGestures=false;
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final id = _client.auth.currentUser!.id;
       final profile =
-          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,work_start_local,work_end_local,sleep_start_local,sleep_end_local,work_days').eq('id', id).single();
+          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,work_start_local,work_end_local,sleep_start_local,sleep_end_local,work_days,receive_automatic_gestures').eq('id', id).single();
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
@@ -63,6 +64,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _workEnd=_parseTime(profile['work_end_local']);
         _bedTime=_parseTime(profile['sleep_start_local']);
         _wakeTime=_parseTime(profile['sleep_end_local']);
+        _receiveAutomaticGestures=profile['receive_automatic_gestures']==true;
         _workDays={for(final day in (profile['work_days'] as List<dynamic>? ?? const [])) if(day is num) day.toInt()};
         _language = (profile['locale'] as String?) ?? 'en';
         _timeZone = profile['time_zone']?.toString();
@@ -183,6 +185,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         'sleep_start_local':_formatTime(_bedTime),
         'sleep_end_local':_formatTime(_wakeTime),
         'work_days':_workDays.toList()..sort(),
+        'receive_automatic_gestures':_receiveAutomaticGestures,
       }).eq('id', _client.auth.currentUser!.id);
       OneSpaceLocaleController.instance.selectLanguage(_language);
       if (mounted) setState(() => _status = tr(context, 'profileSaved'));
@@ -410,7 +413,17 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _timeRow('Work ends','end',_workEnd),
         _timeRow('Bedtime','bed',_bedTime),
         _timeRow('Wake-up','wake',_wakeTime),
-        const Text('Quiet hours and scheduled messages will use these preferences in a later release.'),
+        const Divider(height:20),
+        SwitchListTile(
+          contentPadding:EdgeInsets.zero,
+          title:const Text('Allow scheduled gestures from my partner'),
+          subtitle:const Text('Off by default. When on, only the rituals your '
+            'partner explicitly enables can arrive. Sleep hours are respected.'),
+          value:_receiveAutomaticGestures,
+          onChanged:(v)=>setState(()=>_receiveAutomaticGestures=v),
+        ),
+        const Text('Scheduled gestures require consent from both people. '
+          'Saving these settings never sends a message by itself.'),
         const SizedBox(height: 18),
         ListTile(
           contentPadding: EdgeInsets.zero,

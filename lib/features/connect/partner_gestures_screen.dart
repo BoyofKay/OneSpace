@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import 'scheduled_gestures_panel.dart';
 
 /// Intentionally sent gestures. Messages are explicitly identified as presets;
 /// there is no automated impersonation or push-notification claim here.
@@ -144,6 +145,11 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                  label:Text(busyKind==option.id?'Sending…':option.title),
                ),
            ]),
+           const SizedBox(height:14),
+           ScheduledGesturesPanel(
+             spaceId:spaceId!,recipientId:recipientId!,
+             recipientName:recipientName??'your partner',
+           ),
            const SizedBox(height:24),
            Text('Our recent gestures',
              style:Theme.of(context).textTheme.titleMedium),
@@ -168,8 +174,10 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                      leading:Icon(item['sender_id']==db.auth.currentUser?.id
                        ?Icons.outgoing_mail:Icons.favorite_outline),
                      title:Text(item['message']?.toString()??''),
-                     subtitle:Text(item['sender_id']==db.auth.currentUser?.id
-                       ?'You sent this':'Sent by your partner'),
+                     subtitle:Text(item['automated']==true
+                       ?'Scheduled automatically by your partner'
+                       :item['sender_id']==db.auth.currentUser?.id
+                         ?'You sent this':'Sent personally by your partner'),
                    ),
                ]);
              },
