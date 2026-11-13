@@ -78,7 +78,7 @@ class AppearanceSettingsScreen extends StatelessWidget{
        onSelectionChanged:(value)=>state.setMode(value.first));
      }),
      const SizedBox(height:8),
-     Text(tr(context,'themePhoneHint'),
+     Text(tr(context,'themePhoneHint')+' Selecting a theme first applies its signature light or dark look; you can override it here.',
       style:theme.textTheme.bodySmall),
      const SizedBox(height:24),
      Text(tr(context,'themeSeasonal'),style:theme.textTheme.titleLarge),

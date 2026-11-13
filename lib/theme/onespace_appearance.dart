@@ -47,8 +47,17 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   return fallback;
  }
  Future<void> setPalette(OneSpacePalette value)async{
-  palette=value;notifyListeners();
-  try{(await SharedPreferences.getInstance()).setString(_paletteKey,value.name);}catch(_){}
+  palette=value;
+  // A named concept should initially look like its preview; brightness can
+  // still be overridden independently afterward, including Follow Phone.
+  mode=(value==OneSpacePalette.midnightBlue||
+       value==OneSpacePalette.monochrome)?ThemeMode.dark:ThemeMode.light;
+  notifyListeners();
+  try{
+   final prefs=await SharedPreferences.getInstance();
+   await prefs.setString(_paletteKey,value.name);
+   await prefs.setString(_modeKey,mode.name);
+  }catch(_){}
  }
  Future<void> setMode(ThemeMode value)async{
   mode=value;notifyListeners();
