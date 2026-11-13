@@ -25,6 +25,11 @@ const _options=[
    'A hug is on its way to you, my love.',
    'Wrapping you in a little extra love today.',
  ]),
+ _GestureOption('miss_you','I miss you',Icons.heart_broken_outlined,[
+   'I miss you more than words can say.',
+   'Wish you were here with me right now.',
+   'Across the distance, I am missing you.',
+ ]),
  _GestureOption('thinking','Thinking of you',Icons.favorite_outline,[
    'Just wanted you to know I am thinking about you.',
    'You crossed my mind, and I smiled.',
@@ -72,7 +77,7 @@ const _options=[
    'I see everything you do, and I appreciate you.',
    'You are amazing. I hope you know that.',
  ]),
- _GestureOption('support','You have got this',Icons.favorite_border,[
+ _GestureOption('support','You have got this',Icons.fitness_center_outlined,[
    'I am here for you, even from far away.',
    'You do not have to carry today alone.',
    'You have got this. I believe in you.',
@@ -98,7 +103,7 @@ const _options=[
    'Of all the people in the world, I get to love you.',
    'Being yours is one of my favorite things.',
  ]),
- _GestureOption('miss_together','I miss us together',Icons.favorite_border,[
+ _GestureOption('miss_together','I miss us together',Icons.people_alt_outlined,[
    'I miss the simple moments when we are side by side.',
    'I miss our laughter and the ordinary magic of us together.',
    'I cannot wait for our next moment together.',
@@ -174,6 +179,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      case 'proud':return const Color(0xFF409F8B);
      case 'thanks':return const Color(0xFF218E80);
      case 'lucky':return const Color(0xFF9977D7);
+     case 'miss_you':return const Color(0xFFE56D8A);
      case 'miss_together':return const Color(0xFFDC658A);
      case 'miss_home':return const Color(0xFFDC9960);
      case 'miss_kids':return const Color(0xFF729CC8);
@@ -407,6 +413,13 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
          Text(widget.manageOnly?'Each gesture type has one randomized message pool. Edit or hide built-in messages and add your own.':
            'Tap a gesture to send it. Your personal library and scheduled rituals are in Settings.'),
          const SizedBox(height:16),
+         if(!widget.manageOnly)...[
+          FilledButton.tonalIcon(
+           onPressed:_createCustom,
+           icon:const Icon(Icons.add_reaction_outlined),
+           label:const Text('Create my own gesture')),
+          const SizedBox(height:12),
+         ],
          if(loading)const Center(child:CircularProgressIndicator()),
          if(!loading&&recipientId==null)
            const Text('Connect your partner to send a gesture.'),
@@ -441,9 +454,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                          Text(option.title,textAlign:TextAlign.center,
                            maxLines:2,overflow:TextOverflow.ellipsis,
                            style:Theme.of(context).textTheme.titleSmall),
-                         const SizedBox(height:3),
-                         Text(pool(option).length.toString()+' messages · tap to send',
-                           style:Theme.of(context).textTheme.labelSmall),
+
                        ]),
                    ),
                  ),

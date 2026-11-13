@@ -10,11 +10,8 @@ class GestureKindSymbol extends StatelessWidget{
  final Color? color;
  final double size;
  @override Widget build(BuildContext context){
-   if(kind=='support'||kind=='miss_together'){
-     return Text(kind=='support'?'💪':'👩‍❤️‍💋‍👨',
-       textAlign:TextAlign.center,
-       style:TextStyle(fontSize:kind=='support'?size*.94:size*.78,height:1));
-   }
+   // Use native symbols for consistent Material iconography instead of emoji.
+   // This also avoids inconsistent platform-dependent emoji rendering.
    return Icon(GestureTheme.forKind(kind).icon,color:color,size:size);
  }
 }
@@ -62,7 +59,9 @@ class GestureTheme {
      case 'proud':return const GestureTheme(Icons.auto_awesome_outlined,Color(0xFF409F8B),'Proud of you');
      case 'thanks':return const GestureTheme(Icons.handshake_outlined,Color(0xFF218E80),'Thank you');
      case 'lucky':return const GestureTheme(Icons.stars_outlined,Color(0xFF9977D7),'Lucky to have you');
-     case 'miss_together':return const GestureTheme(Icons.favorite_border,Color(0xFFDC658A),'Missing our togetherness');
+     case 'miss_you':return const GestureTheme(Icons.heart_broken_outlined,Color(0xFFE56D8A),'I miss you');
+     case 'support':return const GestureTheme(Icons.fitness_center_outlined,Color(0xFF409F8B),'You have got this');
+     case 'miss_together':return const GestureTheme(Icons.people_alt_outlined,Color(0xFFDC658A),'Missing our togetherness');
      case 'miss_home':return const GestureTheme(Icons.home_outlined,Color(0xFFDC9960),'Missing our home');
      case 'miss_kids':return const GestureTheme(Icons.child_care_outlined,Color(0xFF729CC8),'Missing our kids');
      case 'miss_pets':return const GestureTheme(Icons.pets_outlined,Color(0xFFBC804D),'Missing our furry ones');
