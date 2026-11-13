@@ -44,3 +44,7 @@ Run source-only analyzer and Flutter tests against 5ba059836cc7a84b8dc8d3193c0ef
 ## R19 acceptance-feedback source-only verification
 
 Verify R19 at a6be135f3f89c4f620c9fb4258dfc18dc8771b0c with lockfile, Flutter analyze and all Flutter tests. Covers biometric/local lock, first-name, To-do nested cycle checklists, Notes photos, mentions, experiences and gesture UX. Do not build/sign/release APK or touch test accounts. Existing R12–R17 APK remains the baseline.
+
+## R19 post-analyzer cleanup / verify only
+
+R19 fix removes two unused imports flagged by run 43519852832, with no Dart compile errors. Re-run analyzer plus tests on 016ae9f6a7124450f19986b75f6c0bcf41508e8d. Do not build or release an APK, reset accounts or change the release marker.
