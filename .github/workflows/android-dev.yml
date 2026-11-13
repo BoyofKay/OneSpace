@@ -79,22 +79,71 @@ jobs:
         shell: bash
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk "OneSpace-preview-0.1.${{ github.run_number }}.apk"
-      - name: Publish APK directly to GitHub Releases
+      # Preserve the verified signed package even if GitHub Releases denies
+      # a write or has a temporary API failure. This is independently downloadable
+      # and can be republished without recompiling via rerunning only publish.
+      - name: Store verified APK as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneSpace-preview-0.1.${{ github.run_number }}
+          path: OneSpace-preview-0.1.${{ github.run_number }}.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified signed APK
+        uses: actions/download-artifact@v4
+        with:
+          name: OneSpace-preview-0.1.${{ github.run_number }}
+      - name: Publish signed APK to GitHub Releases (retryable)
         env:
-          GH_TOKEN: ${{ github.token }}
+          # Optional fine-grained repository release token if integration
+          # permissions prevent GITHUB_TOKEN from creating releases.
+          GH_TOKEN: ${{ secrets.ONESPACE_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
-          gh release create "preview-0.1.${{ github.run_number }}" "OneSpace-preview-0.1.${{ github.run_number }}.apk" \
-            --title "OneSpace Preview 0.1.${{ github.run_number }}" \
-            --notes "Optimized test preview, not a production release. Download the APK directly. OneSpace previews use a consistent development-only signing key and increasing Android version codes. Future previews should install as updates over this preview; production signing and full account recovery testing are separate release gates. If you installed the original unsuffixed Flutter sample app, it is a different package from the OneSpace Preview app." \
-            --prerelease --target "$(git rev-parse HEAD)"
-      - name: Verify APK is actually available in Releases
+          set -euo pipefail
+          TAG="preview-0.1.${{ github.run_number }}"
+          ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          test -s "$ASSET"
+          published=false
+          for attempt in 1 2 3; do
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              if gh release upload "$TAG" "$ASSET" --clobber; then
+                published=true
+                break
+              fi
+            else
+              if gh release create "$TAG" "$ASSET" \
+                --title "OneSpace Preview 0.1.${{ github.run_number }}" \
+                --notes "Signed Android test preview, not a production release. OneSpace uses a stable preview-only signing key and an unchanged application ID. Verify functionality on both partners' phones before production use." \
+                --prerelease --target "${{ github.sha }}"; then
+                published=true
+                break
+              fi
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep "$((attempt * 10))"
+            fi
+          done
+          if [ "$published" != true ]; then
+            echo "::error::GitHub Release publication failed; signed APK is retained under this workflow's Artifacts."
+            exit 1
+          fi
+      - name: Confirm publicly listed release asset
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ONESPACE_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           TAG="preview-0.1.${{ github.run_number }}"
           ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
           gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fx "$ASSET"
           gh release view "$TAG" --json url --jq '.url'
-
