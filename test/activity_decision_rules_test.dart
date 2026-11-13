@@ -7,7 +7,7 @@ void main() {
       'chosen': 'decided',
       'purchased': 'purchased',
       'delivered': 'completed',
-      'registered': 'registered',
+      'registered': 'completed',
       'postponed': 'on_hold',
       'reopened': 'exploring',
       'cancelled': 'cancelled',
