@@ -13,6 +13,7 @@ import '../../core/partner_clock_strip.dart';
 import '../../core/device_time_zone.dart';
 import '../../core/device_weather_service.dart';
 import '../calendar/calendar_rules.dart';
+import '../coordinate/activity_countdown_rules.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../../core/performance_timings.dart';
 import '../../core/current_space_cache.dart';
@@ -78,6 +79,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   List<Map<String,dynamic>> recentDiscussions = const [];
   List<TodayAttentionItem> focusItems = const [];
   List<TodayCalendarEntry> nearEvents = const [];
+  List<Map<String,dynamic>> milestoneCountdowns=const [];
   String relationshipMode = 'not_set';
   String? partnerLabel;
   DateTime? lastMetOn;
@@ -181,6 +183,77 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     }catch(_){}
   }
 
+  /// Countdown cards load after the dashboard RPC; their slower optional
+  /// lookup never delays clocks, calendar, or attention cards.
+  Future<void> _loadMilestones(String id,int request) async {
+    final timer=Stopwatch()..start();
+    try{
+      final rows=await client.from('activity_components')
+        .select('activity_id,label,payload,activities!inner(space_id,archived_at)')
+        .eq('kind','countdown')
+        .eq('activities.space_id',id)
+        .isFilter('archived_at',null)
+        .isFilter('activities.archived_at',null)
+        .limit(80)
+        .timeout(const Duration(seconds:10));
+      if(!mounted||_requestVersion!=request||spaceId!=id)return;
+      final now=DateTime.now();
+      final found=<Map<String,dynamic>>[];
+      for(final row in rows){
+        final payload=row['payload'] as Map? ?? const {};
+        final raw=payload['value']?.toString();
+        final annual=payload['repeat_yearly']==true;
+        final days=ActivityCountdownRules.remaining(raw,
+          repeatYearly:annual,now:now);
+        if(days==null)continue;
+        found.add({
+          'activity_id':row['activity_id'].toString(),
+          'label':row['label']?.toString()??'Milestone',
+          'date':raw,
+          'days':days,
+          'annual':annual,
+        });
+      }
+      found.sort((a,b){
+        final da=(a['days'] as int).abs();
+        final db=(b['days'] as int).abs();
+        return da.compareTo(db);
+      });
+      if(mounted&&_requestVersion==request){
+        setState(()=>milestoneCountdowns=found.take(5).toList());
+      }
+    }catch(_){
+      // Optional countdowns must never interrupt the main Today dashboard.
+    }finally{
+      PerformanceTimings.instance.record(
+        'Home countdowns optional network',timer.elapsed);
+    }
+  }
+
+  Widget _countdownPanel()=>ExpansionTile(
+    tilePadding:EdgeInsets.zero,
+    leading:const Icon(Icons.hourglass_bottom_outlined),
+    title:Text('Our countdowns ('+
+      milestoneCountdowns.length.toString()+')'),
+    initiallyExpanded:true,
+    children:[
+      for(final item in milestoneCountdowns)
+        ListTile(
+          dense:true,
+          leading:const Icon(Icons.event_available_outlined),
+          title:Text(item['label'].toString()),
+          subtitle:Text(item['date'].toString()+
+            (item['annual']==true?' · Every year':'')),
+          trailing:Text(ActivityCountdownRules.summary(
+            item['date'].toString(),
+            repeatYearly:item['annual']==true,
+            now:DateTime.now()),
+            style:Theme.of(context).textTheme.labelMedium),
+          onTap:()=>_openFocusActivity(item['activity_id'].toString()),
+        ),
+    ],
+  );
+
   /// First load membership; render the space as soon as we have its ID.
   /// Remaining independent groups load concurrently, so one failing optional
   /// query cannot hide the entire dashboard.
@@ -226,6 +299,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           recentDiscussions = const [];
           focusItems = const [];
           nearEvents = const [];
+          milestoneCountdowns=const [];
           relationshipMode = 'not_set';
           lastMetOn = null;
           nextMeetOn = null;
@@ -304,6 +378,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       PerformanceTimings.instance.record('Home overview network', watch.elapsed);
       if (spaceId != null && mounted) {
         unawaited(_syncDeviceContext());
+        unawaited(_loadMilestones(spaceId!,request));
       }
     } on PostgrestException catch (error) {
       PerformanceTimings.instance.record('Home overview failed', watch.elapsed);
@@ -665,6 +740,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             TodayCalendarSection(entries:nearEvents,
               onOpen:widget.onOpenCalendar ?? () {}),
             const SizedBox(height:12),
+            if(milestoneCountdowns.isNotEmpty)...[
+              _countdownPanel(),
+              const SizedBox(height:8),
+            ],
             if (memberCount < 2) _panel(
               spaceName ?? 'Our Space',
               memberCount == 2
