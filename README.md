@@ -8,11 +8,11 @@ A Flutter companion app for couples, whether living together or apart.
 
 **Today | Remember | Coordinate | Connect | World**
 
-- **Today:** the couple's shared dashboard, status, meeting counters and latest activity.
+- **Today:** the couple's shared dashboard, relationship context, actionable attention, and unified next-seven-day agenda (including trip departures and itinerary stops).
 - **Remember:** calendar, to-do list, notes, upcoming dues and upcoming events (via a single RLS-filtered summary).
 - **Coordinate:** reusable Activities and contributions for shared research and decisions.
-- **Connect:** check-ins, memories and relationship experiences.
-- **World:** people, context and relationship-mode settings.
+- **Connect:** check-ins, love gestures, letters, memories, and Shared Experiences (movies, shows, music, books and games).
+- **World:** Trips & Journeys with shared/private plans, flights, stays, bookings, itinerary, conversation, revisions and countdowns. Saved contacts remain in Remember.
 
 Previous development test content was cleared on 13 November 2026, while two existing login accounts, one shared space and partner memberships remained intact.
 
@@ -39,7 +39,7 @@ Previous development test content was cleared on 13 November 2026, while two exi
 
 ## Install a standalone Android APK
 
-Each successful push build publishes a GitHub pre-release with a direct `OneSpace-preview-*.apk` file on [GitHub Releases](../../releases). There is no ZIP to extract.
+**Normal source commits do not build an APK.** Only an explicit final iteration marker or authorized manual dispatch invokes the release workflow. A verified release publishes a `OneSpace-preview-*.apk` on [GitHub Releases](../../releases), subject to GitHub permissions and Actions quota. If publication fails, the signed APK may be available as a workflow artifact. See [release policy](docs/RELEASE_POLICY_ONE_APK_PER_ITERATION.md).
 
 Preview APKs are now signed with a **fixed, non-secret development-only debug key** stored as a base64 file under `tools/dev-signing/`. This key must **never** be used for production distribution. It gives new preview builds a consistent signature so they can be installed over earlier previews (when Android build numbers increase).
 
@@ -56,6 +56,10 @@ Privileged pairing logic lives in a private schema behind public invoker-only RP
 See the [shared-workspace checklist](docs/SHARED_WORKSPACE_ACCEPTANCE.md) and
 [Calendar, Memories and performance acceptance plan](docs/CALENDAR_MEMORIES_PERFORMANCE_QA.md)
 for two-account verification scenarios.
+
+## R14 source status (not a phone release)
+
+The additive database migration for Trips & Journeys is deployed and the Flutter source is committed. The accounts, memberships and existing app data are retained. Flutter analysis, automated execution, signed APK release and real two-phone validation **have not been run for R14** because GitHub Actions usage must be conserved. The documented acceptance cases are in [R14 Trips & Journeys QA](docs/R14_TRIPS_JOURNEYS_QA.md).
 
 ## Ordered milestones
 
