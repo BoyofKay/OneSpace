@@ -34,22 +34,10 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      });
    }
  }
- String? _time(TimeOfDay? time)=>time==null?null:
-   time.hour.toString().padLeft(2,'0')+':'+
-   time.minute.toString().padLeft(2,'0')+':00';
- TimeOfDay? _parse(Object? raw){
-   final v=raw?.toString().split(':');
-   if(v==null||v.length<2)return null;
-   final h=int.tryParse(v[0]),m=int.tryParse(v[1]);
-   if(h==null||m==null)return null;
-   return TimeOfDay(hour:h,minute:m);
- }
  Future<void> _edit([Map<String,dynamic>? existing])async{
    if(space==null)return;
    var date=DateTime.tryParse(existing?['off_date']?.toString()??'')??
      DateTime.now();
-   var bedtime=_parse(existing?['night_before_sleep_at']);
-   var wake=_parse(existing?['off_day_wake_at']);
    final label=TextEditingController(text:existing?['label']?.toString()??'Day off');
    try{
      final result=await showDialog<bool>(context:context,
@@ -70,34 +58,8 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
                }),
              TextField(controller:label,maxLength:120,
                decoration:const InputDecoration(labelText:'Name or reason (optional)')),
-             ListTile(contentPadding:EdgeInsets.zero,
-               leading:const Icon(Icons.nights_stay_outlined),
-               title:Text(bedtime==null?'Use normal bedtime':
-                 'Night before: '+bedtime!.format(ctx)),
-               subtitle:const Text('Optional sleep-later time before this day off'),
-               trailing:bedtime==null?null:IconButton(
-                 icon:const Icon(Icons.clear),
-                 onPressed:()=>update(()=>bedtime=null)),
-               onTap:()async{
-                 final chosen=await showTimePicker(context:ctx,
-                   initialTime:bedtime??const TimeOfDay(hour:0,minute:30));
-                 if(chosen!=null)update(()=>bedtime=chosen);
-               }),
-             ListTile(contentPadding:EdgeInsets.zero,
-               leading:const Icon(Icons.wb_sunny_outlined),
-               title:Text(wake==null?'Use normal wake time':
-                 'Day off wake-up: '+wake!.format(ctx)),
-               subtitle:const Text('Optional later morning reminders'),
-               trailing:wake==null?null:IconButton(
-                 icon:const Icon(Icons.clear),
-                 onPressed:()=>update(()=>wake=null)),
-               onTap:()async{
-                 final chosen=await showTimePicker(context:ctx,
-                   initialTime:wake??const TimeOfDay(hour:9,minute:30));
-                 if(chosen!=null)update(()=>wake=chosen);
-               }),
              const Text('This date appears on both calendars. '
-               'Morning, goodnight and after-work rituals respect these exceptions.'),
+               'Automatic gestures respect the normal working and sleep schedule.'),
            ])),
          actions:[
            TextButton(onPressed:()=>Navigator.pop(ctx,false),
@@ -112,8 +74,6 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
        'space_id':space,'user_id':db.auth.currentUser!.id,
        'off_date':CalendarRules.sqlDate(date),
        'label':label.text.trim().isEmpty?'Day off':label.text.trim(),
-       'night_before_sleep_at':_time(bedtime),
-       'off_day_wake_at':_time(wake),
      };
      if(existing==null){
        await db.from('personal_days_off').insert(values);
@@ -121,8 +81,6 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
        await db.from('personal_days_off').update({
          'off_date':CalendarRules.sqlDate(date),
          'label':values['label'],
-         'night_before_sleep_at':values['night_before_sleep_at'],
-         'off_day_wake_at':values['off_day_wake_at'],
        }).eq('id',existing['id'].toString())
          .eq('user_id',db.auth.currentUser!.id);
      }
@@ -167,9 +125,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      const Text('Exceptions to my usual working days',
        style:TextStyle(fontSize:18,fontWeight:FontWeight.w600)),
      const SizedBox(height:6),
-     const Text('Shared on our calendar. A later bedtime the night before '
-       'and wake time can adjust automatic affectionate rituals. '
-       'Nothing sends while you are in your configured sleep window.'),
+     const Text('Days off appear on our shared calendar and skip the after-work ritual. Your normal sleep and notification schedule remains in Settings.'),
      if(error!=null)Text(error!,
        style:TextStyle(color:Theme.of(context).colorScheme.error)),
      if(busy)const Center(child:CircularProgressIndicator()),
@@ -180,10 +136,6 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
        title:Text(day['label']?.toString()??'Day off'),
        subtitle:Text([
          day['off_date'].toString(),
-         if(day['night_before_sleep_at']!=null)
-           'Previous bedtime '+day['night_before_sleep_at'].toString(),
-         if(day['off_day_wake_at']!=null)
-           'Wake '+day['off_day_wake_at'].toString(),
        ].join(' · ')),
        onTap:()=>_edit(day),
        trailing:IconButton(
