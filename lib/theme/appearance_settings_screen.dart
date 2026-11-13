@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'onespace_appearance.dart';
+import 'theme_concept_card.dart';
 import '../l10n/onespace_strings.dart';
 
 class AppearanceSettingsScreen extends StatelessWidget{
@@ -31,39 +32,14 @@ class AppearanceSettingsScreen extends StatelessWidget{
      Text(tr(context,'themePalettes'),style:theme.textTheme.titleLarge),
      const SizedBox(height:10),
      LayoutBuilder(builder:(ctx,box){
-      final columns=box.maxWidth>=500?4:2;
+      final columns=box.maxWidth>=540?4:2;
       final tile=(box.maxWidth-12*(columns-1))/columns;
       return Wrap(spacing:12,runSpacing:12,children:[
        for(final p in OneSpacePalette.values)
-        SizedBox(width:tile,child:Semantics(
-         selected:state.palette==p,
-         label:paletteLabel(context,p),
-         button:true,
-         child:InkWell(
-          borderRadius:BorderRadius.circular(18),
-          onTap:()=>state.setPalette(p),
-          child:Container(
-           padding:const EdgeInsets.all(12),
-           decoration:BoxDecoration(
-            borderRadius:BorderRadius.circular(18),
-            color:scheme.surface,
-            border:Border.all(
-             width:state.palette==p?2.3:1,
-             color:state.palette==p?scheme.primary:scheme.outlineVariant)),
-           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Row(children:[
-             CircleAvatar(radius:14,backgroundColor:OneSpaceAppearance.paletteSeed(p)),
-             const Spacer(),
-             if(state.palette==p)Icon(Icons.check_circle,size:19,color:scheme.primary)
-             else const Icon(Icons.circle_outlined,size:19),
-            ]),
-            const SizedBox(height:16),
-            Text(paletteLabel(context,p),
-             maxLines:2,overflow:TextOverflow.ellipsis,
-             style:theme.textTheme.labelLarge),
-           ]),
-          ),
-         ))),
+        SizedBox(width:tile,
+         child:ThemeConceptCard(
+          palette:p,label:paletteLabel(context,p),
+          selected:state.palette==p,onTap:()=>state.setPalette(p))),
       ]);
      }),
      const SizedBox(height:24),
