@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
@@ -271,6 +273,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
     ]);
   }
 
+  Future<void> _emailEvent(Map<String,dynamic> event) async {
+    final title=event['title']?.toString()??'Calendar event';
+    final date=event['event_date']?.toString()??'';
+    final details=event['details']?.toString()??'';
+    final begin=DateTime.tryParse(event['starts_at']?.toString()??'')?.toLocal();
+    final time=begin==null?'All day':TimeOfDay.fromDateTime(begin).format(context);
+    final body='Event: '+title+'\nDate: '+date+'\nTime: '+time+'\n'+details;
+    final destination=Uri(scheme:'mailto',queryParameters:{
+      'subject':'OneSpace: '+title,
+      'body':body,
+    });
+    var opened=false;
+    try{
+      opened=await launchUrl(destination,mode:LaunchMode.externalApplication);
+    }catch(_){}
+    if(!opened){
+      await Clipboard.setData(ClipboardData(text:body));
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('No email app available. Event copied.')));
+      }
+    }
+  }
+
   Widget _monthGrid() {
     final first = DateTime(_month.year, _month.month);
     final offset = first.weekday % 7; // Sunday is the first day of the week.
@@ -414,7 +440,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (!canEdit) tr(context, 'viewOnly'),
               if (event['archived_at'] != null) tr(context, 'archived'),
             ].join(' • ')),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: IconButton(
+              tooltip:'Share this event by email',
+              icon:const Icon(Icons.mail_outline),
+              onPressed:()=>_emailEvent(event),
+            ),
             onTap: () => _openEditor(existing: event),
           ),
           if (canShare)
