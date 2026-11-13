@@ -108,8 +108,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await DeviceWeatherService.disable(_client);
       if(mounted)setState((){
         _shareCityWeather=false;
+        _city=null;
         _temperature=null;_weatherCode=null;_high=null;_low=null;_rain=null;
-        _status='Weather sharing stopped. Your selected city is remembered.';
+        _status='Weather sharing stopped and saved city cleared.';
       });
     }catch(_){
       if(mounted)setState(()=>_error='Could not stop sharing. Try again.');
@@ -366,7 +367,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 OutlinedButton.icon(
                   onPressed:_weatherBusy?null:_stopWeatherSharing,
                   icon:const Icon(Icons.visibility_off_outlined),
-                  label:const Text('Stop sharing'),
+                  label:const Text('Stop monitoring'),
                 ),
             ]),
             if(_weatherBusy)const LinearProgressIndicator(),

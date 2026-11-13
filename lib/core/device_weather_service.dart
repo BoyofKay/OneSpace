@@ -113,7 +113,7 @@ class DeviceWeatherService {
     return SelectedCityWeather(
       current:weather,high:number('temperature_2m_max'),
       low:number('temperature_2m_min'),
-      rainPct:rain==null?null:rain.round().clamp(0,100),
+      rainPct:rain==null?null:rain.round().clamp(0,100).toInt(),
     );
   }
 
@@ -138,6 +138,8 @@ class DeviceWeatherService {
       'temperature_c':null,'weather_code':null,
       'weather_updated_at':null,'weather_high_c':null,
       'weather_low_c':null,'weather_rain_pct':null,
+      'weather_city_id':null,'weather_city_lat':null,
+      'weather_city_lon':null,'city_name':null,
     }).eq('id',id);
   }
 
