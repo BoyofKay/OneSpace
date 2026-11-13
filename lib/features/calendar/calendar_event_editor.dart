@@ -32,6 +32,11 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
   late String _recurrence;
   late String _visibility;
   bool _saving = false;
+  String? _forUser;
+  bool _allDay=true;
+  TimeOfDay _start=const TimeOfDay(hour:9,minute:0);
+  TimeOfDay _end=const TimeOfDay(hour:10,minute:0);
+  List<Map<String,dynamic>> _people=const [];
   String? _error;
 
   bool get _editing => widget.existing != null;
@@ -53,6 +58,15 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
     _kind = existing?['kind'] as String? ?? 'event';
     _recurrence = existing?['recurrence'] as String? ?? 'none';
     _visibility = existing?['visibility'] as String? ?? 'shared';
+    _forUser=existing?['for_user_id']?.toString();
+    final initialStart=DateTime.tryParse(existing?['starts_at']?.toString()??'')?.toLocal();
+    final initialEnd=DateTime.tryParse(existing?['ends_at']?.toString()??'')?.toLocal();
+    if(initialStart!=null){
+      _allDay=false;
+      _start=TimeOfDay.fromDateTime(initialStart);
+      if(initialEnd!=null)_end=TimeOfDay.fromDateTime(initialEnd);
+    }
+    _loadPeople();
   }
 
   @override
@@ -60,6 +74,25 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
     _title.dispose();
     _details.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPeople() async {
+    try {
+      final members=await _client.from('space_members').select('user_id')
+        .eq('space_id',widget.spaceId);
+      final ids=members.map((m)=>m['user_id'].toString()).toList();
+      if(ids.isEmpty)return;
+      final people=await _client.from('profiles').select('id,display_name')
+        .inFilter('id',ids);
+      if(mounted)setState(()=>_people=people);
+    } catch (_) {}
+  }
+  Future<void> _pickTime(bool starting) async {
+    final result=await showTimePicker(context:context,
+      initialTime:starting?_start:_end);
+    if(result!=null&&mounted)setState((){
+      if(starting){_start=result;}else{_end=result;}
+    });
   }
 
   Future<void> _pickDate() async {
@@ -90,6 +123,19 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
         'kind': _kind,
         'recurrence': _recurrence,
       };
+      fields['for_user_id']=_forUser;
+      if(_allDay){
+        fields['starts_at']=null;
+        fields['ends_at']=null;
+        fields['zone_id']=null;
+      } else {
+        final start=DateTime(_date.year,_date.month,_date.day,_start.hour,_start.minute);
+        final end=DateTime(_date.year,_date.month,_date.day,_end.hour,_end.minute);
+        if(!end.isAfter(start))throw StateError('End time must be after start time');
+        fields['starts_at']=start.toUtc().toIso8601String();
+        fields['ends_at']=end.toUtc().toIso8601String();
+        fields['zone_id']=null;
+      }
       if (!_editing) {
         await _client.from('space_events').insert({
           ...fields,
@@ -193,6 +239,36 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
             label: Text(CalendarRules.sqlDate(_date)),
           ),
           const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            key:ValueKey('person_${_forUser}_${_people.length}'),
+            initialValue:_forUser??'both',
+            decoration:const InputDecoration(
+              labelText:'Event belongs to',border:OutlineInputBorder()),
+            items:[
+              const DropdownMenuItem(value:'both',child:Text('Both of us')),
+              for(final person in _people)
+                DropdownMenuItem(value:person['id'].toString(),
+                  child:Text(person['display_name']?.toString()??'Partner')),
+            ],
+            onChanged:!_canEdit||_saving?null:(v)=>
+              setState(()=>_forUser=v=='both'?null:v),
+          ),
+          SwitchListTile(
+            contentPadding:EdgeInsets.zero,
+            title:const Text('All-day event'),
+            value:_allDay,
+            onChanged:!_canEdit||_saving?null:(v)=>setState(()=>_allDay=v),
+          ),
+          if(!_allDay)Row(children:[
+            Expanded(child:OutlinedButton(
+              onPressed:()=>_pickTime(true),
+              child:Text('Start ${_start.format(context)}'))),
+            const SizedBox(width:8),
+            Expanded(child:OutlinedButton(
+              onPressed:()=>_pickTime(false),
+              child:Text('End ${_end.format(context)}'))),
+          ]),
+          const SizedBox(height:12),
           Text(tr(context, 'repeat')),
           Wrap(spacing: 8, children: ['none','yearly'].map((option) =>
             ChoiceChip(
