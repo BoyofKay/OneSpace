@@ -23,6 +23,29 @@ void main(){
   expect(OneSpaceAppearance.effectiveSeason(
    SeasonChoice.automatic,DateTime(2026,7,1)),SeasonChoice.off);
  });
+ test('Preserved user-requested theme names are the actual four presets',(){
+  expect(OneSpacePalette.values.map(OneSpaceAppearance.paletteName).toList(),[
+   'Midnight Blue','Monochrome','Clean Light','Soft Rose',
+  ]);
+ });
+ test('Holiday palette affects entire component scheme, not a single card',(){
+  final ordinary=OneSpaceTheme.build(
+   palette:OneSpacePalette.cleanLight,brightness:Brightness.light);
+  final holiday=OneSpaceTheme.build(
+   palette:OneSpacePalette.cleanLight,brightness:Brightness.light,
+   season:SeasonChoice.halloween);
+  expect(ordinary.colorScheme.primary,isNot(holiday.colorScheme.primary));
+  expect(ordinary.appBarTheme.backgroundColor,
+   isNot(holiday.appBarTheme.backgroundColor));
+  expect(ordinary.cardTheme.color,isNot(holiday.cardTheme.color));
+  expect(holiday.extension<OneSpaceVisualTokens>(),isNotNull);
+ });
+ test('Manual Eid or anniversary theme does not infer a lunar date',(){
+  expect(OneSpaceAppearance.effectiveSeason(
+   SeasonChoice.eid,DateTime(2027,6,8)),SeasonChoice.eid);
+  expect(OneSpaceAppearance.effectiveSeason(
+   SeasonChoice.anniversary,DateTime(2027,4,23)),SeasonChoice.anniversary);
+ });
  test('Manual off always overrides automatic seasonal theme',(){
   expect(OneSpaceAppearance.effectiveSeason(SeasonChoice.off,DateTime(2026,12,25)),
    SeasonChoice.off);
