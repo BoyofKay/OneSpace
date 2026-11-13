@@ -68,8 +68,6 @@ class SectionHub extends StatelessWidget {
             'planned. Letters are available above.',
           ),
         ] else ...[
-          const RelationshipSettings(),
-          const SizedBox(height: 12),
           _link(context, Icons.contacts_outlined,
             'Saved contacts',
             'People, organizations and places from our shared Activities',

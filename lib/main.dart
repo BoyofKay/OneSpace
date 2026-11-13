@@ -22,6 +22,7 @@ import 'features/goals/goals_screen.dart';
 import 'features/checkins/checkins_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
+import 'features/settings/onespace_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
 import 'l10n/onespace_locale_controller.dart';
 import 'l10n/onespace_strings.dart';
@@ -284,7 +285,12 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           const Text('OneSpace',style:TextStyle(fontWeight:FontWeight.w800)),
           Text(tr(context,'tagline'),style:const TextStyle(fontSize:12)),
         ]),
-        actions: [
+        actions:[
+          IconButton(
+            icon:const Icon(Icons.settings_outlined),
+            tooltip:'OneSpace settings',
+            onPressed:()=>open(const OneSpaceSettingsScreen()),
+          ),
           if (!showProfile) IconButton(
             icon:const Icon(Icons.search_outlined),
             tooltip:'Search our space',
