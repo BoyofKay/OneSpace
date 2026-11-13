@@ -10,6 +10,7 @@ import 'activity_component_editor.dart';
 import 'activity_decision_rules.dart';
 import 'activity_comparison_matrix.dart';
 import 'activity_comparison_sheet.dart';
+import 'activity_conversation_references.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -31,6 +32,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late final Stream<List<Map<String, dynamic>>> reactions;
   late final Stream<List<Map<String, dynamic>>> decisions;
   String? replyingTo;
+  String? replyPreview;
   String? onComponent;
   String? onComponentTitle;
   String? issue;
@@ -492,6 +494,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
       onComponent = item['id'] as String;
       onComponentTitle = item['label']?.toString();
       replyingTo = null;
+      replyPreview = null;
+    });
+  }
+
+  void startReply(Map<String, dynamic> message) {
+    setState(() {
+      replyingTo = message['id']?.toString();
+      replyPreview = ActivityConversationReferences.excerpt(message['body']);
+      onComponent = null;
+      onComponentTitle = null;
     });
   }
 
@@ -628,6 +640,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       if (mounted) {
         setState(() {
           replyingTo = null;
+          replyPreview = null;
           onComponent = null;
           onComponentTitle = null;
         });
@@ -874,57 +887,78 @@ class _ActivityScreenState extends State<ActivityScreen> {
   );
 
   Widget conversation(String? spaceId) =>
-      StreamBuilder<List<Map<String,dynamic>>>(
+      StreamBuilder<List<Map<String, dynamic>>>(
     stream: comments,
-    builder: (context, s) {
-      if (s.hasError) return const Text('Could not load the conversation.');
-      if (!s.hasData) return const LinearProgressIndicator();
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: 18),
-        Text('Conversation', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 6),
-        if (s.data!.isEmpty)
-          const Padding(padding: EdgeInsets.symmetric(vertical: 10),
-            child: Text('Start talking here. Every message stays with this Activity.')),
-        for (final msg in s.data!) commentBubble(msg, spaceId),
-      ]);
+    builder: (context, messagesSnapshot) {
+      if (messagesSnapshot.hasError) {
+        return const Text('Could not load the conversation.');
+      }
+      if (!messagesSnapshot.hasData) return const LinearProgressIndicator();
+      final messages = messagesSnapshot.data!;
+      return StreamBuilder<List<Map<String, dynamic>>>(
+        stream: components,
+        builder: (context, componentSnapshot) {
+          final componentItems = componentSnapshot.data ?? const [];
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 18),
+            Text('Conversation', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 6),
+            if (messages.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text('Start talking here. Every message stays with this Activity.')),
+            for (final message in messages)
+              commentBubble(message, spaceId, messages, componentItems),
+          ]);
+        },
+      );
     },
   );
 
-  Widget commentBubble(Map<String,dynamic> msg, String? spaceId) {
+  Widget commentBubble(
+    Map<String, dynamic> msg,
+    String? spaceId,
+    List<Map<String, dynamic>> messages,
+    List<Map<String, dynamic>> componentItems,
+  ) {
     final owner = msg['author_id']?.toString();
     final mine = owner == me;
     final name = author(owner, spaceId);
-    final isReply = msg['reply_to'] != null;
-    final belongsTo = msg['component_id'] != null;
+    final replyQuote = ActivityConversationReferences.quotedMessage(
+      msg, messages,
+    );
+    final target = ActivityConversationReferences.componentName(
+      msg, componentItems,
+    );
+
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
-        onTap: () => setState(() {
-          replyingTo = msg['id'] as String;
-          onComponent = null;
-          onComponentTitle = null;
-        }),
+        onTap: () => startReply(msg),
         onLongPress: () async {
           final action = await showModalBottomSheet<String>(
-            context: context, showDragHandle: true,
+            context: context,
+            showDragHandle: true,
             builder: (ctx) => SafeArea(child: Column(
-              mainAxisSize: MainAxisSize.min, children: [
-              ListTile(leading: const Icon(Icons.reply_outlined),
-                title: const Text('Reply'),
-                onTap: () => Navigator.pop(ctx, 'reply')),
-              ListTile(leading: const Icon(Icons.copy_outlined),
-                title: const Text('Copy message'),
-                onTap: () => Navigator.pop(ctx, 'copy')),
-            ])));
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.reply_outlined),
+                  title: const Text('Reply'),
+                  onTap: () => Navigator.pop(ctx, 'reply')),
+                ListTile(
+                  leading: const Icon(Icons.copy_outlined),
+                  title: const Text('Copy message'),
+                  onTap: () => Navigator.pop(ctx, 'copy')),
+              ],
+            )),
+          );
           if (!mounted) return;
           if (action == 'copy') {
-            await Clipboard.setData(ClipboardData(text: msg['body']?.toString() ?? ''));
+            await Clipboard.setData(
+              ClipboardData(text: msg['body']?.toString() ?? ''),
+            );
           } else if (action == 'reply') {
-            setState(() {
-              replyingTo = msg['id'] as String;
-              onComponent = null;
-            });
+            startReply(msg);
           }
         },
         child: Container(
@@ -932,31 +966,55 @@ class _ActivityScreenState extends State<ActivityScreen> {
           margin: const EdgeInsets.only(bottom: 7),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-            color: mine ? Theme.of(context).colorScheme.primaryContainer :
-                Theme.of(context).colorScheme.surfaceContainerHigh,
+            color: mine
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Theme.of(context).colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(13),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              Text(initials(name), style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary)),
-              const SizedBox(width: 6),
-              Text(name, style: Theme.of(context).textTheme.labelMedium),
-              const SizedBox(width: 7),
-              Text(when(msg['created_at']),
-                  style: Theme.of(context).textTheme.labelSmall),
-            ]),
-            if (belongsTo || isReply)
-              Text(
-                belongsTo ? '↳ About an attached item'
-                    : '↳ In reply',
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            const SizedBox(height: 4),
-            Text(msg['body']?.toString() ?? '',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 6,
+                children: [
+                  Text(initials(name), style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary)),
+                  Text(name, style: Theme.of(context).textTheme.labelMedium),
+                  Text(when(msg['created_at']),
+                    style: Theme.of(context).textTheme.labelSmall),
+                ]),
+              if (replyQuote != null || target != null) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 6, 4),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        width: 2,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (target != null)
+                        Text('About: $target',
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall),
+                      if (replyQuote != null)
+                        Text(replyQuote,
+                          maxLines: 2, overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4),
+              Text(msg['body']?.toString() ?? '',
                 style: Theme.of(context).textTheme.bodyMedium),
-          ]),
+            ],
+          ),
         ),
       ),
     );
@@ -970,14 +1028,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
         if (replyingTo != null || onComponent != null)
           Row(children: [
             Expanded(child: Text(
-              replyingTo != null ? 'Replying to message'
+              replyingTo != null ? 'Replying to: ${replyPreview ?? 'message'}'
                   : 'Discussing: ${onComponentTitle ?? 'attached item'}',
               maxLines: 1, overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall)),
             IconButton(icon: const Icon(Icons.close, size: 16),
               tooltip: 'Cancel reply',
               onPressed: () => setState(() {
-                replyingTo = null; onComponent = null; onComponentTitle = null;
+                replyingTo = null; replyPreview = null;
+                onComponent = null; onComponentTitle = null;
               })),
           ]),
         Row(children: [
