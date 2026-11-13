@@ -33,6 +33,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   num? _high,_low,_rain;
   String? _error;
   String? _status;
+  final _partnerLabel=TextEditingController();
+  TimeOfDay? _workStart,_workEnd,_bedTime,_wakeTime;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _partnerLabel.dispose();
     super.dispose();
   }
 
@@ -50,10 +53,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final id = _client.auth.currentUser!.id;
       final profile =
-          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct').eq('id', id).single();
+          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,work_start_local,work_end_local,sleep_start_local,sleep_end_local').eq('id', id).single();
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
+        _partnerLabel.text=profile['partner_label']?.toString()??'';
+        _workStart=_parseTime(profile['work_start_local']);
+        _workEnd=_parseTime(profile['work_end_local']);
+        _bedTime=_parseTime(profile['sleep_start_local']);
+        _wakeTime=_parseTime(profile['sleep_end_local']);
         _language = (profile['locale'] as String?) ?? 'en';
         _timeZone = profile['time_zone']?.toString();
         _shareCityWeather = profile['city_weather_shared'] == true;
@@ -74,6 +82,39 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  TimeOfDay? _parseTime(Object? value) {
+    final parts=value?.toString().split(':');
+    if(parts==null||parts.length<2)return null;
+    final h=int.tryParse(parts[0]);
+    final m=int.tryParse(parts[1]);
+    if(h==null||m==null)return null;
+    return TimeOfDay(hour:h,minute:m);
+  }
+  String? _formatTime(TimeOfDay? t) {
+    if(t==null)return null;
+    final h=t.hour.toString().padLeft(2,'0');
+    final m=t.minute.toString().padLeft(2,'0');
+    return '$h:$m:00';
+  }
+  Future<void> _chooseTime(String kind) async {
+    final chosen=await showTimePicker(context:context,
+      initialTime:const TimeOfDay(hour:9,minute:0));
+    if(chosen==null||!mounted)return;
+    setState((){
+      if(kind=='start'){_workStart=chosen;}
+      else if(kind=='end'){_workEnd=chosen;}
+      else if(kind=='bed'){_bedTime=chosen;}
+      else {_wakeTime=chosen;}
+    });
+  }
+  Widget _timeRow(String label,String kind,TimeOfDay? value)=>
+    ListTile(
+      contentPadding:EdgeInsets.zero,
+      title:Text(label),
+      trailing:Text(value?.format(context)??'Not set'),
+      onTap:()=>_chooseTime(kind),
+    );
 
   Future<void> _chooseWeatherCity() async {
     final selected=await showModalBottomSheet<WeatherCity>(
@@ -134,6 +175,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await _client.from('profiles').update({
         'display_name': name,
         'locale': _language,
+        'partner_label':_partnerLabel.text.trim().isEmpty?null:_partnerLabel.text.trim(),
+        'work_start_local':_formatTime(_workStart),
+        'work_end_local':_formatTime(_workEnd),
+        'sleep_start_local':_formatTime(_bedTime),
+        'sleep_end_local':_formatTime(_wakeTime),
       }).eq('id', _client.auth.currentUser!.id);
       OneSpaceLocaleController.instance.selectLanguage(_language);
       if (mounted) setState(() => _status = tr(context, 'profileSaved'));
@@ -333,6 +379,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             if (value != null) setState(() => _language = value);
           },
         ),
+        const SizedBox(height:12),
+        TextField(
+          controller:_partnerLabel,maxLength:60,
+          decoration:const InputDecoration(
+            labelText:'Preferred name for partner',
+            border:OutlineInputBorder(),
+          ),
+        ),
+        Text('Your daily schedule',
+          style:Theme.of(context).textTheme.titleMedium),
+        _timeRow('Work starts','start',_workStart),
+        _timeRow('Work ends','end',_workEnd),
+        _timeRow('Bedtime','bed',_bedTime),
+        _timeRow('Wake-up','wake',_wakeTime),
+        const Text('Quiet hours and scheduled messages will use these preferences in a later release.'),
         const SizedBox(height: 18),
         ListTile(
           contentPadding: EdgeInsets.zero,
