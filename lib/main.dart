@@ -361,12 +361,40 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             icon:const Icon(Icons.more_vert),
             onSelected:(choice){
               if(choice=='settings')open(const OneSpaceSettingsScreen());
-              if(choice=='search')open(const Glob      body:SafeArea(child:wide&&!showProfile?
+              if(choice=='search')open(const GlobalSearchScreen());
+              if(choice=='share')open(const ShareIntakeScreen());
+              if(choice=='language')open(Scaffold(
+                appBar:AppBar(title:const Text('Language')),
+                body:const SafeArea(child:ProfileSettingsScreen(
+                  settingsOnly:true,section:'language'))));
+            },
+            itemBuilder:(_)=>const [
+              PopupMenuItem(value:'settings',child:ListTile(
+                leading:Icon(Icons.settings_outlined),
+                title:Text('Settings'))),
+              PopupMenuItem(value:'search',child:ListTile(
+                leading:Icon(Icons.search_outlined),
+                title:Text('Search our space'))),
+              PopupMenuItem(value:'share',child:ListTile(
+                leading:Icon(Icons.add_link),
+                title:Text('Save a link or idea'))),
+              PopupMenuItem(value:'language',child:ListTile(
+                leading:Icon(Icons.translate),
+                title:Text('Language'))),
+            ],
+          ),
+          if(!showProfile)IconButton(
+            key:const Key('profileTopBarButton'),
+            icon:const Icon(Icons.account_circle_outlined,size:28),
+            tooltip:tr(context,'profile'),
+            onPressed:()=>setState(()=>showProfile=true)),
+        ],
+      ),
+      body:SafeArea(child:wide&&!showProfile?
        Row(children:[
         NavigationRail(
          selectedIndex:selectedIndex,
          onDestinationSelected:navigate,
-         extended:false,
          labelType:NavigationRailLabelType.all,
          minWidth:78,
          destinations:[
@@ -386,35 +414,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         Expanded(child:Center(child:ConstrainedBox(
          constraints:const BoxConstraints(maxWidth:1050),child:pages))),
        ]):pages),
-)=>showProfile=true)),
-        ],
-      ),
-      body:SafeArea(child:IndexedStack(index:visible,children:[
-        SharedSpaceScreen(
-          refreshToken:refreshToken,
-          onOpenPlans:()=>open(const PlansScreen()),
-          onOpenLists:()=>open(const ListsScreen()),
-          onOpenNotes:()=>open(const NotesScreen()),
-          onOpenCalendar:()=>open(const CalendarScreen()),
-          onOpenMemories:()=>open(const MemoriesScreen()),
-          onOpenGoals:()=>open(const GoalsScreen()),
-          onOpenCheckins:()=>open(const CheckinsScreen()),
-          onOpenLetters:()=>open(const CoupleLettersScreen()),
-          onOpenCoordinate:()=>navigate(2),
-          onOpenWorld:()=>navigate(4),
-          onOpenProfile:()=>setState(() => showProfile = true),
-        ),
-        if(visited.contains(1)) RememberScreen(refreshToken:refreshToken)
-          else const SizedBox.shrink(),
-        if(visited.contains(2))const CoordinateScreen()
-          else const SizedBox.shrink(),
-        if(visited.contains(3))const SectionHub(section:'connect')
-          else const SizedBox.shrink(),
-        if(visited.contains(4))const SectionHub(section:'world')
-          else const SizedBox.shrink(),
-        if(showProfile)const ProfileSettingsScreen()
-          else const SizedBox.shrink(),
-      ])),
       bottomNavigationBar:showProfile||wide?null:NavigationBar(
         selectedIndex:selectedIndex,
         onDestinationSelected:navigate,
