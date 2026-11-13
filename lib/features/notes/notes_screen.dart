@@ -490,7 +490,25 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            TextField(
+            Row(children:[
+              Expanded(child:Text('Content',
+                style:Theme.of(context).textTheme.titleSmall)),
+              TextButton.icon(
+                onPressed:()=>setState(()=>_preview=!_preview),
+                icon:Icon(_preview?Icons.edit_outlined:Icons.visibility_outlined),
+                label:Text(_preview?'Edit':'Preview'),
+              ),
+            ]),
+            if(!_preview&&_canEdit)_formattingToolbar(),
+            if(_preview)Card(elevation:0,child:Padding(
+              padding:const EdgeInsets.all(12),
+              child:Column(crossAxisAlignment:CrossAxisAlignment.start,
+                children:[
+                  for(final line in _body.text.split('\n').indexed)
+                    _previewRow(line.$2,line.$1),
+                ]),
+            ))
+            else TextField(
               controller: _body,
               readOnly: !_canEdit,
               maxLength: 30000, maxLines: 12, minLines: 5,
