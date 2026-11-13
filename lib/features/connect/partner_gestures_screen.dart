@@ -288,6 +288,10 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                  tooltip:'Remove gesture'),
              )),
            ],
+           const SizedBox(height:16),
+           ScheduledGesturesPanel(
+             spaceId:spaceId!,recipientId:recipientId!,
+             recipientName:recipientName??'your partner'),
 
          ],
        ],
