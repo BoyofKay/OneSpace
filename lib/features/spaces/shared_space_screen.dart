@@ -475,10 +475,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           .eq('id', id);
       if (mounted) await _load();
     } catch (_) {
-      if (mounted) setState(() {
+      if (mounted) {setState(() {
         relationshipMode = previous;
         issue = 'Could not update our living arrangement.';
-      });
+      });}
     }
   }
 
