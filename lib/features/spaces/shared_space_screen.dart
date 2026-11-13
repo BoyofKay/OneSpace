@@ -28,6 +28,7 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenMemories,
     this.onOpenGoals,
     this.onOpenCheckins,
+    this.onOpenLetters,
     this.onOpenCoordinate,
     this.onOpenWorld,
     this.onOpenProfile,
@@ -41,6 +42,7 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenMemories;
   final VoidCallback? onOpenGoals;
   final VoidCallback? onOpenCheckins;
+  final VoidCallback? onOpenLetters;
   final VoidCallback? onOpenCoordinate;
   final VoidCallback? onOpenWorld;
   final VoidCallback? onOpenProfile;
@@ -509,7 +511,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         padding:const EdgeInsets.all(16),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Row(children:[
-            const Icon(Icons.favorite_outline,color:Color(0xFF167E81)),
+            Icon(relationshipMode=='living_together'
+              ?Icons.home_rounded:Icons.connect_without_contact_rounded,
+              color:Theme.of(context).colorScheme.primary),
             const SizedBox(width:8),
             Expanded(child:Text('Our space',
               style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17))),
@@ -523,7 +527,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ],
             ),
           ]),
-          Text(_modeLabel(),style:Theme.of(context).textTheme.bodySmall),
           if (relationshipMode != 'living_together') PartnerClockStrip(
             members: clockMembers,
             relationshipMode: relationshipMode,
@@ -721,6 +724,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 initiallyExpanded: false,
+                leading:const Icon(Icons.forum_outlined),
                 title: Text('Recent discussions (${recentDiscussions.length})',
                   style: const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
                 children: [
@@ -748,56 +752,52 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             const Text('Explore our space', style: TextStyle(
               fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed:widget.onOpenCoordinate,
-                  icon:const Icon(Icons.hub_outlined),
-                  label:Text(tr(context,'coordinateTab')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenPlans,
-                  icon: const Icon(Icons.checklist_rounded),
-                  label: Text(tr(context, 'plans')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenLists,
-                  icon: const Icon(Icons.shopping_cart_outlined),
-                  label: Text(tr(context, 'openLists')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenNotes,
-                  icon: const Icon(Icons.sticky_note_2_outlined),
-                  label: Text(tr(context, 'openNotes')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenCalendar,
-                  icon: const Icon(Icons.calendar_today_outlined),
-                  label: Text(tr(context, 'calendar')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenMemories,
-                  icon: const Icon(Icons.auto_stories_outlined),
-                  label: Text(tr(context, 'openMemories')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenGoals,
-                  icon: const Icon(Icons.flag_outlined),
-                  label: Text(tr(context, 'openGoals')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.onOpenCheckins,
-                  icon: const Icon(Icons.favorite_outline),
-                  label: Text(tr(context, 'openCheckins')),
-                ),
+            LayoutBuilder(builder:(context,limits)=>GridView.count(
+              crossAxisCount:limits.maxWidth>650?4:2,
+              childAspectRatio:1.38,
+              shrinkWrap:true,
+              physics:const NeverScrollableScrollPhysics(),
+              crossAxisSpacing:10,mainAxisSpacing:10,
+              children:[
+                _exploreCard('Activities',Icons.hub_outlined,widget.onOpenCoordinate,0),
+                _exploreCard('Calendar',Icons.calendar_month_outlined,widget.onOpenCalendar,1),
+                _exploreCard('To-dos',Icons.checklist_outlined,widget.onOpenPlans,2),
+                _exploreCard('Notes',Icons.sticky_note_2_outlined,widget.onOpenNotes,3),
+                _exploreCard('Lists',Icons.shopping_basket_outlined,widget.onOpenLists,4),
+                _exploreCard('Letters',Icons.mark_email_unread_outlined,widget.onOpenLetters,5),
+                _exploreCard('Memories',Icons.auto_stories_outlined,widget.onOpenMemories,6),
+                _exploreCard('Check-ins',Icons.favorite_outline,widget.onOpenCheckins,7),
               ],
-            ),
+            )),
             const SizedBox(height: 8),
  
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _exploreCard(String label,IconData icon,VoidCallback? open,int index){
+    final colors=Theme.of(context).colorScheme;
+    final color=[colors.primary,colors.tertiary,colors.secondary,
+      colors.primary,colors.tertiary,colors.secondary,
+      colors.primary,colors.tertiary][index];
+    return Card(
+      elevation:0,clipBehavior:Clip.antiAlias,
+      color:Color.alphaBlend(color.withValues(alpha:.11),colors.surface),
+      child:InkWell(
+        onTap:open,
+        child:Padding(padding:const EdgeInsets.all(9),
+          child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+            CircleAvatar(radius:24,
+              backgroundColor:color.withValues(alpha:.14),
+              child:Icon(icon,color:color,size:25)),
+            const SizedBox(height:9),
+            Text(label,textAlign:TextAlign.center,maxLines:2,
+              overflow:TextOverflow.ellipsis,
+              style:Theme.of(context).textTheme.titleSmall),
+          ]),
+        ),
       ),
     );
   }
