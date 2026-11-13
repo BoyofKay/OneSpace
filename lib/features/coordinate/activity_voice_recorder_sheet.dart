@@ -22,6 +22,7 @@ class ActivityVoiceRecorderSheet extends StatefulWidget {
     this.parentComponentId,
     this.replyToCommentId,
     this.relatedComponentId,
+    this.contextLabel,
   });
 
   final String activityId;
@@ -29,6 +30,7 @@ class ActivityVoiceRecorderSheet extends StatefulWidget {
   final String? parentComponentId;
   final String? replyToCommentId;
   final String? relatedComponentId;
+  final String? contextLabel;
 
   @override
   State<ActivityVoiceRecorderSheet> createState() =>
@@ -46,6 +48,7 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
   bool sending = false;
   bool busy = false;
   bool previewReady = false;
+  bool foreground = true;
   int seconds = 0;
   String? error;
 
@@ -53,11 +56,17 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // The microphone button that opened this sheet IS the user's explicit
+    // Record action. No redundant second 'Record' tap is required.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(startRecording());
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed && recording) {
+    foreground = state == AppLifecycleState.resumed;
+    if (!foreground && recording) {
       // Never keep capturing audio after the app leaves the foreground.
       unawaited(stopRecording());
     }
@@ -74,6 +83,7 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
         throw const FormatException(
           'Microphone permission is required to record a voice note.');
       }
+      if (!mounted || !foreground) return;
       await deleteDraft();
       final folder = await getTemporaryDirectory();
       final path = '${folder.path}/onespace-${const Uuid().v4()}.m4a';
@@ -251,73 +261,117 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
   @override
   Widget build(BuildContext context) {
     final ready = draftPath != null && !recording && seconds >= 1;
+    final isComment = widget.destination == VoiceDestination.comment;
+    final title = isComment ? 'Voice message' : 'Activity voice note';
+    final status = busy
+        ? 'Opening microphone…'
+        : recording
+            ? 'Recording — tap Stop when finished'
+            : ready
+                ? 'Ready to share · listen first if you want'
+                : error == null ? 'Microphone is ready' : 'Try recording again';
+
     return PopScope(
       canPop: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(18, 8, 18,
-            MediaQuery.viewInsetsOf(context).bottom + 22),
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(widget.destination == VoiceDestination.comment
-                ? 'Voice reply' : 'Voice note',
-              style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 9),
-            Text(recording ? 'Recording · microphone active' :
-              ready ? 'Preview before sharing' :
-              'Tap Record when you are ready.',
-              style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 12),
-            Text(ActivityVoiceRules.durationLabel(seconds),
-              style: Theme.of(context).textTheme.headlineMedium),
-            Text('Maximum 2 minutes',
-              style: Theme.of(context).textTheme.labelSmall),
-            const SizedBox(height: 16),
-            if (recording)
-              FilledButton.icon(
-                onPressed: busy ? null : stopRecording,
-                icon: const Icon(Icons.stop_circle_outlined),
-                label: const Text('Stop recording'),
-              )
-            else if (!ready)
-              FilledButton.icon(
-                onPressed: busy ? null : startRecording,
-                icon: const Icon(Icons.mic_outlined),
-                label: const Text('Record'),
-              )
-            else ...[
-              StreamBuilder<PlayerState>(
-                stream: preview.playerStateStream,
-                builder: (context, snap) => OutlinedButton.icon(
-                  onPressed: sending ? null : togglePreview,
-                  icon: Icon(snap.data?.playing == true
-                      ? Icons.pause : Icons.play_arrow),
-                  label: Text(snap.data?.playing == true
-                      ? 'Pause preview' : 'Play preview'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                onPressed: sending ? null : sendVoice,
-                icon: sending
-                    ? const SizedBox(width: 17, height: 17,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.send_outlined),
-                label: Text(sending ? 'Sending…' : 'Send voice note'),
-              ),
-            ],
-            if (error != null) ...[
-              const SizedBox(height: 12),
-              Text(error!, style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              )),
-            ],
-            const SizedBox(height: 10),
-            TextButton.icon(
-              onPressed: sending || busy ? null : discardAndClose,
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Discard & close'),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16,
+              MediaQuery.viewInsetsOf(context).bottom + 12),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.mic_rounded, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(title,
+                    style: Theme.of(context).textTheme.titleMedium)),
+                  IconButton(
+                    tooltip: 'Discard voice recording',
+                    onPressed: sending || busy ? null : discardAndClose,
+                    icon: const Icon(Icons.close),
+                  ),
+                ]),
+                if (widget.contextLabel case final String contextLabel)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(contextLabel, maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                Text(status, style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Icon(
+                    recording ? Icons.fiber_manual_record :
+                    ready ? Icons.check_circle_outline :
+                    Icons.mic_none_outlined,
+                    size: 20,
+                    color: recording ? Theme.of(context).colorScheme.error
+                      : null,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(ActivityVoiceRules.durationLabel(seconds),
+                    style: Theme.of(context).textTheme.titleLarge),
+                  const Spacer(),
+                  if (recording)
+                    FilledButton.icon(
+                      onPressed: busy ? null : stopRecording,
+                      icon: const Icon(Icons.stop_rounded),
+                      label: const Text('Stop'),
+                    )
+                  else if (ready)
+                    FilledButton.icon(
+                      onPressed: sending ? null : sendVoice,
+                      icon: sending
+                          ? const SizedBox(width: 17, height: 17,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.send_rounded),
+                      label: Text(sending ? 'Sending…' : 'Send'),
+                    )
+                  else
+                    FilledButton.icon(
+                      onPressed: busy ? null : startRecording,
+                      icon: const Icon(Icons.mic_rounded),
+                      label: const Text('Try again'),
+                    ),
+                ]),
+                if (ready) ...[
+                  const SizedBox(height: 7),
+                  StreamBuilder<PlayerState>(
+                    stream: preview.playerStateStream,
+                    builder: (context, snapshot) => Row(children: [
+                      OutlinedButton.icon(
+                        onPressed: sending ? null : togglePreview,
+                        icon: Icon(snapshot.data?.playing == true
+                            ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                        label: Text(snapshot.data?.playing == true
+                            ? 'Pause preview' : 'Play preview'),
+                      ),
+                      const Spacer(),
+                      Text('Max 2 minutes',
+                          style: Theme.of(context).textTheme.labelSmall),
+                    ]),
+                  ),
+                ],
+                if (error != null) ...[
+                  const SizedBox(height: 7),
+                  Text(error!, style: TextStyle(
+                    color: Theme.of(context).colorScheme.error)),
+                ],
+                if (!recording) ...[
+                  const SizedBox(height: 6),
+                  TextButton.icon(
+                    onPressed: sending || busy ? null : discardAndClose,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Discard'),
+                  ),
+                ],
+              ],
             ),
-          ]),
+          ),
         ),
       ),
     );

@@ -212,9 +212,16 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
               kind == 'option' ? 'Product or provider name' :
               kind == 'step' ? 'Next action' :
               kind == 'contact' ? 'Contact card title (e.g., Gym B admissions)' :
+              kind == 'voice' ? 'Voice note title' :
               'Title', max: 180),
             const SizedBox(height: 12),
-            if (kind == 'contact') ...[
+            if (kind == 'voice') ...[
+              input(details, 'Caption (optional)', max: 1500, lines: 2),
+              const SizedBox(height: 5),
+              Text('Only the title and caption can be edited. '
+                'The recording itself remains unchanged.',
+                style: Theme.of(context).textTheme.bodySmall),
+            ] else if (kind == 'contact') ...[
               input(contactPerson, 'Person to contact (optional)', max: 180),
               const SizedBox(height: 12),
               input(contactPhone, 'Phone number', max: 80,
@@ -283,7 +290,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
             ],
             if (kind != 'note' && kind != 'step' && kind != 'tag' &&
                 kind != 'option' && kind != 'reminder' && kind != 'image' &&
-                kind != 'contact') ...[
+                kind != 'contact' && kind != 'voice') ...[
               const SizedBox(height: 12),
               input(details, 'Additional note (optional)', max: 4000, lines: 3),
             ],

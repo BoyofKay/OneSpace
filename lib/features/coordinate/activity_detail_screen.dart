@@ -18,6 +18,7 @@ import 'activity_contact_view.dart';
 import 'activity_voice_player.dart';
 import 'activity_voice_recorder_sheet.dart';
 import 'activity_voice_service.dart';
+import 'activity_message_identity.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -87,14 +88,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
     if (id == me) return 'You';
     final names = CurrentSpaceCache.instance.memberNamesFor(spaceId ?? '');
     return names?[id] ?? 'Partner';
-  }
-
-  String initials(String value) {
-    final parts = value.split(' ').where((part) => part.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    final a = parts.first.characters.first;
-    final b = parts.length > 1 ? parts.last.characters.first : '';
-    return '$a$b'.toUpperCase();
   }
 
   Future<void> run(Future<void> Function() action) async {
@@ -429,6 +422,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       await recordVoice(
         destination: VoiceDestination.component,
         parentComponentId: under,
+        contextLabel: underTitle == null ? null : 'Attached to $underTitle',
       );
     } else {
       await openEditor(chosen, parent: under);
@@ -438,6 +432,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> recordVoice({
     required VoiceDestination destination,
     String? parentComponentId,
+    String? contextLabel,
   }) async {
     final sent = await showModalBottomSheet<bool>(
       context: context,
@@ -453,6 +448,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ? replyingTo : null,
         relatedComponentId: destination == VoiceDestination.comment
             ? onComponent : null,
+        contextLabel: contextLabel ??
+            (destination == VoiceDestination.comment
+                ? replyingTo != null
+                    ? 'Replying to: ${replyPreview ?? 'message'}'
+                    : onComponentTitle != null
+                        ? 'About: $onComponentTitle'
+                        : null
+                : null),
       ),
     );
     if (sent == true && mounted &&
@@ -747,6 +750,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await recordVoice(
           destination: VoiceDestination.component,
           parentComponentId: id,
+          contextLabel: title == null ? null : 'Attached to $title',
         );
       case 'child':
         await chooseAdd(under: id, underTitle: title);
@@ -919,7 +923,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         margin: EdgeInsets.zero,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: primaryAction,
+          // Voice content is controlled by its player, not by a card tap.
+          onTap: kind == 'voice' ? null : primaryAction,
           onLongPress: () => componentMenu(item, allVotes),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(11, 10, 7, 10),
@@ -1149,7 +1154,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
   ) {
     final owner = msg['author_id']?.toString();
     final mine = owner == me;
-    final name = author(owner, spaceId);
+    final memberNames = CurrentSpaceCache.instance.memberNamesFor(spaceId ?? '');
+    final name = ActivityMessageIdentity.label(
+      authorId: owner,
+      currentUserId: me,
+      memberNames: memberNames,
+    );
+    final avatarText = ActivityMessageIdentity.initials(
+      authorId: owner,
+      currentUserId: me,
+      memberNames: memberNames,
+    );
+    final isVoice = (msg['voice_path']?.toString() ?? '').isNotEmpty;
     final replyQuote = ActivityConversationReferences.quotedMessage(
       msg, messages,
     );
@@ -1160,7 +1176,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
-        onTap: () => startReply(msg),
+        // Let tapping a voice bubble control playback; long-press still replies.
+        onTap: isVoice ? null : () => startReply(msg),
         onLongPress: () async {
           final action = await showModalBottomSheet<String>(
             context: context,
@@ -1172,10 +1189,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   leading: const Icon(Icons.reply_outlined),
                   title: const Text('Reply'),
                   onTap: () => Navigator.pop(ctx, 'reply')),
-                ListTile(
-                  leading: const Icon(Icons.copy_outlined),
-                  title: const Text('Copy message'),
-                  onTap: () => Navigator.pop(ctx, 'copy')),
+                if (!isVoice)
+                  ListTile(
+                    leading: const Icon(Icons.copy_outlined),
+                    title: const Text('Copy message'),
+                    onTap: () => Navigator.pop(ctx, 'copy')),
               ],
             )),
           );
@@ -1203,9 +1221,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
             children: [
               Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 6,
                 children: [
-                  Text(initials(name), style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary)),
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    child: Text(avatarText,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary)),
+                  ),
                   Text(name, style: Theme.of(context).textTheme.labelMedium),
                   Text(when(msg['created_at']),
                     style: Theme.of(context).textTheme.labelSmall),
@@ -1274,7 +1297,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ]),
         Row(children: [
           IconButton(
-            tooltip: 'Record voice message',
+            tooltip: 'Tap to record a voice message',
             onPressed: sending ? null : () => recordVoice(
               destination: VoiceDestination.comment,
             ),
