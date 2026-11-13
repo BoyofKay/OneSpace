@@ -517,15 +517,13 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             if (ago != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
               Text(tr(context,'lastMetLabel'),
                 style:Theme.of(context).textTheme.bodySmall),
-              Text(ago==null?tr(context,'dateNotSet'):
-                '${ago<0?-ago:0} ${tr(context,'daysAgo')}',
+              Text('${ago<0?-ago:0} ${tr(context,'daysAgo')}',
                 style:const TextStyle(fontWeight:FontWeight.bold)),
             ])),
             if (until != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
               Text(tr(context,'nextMeetingLabel'),
                 style:Theme.of(context).textTheme.bodySmall),
-              Text(until==null?tr(context,'dateNotSet'):
-                until<0?tr(context,'meetingPassed'):
+              Text(until<0?tr(context,'meetingPassed'):
                 until==0?tr(context,'meetingToday'):
                   '$until ${tr(context,'daysToGo')}',
                 style:const TextStyle(fontWeight:FontWeight.bold)),
@@ -719,7 +717,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             const Text('Explore our space', style: TextStyle(
               fontWeight: FontWeight.bold, fontSize: 17)),
             /* Existing feature shortcuts remain data-driven and accessible. */
-            if (false) Text(tr(context, 'todayQuickAccess'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
             Wrap(
@@ -771,19 +768,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             const SizedBox(height: 8),
  
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _metric(String title, int count) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(title)),
-          Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
