@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
 import 'package:material_ui/material_ui.dart';
@@ -26,11 +27,55 @@ import 'l10n/onespace_strings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Replace Flutter's unreadable black/red build-error surface with a
+  // recoverable diagnostic card. Never hide the underlying exception.
+  ErrorWidget.builder=(details)=>OneSpaceErrorFallback(details:details);
   final timer = Stopwatch()..start();
   // Render a real frame before initializing secure storage and the network
   // session. Previously OneSpace displayed a blank startup while awaiting
   // Supabase.initialize(), which can be slow on a remote region.
   runApp(OneSpaceBootstrap(startupClock: timer));
+}
+
+/// A visible, copyable diagnostic replaces a device-only red error surface.
+/// This does not suppress the exception; it makes the root cause reportable.
+class OneSpaceErrorFallback extends StatelessWidget {
+ const OneSpaceErrorFallback({super.key,required this.details});
+ final FlutterErrorDetails details;
+ @override Widget build(BuildContext context){
+   final text=details.exceptionAsString();
+   final theme=Theme.of(context);
+   return Material(
+     color:theme.colorScheme.surface,
+     child:SafeArea(child:Center(child:ConstrainedBox(
+       constraints:const BoxConstraints(maxWidth:420),
+       child:Padding(padding:const EdgeInsets.all(20),
+         child:Column(mainAxisSize:MainAxisSize.min,children:[
+           Icon(Icons.report_problem_outlined,size:44,
+             color:theme.colorScheme.error),
+           const SizedBox(height:12),
+           Text('This part of OneSpace could not open',
+             textAlign:TextAlign.center,
+             style:theme.textTheme.titleLarge),
+           const SizedBox(height:8),
+           const Text('Your saved data has not been deleted. '
+             'Copy the technical details so we can identify and repair the cause.',
+             textAlign:TextAlign.center),
+           const SizedBox(height:12),
+           Container(
+             constraints:const BoxConstraints(maxHeight:150),
+             child:SingleChildScrollView(child:SelectableText(text,
+               style:theme.textTheme.bodySmall))),
+           const SizedBox(height:15),
+           FilledButton.icon(
+             icon:const Icon(Icons.copy),
+             label:const Text('Copy error details'),
+             onPressed:()=>Clipboard.setData(ClipboardData(text:text))),
+         ]),
+       ),
+     ))),
+   );
+ }
 }
 
 /// Runs immediately; it does not require an initialized Supabase singleton.
