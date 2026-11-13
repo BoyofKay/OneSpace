@@ -8,6 +8,8 @@ import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
 import 'activity_component_editor.dart';
 import 'activity_decision_rules.dart';
+import 'activity_comparison_matrix.dart';
+import 'activity_comparison_sheet.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -582,62 +584,32 @@ class _ActivityScreenState extends State<ActivityScreen> {
     });
   }
 
-  Future<void> compare(List<Map<String,dynamic>> items) async {
-    final options = items.where((i) => i['kind'] == 'option').toList();
-    if (options.length < 2) {
-      if (mounted) setState(() => issue = 'Add at least two options to compare.');
+  Future<void> compare(
+    List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>> votes,
+  ) async {
+    final matrix = ActivityComparisonMatrix.build(
+      items, reactions: votes, currentUserId: me,
+    );
+    if (matrix.columns.length < 2) {
+      if (mounted) {
+        setState(() => issue = 'Add two or more options before comparing.');
+      }
       return;
     }
     await showModalBottomSheet<void>(
-      context: context, isScrollControlled: true, showDragHandle: true,
-      builder: (ctx) => SafeArea(child: FractionallySizedBox(
-        heightFactor: 0.75,
-        child: Column(children: [
-          Padding(padding: const EdgeInsets.all(12),
-            child: Text('Compare options',
-                style: Theme.of(ctx).textTheme.titleLarge)),
-          Expanded(child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              for (final option in options)
-                SizedBox(width: 230, child: Padding(
-                  padding: const EdgeInsets.all(5),
-                  child: Card(child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: SingleChildScrollView(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(option['label']?.toString() ?? '',
-                            style: Theme.of(ctx).textTheme.titleMedium),
-                        const SizedBox(height: 9),
-                        for (final field in ['price', 'currency', 'specs', 'value', 'note'])
-                          if ((option['payload'] as Map?)?[field]
-                              ?.toString().isNotEmpty == true) ...[
-                            Text(field.toUpperCase(),
-                                style: Theme.of(ctx).textTheme.labelSmall),
-                            SelectableText(
-                                (option['payload'] as Map?)?[field].toString() ?? ''),
-                            const SizedBox(height: 9),
-                          ],
-                        for (final child in items.where((c) =>
-                            c['parent_component_id'] == option['id'])) ...[
-                          const Divider(),
-                          Text(child['label']?.toString() ?? '',
-                              style: Theme.of(ctx).textTheme.labelLarge),
-                          SelectableText(valueFor(child)),
-                          if (((child['payload'] as Map?)?['note']?.toString() ?? '')
-                              .isNotEmpty)
-                            SelectableText(
-                              (child['payload'] as Map?)?['note']?.toString() ?? ''),
-                        ],
-                      ],
-                    )),
-                  )),
-                )),
-            ],
-          )),
-        ]),
-      )),
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => ActivityComparisonSheet(
+        matrix: matrix,
+        onChoose: (optionId) {
+          recordDecision('chosen', componentId: optionId);
+        },
+        onOpenSource: (url) {
+          openExternal(url);
+        },
+      ),
     );
   }
 
@@ -863,7 +835,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   style: Theme.of(context).textTheme.titleMedium)),
                 if (options.length >= 2)
                   IconButton(tooltip: 'Compare options',
-                    onPressed: () => compare(items),
+                    onPressed: () => compare(items, votes),
                     icon: const Icon(Icons.compare_arrows)),
                 IconButton(tooltip: 'Add option',
                   onPressed: () => openEditor('option'),
