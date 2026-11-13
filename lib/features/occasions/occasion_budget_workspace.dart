@@ -36,7 +36,8 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
   await showModalBottomSheet<bool>(context:context,isScrollControlled:true,
    showDragHandle:true,
    builder:(_)=>OccasionBudgetItemEditor(plan:widget.plan,
-    existing:row,initialStatus:initial));
+    existing:row,initialStatus:initial,
+    markPurchase:row!=null&&initial=='purchased'));
  }
  Future<void> setStage(Map<String,dynamic> item,String stage)async{
   if(busy)return;
@@ -184,7 +185,7 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
         if(item['status']=='planned')
          ActionChip(label:const Text('Mark purchased'),
           avatar:const Icon(Icons.shopping_cart_checkout_outlined,size:16),
-          onPressed:busy?null:()=>edit(item)),
+          onPressed:busy?null:()=>edit(item,'purchased')),
         if(item['status']=='planned')
          ActionChip(label:const Text('Back to wishlist'),
           onPressed:busy?null:()=>setStage(item,'wish')),

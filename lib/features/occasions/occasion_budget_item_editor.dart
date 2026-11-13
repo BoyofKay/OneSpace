@@ -9,10 +9,11 @@ const occasionItemStages={
 };
 class OccasionBudgetItemEditor extends StatefulWidget{
  const OccasionBudgetItemEditor({super.key,required this.plan,
-  this.existing,this.initialStatus='planned'});
+  this.existing,this.initialStatus='planned',this.markPurchase=false});
  final Map<String,dynamic> plan;
  final Map<String,dynamic>? existing;
  final String initialStatus;
+ final bool markPurchase;
  @override State<OccasionBudgetItemEditor> createState()=>_OccasionBudgetItemEditorState();
 }
 class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
@@ -32,7 +33,8 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
    text:(p['currency']??widget.plan['currency']??'USD').toString());
   notes=TextEditingController(text:(p['notes']??'').toString());
   url=TextEditingController(text:(p['source_url']??'').toString());
-  status=(p['status']??widget.initialStatus).toString();
+  status=widget.markPurchase?'purchased':
+    (p['status']??widget.initialStatus).toString();
  }
  @override void dispose(){
   for(final c in [title,qty,price,paid,currency,notes,url]){c.dispose();}
@@ -103,6 +105,9 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
      const SizedBox(height:12),
      TextField(controller:title,maxLength:200,
       decoration:const InputDecoration(labelText:'Item or experience')),
+     if(widget.markPurchase)Padding(padding:const EdgeInsets.only(bottom:10),
+      child:Text('Record the final amount paid. This moves the item from reserved to spent.',
+       style:theme.textTheme.bodyMedium)),
      DropdownButtonFormField<String>(initialValue:status,
       decoration:const InputDecoration(labelText:'Planning state'),
       items:[for(final e in occasionItemStages.entries)
