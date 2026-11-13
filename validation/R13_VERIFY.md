@@ -28,3 +28,7 @@ Run once as an independent verification **without generating an APK**. Validate 
 ## Compile-error corrections verification
 
 Retest consolidated R12–R17 after replacing the invalid travel-document TextField controller with a TextFormField initial value and removing the unavailable Cupertino transition symbol. This is **verify only**, without APK or release.
+
+## R18 — one source-only verification gate (no APK)
+
+Validate the immersive theme changes, occasion shopping ledger UI, private source links, automatic personal themes and regression tests at commit 2e35c04d3815b5684091e6abdbbc0fa72093db1b. This gate must run only Flutter dependency verification, analyzer and tests; do not modify release/READY_TO_BUILD.md or build/publish an APK. Current R12–R17 release remains unchanged.
