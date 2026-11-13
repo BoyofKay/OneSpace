@@ -116,7 +116,8 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
        Text(chosen.filename,style:Theme.of(ctx).textTheme.bodySmall),
        const SizedBox(height:12),
-       TextField(controller:title,maxLength:160,
+       TextFormField(initialValue:title,maxLength:160,
+        onChanged:(value)=>title=value,
         decoration:const InputDecoration(labelText:'Document title')),
        DropdownButtonFormField<String>(initialValue:kind,
         decoration:const InputDecoration(labelText:'Type'),

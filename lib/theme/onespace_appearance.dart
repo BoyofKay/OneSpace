@@ -159,10 +159,7 @@ class OneSpaceTheme {
     shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14)),
    )),
    dividerTheme:DividerThemeData(color:border,thickness:1,space:1),
-   pageTransitionsTheme:const PageTransitionsTheme(builders:{
-    TargetPlatform.android:FadeUpwardsPageTransitionsBuilder(),
-    TargetPlatform.iOS:CupertinoPageTransitionsBuilder(),
-   }),
+   // Let Material select supported platform-adaptive transitions.
    visualDensity:VisualDensity.standard,
   );
  }
