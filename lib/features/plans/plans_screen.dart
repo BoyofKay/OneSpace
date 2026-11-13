@@ -30,6 +30,7 @@ class _PlansScreenState extends State<PlansScreen> {
   StreamSubscription<List<Map<String, dynamic>>>? _shareWatcher;
   Map<String, String> _memberNames = const {};
   TaskFilter _filter = TaskFilter.open;
+  bool _todayOnly = false;
   TaskScope _scope = TaskScope.all;
   bool _loadingSpace = true;
   bool _busy = false;
