@@ -39,7 +39,7 @@ void main() {
     const item = ActivityContact(phone: '+1 555; rm -rf /');
     expect(item.validPhone, isFalse);
     expect(item.phoneUri, isNull);
-    expect(ActivityContact(person: 'A' * 181).validate(), contains('too long'));
+    expect(ActivityContact(person: List.filled(181, 'A').join()).validate(), contains('too long'));
   });
 
   test('editing contact preserves unknown fields and note', () {
