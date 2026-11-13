@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
 import 'activity_component_editor.dart';
+import 'activity_decision_rules.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -26,6 +27,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late final Stream<List<Map<String, dynamic>>> comments;
   late final Stream<List<Map<String, dynamic>>> revisions;
   late final Stream<List<Map<String, dynamic>>> reactions;
+  late final Stream<List<Map<String, dynamic>>> decisions;
   String? replyingTo;
   String? onComponent;
   String? onComponentTitle;
@@ -46,6 +48,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
         .stream(primaryKey: ['id']).eq('activity_id', id).order('created_at');
     reactions = db.from('activity_component_reactions')
         .stream(primaryKey: ['component_id', 'user_id']).eq('activity_id', id);
+    decisions = db.from('activity_decisions')
+        .stream(primaryKey: ['id']).eq('activity_id', id)
+        .order('created_at', ascending: false);
     revisions = db.from('activity_revisions')
         .stream(primaryKey: ['id']).eq('activity_id', id)
         .order('changed_at', ascending: false);
@@ -165,6 +170,178 @@ class _ActivityScreenState extends State<ActivityScreen> {
     if (body == null || !mounted) return;
     await changeField(item, 'body', body);
   }
+
+  /// Selecting an option and recording an outcome update stage together on the
+  /// server, preserving the author's reason and prior outcomes.
+  Future<void> recordDecision(String action, {String? componentId}) async {
+    if (action == 'chosen' && componentId == null) {
+      await chooseDecisionOption();
+      return;
+    }
+    final reason = await prompt(
+      action == 'chosen' ? 'Why choose this option?' :
+      action == 'purchased' ? 'Purchase details (optional)' :
+      action == 'registered' ? 'Registration details (optional)' :
+      action == 'delivered' ? 'Delivery details (optional)' :
+      'Reason or update (optional)',
+      max: 2000,
+    );
+    if (reason == null || !mounted) return;
+    await run(() async {
+      await db.rpc('record_activity_decision', params: {
+        'p_activity_id': widget.id,
+        'p_action': action,
+        'p_component_id': componentId,
+        'p_reason': reason,
+      });
+    });
+  }
+
+  Future<void> chooseDecisionOption() async {
+    try {
+      final results = await db.from('activity_components')
+          .select('id,label')
+          .eq('activity_id', widget.id)
+          .eq('kind', 'option')
+          .isFilter('archived_at', null)
+          .order('created_at');
+      if (!mounted) return;
+      if (results.isEmpty) {
+        setState(() => issue = 'Add an Option first, then choose it.');
+        return;
+      }
+      final chosen = await showModalBottomSheet<String>(
+        context: context,
+        showDragHandle: true,
+        builder: (ctx) => SafeArea(child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Which option did we choose?',
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            for (final item in results)
+              ListTile(
+                leading: const Icon(Icons.check_circle_outline),
+                title: Text(item['label']?.toString() ?? ''),
+                onTap: () => Navigator.pop(ctx, item['id'] as String),
+              ),
+          ],
+        )),
+      );
+      if (chosen == null || !mounted) return;
+      await recordDecision('chosen', componentId: chosen);
+    } catch (e) {
+      if (mounted) setState(() => issue = 'Unable to load options. $e');
+    }
+  }
+
+  Widget decisionSection(String? spaceId) =>
+      StreamBuilder<List<Map<String, dynamic>>>(
+    stream: decisions,
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return const Text('Outcome history could not be loaded.');
+      }
+      if (!snapshot.hasData) return const LinearProgressIndicator();
+      final history = snapshot.data!;
+      final latest = ActivityDecisionRules.latest(history);
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Expanded(child: Text('Decision & outcome',
+                style: Theme.of(context).textTheme.titleMedium)),
+              IconButton(
+                tooltip: 'Choose an option',
+                icon: const Icon(Icons.fact_check_outlined),
+                onPressed: chooseDecisionOption,
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Record an outcome',
+                icon: const Icon(Icons.more_horiz),
+                onSelected: (action) => recordDecision(action),
+                itemBuilder: (_) => [
+                  for (final action in ActivityDecisionRules.actions
+                      .where((v) => v != 'chosen'))
+                    PopupMenuItem(
+                      value: action,
+                      child: Text(ActivityDecisionRules.titleFor(action)),
+                    ),
+                ],
+              ),
+            ]),
+            if (latest == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('No decision yet. Choose an option or record an outcome.'),
+              )
+            else
+              Card(
+                elevation: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(ActivityDecisionRules.titleFor(
+                          latest['action']?.toString() ?? ''),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                      if (latest['component_id'] != null)
+                        StreamBuilder<List<Map<String, dynamic>>>(
+                          stream: components,
+                          builder: (context, optionsSnapshot) {
+                            final selected = optionsSnapshot.data
+                                ?.where((item) =>
+                                    item['id'] == latest['component_id'])
+                                .firstOrNull;
+                            return Text(
+                              selected?['label']?.toString() ?? 'Selected option',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            );
+                          },
+                        ),
+                      if ((latest['reason']?.toString() ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(latest['reason'].toString()),
+                      ],
+                      const SizedBox(height: 4),
+                      Text('${author(latest['created_by']?.toString(),spaceId)}'
+                          ' · ${when(latest['created_at'])}',
+                        style: Theme.of(context).textTheme.labelSmall),
+                    ],
+                  ),
+                ),
+              ),
+            if (history.length > 1)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text('Previous outcomes (${history.length - 1})',
+                    style: Theme.of(context).textTheme.labelLarge),
+                children: [
+                  for (final entry in history.where(
+                      (event) => event['id'] != latest?['id']))
+                    ListTile(
+                      dense: true,
+                      title: Text(ActivityDecisionRules.titleFor(
+                          entry['action']?.toString() ?? '')),
+                      subtitle: Text([
+                        if ((entry['reason']?.toString() ?? '').isNotEmpty)
+                          entry['reason'].toString(),
+                        '${author(entry['created_by']?.toString(),spaceId)}'
+                            ' · ${when(entry['created_at'])}',
+                      ].join('\n')),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      );
+    },
+  );
 
   Future<void> changeField(Map<String,dynamic> item,
       String field, Object? value) async {
@@ -330,6 +507,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
             leading: const Icon(Icons.chat_bubble_outline),
             title: const Text('Discuss this item'),
             onTap: () => Navigator.pop(ctx, 'comment')),
+          if (item['kind'] == 'option')
+            ListTile(
+              leading: const Icon(Icons.fact_check_outlined),
+              title: const Text('Choose this option'),
+              onTap: () => Navigator.pop(ctx, 'choose')),
           ListTile(
             leading: const Icon(Icons.thumb_up_outlined),
             title: const Text('Like'),
@@ -357,6 +539,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
     if (!mounted) return;
     switch (action) {
+      case 'choose':
+        await recordDecision('chosen', componentId: item['id'] as String);
       case 'comment': focusOnComponent(item);
       case 'like': await opinion(item, current == 1 ? 0 : 1);
       case 'dislike': await opinion(item, current == -1 ? 0 : -1);
@@ -865,11 +1049,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
         PopupMenuButton<String>(
           tooltip: 'Status: $stage',
           icon: const Icon(Icons.task_alt, size: 22),
-          onSelected: (value) => changeField(item, 'stage', value),
+          onSelected: (value) {
+            if (value == 'decision') {
+              chooseDecisionOption();
+            } else if (value == 'outcome') {
+              recordDecision('reopened');
+            } else {
+              changeField(item, 'stage', value);
+            }
+          },
           itemBuilder: (_) => [
-            for (final v in ['exploring','comparing','decided','purchased',
-                'registered','completed','on_hold','cancelled'])
+            for (final v in ['exploring','comparing'])
               PopupMenuItem(value: v, child: Text('Status · $v')),
+            const PopupMenuItem(value: 'decision',
+                child: Text('Choose an option…')),
+            const PopupMenuItem(value: 'outcome',
+                child: Text('Reopen Activity…')),
           ],
         ),
         IconButton(tooltip: 'Set due date', icon: const Icon(Icons.event_outlined),
@@ -980,6 +1175,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               ),
             ),
             componentSection(),
+            decisionSection(item['space_id']?.toString()),
             conversation(item['space_id']?.toString()),
             const SizedBox(height: 12),
             Text('Created by ${author(item['created_by']?.toString(),item['space_id']?.toString())}'
