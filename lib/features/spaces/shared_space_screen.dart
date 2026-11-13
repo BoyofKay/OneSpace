@@ -556,28 +556,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       .difference(DateTime(now.year,now.month,now.day)).inDays;
   }
 
-  Future<void> _changeLivingArrangement(String next) async {
-    final id = spaceId;
-    if (id == null || next == relationshipMode) return;
-    final previous = relationshipMode;
-    setState(() => relationshipMode = next);
-    try {
-      await client.from('spaces').update({'relationship_mode': next})
-          .eq('id', id);
-      if (mounted) await _load();
-    } catch (_) {
-      if (mounted) {setState(() {
-        relationshipMode = previous;
-        issue = 'Could not update our living arrangement.';
-      });}
-    }
-  }
-
   Widget _relationshipPanel() {
+    if(relationshipMode=='living_together')return const SizedBox.shrink();
     final ago=_dayDistance(lastMetOn);
     final until=_dayDistance(nextMeetOn);
-    final together=relationshipMode=='living_together';
-    final accent=together?const Color(0xFF40A48A):const Color(0xFF627FC1);
+    final accent=const Color(0xFF627FC1);
     return Card(
       elevation:0,
       color:Color.alphaBlend(accent.withValues(alpha:.09),
@@ -585,28 +568,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       child:Padding(
         padding:const EdgeInsets.all(16),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Row(children:[
-            Icon(relationshipMode=='living_together'
-              ?Icons.home_rounded:Icons.connect_without_contact_rounded,
-              color:Theme.of(context).colorScheme.primary),
-            const SizedBox(width:8),
-            Expanded(child:Text('Our space',
-              style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17))),
-            PopupMenuButton<String>(
-              tooltip: 'Change living arrangement',
-              onSelected: _changeLivingArrangement,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value:'living_together',child:Text('Living together')),
-                PopupMenuItem(value:'apart_different_tz',child:Text('Living apart')),
-              ],
-            ),
-          ]),
-          if (relationshipMode != 'living_together') PartnerClockStrip(
-            members: clockMembers,
-            relationshipMode: relationshipMode,
-            onConfigure: widget.onOpenProfile,
-          ),
+          PartnerClockStrip(members:clockMembers,
+            relationshipMode:relationshipMode),
           if (relationshipMode != 'living_together' &&
               (ago != null || until != null)) ...[
           const SizedBox(height:7),
@@ -729,8 +692,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ),
             ),
           ] else ...[
-            _relationshipPanel(),
-            const SizedBox(height:12),
+            if(relationshipMode!='living_together')...[
+              _relationshipPanel(),const SizedBox(height:12),
+            ],
             TodayAttentionSection(
               items:focusItems,
               onOpen:_openFocusActivity,
@@ -799,35 +763,37 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ),
           ],
           if (spaceId != null) ...[
-            if (recentDiscussions.isNotEmpty) ...[
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                initiallyExpanded: false,
-                leading:const Icon(Icons.forum_outlined),
-                title: Text('Recent discussions (${recentDiscussions.length})',
-                  style: const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
-                children: [
-              for(final entry in recentDiscussions) Card(
-                elevation:0,
-                child:ListTile(
-                  leading:const Icon(Icons.forum_outlined),
-                  title:Text(entry['activity']?.toString()??'Activity'),
-                  subtitle:Text('${entry['author']??'Partner'}: ${entry['message']??''}',
-                    maxLines:2,overflow:TextOverflow.ellipsis),
-                  onTap:() {
-                    final id=entry['activity_id']?.toString();
-                    if(id==null||id.isEmpty) {
-                      widget.onOpenCoordinate?.call();
-                    } else {
-                      _openFocusActivity(id);
-                    }
-                  },
+            ExpansionTile(
+              tilePadding:EdgeInsets.zero,
+              initiallyExpanded:false,
+              leading:const Icon(Icons.forum_outlined),
+              title:Text('Recent discussions ('+
+                recentDiscussions.length.toString()+')',
+                style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+              childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
+              children:[
+                if(recentDiscussions.isEmpty)
+                  const ListTile(title:Text('No recent discussions yet.')),
+                for(final entry in recentDiscussions)Card(
+                  elevation:0,
+                  child:ListTile(
+                    leading:const Icon(Icons.forum_outlined),
+                    title:Text(entry['activity']?.toString()??'Activity'),
+                    subtitle:Text(
+                      (entry['author']?.toString()??'Partner')+': '+
+                      (entry['message']?.toString()??''),
+                      maxLines:2,overflow:TextOverflow.ellipsis),
+                    onTap:(){
+                      final id=entry['activity_id']?.toString();
+                      if(id==null||id.isEmpty){
+                        widget.onOpenCoordinate?.call();
+                      }else{_openFocusActivity(id);}
+                    },
+                  ),
                 ),
-              ),
               ],
-              ),
-              const SizedBox(height:12),
-            ],
+            ),
+            const SizedBox(height:12),
             const Text('Explore our space', style: TextStyle(
               fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
