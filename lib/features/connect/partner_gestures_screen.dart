@@ -9,7 +9,8 @@ import 'gesture_experience.dart';
 /// Intentionally sent gestures. Messages are explicitly identified as presets;
 /// there is no automated impersonation or push-notification claim here.
 class PartnerGesturesScreen extends StatefulWidget {
- const PartnerGesturesScreen({super.key});
+ const PartnerGesturesScreen({super.key,this.manageOnly=false});
+ final bool manageOnly;
  @override State<PartnerGesturesScreen> createState()=>_PartnerGesturesScreenState();
 }
 class _GestureOption {
@@ -54,6 +55,37 @@ const _options=[
    'You do not have to carry today alone.',
    'You have got this. I believe in you.',
  ]),
+ _GestureOption('thanks','Thank you',Icons.handshake_outlined,[
+   'Thank you for being there for me.',
+   'I notice all the little things you do. Thank you, love.',
+   'Thank you for making my life warmer.',
+ ]),
+ _GestureOption('lucky','Lucky to have you',Icons.stars_outlined,[
+   'I feel so lucky to have you in my life.',
+   'Of all the people in the world, I get to love you.',
+   'Being yours is one of my favorite things.',
+ ]),
+ _GestureOption('miss_together','I miss us together',Icons.favorite_border,[
+   'I miss the simple moments when we are side by side.',
+   'I miss our laughter and the ordinary magic of us together.',
+   'I cannot wait for our next moment together.',
+ ]),
+ _GestureOption('miss_home','I miss our home',Icons.home_outlined,[
+   'I miss the feeling of being home with you.',
+   'Home is wherever we get to be together.',
+   'Missing our little routines and our place.',
+ ]),
+ _GestureOption('miss_kids','I miss our kids',Icons.child_care_outlined,[
+   'I am missing our kids and all their little moments.',
+   'Sending extra love to the little ones today.',
+   'I wish I could share this moment with our family.',
+ ]),
+ _GestureOption('miss_pets','I miss our furry ones',Icons.pets_outlined,[
+   'Please give our furry ones an extra cuddle from me.',
+   'I miss their little paws and all the chaos they bring.',
+   'Thinking of our furry family today.',
+ ]),
+
 ];
 
 class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
@@ -101,6 +133,12 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      case 'morning':return const Color(0xFFD99242);
      case 'goodnight':return const Color(0xFF7382C7);
      case 'proud':return const Color(0xFF409F8B);
+     case 'thanks':return const Color(0xFF218E80);
+     case 'lucky':return const Color(0xFF9977D7);
+     case 'miss_together':return const Color(0xFFDC658A);
+     case 'miss_home':return const Color(0xFFDC9960);
+     case 'miss_kids':return const Color(0xFF729CC8);
+     case 'miss_pets':return const Color(0xFFBC804D);
      default:return const Color(0xFF518FB7);
    }
  }
@@ -119,14 +157,15 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        const SnackBar(content:Text('Could not send this gesture.')));
    }finally{if(mounted)setState(()=>busyKind=null);}
  }
- Future<void> _createCustom() async {
-   final name=TextEditingController(),body=TextEditingController();
-   var kind='hug';
-   String? trigger;
+ Future<void> _createCustom([Map<String,dynamic>? original]) async {
+   final name=TextEditingController(text:original?['title']?.toString()??''),
+     body=TextEditingController(text:original?['message']?.toString()??'');
+   var kind=original?['kind']?.toString()??'hug';
+   String? trigger=original?['scheduled_moment']?.toString();
    try{
      final data=await showDialog<Map<String,String?>>(context:context,
        builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-         title:const Text('Make it personal'),
+         title:Text(original==null?'Create a love gesture':'Edit my gesture'),
          content:SingleChildScrollView(child:Column(
            mainAxisSize:MainAxisSize.min,children:[
              TextField(controller:name,maxLength:60,
@@ -139,7 +178,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                  DropdownMenuItem(value:option.id,child:Text(option.title))],
                onChanged:(v)=>update(()=>kind=v??kind)),
              DropdownButtonFormField<String>(
-               initialValue:'manual',
+               initialValue:trigger??'manual',
                decoration:const InputDecoration(labelText:'Optional automatic trigger'),
                items:const [
                  DropdownMenuItem(value:'manual',child:Text('Manual only')),
@@ -162,11 +201,19 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
          ],
        )));
      if(data==null||spaceId==null||recipientId==null)return;
-     await db.from('gesture_templates').insert({
-       'space_id':spaceId,'recipient_id':recipientId,
-       'title':data['title'],'message':data['message'],
-       'kind':data['kind'],'scheduled_moment':data['trigger'],
-     });
+     if(original==null){
+       await db.from('gesture_templates').insert({
+         'space_id':spaceId,'recipient_id':recipientId,
+         'title':data['title'],'message':data['message'],
+         'kind':data['kind'],'scheduled_moment':data['trigger'],
+       });
+     }else{
+       await db.from('gesture_templates').update({
+         'title':data['title'],'message':data['message'],
+         'kind':data['kind'],'scheduled_moment':data['trigger'],
+       }).eq('id',original['id'].toString())
+         .eq('creator_id',db.auth.currentUser!.id);
+     }
      await _load();
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +221,17 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    }finally{name.dispose();body.dispose();}
  }
  Future<void> _deleteCustom(String id) async {
+   final yes=await showDialog<bool>(context:context,builder:(ctx)=>
+     AlertDialog(title:const Text('Remove personal gesture?'),
+       content:const Text('Sent messages remain in gesture history. '
+         'This only removes your reusable template.'),
+       actions:[
+         TextButton(onPressed:()=>Navigator.pop(ctx,false),
+           child:const Text('Keep')),
+         FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+           child:const Text('Remove')),
+       ]));
+   if(yes!=true)return;
    try{
      await db.from('gesture_templates').delete().eq('id',id);
      await _load();
@@ -212,17 +270,19 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  }
  @override Widget build(BuildContext context) {
    return Scaffold(
-     appBar:AppBar(title:const Text('A little love'),actions:[
-       IconButton(tooltip:'Sent and received history',icon:const Icon(Icons.history),
+     appBar:AppBar(title:Text(widget.manageOnly?'Love gesture settings':'A little love'),actions:[
+       if(!widget.manageOnly)IconButton(tooltip:'Sent and received history',icon:const Icon(Icons.history),
          onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
            builder:(_)=>const GestureHistoryScreen()))),
      ]),
      body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),
        children:[
-         Text('Small gestures, felt across any distance.',
+         Text(widget.manageOnly?'My gesture library & thoughtful rituals':
+           'Small gestures, felt across any distance.',
            style:Theme.of(context).textTheme.titleMedium),
          const SizedBox(height:6),
-         Text('Tap a gesture to send it. Your personal library and scheduled rituals are below.'),
+         Text(widget.manageOnly?'Manage your own messages and choose when rituals are allowed.':
+           'Tap a gesture to send it. Your personal library and scheduled rituals are in Settings.'),
          const SizedBox(height:16),
          if(loading)const Center(child:CircularProgressIndicator()),
          if(!loading&&recipientId==null)
@@ -230,10 +290,10 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
          if(error!=null)Text(error!,
            style:TextStyle(color:Theme.of(context).colorScheme.error)),
          if(recipientId!=null)...[
-           Text('Send to '+(recipientName??'your partner'),
+           if(!widget.manageOnly)Text('Send to '+(recipientName??'your partner'),
              style:Theme.of(context).textTheme.titleSmall),
-           const SizedBox(height:12),
-           LayoutBuilder(builder:(ctx,size)=>GridView.builder(
+           if(!widget.manageOnly)const SizedBox(height:12),
+           if(!widget.manageOnly)LayoutBuilder(builder:(ctx,size)=>GridView.builder(
              shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),
              itemCount:_options.length,
              gridDelegate:SliverGridDelegateWithFixedCrossAxisCount(
@@ -281,18 +341,24 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                  (item['message']?.toString()??'')+
                  (item['scheduled_moment']==null?'':' · Scheduled: '+item['scheduled_moment'].toString()),
                  maxLines:2,overflow:TextOverflow.ellipsis),
-               onTap:()=>_sendCustom(item),
-               trailing:IconButton(
-                 icon:const Icon(Icons.delete_outline),
-                 onPressed:()=>_deleteCustom(item['id'].toString()),
-                 tooltip:'Remove gesture'),
+               onTap:widget.manageOnly?()=>_createCustom(item):()=>_sendCustom(item),
+               trailing:widget.manageOnly?
+                 Wrap(mainAxisSize:MainAxisSize.min,children:[
+                   IconButton(icon:const Icon(Icons.edit_outlined),
+                     tooltip:'Edit gesture',
+                     onPressed:()=>_createCustom(item)),
+                   IconButton(icon:const Icon(Icons.delete_outline),
+                     tooltip:'Remove gesture',
+                     onPressed:()=>_deleteCustom(item['id'].toString())),
+                 ]):null,
              )),
            ],
+           if(widget.manageOnly)...[
            const SizedBox(height:16),
            ScheduledGesturesPanel(
              spaceId:spaceId!,recipientId:recipientId!,
              recipientName:recipientName??'your partner'),
-
+           ],
          ],
        ],
      )),
