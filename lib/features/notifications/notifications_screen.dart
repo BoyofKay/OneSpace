@@ -70,7 +70,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      if(id==null)return;
      screen=ActivityScreen(id:id);
    }else if(type=='calendar'){
-     screen=CalendarScreen(initialEventId:item['object_id']?.toString());
+     screen=CalendarScreen(initialEventId:
+       (item['calendar_event_id']??item['object_id'])?.toString());
    }else if(type=='note'){
      screen=NotesScreen(initialNoteId:item['object_id']?.toString());
    }else if(type=='letter'){
@@ -137,7 +138,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                        kind=='reply'?'Your partner replied':
                        kind=='letter'?'New letter':
                        kind=='gesture'?'A little love from your partner':
-                       kind=='event'?'New shared event':'Shared update'),
+                       kind=='event'?'New shared event':
+                       kind=='reminder'?'Your partner sent an event reminder':
+                         'Shared update'),
                      trailing:unreadItem?const Icon(Icons.circle,size:8):null,
                      onTap:()=>_open(item,userId),
                    );

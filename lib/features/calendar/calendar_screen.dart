@@ -291,6 +291,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
     ]);
   }
 
+  Future<void> _remindPartner(Map<String,dynamic> event) async {
+    final space=_spaceId;
+    final me=_client.auth.currentUser?.id;
+    if(space==null||me==null)return;
+    try{
+      final members=await _client.from('space_members')
+        .select('user_id').eq('space_id',space);
+      final partner=members.where((row)=>row['user_id']!=me).firstOrNull;
+      if(partner==null){
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Connect your partner first.')));
+        return;
+      }
+      await _client.from('calendar_partner_reminders').insert({
+        'event_id':event['id'].toString(),
+        'space_id':space,
+        'recipient_id':partner['user_id'].toString(),
+      });
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Reminder sent to your partner.')));
+    }on PostgrestException catch(e){
+      if(!mounted)return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:Text(e.code=='23505'
+          ?'You already reminded your partner about this event today.'
+          :'Could not send the reminder. Please try again.'),
+      ));
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Could not send the reminder.')));
+    }
+  }
+
   Future<void> _emailEvent(Map<String,dynamic> event) async {
     final title=event['title']?.toString()??'Calendar event';
     final date=event['event_date']?.toString()??'';
@@ -466,10 +499,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (!canEdit) tr(context, 'viewOnly'),
               if (event['archived_at'] != null) tr(context, 'archived'),
             ].join(' • ')),
-            trailing: IconButton(
-              tooltip:'Share this event by email',
-              icon:const Icon(Icons.mail_outline),
-              onPressed:()=>_emailEvent(event),
+            trailing:PopupMenuButton<String>(
+              tooltip:'Event actions',
+              icon:const Icon(Icons.more_horiz),
+              onSelected:(action){
+                if(action=='email')_emailEvent(event);
+                if(action=='remind')_remindPartner(event);
+              },
+              itemBuilder:(_)=>[
+                const PopupMenuItem(value:'email',child:Row(children:[
+                  Icon(Icons.mail_outline),SizedBox(width:10),
+                  Text('Share by email')])),
+                if(visibility=='shared'&&event['archived_at']==null)
+                  const PopupMenuItem(value:'remind',child:Row(children:[
+                    Icon(Icons.notifications_active_outlined),SizedBox(width:10),
+                    Text('Remind partner now')])),
+              ],
             ),
             onTap: () => _openEditor(existing: event),
           ),
