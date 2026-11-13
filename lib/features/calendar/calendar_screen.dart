@@ -815,7 +815,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar:AppBar(title:const Text('Shared calendar')),
+    appBar:AppBar(title:const Text('Shared calendar'),actions:[
+     IconButton(tooltip:_showArchived?'Hide archived':'Calendar history',
+      icon:Icon(_showArchived?Icons.event_available_outlined:Icons.history_outlined),
+      onPressed:()=>setState(()=>_showArchived=!_showArchived)),
+    ]),
     body:RefreshIndicator(
     onRefresh: _load,
     child: ListView(
@@ -855,7 +859,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           Text(tr(context, 'noSpace'))
         else ...[
           const SizedBox(height: 12),
-          HolidaySourcesPanel(spaceId:_spaceId!,onChanged:_refreshExtras),
+          // Regional holidays are managed in Settings > Preferences.
           if(_holidayError!=null)Padding(padding:const EdgeInsets.all(8),
             child:Text(_holidayError!,style:Theme.of(context).textTheme.bodySmall)),
           const SizedBox(height: 12),
@@ -885,12 +889,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           const Divider(height: 36),
           _upcoming(),
           const SizedBox(height: 10),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(tr(context, 'showArchived')),
-            value: _showArchived,
-            onChanged: (value) => setState(() => _showArchived = value),
-          ),
+
           if (_showArchived) ..._events.where((e) =>
               e['archived_at'] != null).map((e) => _eventTile(e)),
           const SizedBox(height: 12),

@@ -105,7 +105,11 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:AppBar(title:const Text('Notes')),
+      appBar:AppBar(title:const Text('Notes'),actions:[
+       IconButton(tooltip:_showArchived?'Hide archived':'Notes history',
+        icon:Icon(_showArchived?Icons.note_alt_outlined:Icons.history_outlined),
+        onPressed:()=>setState(()=>_showArchived=!_showArchived)),
+      ]),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -135,12 +139,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 label: Text(tr(context, scope)),
                 onSelected: (_) => setState(() => _scope = scope),
               )).toList()),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _showArchived,
-              title: Text(tr(context, 'showArchived')),
-              onChanged: (value) => setState(() => _showArchived = value),
-            ),
+
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: _stream,
               builder: (context, snapshot) {

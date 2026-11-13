@@ -248,22 +248,22 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           child:Center(child:CircularProgressIndicator()))
       else if(_space==null)Text(tr(context,'noSpace'))
       else ...[
-        Card(elevation:0,child:Padding(padding:const EdgeInsets.all(12),
-          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Text('How is your heart today?',
-              style:Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height:8),
-            Wrap(spacing:8,runSpacing:8,children:[
-              FilledButton.icon(
-                onPressed:()=>_edit(),
-                icon:const Icon(Icons.favorite_outline),
-                label:const Text('Record my feelings')),
-              FilledButton.tonalIcon(
-                onPressed:_askPartner,
-                icon:const Icon(Icons.mark_chat_unread_outlined),
-                label:const Text('Check on my partner')),
-            ]),
-          ]))),
+        Row(children:[
+         Expanded(child:Card(clipBehavior:Clip.antiAlias,
+          child:InkWell(onTap:()=>_edit(),child:AspectRatio(aspectRatio:1.15,
+           child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+            Icon(Icons.edit_note_outlined,size:34,color:Theme.of(context).colorScheme.primary),
+            const SizedBox(height:9),
+            const Text('Record my feeling',textAlign:TextAlign.center),
+           ]))))),
+         Expanded(child:Card(clipBehavior:Clip.antiAlias,
+          child:InkWell(onTap:_askPartner,child:AspectRatio(aspectRatio:1.15,
+           child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+            Icon(Icons.mark_chat_unread_outlined,size:34,color:Theme.of(context).colorScheme.primary),
+            const SizedBox(height:9),
+            const Text('Check on my partner',textAlign:TextAlign.center),
+           ]))))),
+        ]),
         const SizedBox(height:13),
         Text('Check-in conversations',
           style:Theme.of(context).textTheme.titleMedium),

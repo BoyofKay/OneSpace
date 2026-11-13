@@ -730,6 +730,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ),
             )
           else const SizedBox(height:16),
+          Text(tr(context,'tagline'),style:Theme.of(context).textTheme.labelMedium),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:12),
           if (issue != null) ...[
@@ -828,20 +829,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                 MaterialPageRoute<void>(builder:(_)=>TripsScreen(initialTripId:id))),
               onOpenOccasion:(id)=>Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(builder:(_)=>OccasionsScreen(initialPlanId:id)))),
-            const SizedBox(height:12),
-            Card(elevation:0,clipBehavior:Clip.antiAlias,
-              child:ListTile(
-                leading:CircleAvatar(
-                  backgroundColor:Theme.of(context).colorScheme.primaryContainer,
-                  child:const Icon(Icons.volunteer_activism_outlined)),
-                title:const Text('A little love',
-                  style:TextStyle(fontWeight:FontWeight.w600)),
-                subtitle:const Text('Send your partner a gesture that says it all'),
-                trailing:const Icon(Icons.chevron_right),
-                onTap:()=>Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder:(_)=>const PartnerGesturesScreen())),
-              )),
             const SizedBox(height:12),
             if(milestoneCountdowns.isNotEmpty)...[
               _countdownPanel(),
@@ -953,12 +940,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               children:[
                 _exploreCard('Activities',Icons.hub_outlined,widget.onOpenCoordinate,0),
                 _exploreCard('Calendar',Icons.calendar_month_outlined,widget.onOpenCalendar,1),
-                _exploreCard('To-dos',Icons.checklist_outlined,widget.onOpenPlans,2),
+                _exploreCard('To-do and Checklists',Icons.checklist_outlined,widget.onOpenPlans,2),
                 _exploreCard('Notes',Icons.sticky_note_2_outlined,widget.onOpenNotes,3),
                 _exploreCard('Lists',Icons.shopping_basket_outlined,widget.onOpenLists,4),
                 _exploreCard('Letters',Icons.mark_email_unread_outlined,widget.onOpenLetters,5),
                 _exploreCard('Memories',Icons.auto_stories_outlined,widget.onOpenMemories,6),
                 _exploreCard('Check-ins',Icons.favorite_outline,widget.onOpenCheckins,7),
+                _exploreCard('A little love',Icons.volunteer_activism_outlined,
+                 ()=>Navigator.push<void>(context,MaterialPageRoute<void>(
+                  builder:(_)=>const PartnerGesturesScreen())),8),
+                _exploreCard('Shared experiences',Icons.movie_outlined,
+                 ()=>Navigator.push<void>(context,MaterialPageRoute<void>(
+                  builder:(_)=>const SharedExperiencesScreen())),9),
               ],
             )),
             const SizedBox(height: 8),
@@ -973,7 +966,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final colors=Theme.of(context).colorScheme;
     final color=[colors.primary,colors.tertiary,colors.secondary,
       colors.primary,colors.tertiary,colors.secondary,
-      colors.primary,colors.tertiary][index];
+      colors.primary,colors.tertiary,colors.secondary,colors.primary][index];
     return Card(
       elevation:0,clipBehavior:Clip.antiAlias,
       color:Color.alphaBlend(color.withValues(alpha:.11),colors.surface),
