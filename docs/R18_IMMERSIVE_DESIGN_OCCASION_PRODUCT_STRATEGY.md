@@ -1,6 +1,6 @@
 # OneSpace R18 — Immersive Design & Connected Occasion Intelligence
 
-**Status (Nov 13, 2026): source changes and additive database migration committed; migration 0072 applied. No new APK release triggered. Flutter analyzer, widget tests, real device contrast checks and two-phone validation still pending.**
+**Status (Nov 13, 2026): R18 source and additive migration 0072 committed/applied. Verify-only workflow 43460884916 passed locked dependencies, Flutter analysis, and the full automated test suite. No new APK triggered. Physical-device contrast, usability and two-phone acceptance are still pending.**
 
 ## 1. Product truth
 OneSpace is **one relationship workspace**, not a collection of forms. Core journey:
@@ -144,7 +144,7 @@ Guardrails:
 - Never run a new release build because a source-only feature was committed.
 
 ## 8. R18 acceptance and caveats
-Source has been committed and migration 0072 applied; no new release. Verification is source-only, not a new APK.
+Source has been committed and migration 0072 applied; no new release. Verify-only run https://github.com/BoyofKay/OneSpace/actions/runs/43460884916 passed Flutter analysis and tests; it is not a new APK or phone acceptance.
 Before a future APK:
 1. Run Flutter analyze and all widget/unit tests.
 2. Validate theme appearance over all screens and modal surfaces in Light, Dark and Follow Phone, including RTL/large text.
