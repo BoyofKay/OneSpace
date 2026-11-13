@@ -56,13 +56,26 @@ class HolidayCalendarService{
  final Map<String,DateTime> _cachedAt={};
  void close(){if(_ownsClient)_client.close();}
 
- Future<List<HolidayDay>> forYear(int year,Set<String> countryCodes)async{
-  if(year<2000||year>2100)return [];
+ Future<HolidayLoadResult> forYearDetailed(int year,Set<String> countryCodes)async{
+  if(year<2000||year>2100)return const HolidayLoadResult([],[]);
   final codes=countryCodes.where(HolidayCatalog.countryNames.containsKey).toList();
-  final all=await Future.wait(codes.map((c)=>_countryYear(year,c)));
-  return all.expand((l)=>l).toList()
+  final results=await Future.wait(codes.map((code)async{
+   try{
+    final items=await _countryYear(year,code);
+    return (code:code,items:items,failed:false);
+   }catch(_){
+    return (code:code,items:<HolidayDay>[],failed:true);
+   }
+  }));
+  final all=results.expand((x)=>x.items).toList()
    ..sort((a,b)=>a.date.compareTo(b.date));
+  return HolidayLoadResult(all,[
+   for(final x in results)if(x.failed)x.code,
+  ]);
  }
+ Future<List<HolidayDay>> forYear(int year,Set<String> countryCodes) async =>
+   (await forYearDetailed(year,countryCodes)).days;
+
  Future<List<HolidayDay>> _countryYear(int year,String country)async{
   if(country=='SA')return HolidayCatalog.saudiCivicDays(year);
   final key='$year/$country';
@@ -83,4 +96,10 @@ class HolidayFetchException implements Exception{
  const HolidayFetchException(this.message);
  final String message;
  @override String toString()=>message;
+}
+
+class HolidayLoadResult{
+ const HolidayLoadResult(this.days,this.unavailableCountries);
+ final List<HolidayDay> days;
+ final List<String> unavailableCountries;
 }
