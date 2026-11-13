@@ -239,9 +239,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         setState((){_holidays=[];_holidayError=null;});
         return;
       }
-      final years=<int>{_month.year};
-      if(_month.month==1)years.add(_month.year-1);
-      if(_month.month==12)years.add(_month.year+1);
+      final activeDate=_view=='month'?_month:_selected;
+      final years=<int>{activeDate.year};
+      if(activeDate.month==1)years.add(activeDate.year-1);
+      if(activeDate.month==12)years.add(activeDate.year+1);
       final data=await Future.wait(years.map((y)=>_holidayService.forYear(y,active)));
       if(!mounted||request!=_extrasVersion)return;
       setState((){
@@ -265,7 +266,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return _occasions.where((row){
       if(row['archived_at']!=null||row['status']=='cancelled')return false;
       final origin=DateTime.tryParse((row['occasion_on']??'').toString());
-      return origin!=null&&CalendarRules.occursOn(
+      if(origin==null)return false;
+      if(row['annual']==true&&origin.month==2&&origin.day==29&&
+         !CalendarRules.isValid(date.year,2,29)){
+        return date.month==2&&date.day==28;
+      }
+      return CalendarRules.occursOn(
        original:origin,recurrence:row['annual']==true?'yearly':'none',selected:date);
     }).toList();
   }
@@ -375,8 +381,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         IconButton(
           tooltip:'Previous week',
           icon:const Icon(Icons.chevron_left),
-          onPressed:()=>setState(()=>
-            _selected=_selected.subtract(const Duration(days:7))),
+          onPressed:(){setState(()=>
+            _selected=_selected.subtract(const Duration(days:7)));
+            _refreshExtras();},
         ),
         Expanded(child:Text(
           CalendarRules.sqlDate(days.first)+' — '+
@@ -385,8 +392,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         IconButton(
           tooltip:'Next week',
           icon:const Icon(Icons.chevron_right),
-          onPressed:()=>setState(()=>
-            _selected=_selected.add(const Duration(days:7))),
+          onPressed:(){setState(()=>
+            _selected=_selected.add(const Duration(days:7)));
+            _refreshExtras();},
         ),
       ]),
       for(final date in days)
@@ -715,16 +723,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
       Row(children:[
         IconButton(
           tooltip:'Previous day',icon:const Icon(Icons.chevron_left),
-          onPressed:()=>setState(()=>
-            _selected=_selected.subtract(const Duration(days:1)))),
+          onPressed:(){setState(()=>
+            _selected=_selected.subtract(const Duration(days:1)));
+            _refreshExtras();}),
         Expanded(child:Text(
           MaterialLocalizations.of(context).formatMediumDate(_selected),
           textAlign:TextAlign.center,
           style:Theme.of(context).textTheme.titleMedium)),
         IconButton(
           tooltip:'Next day',icon:const Icon(Icons.chevron_right),
-          onPressed:()=>setState(()=>
-            _selected=_selected.add(const Duration(days:1)))),
+          onPressed:(){setState(()=>
+            _selected=_selected.add(const Duration(days:1)));
+            _refreshExtras();}),
       ]),
       if(allDay.isNotEmpty||tasks.isNotEmpty||off.isNotEmpty||holiday.isNotEmpty||occasion.isNotEmpty)...[
         for(final d in off)_offTile(d),
@@ -843,7 +853,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ButtonSegment(value:'day',label:Text('Day')),
             ],
             selected:{_view},
-            onSelectionChanged:(value)=>setState(()=>_view=value.first),
+            onSelectionChanged:(value){
+             setState((){
+              _view=value.first;
+              if(_view=='month')_month=DateTime(_selected.year,_selected.month);
+             });
+             _refreshExtras();
+            },
           ),
           if(_view=='month')Card(
             elevation:0,
