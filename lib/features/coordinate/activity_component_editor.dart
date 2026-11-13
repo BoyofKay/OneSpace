@@ -136,7 +136,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   bool get isDated => widget.kind == 'date' || widget.kind == 'reminder';
 
   Future<void> save() async {
-    final label = title.text.trim();
+    final label = widget.kind=='tag' && title.text.trim().isEmpty
+      ?value.text.trim():title.text.trim();
     final v = value.text.trim();
     final kind = widget.kind;
     if (label.isEmpty) {
