@@ -14,7 +14,6 @@ import '../sharing/share_grant_watcher.dart';
 import 'calendar_event_editor.dart';
 import 'calendar_rules.dart';
 import 'holiday_calendar_service.dart';
-import 'holiday_sources_panel.dart';
 import '../occasions/occasions_screen.dart';
 import '../occasions/occasion_rules.dart';
 import '../../theme/appearance_settings_screen.dart';

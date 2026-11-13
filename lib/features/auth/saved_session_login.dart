@@ -6,7 +6,6 @@ import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
 import 'device_unlock.dart';
 import '../../core/first_name.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// One restored Supabase session: the user's password OR OS verification can
 /// reopen it. No password, refresh token, or biometric template is saved here.
