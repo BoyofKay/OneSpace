@@ -107,11 +107,10 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    final chosen=await service.pick();
    if(chosen==null)return;
    if(!mounted)return;
-   final title=TextEditingController(text:TripDocumentRules.safeTitle(chosen.filename));
+   var title=TripDocumentRules.safeTitle(chosen.filename);
    var kind=chosen.mime=='application/pdf'?'itinerary':'photo';
    var location='whole_trip';
-   try{
-    final accepted=await showDialog<bool>(context:context,
+   final accepted=await showDialog<bool>(context:context,
      builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
       title:const Text('Attach travel document'),
       content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
@@ -143,15 +142,14 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       ],
      )));
     if(accepted!=true)return;
-    if(title.text.trim().isEmpty){
+    if(title.trim().isEmpty){
      if(mounted)setState(()=>error='Document title cannot be empty.');
      return;
     }
-    await service.upload(tripId:widget.tripId,file:chosen,title:title.text.trim(),
+    await service.upload(tripId:widget.tripId,file:chosen,title:title.trim(),
       kind:kind,itineraryItemId:location=='whole_trip'?null:location);
     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content:Text('Travel document added securely.')));
-   }finally{title.dispose();}
   }on PlatformException catch(e){
    if(mounted)setState(()=>error=e.message??'Document picker is unavailable.');
   }on FormatException catch(e){
@@ -165,18 +163,17 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
 
  Future<void> edit(Map<String,dynamic> doc)async{
   if(busy)return;
-  final title=TextEditingController(text:doc['title'].toString());
+  var title=doc['title'].toString();
   var kind=doc['kind'].toString();
   var location=doc['item_id']?.toString()??'whole_trip';
   if(location!='whole_trip'&&!widget.itineraryItems.any((e)=>e['id']==location)){
    location='whole_trip';
   }
-  try{
-   final accepted=await showDialog<bool>(context:context,
+  final accepted=await showDialog<bool>(context:context,
     builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
      title:const Text('Edit document details'),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-      TextField(controller:title,maxLength:160,
+      TextFormField(initialValue:title,maxLength:160,onChanged:(v)=>title=v,
        decoration:const InputDecoration(labelText:'Title')),
       DropdownButtonFormField<String>(initialValue:kind,
        decoration:const InputDecoration(labelText:'Type'),
@@ -198,14 +195,13 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save')),
      ],
     )));
-   if(accepted!=true||title.text.trim().isEmpty)return;
+   if(accepted!=true||title.trim().isEmpty)return;
    await change(()async{
     await db.from('trip_attachments').update({
-     'title':title.text.trim(),'kind':kind,
+     'title':title.trim(),'kind':kind,
      'item_id':location=='whole_trip'?null:location,
     }).eq('id',doc['id']);
    });
-  }finally{title.dispose();}
  }
 
  Future<void> change(Future<void> Function() action)async{
