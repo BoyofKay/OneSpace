@@ -12,8 +12,10 @@ import '../../core/weather_city_picker.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
-  const ProfileSettingsScreen({super.key,this.settingsOnly=false});
+  const ProfileSettingsScreen({super.key,this.settingsOnly=false,
+    this.section='labels'});
   final bool settingsOnly;
+  final String section;
 
   @override
   State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
@@ -372,12 +374,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           const SizedBox(height:10),
         ],
         if(widget.settingsOnly)...[
-          Text('Personalization & preferences',
+          Text(widget.section=='labels'?'Preferred names':
+            widget.section=='schedule'?'Schedule & quiet hours':
+            'Weather & language',
             style:Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height:6),
           const Text('These settings belong to your account. '
             'Your partner can choose different preferences.'),
           const SizedBox(height:16),
+        if(widget.section=='weather')...[
         DropdownButtonFormField<String>(
           initialValue: _language,
           decoration: InputDecoration(
@@ -393,6 +398,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           },
         ),
         const SizedBox(height:12),
+        ],
+        if(widget.section=='labels')...[
         TextField(
           controller:_partnerLabel,maxLength:60,
           decoration:const InputDecoration(
@@ -428,6 +435,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           ),
         ]),
         const SizedBox(height:12),
+        ],
+        if(widget.section=='schedule')...[
         Text('Your daily schedule',
           style:Theme.of(context).textTheme.titleMedium),
         Text('Working days',style:Theme.of(context).textTheme.labelLarge),
@@ -460,6 +469,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         const Text('Scheduled gestures require consent from both people. '
           'Saving these settings never sends a message by itself.'),
         const SizedBox(height: 18),
+        ],
+        if(widget.section=='weather')...[
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.schedule_outlined),
@@ -509,6 +520,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           'the main interface; remaining screens are being translated.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        ], // end weather fields
         ], // end preferences-only fields
         if (_error != null) ...[
           const SizedBox(height: 14),
