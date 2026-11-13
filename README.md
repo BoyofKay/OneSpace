@@ -1,6 +1,6 @@
 # OneSpace
 
-**One Life, Two Places**
+**One Life. Two Places. One Space.**
 
 A Flutter companion app for couples, whether living together or apart.
 

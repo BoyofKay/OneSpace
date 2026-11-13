@@ -13,6 +13,8 @@ import 'activity_comparison_sheet.dart';
 import 'activity_conversation_references.dart';
 import 'activity_image_service.dart';
 import 'activity_image_preview.dart';
+import 'activity_contact.dart';
+import 'activity_contact_view.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -383,6 +385,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ('spec', Icons.tune, 'Specification'),
       ('date', Icons.event, 'Date'),
       ('location', Icons.place_outlined, 'Map location'),
+      ('contact', Icons.contact_phone_outlined, 'Contact information'),
       ('tag', Icons.sell_outlined, 'Tag'),
     ];
     final chosen = await showModalBottomSheet<String>(
@@ -503,6 +506,29 @@ class _ActivityScreenState extends State<ActivityScreen> {
     await openExternal(url.toString());
   }
 
+  /// Launches the OS dialer or mail composer. Never places calls or sends
+  /// email itself. On unsupported devices, copy the verified contact value.
+  Future<void> openContactAction(Uri uri) async {
+    if (uri.scheme != 'tel' && uri.scheme != 'mailto') return;
+    try {
+      final didOpen = await launchUrl(
+        uri, mode: LaunchMode.externalApplication,
+      );
+      if (!didOpen) {
+        await Clipboard.setData(ClipboardData(text: uri.path));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(
+            'No compatible app found. Contact detail copied.',
+          )),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => issue = 'Could not open this contact detail.');
+    }
+  }
+
   void focusOnComponent(Map<String,dynamic> item) {
     setState(() {
       onComponent = item['id'] as String;
@@ -583,6 +609,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   leading: const Icon(Icons.link),
                   title: const Text('Attach another source link'),
                   onTap: () => Navigator.pop(ctx, 'add-link')),
+                ListTile(
+                  leading: const Icon(Icons.contact_phone_outlined),
+                  title: const Text('Attach contact information'),
+                  onTap: () => Navigator.pop(ctx, 'add-contact')),
               ],
               ListTile(
                 leading: const Icon(Icons.chat_bubble_outline),
@@ -641,6 +671,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await openEditor('note', parent: id);
       case 'add-link':
         await openEditor('link', parent: id);
+      case 'add-contact':
+        await openEditor('contact', parent: id);
       case 'child':
         await chooseAdd(under: id, underTitle: title);
       case 'edit':
@@ -745,6 +777,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       case 'spec': return Icons.tune;
       case 'date': return Icons.event_outlined;
       case 'location': return Icons.place_outlined;
+      case 'contact': return Icons.contact_phone_outlined;
       case 'tag': return Icons.sell_outlined;
       case 'reminder': return Icons.notifications_outlined;
       case 'mention': return Icons.alternate_email;
@@ -757,6 +790,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final payload = item['payload'] as Map? ?? const {};
     final value = payload['value']?.toString() ?? '';
     if (kind == 'price') return '${payload['currency'] ?? ''} $value';
+    if (kind == 'contact') return '';
     if (kind == 'option') {
       final price = payload['price']?.toString() ?? '';
       final currency = payload['currency']?.toString() ?? '';
@@ -784,6 +818,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
         kind == 'option' ? payload['url']?.toString() ?? '' : '';
     final location = kind == 'location' ? payload['value']?.toString() ?? '' : '';
     final isNested = item['parent_component_id'] != null;
+    final contact = kind == 'contact'
+        ? ActivityContact.fromPayload(Map<String, dynamic>.from(payload))
+        : null;
 
     Future<void> primaryAction() async {
       if (kind == 'link' && url.isNotEmpty) {
@@ -833,6 +870,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         height: 1.35,
                         fontWeight: kind == 'price' ? FontWeight.w600 : null,
                       )),
+                  ],
+                  if (contact != null) ...[
+                    const SizedBox(height: 5),
+                    ActivityContactView(
+                      contact: contact,
+                      onPhone: openContactAction,
+                      onEmail: openContactAction,
+                      onMap: openMap,
+                    ),
                   ],
                   if (kind == 'image' &&
                       (payload['object_path']?.toString() ?? '').isNotEmpty) ...[

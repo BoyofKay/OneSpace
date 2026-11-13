@@ -112,6 +112,36 @@ void main() {
     expect(model.columns.single.partnerOpinion, -1);
   });
 
+  test('contact data becomes useful side-by-side comparison criteria', () {
+    final model = ActivityComparisonMatrix.build([
+      option('gym-a','Gym A',{}),
+      option('gym-b','Gym B',{}),
+      {
+        'id':'contact-a', 'activity_id':'activity-a',
+        'parent_component_id':'gym-a', 'kind':'contact',
+        'label':'Admissions', 'payload':{
+          'contact_name':'Sarah', 'phone':'+1 610 555 0147',
+          'email':'hello@example.com',
+          'address':'123 Main Street',
+          'working_hours':'Mon–Fri, 9–5',
+        },
+      },
+      {
+        'id':'contact-b', 'activity_id':'activity-a',
+        'parent_component_id':'gym-b', 'kind':'contact',
+        'label':'Office', 'payload':{
+          'phone':'+1 610 555 0198',
+          'working_hours':'Saturday, 10–2',
+        },
+      },
+    ]);
+    expect(model.value('contact person',model.columns[0]),'Sarah');
+    expect(model.value('contact person',model.columns[1]),'—');
+    expect(model.value('phone',model.columns[1]),'+1 610 555 0198');
+    expect(model.value('working hours',model.columns[0]),'Mon–Fri, 9–5');
+    expect(model.rows.map((r)=>r.label),contains('Email'));
+  });
+
   test('empty comparison does not fabricate data or throw', () {
     final model = ActivityComparisonMatrix.build([
       {'kind': 'note', 'label': 'Not an option'},

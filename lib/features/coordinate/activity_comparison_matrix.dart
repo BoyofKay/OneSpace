@@ -1,3 +1,5 @@
+import 'activity_contact.dart';
+
 /// Builds a side-by-side comparison from existing Coordinate components.
 /// Pure Dart: no network, UI or database access. A missing value means "not
 /// recorded", never an inferred specification, price, or availability.
@@ -94,7 +96,7 @@ class ActivityComparisonMatrix {
           continue;
         }
         final kind = _string(item['kind']);
-        if (!{'spec', 'price', 'note', 'date', 'location', 'link', 'tag'}
+        if (!{'spec', 'price', 'note', 'date', 'location', 'link', 'tag', 'contact'}
             .contains(kind)) {
           continue;
         }
@@ -106,6 +108,14 @@ class ActivityComparisonMatrix {
             _string(childPayload['currency']), value,
           ].where((s) => s.isNotEmpty).join(' ');
           add(fields, 'Price', money, override: true);
+        } else if (kind == 'contact') {
+          final contact = ActivityContact.fromPayload(childPayload);
+          add(fields, 'Contact person', contact.person);
+          add(fields, 'Phone', contact.phone);
+          add(fields, 'Email', contact.email);
+          add(fields, 'Address', contact.address);
+          add(fields, 'Working hours', contact.workingHours);
+          add(fields, 'Contact notes', contact.note);
         } else {
           add(fields, name.isEmpty ? kind : name, value);
         }

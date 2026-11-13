@@ -1,6 +1,7 @@
 
 import 'package:material_ui/material_ui.dart';
 import '../calendar/calendar_rules.dart';
+import 'activity_contact.dart';
 
 /// Type-specific inputs produce a reusable structured JSON payload.
 /// The Activity itself requires only a title and details; everything below
@@ -27,6 +28,11 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   late final TextEditingController price;
   late final TextEditingController currency;
   late final TextEditingController specs;
+  late final TextEditingController contactPerson;
+  late final TextEditingController contactPhone;
+  late final TextEditingController contactEmail;
+  late final TextEditingController contactAddress;
+  late final TextEditingController contactHours;
   String? error;
 
   Map<String, dynamic> get original =>
@@ -43,6 +49,11 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     price = TextEditingController(text: p['price']?.toString() ?? '');
     currency = TextEditingController(text: p['currency']?.toString() ?? 'USD');
     specs = TextEditingController(text: p['specs']?.toString() ?? '');
+    contactPerson = TextEditingController(text: p['contact_name']?.toString() ?? '');
+    contactPhone = TextEditingController(text: p['phone']?.toString() ?? '');
+    contactEmail = TextEditingController(text: p['email']?.toString() ?? '');
+    contactAddress = TextEditingController(text: p['address']?.toString() ?? '');
+    contactHours = TextEditingController(text: p['working_hours']?.toString() ?? '');
   }
 
   @override
@@ -54,6 +65,11 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     price.dispose();
     currency.dispose();
     specs.dispose();
+    contactPerson.dispose();
+    contactPhone.dispose();
+    contactEmail.dispose();
+    contactAddress.dispose();
+    contactHours.dispose();
     super.dispose();
   }
 
@@ -97,6 +113,26 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     final kind = widget.kind;
     if (label.isEmpty) {
       setState(() => error = 'Give this item a name.');
+      return;
+    }
+    if (kind == 'contact') {
+      final contact = ActivityContact(
+        person: contactPerson.text.trim(),
+        phone: contactPhone.text.trim(),
+        email: contactEmail.text.trim(),
+        address: contactAddress.text.trim(),
+        workingHours: contactHours.text.trim(),
+        note: details.text.trim(),
+      );
+      final invalid = contact.validate();
+      if (invalid != null) {
+        setState(() => error = invalid);
+        return;
+      }
+      Navigator.of(context).pop({
+        'label': label,
+        'payload': contact.toPayload(original: original),
+      });
       return;
     }
     if ((kind == 'link' || kind == 'location') && v.isEmpty) {
@@ -172,9 +208,30 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
             const SizedBox(height: 14),
             input(title, kind == 'spec' ? 'Specification name (e.g., Voltage)' :
               kind == 'option' ? 'Product or provider name' :
-              kind == 'step' ? 'Next action' : 'Title', max: 180),
+              kind == 'step' ? 'Next action' :
+              kind == 'contact' ? 'Contact card title (e.g., Gym B admissions)' :
+              'Title', max: 180),
             const SizedBox(height: 12),
-            if (isDated) ...[
+            if (kind == 'contact') ...[
+              input(contactPerson, 'Person to contact (optional)', max: 180),
+              const SizedBox(height: 12),
+              input(contactPhone, 'Phone number', max: 80,
+                keyboardType: TextInputType.phone, hint: '+1 610 555 0147'),
+              const SizedBox(height: 12),
+              input(contactEmail, 'Email address', max: 254,
+                keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 12),
+              input(contactAddress, 'Physical address', max: 1000, lines: 2,
+                keyboardType: TextInputType.streetAddress),
+              const SizedBox(height: 12),
+              input(contactHours, 'Working hours', max: 800, lines: 3,
+                hint: 'Mon–Fri 9:00 AM–5:00 PM'),
+              const SizedBox(height: 12),
+              input(details, 'Notes / best time to reach them', max: 3000, lines: 3),
+              const SizedBox(height: 5),
+              Text('Add whichever fields you know. Hours are recorded as provided.',
+                style: Theme.of(context).textTheme.bodySmall),
+            ] else if (isDated) ...[
               OutlinedButton.icon(
                 onPressed: chooseDate,
                 icon: const Icon(Icons.calendar_today_outlined),
@@ -223,7 +280,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
               ]),
             ],
             if (kind != 'note' && kind != 'step' && kind != 'tag' &&
-                kind != 'option' && kind != 'reminder' && kind != 'image') ...[
+                kind != 'option' && kind != 'reminder' && kind != 'image' &&
+                kind != 'contact') ...[
               const SizedBox(height: 12),
               input(details, 'Additional note (optional)', max: 4000, lines: 3),
             ],
