@@ -126,7 +126,9 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
         setState(() {
           recording = false;
           draftPath = path;
-          seconds = elapsed.clamp(0, ActivityVoiceRules.maxSeconds);
+          seconds = elapsed < 0 ? 0 :
+              (elapsed > ActivityVoiceRules.maxSeconds
+                  ? ActivityVoiceRules.maxSeconds : elapsed);
           if (path == null || elapsed < 1) {
             error = 'Record at least one second before sending.';
           }
@@ -223,6 +225,15 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
     }
   }
 
+  Future<void> _deleteIfExists(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Temporary local files may already be removed by the OS.
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -231,8 +242,9 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
     unawaited(recorder.dispose());
     unawaited(preview.dispose());
     final path = draftPath;
-    if (path != null) unawaited(File(path).delete().catchError((Object _) =>
-        File(path)));
+    if (path != null) {
+      unawaited(_deleteIfExists(path));
+    }
     super.dispose();
   }
 

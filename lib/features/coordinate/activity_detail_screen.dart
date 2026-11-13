@@ -15,7 +15,6 @@ import 'activity_image_service.dart';
 import 'activity_image_preview.dart';
 import 'activity_contact.dart';
 import 'activity_contact_view.dart';
-import 'activity_voice_rules.dart';
 import 'activity_voice_player.dart';
 import 'activity_voice_recorder_sheet.dart';
 import 'activity_voice_service.dart';
