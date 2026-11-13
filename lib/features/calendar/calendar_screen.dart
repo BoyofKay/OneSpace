@@ -801,15 +801,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
           style: const TextStyle(fontSize: 27, fontWeight: FontWeight.bold)),
         const SizedBox(height: 5),
         Text(tr(context, 'calendarSubtitle')),
-        const SizedBox(height: 14),
-        if (_spaceId != null)
-          FilledButton.icon(
-            onPressed: () => _openEditor(),
-            icon: const Icon(Icons.add),
-            label: Text(tr(context, 'newEvent')),
-          ),
+        const SizedBox(height: 12),
+        const SeasonalThemePreview(compact:true),
+        const SizedBox(height: 12),
+        if(_spaceId!=null)Wrap(spacing:8,runSpacing:8,children:[
+          FilledButton.icon(onPressed:()=>_openEditor(),
+           icon:const Icon(Icons.add),label:Text(tr(context,'newEvent'))),
+          OutlinedButton.icon(onPressed:()=>_createOccasion(kind:'birthday'),
+           icon:const Icon(Icons.cake_outlined),label:const Text('Birthday')),
+          OutlinedButton.icon(onPressed:()=>_createOccasion(kind:'anniversary'),
+           icon:const Icon(Icons.favorite_outline),label:const Text('Anniversary')),
+          OutlinedButton.icon(onPressed:()=>_createOccasion(kind:'other'),
+           icon:const Icon(Icons.celebration_outlined),label:const Text('Special day')),
+        ]),
         if (_error != null) ...[
-          Text(_error!, style: const TextStyle(color: Colors.red)),
+          Text(_error!, style:TextStyle(color:Theme.of(context).colorScheme.error)),
           TextButton.icon(
             onPressed: _load,
             icon: const Icon(Icons.refresh),
@@ -824,6 +830,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         else if (_spaceId == null)
           Text(tr(context, 'noSpace'))
         else ...[
+          const SizedBox(height: 12),
+          HolidaySourcesPanel(spaceId:_spaceId!,onChanged:_refreshExtras),
+          if(_holidayError!=null)Padding(padding:const EdgeInsets.all(8),
+            child:Text(_holidayError!,style:Theme.of(context).textTheme.bodySmall)),
           const SizedBox(height: 12),
           SegmentedButton<String>(
             segments:const [
