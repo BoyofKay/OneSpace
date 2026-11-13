@@ -24,9 +24,10 @@ void main() {
     expect(find.textContaining('Phone unlock is unavailable'), findsNothing);
     expect(unlocked, 0);
 
-    await tester.tap(find.text('Switch account'));
-    await tester.pump();
-    expect(switchCount, 1);
+    // OneSpace uses one account per testing phone. Switching accounts
+    // must not appear on the saved-session unlock screen.
+    expect(find.text('Switch account'), findsNothing);
+    expect(switchCount, 0);
   });
 
   testWidgets('Saved session explains phone-PIN and password alternatives',
