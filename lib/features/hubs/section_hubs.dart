@@ -148,55 +148,82 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
    });}
  }
  @override Widget build(BuildContext context){
-   if(loading) {return const Padding(padding:EdgeInsets.all(18),
-     child:LinearProgressIndicator());}
-   if(spaceId==null) {return const Card(child:Padding(
-     padding:EdgeInsets.all(16),child:Text('Connect your shared space first.')));}
+   if(loading)return const Padding(padding:EdgeInsets.all(18),
+     child:LinearProgressIndicator());
+   if(spaceId==null)return const Card(child:Padding(
+     padding:EdgeInsets.all(16),child:Text('Connect your shared space first.')));
+   final together=mode=='living_together';
    final since=daysSince(last),until=daysSince(next);
-   return Card(elevation:0,child:Padding(padding:const EdgeInsets.all(15),
+   return Card(elevation:0,child:Padding(
+     padding:const EdgeInsets.all(16),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Text('Our relationship',style:Theme.of(context).textTheme.titleLarge),
-       const SizedBox(height:8),
-       Text(mode=='living_together'?'Living together':
-         mode=='apart_same_tz'?'Living apart · same time zone':
-         mode=='apart_different_tz'?'Long-distance · different time zones':
-           'Choose our living situation'),
-       const SizedBox(height:9),
-       Row(children:[
-         Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-           Text(since==null?'Last met: not set':'Last met: $since days ago'),
-           Text('Date: ${format(last)}',style:Theme.of(context).textTheme.bodySmall),
-         ])),
-         Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-           Text(until==null?'Next meeting: not set':
-             until<0?'Next meeting: in ${-until} days':
-             until==0?'Next meeting: today':'Meeting date passed'),
-           Text('Date: ${format(next)}',style:Theme.of(context).textTheme.bodySmall),
-         ])),
-       ]),
-       if(!widget.compact)...[
-         const SizedBox(height:10),
-         DropdownButtonFormField<String>(initialValue:mode,
-           decoration:const InputDecoration(labelText:'Living arrangement'),
-           items:const [
-             DropdownMenuItem(value:'not_set',child:Text('Not set')),
-             DropdownMenuItem(value:'living_together',child:Text('Living together')),
-             DropdownMenuItem(value:'apart_same_tz',child:Text('Living apart — same time zone')),
-             DropdownMenuItem(value:'apart_different_tz',child:Text('Long-distance — different time zones')),
-           ],
-           onChanged:(v)=>setState(()=>mode=v??mode)),
-         const SizedBox(height:8),
-         Wrap(spacing:7,children:[
-           OutlinedButton.icon(icon:const Icon(Icons.history),
-             onPressed:()=>pick(true),label:Text('Last met: ${format(last)}')),
-           OutlinedButton.icon(icon:const Icon(Icons.event),
-             onPressed:()=>pick(false),label:Text('Next meeting: ${format(next)}')),
-           if(next!=null)TextButton(onPressed:()=>setState(()=>next=null),
-             child:const Text('Clear next meeting')),
+       const SizedBox(height:7),
+       Text('One shared setting, visible to both of you.',
+         style:Theme.of(context).textTheme.bodySmall),
+       const SizedBox(height:16),
+       SegmentedButton<bool>(
+         segments:const [
+           ButtonSegment(value:false,
+             icon:Icon(Icons.flight_takeoff_outlined),
+             label:Text('Living apart')),
+           ButtonSegment(value:true,
+             icon:Icon(Icons.home_outlined),
+             label:Text('Together')),
+         ],
+         selected:{together},
+         onSelectionChanged:saving?null:(values)=>
+           setState(()=>mode=values.first?'living_together':'apart_different_tz'),
+       ),
+       const SizedBox(height:10),
+       Text(together
+         ?'Clocks and weather are hidden on Today. Your meaningful dates '
+          'and counters remain visible until you clear them.'
+         :'Each partner sees their clock and selected city weather. '
+          'The phones automatically handle time zones and daylight saving.',
+         style:Theme.of(context).textTheme.bodySmall),
+       const Divider(height:27),
+       Text('Our important dates',style:Theme.of(context).textTheme.titleMedium),
+       const SizedBox(height:7),
+       ListTile(
+         contentPadding:EdgeInsets.zero,
+         leading:const Icon(Icons.history_outlined),
+         title:const Text('Last time we met'),
+         subtitle:Text(last==null?'Not set':format(last)+
+           (since!=null&&since>=0?' · '+since.toString()+' days ago':'')),
+         onTap:saving?null:()=>pick(true),
+         trailing:Row(mainAxisSize:MainAxisSize.min,children:[
+           if(last!=null)IconButton(
+             tooltip:'Clear last met date',
+             onPressed:saving?null:()=>setState(()=>last=null),
+             icon:const Icon(Icons.clear)),
+           const Icon(Icons.edit_calendar_outlined),
          ]),
-         FilledButton(onPressed:saving?null:save,child:const Text('Save for both of us')),
-       ],
-       if(error!=null)Text(error!,style:const TextStyle(color:Colors.red)),
+       ),
+       const Divider(height:1),
+       ListTile(
+         contentPadding:EdgeInsets.zero,
+         leading:const Icon(Icons.event_available_outlined),
+         title:const Text('Our next meeting'),
+         subtitle:Text(next==null?'Not set':format(next)+
+           (until!=null&&until>=0?' · '+until.toString()+' days to go':
+             until!=null?' · Meeting date passed':'')),
+         onTap:saving?null:()=>pick(false),
+         trailing:Row(mainAxisSize:MainAxisSize.min,children:[
+           if(next!=null)IconButton(
+             tooltip:'Clear next meeting date',
+             onPressed:saving?null:()=>setState(()=>next=null),
+             icon:const Icon(Icons.clear)),
+           const Icon(Icons.edit_calendar_outlined),
+         ]),
+       ),
+       const SizedBox(height:16),
+       if(error!=null)Text(error!,
+         style:TextStyle(color:Theme.of(context).colorScheme.error)),
+       FilledButton.icon(
+         onPressed:saving?null:save,
+         icon:const Icon(Icons.check),
+         label:Text(saving?'Saving…':'Save for both of us')),
      ]),
    ));
  }
