@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
 import 'activity_component_editor.dart';
+import 'activity_countdown_rules.dart';
 import 'activity_decision_rules.dart';
 import 'activity_comparison_matrix.dart';
 import 'activity_comparison_sheet.dart';
@@ -386,6 +387,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ('price', Icons.payments_outlined, 'Price'),
       ('spec', Icons.tune, 'Specification'),
       ('date', Icons.event, 'Date'),
+      ('countdown', Icons.hourglass_bottom_outlined, 'Countdown'),
       ('reminder', Icons.notifications_outlined, 'Remind us'),
       ('location', Icons.place_outlined, 'Map location'),
       ('contact', Icons.contact_phone_outlined, 'Contact information'),
@@ -900,6 +902,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       case 'price': return Icons.payments_outlined;
       case 'spec': return Icons.tune;
       case 'date': return Icons.event_outlined;
+      case 'countdown': return Icons.hourglass_bottom_outlined;
       case 'location': return Icons.place_outlined;
       case 'contact': return Icons.contact_phone_outlined;
       case 'tag': return Icons.sell_outlined;
@@ -913,6 +916,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final kind = item['kind'] as String? ?? 'note';
     final payload = item['payload'] as Map? ?? const {};
     final value = payload['value']?.toString() ?? '';
+    if(kind=='countdown'){
+      return ActivityCountdownRules.summary(value,
+        repeatYearly:payload['repeat_yearly']==true,now:DateTime.now());
+    }
     if (kind == 'price') return '${payload['currency'] ?? ''} $value';
     if (kind == 'contact' || kind == 'voice') return '';
     if (kind == 'option') {
@@ -1001,6 +1008,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         height: 1.35,
                         fontWeight: kind == 'price' ? FontWeight.w600 : null,
                       )),
+                  ],
+                  if(kind=='countdown')...[
+                    const SizedBox(height:5),
+                    Text('Milestone: '+(payload['value']?.toString()??''),
+                      style:Theme.of(context).textTheme.labelSmall),
+                    if(payload['repeat_yearly']==true)
+                      Text('Repeats every year',
+                        style:Theme.of(context).textTheme.bodySmall),
                   ],
                   if (contact != null) ...[
                     const SizedBox(height: 5),
