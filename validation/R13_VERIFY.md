@@ -36,3 +36,7 @@ Validate the immersive theme changes, occasion shopping ledger UI, private sourc
 ## R18 corrected analyzer recheck (no APK)
 
 Source at bf1797724bfe2b9f108d590c32f2f465b8495ab8 fixes the R18 compact ternary opacity syntax reported by verify-only run 43459943995. Run one corrected source validation (lockfile, analyzer, tests). Do not run signing or APK publication.
+
+## R18 corrected holiday expectation — final verify only
+
+Run source-only analyzer and Flutter tests against 5ba059836cc7a84b8dc8d3193c0ef1664c6c57d8. The previous verify-only job passed analysis and 176/177 tests; the sole failure was an outdated Dec 25 Winter expectation replaced by dedicated Christmas theming. No APK/release marker changes.
