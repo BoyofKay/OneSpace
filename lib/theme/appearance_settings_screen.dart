@@ -1,22 +1,32 @@
 import 'package:material_ui/material_ui.dart';
 import 'onespace_appearance.dart';
+import '../l10n/onespace_strings.dart';
 
 class AppearanceSettingsScreen extends StatelessWidget{
  const AppearanceSettingsScreen({super.key});
+ static String paletteLabel(BuildContext context,OneSpacePalette p)=>tr(context,switch(p){
+  OneSpacePalette.ocean=>'themeOcean',OneSpacePalette.rose=>'themeRose',
+  OneSpacePalette.sage=>'themeSage',OneSpacePalette.indigo=>'themeIndigo',
+ });
+ static String seasonLabel(BuildContext context,SeasonChoice s)=>tr(context,switch(s){
+  SeasonChoice.off=>'themeOff',SeasonChoice.automatic=>'themeAutomatic',
+  SeasonChoice.valentines=>'themeValentine',SeasonChoice.spring=>'themeSpring',
+  SeasonChoice.halloween=>'themeHalloween',SeasonChoice.winter=>'themeWinter',
+ });
  @override Widget build(BuildContext context){
   final state=OneSpaceAppearance.instance;
   return Scaffold(
-   appBar:AppBar(title:const Text('Appearance & themes')),
+   appBar:AppBar(title:Text(tr(context,'themeSettings'))),
    body:SafeArea(child:AnimatedBuilder(animation:state,builder:(context,_) {
     final theme=Theme.of(context),scheme=theme.colorScheme;
     final width=MediaQuery.sizeOf(context).width;
     return ListView(padding:EdgeInsets.symmetric(
      horizontal:width>720?mathMax(20,(width-660)/2):16,vertical:16),children:[
-     Text('Make OneSpace yours',style:theme.textTheme.headlineSmall),
+     Text(tr(context,'themePersonalize'),style:theme.textTheme.headlineSmall),
      const SizedBox(height:6),
-     const Text('Themes belong to this phone. Each partner can have a different look without changing shared content.'),
+     Text(tr(context,'themeDeviceHint')),
      const SizedBox(height:24),
-     Text('Color collection',style:theme.textTheme.titleLarge),
+     Text(tr(context,'themePalettes'),style:theme.textTheme.titleLarge),
      const SizedBox(height:10),
      LayoutBuilder(builder:(ctx,box){
       final columns=box.maxWidth>=500?4:2;
@@ -25,7 +35,7 @@ class AppearanceSettingsScreen extends StatelessWidget{
        for(final p in OneSpacePalette.values)
         SizedBox(width:tile,child:Semantics(
          selected:state.palette==p,
-         label:OneSpaceAppearance.paletteName(p),
+         label:paletteLabel(context,p),
          button:true,
          child:InkWell(
           borderRadius:BorderRadius.circular(18),
@@ -46,7 +56,7 @@ class AppearanceSettingsScreen extends StatelessWidget{
              else const Icon(Icons.circle_outlined,size:19),
             ]),
             const SizedBox(height:16),
-            Text(OneSpaceAppearance.paletteName(p),
+            Text(paletteLabel(context,p),
              maxLines:2,overflow:TextOverflow.ellipsis,
              style:theme.textTheme.labelLarge),
            ]),
@@ -55,7 +65,7 @@ class AppearanceSettingsScreen extends StatelessWidget{
       ]);
      }),
      const SizedBox(height:24),
-     Text('Brightness',style:theme.textTheme.titleLarge),
+     Text(tr(context,'themeBrightness'),style:theme.textTheme.titleLarge),
      const SizedBox(height:8),
      LayoutBuilder(builder:(ctx,box){
       if(box.maxWidth<390){
@@ -66,45 +76,46 @@ class AppearanceSettingsScreen extends StatelessWidget{
          (ThemeMode.dark,'Dark',Icons.dark_mode_outlined),
         ])ChoiceChip(
          avatar:Icon(item.$3,size:18),
-         label:Text(item.$2),
+         label:Text(tr(context,item.$1==ThemeMode.system?'themePhone':
+          item.$1==ThemeMode.light?'themeLight':'themeDark')),
          selected:state.mode==item.$1,
          onSelected:(_)=>state.setMode(item.$1)),
        ]);
       }
       return SegmentedButton<ThemeMode>(
        showSelectedIcon:true,
-       segments:const [
-        ButtonSegment(value:ThemeMode.system,icon:Icon(Icons.brightness_auto_outlined),
-         label:Text('Phone')),
-        ButtonSegment(value:ThemeMode.light,icon:Icon(Icons.light_mode_outlined),
-         label:Text('Light')),
-        ButtonSegment(value:ThemeMode.dark,icon:Icon(Icons.dark_mode_outlined),
-         label:Text('Dark')),
+       segments:[
+        ButtonSegment(value:ThemeMode.system,icon:const Icon(Icons.brightness_auto_outlined),
+         label:Text(tr(context,'themePhone'))),
+        ButtonSegment(value:ThemeMode.light,icon:const Icon(Icons.light_mode_outlined),
+         label:Text(tr(context,'themeLight'))),
+        ButtonSegment(value:ThemeMode.dark,icon:const Icon(Icons.dark_mode_outlined),
+         label:Text(tr(context,'themeDark'))),
        ],
        selected:{state.mode},
        onSelectionChanged:(value)=>state.setMode(value.first));
      }),
      const SizedBox(height:8),
-     Text('Phone follows the device setting, including automatic dark mode.',
+     Text(tr(context,'themePhoneHint'),
       style:theme.textTheme.bodySmall),
      const SizedBox(height:24),
-     Text('Seasonal celebrations',style:theme.textTheme.titleLarge),
+     Text(tr(context,'themeSeasonal'),style:theme.textTheme.titleLarge),
      const SizedBox(height:6),
-     const Text('Subtle holiday colors and icons—not flashing effects. Turn them off or preview any season.'),
+     Text(tr(context,'themeSeasonHint')),
      const SizedBox(height:10),
      DropdownButtonFormField<SeasonChoice>(
       initialValue:state.season,
-      decoration:const InputDecoration(prefixIcon:Icon(Icons.auto_awesome_outlined),
-       labelText:'Seasonal appearance'),
+      decoration:InputDecoration(prefixIcon:const Icon(Icons.auto_awesome_outlined),
+       labelText:tr(context,'themeSeasonLabel')),
       items:[for(final choice in SeasonChoice.values)
-       DropdownMenuItem(value:choice,child:Text(OneSpaceAppearance.seasonName(choice)))],
+       DropdownMenuItem(value:choice,child:Text(seasonLabel(context,choice)))],
       onChanged:(value){if(value!=null)state.setSeason(value);}),
      const SizedBox(height:14),
      const SeasonalThemePreview(),
      const SizedBox(height:20),
-     Text('Designed for comfort',style:theme.textTheme.titleMedium),
+     Text(tr(context,'themeComfort'),style:theme.textTheme.titleMedium),
      const SizedBox(height:8),
-     const Text('Responsive layouts, Material touch targets, clear content hierarchy and readable contrast. Decorative motion follows the phone’s reduced-motion setting.'),
+     Text(tr(context,'themeComfortHint')),
     ]);
    })),
   );
