@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
 import 'device_unlock.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/first_name.dart';
 
 /// One restored Supabase session: the user's password OR OS verification can
@@ -31,13 +32,27 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
   String? _error;
   String? _firstName;
   @override void initState(){super.initState();_loadGreeting();}
-  Future<void> _loadGreeting()async{
+  Future<void> _loadGreeting() async {
+   // Show the matching device-local greeting immediately, even when offline.
+   // Never reuse a first name if the saved account email has changed.
+   try {
+    final prefs=SharedPreferencesAsync();
+    final cachedEmail=await prefs.getString('onespace_greeting_email_v1');
+    final name=await prefs.getString('onespace_greeting_first_name_v1');
+    if(mounted&&cachedEmail==widget.email.trim().toLowerCase()&&
+       name!=null&&name.trim().isNotEmpty){
+     setState(()=>_firstName=FirstName.of(name,fallback:''));
+    }
+   }catch(_){}
+   // Best-effort profile refresh should never delay an unlock.
    try{
     final db=Supabase.instance.client;
     final id=db.auth.currentUser?.id;
     if(id==null)return;
     final r=await db.from('profiles').select('display_name').eq('id',id).single();
-    if(mounted&&db.auth.currentUser?.id==id)setState(()=>_firstName=FirstName.of(r['display_name'],fallback:''));
+    if(mounted&&db.auth.currentUser?.id==id){
+     setState(()=>_firstName=FirstName.of(r['display_name'],fallback:''));
+    }
    }catch(_){}
   }
 

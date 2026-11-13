@@ -147,10 +147,10 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen>{
  @override Widget build(BuildContext context)=>Scaffold(
   appBar:AppBar(title:const Text('Save to OneSpace')),
   body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,40),children:[
-   Text('Make this part of our life',
+   Text(widget.shared==null?'Save an idea':'Shared from another app',
      style:Theme.of(context).textTheme.titleLarge),
    const SizedBox(height:4),
-   const Text('Choose where to keep this link or idea. Nothing is sent to your partner until you save.'),
+   const Text('Choose where to keep this content. Nothing is shared with your partner until you confirm.'),
    const SizedBox(height:18),
    TextField(controller:title,maxLength:120,
     decoration:const InputDecoration(labelText:'Title',border:OutlineInputBorder())),

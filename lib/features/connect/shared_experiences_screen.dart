@@ -281,6 +281,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         ]),
        onTap:()=>open(r)),
       Wrap(spacing:8,runSpacing:6,children:[
+       if((r['source_url']??'').toString().trim().isNotEmpty)
        OutlinedButton.icon(
         onPressed:()=>openPlatform(r),
         icon:Icon(r['category']=='music'?Icons.play_arrow:
