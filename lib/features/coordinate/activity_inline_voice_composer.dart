@@ -36,6 +36,7 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
  int duration=0;
  bool recording=false,starting=false,stopping=false,sending=false;
  bool wasBackgrounded=false;
+ String? previewedPath;
 
  @override void initState(){
    super.initState();
@@ -45,9 +46,13 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
    });
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
-   if(state!=AppLifecycleState.resumed){
+   if(state==AppLifecycleState.paused||
+      state==AppLifecycleState.hidden||
+      state==AppLifecycleState.detached){
      wasBackgrounded=true;
      if(recording)unawaited(_stop());
+   }else if(state==AppLifecycleState.resumed){
+     wasBackgrounded=false;
    }
  }
  Future<void> _start() async {
@@ -103,7 +108,8 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
      final elapsed=started==null?0:DateTime.now().difference(started!).inSeconds;
      if(mounted)setState((){
        path=recorded;
-       duration=elapsed.clamp(0,ActivityVoiceRules.maxSeconds);
+       duration=elapsed<0?0:(elapsed>ActivityVoiceRules.maxSeconds?
+         ActivityVoiceRules.maxSeconds:elapsed);
        recording=false;
        if(recorded==null||elapsed<1){
          error='Record at least one second.';
@@ -125,7 +131,10 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
      if(player.playing){
        await player.pause();
      }else{
-       if(player.audioSource==null)await player.setFilePath(local);
+       if(previewedPath!=local){
+         await player.setFilePath(local);
+         previewedPath=local;
+       }
        if(player.processingState==ProcessingState.completed){
          await player.seek(Duration.zero);
        }
@@ -140,6 +149,7 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
    try{await player.stop();}catch(_){}
    final filePath=path;
    path=null;
+   previewedPath=null;
    if(filePath!=null){
      try{
        final file=File(filePath);
@@ -180,6 +190,12 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
      if(mounted)setState(()=>sending=false);
    }
  }
+ Future<void> _deleteIfExists(String local) async {
+   try{
+     final file=File(local);
+     if(await file.exists())await file.delete();
+   }catch(_){}
+ }
  @override void dispose(){
    WidgetsBinding.instance.removeObserver(this);
    timer?.cancel();
@@ -188,7 +204,7 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
    unawaited(player.dispose());
    final local=path;
    if(local!=null){
-     unawaited(File(local).delete().catchError((Object _) => File(local)));
+     unawaited(_deleteIfExists(local));
    }
    super.dispose();
  }
