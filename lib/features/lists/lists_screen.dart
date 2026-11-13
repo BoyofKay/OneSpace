@@ -26,6 +26,7 @@ class _ListsScreenState extends State<ListsScreen> {
   bool _loading = true;
   bool _showArchived = false;
   String _kind = 'all';
+  bool _copying=false;
   String? _error;
 
   @override
@@ -204,6 +205,47 @@ class _ListsScreenState extends State<ListsScreen> {
     }
   }
 
+  Future<void> _toggleReusable(Map<String,dynamic> item,bool enabled) async {
+    try{
+      await _client.from('lists').update({'is_template':enabled})
+        .eq('id',item['id'].toString()).eq('space_id',_spaceId!);
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:Text(enabled?
+          'Saved as reusable. Create a fresh copy whenever needed.':
+          'No longer reusable. Existing copies are unchanged.')));
+    }catch(_){
+      if(mounted)setState(()=>_error='Could not update reusable checklist.');
+    }
+  }
+
+  Future<void> _useTemplate(Map<String,dynamic> item) async {
+    if(_copying||_spaceId==null)return;
+    setState((){
+      _copying=true;_error=null;
+    });
+    try{
+      final now=DateTime.now();
+      final date=now.year.toString().padLeft(4,'0')+'-'+
+        now.month.toString().padLeft(2,'0')+'-'+
+        now.day.toString().padLeft(2,'0');
+      final newId=await _client.rpc('create_checklist_from_template',
+        params:{'p_template_id':item['id'],'p_local_day':date});
+      if(!mounted)return;
+      await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+        builder:(_)=>ListItemsScreen(
+          listId:newId.toString(),spaceId:_spaceId!,
+          title:item['title'].toString()+' · '+date,
+          isShopping:false,canEdit:true,
+        )));
+    }on PostgrestException catch(e){
+      if(mounted)setState(()=>_error=e.message);
+    }catch(_){
+      if(mounted)setState(()=>_error='Unable to create today’s checklist.');
+    }finally{
+      if(mounted)setState(()=>_copying=false);
+    }
+  }
+
   Future<void> _setArchived(Map<String, dynamic> list, bool archive) async {
     if (archive) {
       final confirmed = await showDialog<bool>(
@@ -239,7 +281,9 @@ class _ListsScreenState extends State<ListsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return Scaffold(
+      appBar:AppBar(title:const Text('Lists & checklists')),
+      body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(20),
@@ -264,10 +308,10 @@ class _ListsScreenState extends State<ListsScreen> {
             const SizedBox(height: 16),
             Wrap(
               spacing: 7,
-              children: ['all', 'shopping', 'checklist'].map((value) =>
+              children: ['all', 'shopping', 'checklist','reusable'].map((value) =>
                 ChoiceChip(
                   selected: _kind == value,
-                  label: Text(tr(context, value)),
+                  label: Text(value=='reusable'?'Reusable':tr(context,value)),
                   onSelected: (_) => setState(() => _kind = value),
                 )).toList(),
             ),
@@ -286,7 +330,8 @@ class _ListsScreenState extends State<ListsScreen> {
                 }
                 final visible = snapshot.data!.where((entry) {
                   return (_showArchived || entry['archived_at'] == null) &&
-                      (_kind == 'all' || entry['kind'] == _kind);
+                      (_kind == 'all' || entry['kind'] == _kind ||
+                        (_kind=='reusable' && entry['is_template']==true));
                 }).toList();
                 if (visible.isEmpty) {
                   return Padding(
@@ -320,6 +365,8 @@ class _ListsScreenState extends State<ListsScreen> {
                         subtitle: Text([
                           tr(context, entry['kind'] as String),
                           tr(context, entry['visibility'] as String),
+                          if (entry['is_template']==true) 'Reusable template',
+                          if (entry['source_template_id']!=null) 'Daily copy',
                           if (archived) tr(context, 'archived'),
                           if (!canEdit) tr(context, 'viewOnly'),
                         ].join(' • ')),
@@ -339,11 +386,23 @@ class _ListsScreenState extends State<ListsScreen> {
                           tooltip: tr(context, 'actions'),
                           onSelected: (value) {
                             if (value == 'edit') _editList(existing: entry);
+                            if (value == 'make_template') _toggleReusable(entry,true);
+                            if (value == 'remove_template') _toggleReusable(entry,false);
+                            if (value == 'use_today') _useTemplate(entry);
                             if (value == 'archive') _setArchived(entry, true);
                             if (value == 'restore') _setArchived(entry, false);
                           },
                           itemBuilder: (_) => [
-                            PopupMenuItem(value: 'edit', child: Text(tr(context, 'rename'))),
+                            PopupMenuItem(value:'edit',child:Text(tr(context,'rename'))),
+                            if(!shopping&&!archived&&entry['is_template']!=true)
+                              const PopupMenuItem(value:'make_template',
+                                child:Text('Make reusable')),
+                            if(!shopping&&!archived&&entry['is_template']==true)...[
+                              const PopupMenuItem(value:'use_today',
+                                child:Text('Create today’s copy')),
+                              const PopupMenuItem(value:'remove_template',
+                                child:Text('Stop reusing')),
+                            ],
                             PopupMenuItem(
                               value: archived ? 'restore' : 'archive',
                               child: Text(tr(context, archived ? 'restore' : 'archive')),
@@ -351,6 +410,13 @@ class _ListsScreenState extends State<ListsScreen> {
                           ],
                         ),
                       ),
+                        if(entry['kind']=='checklist' &&
+                           entry['is_template']==true && !archived)
+                          Align(alignment:AlignmentDirectional.centerEnd,
+                            child:TextButton.icon(
+                              onPressed:_copying?null:()=>_useTemplate(entry),
+                              icon:const Icon(Icons.copy_all_outlined),
+                              label:const Text('Use today'))),
                         if (canShare)
                           Align(
                             alignment: AlignmentDirectional.centerEnd,
@@ -369,7 +435,7 @@ class _ListsScreenState extends State<ListsScreen> {
           ],
         ],
       ),
-    );
+    ));
   }
 }
 
