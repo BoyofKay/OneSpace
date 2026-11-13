@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum OneSpacePalette { midnightBlue, monochrome, cleanLight, softRose }
-enum SeasonChoice { off, automatic, valentines, spring, halloween, winter }
+enum SeasonChoice { off, automatic, valentines, spring, halloween, winter, eid, birthday, anniversary, thanksgiving, christmas, newYear }
 
 class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  OneSpaceAppearance._(){WidgetsBinding.instance.addObserver(this);}
@@ -71,15 +71,31 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.valentines=>"Valentine's",
   SeasonChoice.spring=>'Spring',
   SeasonChoice.halloween=>'Halloween',
-  SeasonChoice.winter=>'Winter holidays',
+  SeasonChoice.winter=>'Winter celebrations',
+  SeasonChoice.eid=>'Eid celebration',
+  SeasonChoice.birthday=>'Birthday celebration',
+  SeasonChoice.anniversary=>'Anniversary',
+  SeasonChoice.thanksgiving=>'Thanksgiving',
+  SeasonChoice.christmas=>'Christmas',
+  SeasonChoice.newYear=>'New Year',
  };
  static SeasonChoice effectiveSeason(SeasonChoice setting,DateTime date){
   if(setting!=SeasonChoice.automatic)return setting;
   // Seasonal styling is decorative, not a statement of a public holiday.
   if(date.month==2&&date.day>=10&&date.day<=15)return SeasonChoice.valentines;
   if(date.month==10&&date.day>=25)return SeasonChoice.halloween;
-  if(date.month==12&&date.day>=18 || date.month==1&&date.day<=2){
-    return SeasonChoice.winter;
+  if(date.month==12&&date.day>=29||date.month==1&&date.day<=3){
+    return SeasonChoice.newYear;
+  }
+  if(date.month==12&&date.day>=23&&date.day<=27){
+    return SeasonChoice.christmas;
+  }
+  if(date.month==11){
+    final first=DateTime(date.year,11,1).weekday;
+    final fourthThursday=1+(DateTime.thursday-first+7)%7+21;
+    if(date.day>=fourthThursday-1&&date.day<=fourthThursday+1){
+      return SeasonChoice.thanksgiving;
+    }
   }
   if(date.month>=3&&date.month<=5)return SeasonChoice.spring;
   return SeasonChoice.off;
@@ -89,6 +105,12 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.spring=>const Color(0xFF4F9A74),
   SeasonChoice.halloween=>const Color(0xFFBD7134),
   SeasonChoice.winter=>const Color(0xFF567BA6),
+  SeasonChoice.eid=>const Color(0xFF328F78),
+  SeasonChoice.birthday=>const Color(0xFF9A54BE),
+  SeasonChoice.anniversary=>const Color(0xFFB84677),
+  SeasonChoice.thanksgiving=>const Color(0xFFB4783F),
+  SeasonChoice.christmas=>const Color(0xFF2D8659),
+  SeasonChoice.newYear=>const Color(0xFFAD8E46),
   _=>null,
  };
 }

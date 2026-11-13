@@ -63,7 +63,17 @@ class _AtmospherePainter extends CustomPainter{
     case SeasonChoice.halloween:
      _moon(canvas,center,5+(i%4)*3,paint);
     case SeasonChoice.winter:
+    case SeasonChoice.christmas:
      _snowflake(canvas,center,5+(i%4)*2,paint);
+    case SeasonChoice.eid:
+     _moon(canvas,center,5+(i%4)*2,paint);
+    case SeasonChoice.birthday:
+    case SeasonChoice.newYear:
+     _flower(canvas,center,5+(i%4)*2,paint);
+    case SeasonChoice.anniversary:
+     _heart(canvas,center,5+(i%4)*2,paint);
+    case SeasonChoice.thanksgiving:
+     _flower(canvas,center,5+(i%4)*2,paint);
     case SeasonChoice.off:
     case SeasonChoice.automatic:
      break;

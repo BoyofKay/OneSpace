@@ -15,6 +15,10 @@ class AppearanceSettingsScreen extends StatelessWidget{
   SeasonChoice.off=>'themeOff',SeasonChoice.automatic=>'themeAutomatic',
   SeasonChoice.valentines=>'themeValentine',SeasonChoice.spring=>'themeSpring',
   SeasonChoice.halloween=>'themeHalloween',SeasonChoice.winter=>'themeWinter',
+  SeasonChoice.eid=>'themeEid',SeasonChoice.birthday=>'themeBirthday',
+  SeasonChoice.anniversary=>'themeAnniversary',
+  SeasonChoice.thanksgiving=>'themeThanksgiving',
+  SeasonChoice.christmas=>'themeChristmas',SeasonChoice.newYear=>'themeNewYear',
  });
  @override Widget build(BuildContext context){
   final state=OneSpaceAppearance.instance;
@@ -117,6 +121,12 @@ class SeasonalThemePreview extends StatelessWidget{
      SeasonChoice.spring=>(Icons.local_florist_outlined,'A fresh chapter','Small moments, new memories'),
      SeasonChoice.halloween=>(Icons.nights_stay_outlined,'Spooky season','Make room for playful memories'),
      SeasonChoice.winter=>(Icons.ac_unit_rounded,'Warm wishes','Celebrate your moments together'),
+     SeasonChoice.eid=>(Icons.nights_stay_rounded,'Eid Mubarak','A beautiful season of togetherness'),
+     SeasonChoice.birthday=>(Icons.cake_outlined,'Happy birthday!','Make the day feel extraordinary'),
+     SeasonChoice.anniversary=>(Icons.favorite_rounded,'Another chapter together','Celebrate your story'),
+     SeasonChoice.thanksgiving=>(Icons.local_florist_outlined,'A grateful season','Celebrate what matters'),
+     SeasonChoice.christmas=>(Icons.auto_awesome_outlined,'Christmas glow','Warm moments across the miles'),
+     SeasonChoice.newYear=>(Icons.celebration_outlined,'A new chapter','Dream together, begin together'),
      _=>(Icons.palette_outlined,'Your OneSpace','One life, two places'),
     };
     final reduced=MediaQuery.disableAnimationsOf(ctx);
