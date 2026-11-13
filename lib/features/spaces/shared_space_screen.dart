@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -167,11 +168,15 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final me=client.auth.currentUser?.id;
     if(me==null)return;
     try{
-      final profile=await client.from('profiles').select('partner_label')
+      final profile=await client.from('profiles').select('partner_label,partner_labels')
         .eq('id',me).single();
       if(mounted){
-        final nickname=profile['partner_label']?.toString().trim();
-        setState(()=>partnerLabel=nickname==null||nickname.isEmpty?null:nickname);
+        final labels=[for(final raw in (profile['partner_labels'] as List<dynamic>? ??const []))
+          if(raw.toString().trim().isNotEmpty)raw.toString().trim()];
+        final fallback=profile['partner_label']?.toString().trim();
+        setState(()=>partnerLabel=labels.isNotEmpty
+          ?labels[Random().nextInt(labels.length)]
+          :fallback==null||fallback.isEmpty?null:fallback);
       }
     }catch(_){}
   }
