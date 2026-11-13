@@ -30,9 +30,11 @@ class _TripsScreenState extends State<TripsScreen> {
  RealtimeChannel? _changes;
  Timer? _debounce;
  String? _watchedSpace;
+ int _loadVersion=0;
 
  @override void initState(){super.initState();load();}
  @override void dispose(){
+  _loadVersion++;
   _debounce?.cancel();
   final channel=_changes;
   if(channel!=null)unawaited(db.removeChannel(channel));
@@ -40,6 +42,8 @@ class _TripsScreenState extends State<TripsScreen> {
  }
  void _watch(String spaceId){
   if(_watchedSpace==spaceId)return;
+  final prior=_changes;
+  if(prior!=null)unawaited(db.removeChannel(prior));
   _watchedSpace=spaceId;
   _changes=db.channel('trips-list-'+spaceId)
    .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
@@ -55,15 +59,27 @@ class _TripsScreenState extends State<TripsScreen> {
   });
  }
  Future<void> load() async{
+  final request=++_loadVersion;
+  final user=db.auth.currentUser?.id;
+  if(user==null){
+   if(mounted)setState((){
+    loading=false;space=null;trips=[];error=null;
+   });
+   return;
+  }
   try{
    final id=await CurrentSpaceCache.instance.get();
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    if(id==null){
-    if(mounted)setState((){loading=false;space=null;});
+    setState((){loading=false;space=null;trips=[];error=null;});
+    final prior=_changes;
+    if(prior!=null)unawaited(db.removeChannel(prior));
+    _changes=null;_watchedSpace=null;
     return;
    }
    final data=await db.from('shared_trips').select().eq('space_id',id)
      .order('updated_at',ascending:false).limit(200);
-   if(!mounted)return;
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    setState((){
     space=id;loading=false;error=null;trips=List<Map<String,dynamic>>.from(data);
    });
@@ -78,7 +94,8 @@ class _TripsScreenState extends State<TripsScreen> {
     }
    }
   }catch(_){
-   if(mounted)setState((){error='Unable to load journeys. Pull down to retry.';loading=false;});
+   if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==user)
+    setState((){error='Unable to load journeys. Pull down to retry.';loading=false;});
   }
  }
  Future<void> edit([Map<String,dynamic>? trip])async{
@@ -329,6 +346,8 @@ class _TripDetailState extends State<TripDetail>{
 
  Future<void> load()async{
   final request=++_request;
+  final user=db.auth.currentUser?.id;
+  if(user==null)return;
   try{
    final t=await db.from('shared_trips').select().eq('id',widget.tripId).single();
    final results=await Future.wait([
@@ -338,7 +357,7 @@ class _TripDetailState extends State<TripDetail>{
     db.from('trip_revisions').select('id,record_kind,changed_by,changed_at,before_snapshot,after_snapshot')
      .eq('trip_id',widget.tripId).order('changed_at',ascending:false).limit(60),
    ]);
-   if(!mounted||request!=_request)return;
+   if(!mounted||request!=_request||db.auth.currentUser?.id!=user)return;
    final ordered=List<Map<String,dynamic>>.from(results[0])
     ..sort((a,b){
      final da=(a['local_date']??'9999-12-31').toString();
@@ -354,9 +373,11 @@ class _TripDetailState extends State<TripDetail>{
     loading=false;error=null;
    });
   }on PostgrestException catch(e){
-   if(mounted&&request==_request)setState((){loading=false;error=e.message;});
+   if(mounted&&request==_request&&db.auth.currentUser?.id==user)
+    setState((){loading=false;error=e.message;});
   }catch(_){
-   if(mounted&&request==_request)setState((){loading=false;error='Unable to open this trip.';});
+   if(mounted&&request==_request&&db.auth.currentUser?.id==user)
+    setState((){loading=false;error='Unable to open this trip.';});
   }
  }
  Future<void> mutate(Future<void> Function() work)async{

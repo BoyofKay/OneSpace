@@ -58,12 +58,26 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
  }
  Future<void> load()async{
   final request=++_loadVersion;
+  final user=db.auth.currentUser?.id;
+  if(user==null){
+   if(mounted)setState((){
+    loading=false;space=null;plans=[];error=null;
+   });
+   return;
+  }
   try{
    final id=await CurrentSpaceCache.instance.get();
-   if(id==null){if(mounted&&request==_loadVersion)setState(()=>loading=false);return;}
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
+   if(id==null){
+    setState((){loading=false;space=null;plans=[];error=null;});
+    final prior=_channel;
+    if(prior!=null)unawaited(db.removeChannel(prior));
+    _channel=null;_watchedSpace=null;
+    return;
+   }
    final rows=await db.from('occasion_plans').select().eq('space_id',id)
      .order('updated_at',ascending:false).limit(200);
-   if(!mounted||request!=_loadVersion)return;
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    setState((){
     space=id;plans=List<Map<String,dynamic>>.from(rows);
     loading=false;error=null;
@@ -81,7 +95,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     });
    }
   }catch(_){
-   if(mounted&&request==_loadVersion)setState((){
+   if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==user)setState((){
     loading=false;error='Unable to load occasion plans.';
    });
   }
@@ -415,6 +429,8 @@ class _OccasionDetailState extends State<OccasionDetail>{
  }
  Future<void> load()async{
   final request=++_loadVersion;
+  final user=db.auth.currentUser?.id;
+  if(user==null)return;
   try{
    final p=await db.from('occasion_plans').select().eq('id',widget.id).single();
    final other=await Future.wait([
@@ -423,15 +439,17 @@ class _OccasionDetailState extends State<OccasionDetail>{
     db.from('occasion_plan_revisions').select('record_kind,changed_by,changed_at')
      .eq('plan_id',widget.id).order('changed_at',ascending:false).limit(60),
    ]);
-   if(!mounted||request!=_loadVersion)return;
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    setState((){
     plan=p;steps=List<Map<String,dynamic>>.from(other[0]);
     history=List<Map<String,dynamic>>.from(other[1]);loading=false;error=null;
    });
   }on PostgrestException catch(e){
-   if(mounted&&request==_loadVersion)setState((){loading=false;error=e.message;});
+   if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==user)
+    setState((){loading=false;error=e.message;});
   }catch(_){
-   if(mounted&&request==_loadVersion)setState((){loading=false;error='Could not open plan.';});
+   if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==user)
+    setState((){loading=false;error='Could not open plan.';});
   }
  }
  Future<void> change(Future<void> Function() task)async{
