@@ -39,6 +39,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Map<String,String> _people=const {};
   List<Map<String, dynamic>> _events = const [];
   List<Map<String, dynamic>> _tasks = const [];
+  List<Map<String, dynamic>> _daysOff=const [];
   int _loadVersion = 0;
   String? _watchedSpace;
   RealtimeChannel? _changes;
@@ -115,6 +116,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         filter: bySpace,
         callback: (_) => _scheduleRefresh(),
       )
+      .onPostgresChanges(
+        event:PostgresChangeEvent.all,
+        schema:'public',table:'personal_days_off',
+        filter:bySpace,callback:(_)=>_scheduleRefresh(),
+      )
       .subscribe();
     _shareWatcher = watchObjectShares(
       client: _client,
@@ -137,6 +143,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           _spaceId = null;
           _events = const [];
           _tasks = const [];
+          _daysOff=const [];
           _loading = false;
         });
         return;
@@ -156,11 +163,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _client.from('tasks')
             .select('id,title,target_date,status,visibility,created_by')
             .eq('space_id', id).eq('status', 'open').limit(500),
+        _client.from('personal_days_off')
+            .select('id,off_date,label,user_id')
+            .eq('space_id',id).order('off_date').limit(500),
       ]).timeout(const Duration(seconds: 15));
       if (!mounted || version != _loadVersion) return;
       setState(() {
         _events = results[0];
         _tasks = results[1];
+        _daysOff=results[2];
         if(widget.initialEventId!=null){
           final event=results[0].where(
             (row)=>row['id']==widget.initialEventId).firstOrNull;
@@ -223,6 +234,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _events.where((e) => (_showArchived || e['archived_at'] == null)
         && _occurs(e, day)).toList();
 
+  List<Map<String,dynamic>> _offOn(DateTime day){
+    final date=CalendarRules.sqlDate(day);
+    return _daysOff.where((row)=>row['off_date']==date).toList();
+  }
+
+  Widget _offTile(Map<String,dynamic> item)=>Card(elevation:0,
+    child:ListTile(
+      leading:const Icon(Icons.weekend_outlined),
+      title:Text(item['label']?.toString()??'Day off'),
+      subtitle:Text('Day off · '+
+        (_people[item['user_id']?.toString()]??'Partner')),
+    ));
+
   List<Map<String, dynamic>> _tasksOn(DateTime day) {
     final date = CalendarRules.sqlDate(day);
     return _tasks.where((e) => e['target_date'] == date).toList();
@@ -279,6 +303,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _view='day';
             }),
           ),
+          for(final off in _offOn(date))_offTile(off),
           for(final event in _entriesOn(date))_eventTile(event),
           for(final task in _tasksOn(date))ListTile(
             dense:true,
@@ -405,6 +430,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             final hasEvent = _events.any((entry) =>
                 entry['archived_at'] == null && _occurs(entry, date));
             final hasTask = _tasksOn(date).isNotEmpty;
+            final hasOff=_offOn(date).isNotEmpty;
             return InkWell(
               key: Key('day-${CalendarRules.sqlDate(date)}'),
               borderRadius: BorderRadius.circular(10),
@@ -429,13 +455,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             : currentMonth ? null : Colors.grey,
                       ),
                     ),
-                    if (hasEvent || hasTask)
+                    if (hasEvent || hasTask || hasOff)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (hasEvent) Icon(Icons.circle, size: 7,
                             color: selected ? Colors.white
                                 : const Color(0xFF167E81)),
+                          if(hasOff)Icon(Icons.circle,size:7,
+                            color:selected?Colors.white70:const Color(0xFF669B79)),
                           if (hasTask) Icon(Icons.circle, size: 7,
                             color: selected ? Colors.white70
                                 : const Color(0xFFC47D25)),
@@ -535,14 +563,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _selectedDay() {
     final events = _entriesOn(_selected);
     final tasks = _tasksOn(_selected);
+    final off=_offOn(_selected);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(CalendarRules.sqlDate(_selected),
           style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 6),
-        if (events.isEmpty && tasks.isEmpty)
+        if (events.isEmpty && tasks.isEmpty && off.isEmpty)
           Text(tr(context, 'noEventsOnDay')),
+        ...off.map(_offTile),
         ...events.map((e) => _eventTile(e)),
         ...tasks.map((task) => Card(
           elevation: 0,
@@ -564,6 +594,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final timed=events.where((e)=>e['starts_at']!=null).toList()
       ..sort((a,b)=>a['starts_at'].toString().compareTo(b['starts_at'].toString()));
     final tasks=_tasksOn(_selected);
+    final off=_offOn(_selected);
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Row(children:[
         IconButton(
@@ -579,7 +610,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           onPressed:()=>setState(()=>
             _selected=_selected.add(const Duration(days:1)))),
       ]),
-      if(allDay.isNotEmpty||tasks.isNotEmpty)...[
+      if(allDay.isNotEmpty||tasks.isNotEmpty||off.isNotEmpty)...[
+        for(final d in off)_offTile(d),
         Text('All day & deadlines',
           style:Theme.of(context).textTheme.titleSmall),
         for(final event in allDay)_eventTile(event),
@@ -608,7 +640,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ]),
           )),
         ]),
-      if(events.isEmpty&&tasks.isEmpty)
+      if(events.isEmpty&&tasks.isEmpty&&off.isEmpty)
         const Padding(padding:EdgeInsets.all(12),
           child:Text('Nothing scheduled on this day.')),
     ]);
