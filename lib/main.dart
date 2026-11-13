@@ -292,9 +292,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             onSelected:(choice){
               if(choice=='settings')open(const OneSpaceSettingsScreen());
               if(choice=='search')open(const GlobalSearchScreen());
-              if(choice=='language')open(const Scaffold(
-                appBar:AppBar(title:Text('Language')),
-                body:SafeArea(child:ProfileSettingsScreen(
+              if(choice=='language')open(Scaffold(
+                appBar:AppBar(title:const Text('Language')),
+                body:const SafeArea(child:ProfileSettingsScreen(
                   settingsOnly:true,section:'language'))));
             },
             itemBuilder:(_)=>const [
