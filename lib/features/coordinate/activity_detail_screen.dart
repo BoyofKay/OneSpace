@@ -480,7 +480,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) => ComponentEditorSheet(kind: kind, existing: existing),
+      builder: (_) => ComponentEditorSheet(kind: kind, existing: existing,
+        spaceId:conversationSpaceId),
     );
     if (draft == null || !mounted) return;
     await run(() async {
