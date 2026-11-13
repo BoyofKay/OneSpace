@@ -153,6 +153,7 @@ class _PlansScreenState extends State<PlansScreen> {
         existing: existing,
         members: _memberNames,
         currentUserId: _me,
+        spaceId:spaceId,
         onSave: (draft) async {
           final fields = draft.toEditableFields();
           if (existing == null) {

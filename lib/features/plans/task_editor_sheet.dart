@@ -88,12 +88,14 @@ class TaskEditorSheet extends StatefulWidget {
     required this.members,
     required this.currentUserId,
     required this.onSave,
+    this.spaceId,
     this.existing,
   });
 
   final SharedTask? existing;
   final Map<String, String> members;
   final String currentUserId;
+  final String? spaceId;
   final Future<void> Function(TaskDraft draft) onSave;
 
   @override
@@ -198,7 +200,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                   border: const OutlineInputBorder(),
                 ),
               ),
-              PartnerMentionButton(spaceId:widget.members.keys.isEmpty?'':widget.currentUserId,
+              PartnerMentionButton(spaceId:widget.spaceId??'',
                controller:_title,enabled:_visibility==TaskVisibility.shared),
               const SizedBox(height: 10),
               Text(tr(context, 'visibility'),
