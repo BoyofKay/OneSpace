@@ -231,7 +231,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
       for(final e in experienceTypes.entries)
        Card(clipBehavior:Clip.antiAlias,
         color:Color.alphaBlend(
-         scheme.primary.withValues(alpha:kind==e.key?.20:.05),
+         scheme.primary.withValues(alpha:kind==e.key ? .20 : .05),
          scheme.surface),
         child:InkWell(
          onTap:()=>setState(()=>kind=kind==e.key?'all':e.key),
