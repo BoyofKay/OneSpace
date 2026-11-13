@@ -393,7 +393,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ListTile(
             title:Text(MaterialLocalizations.of(context).formatMediumDate(date)),
             subtitle:Text(
-              (_entriesOn(date).length+_tasksOn(date).length).toString()+
+              (_entriesOn(date).length+_tasksOn(date).length+
+                _holidaysOn(date).length+_occasionsOn(date).length).toString()+
               ' shared calendar items and due dates'),
             trailing:const Icon(Icons.chevron_right),
             onTap:()=>setState((){
@@ -402,6 +403,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             }),
           ),
           for(final off in _offOn(date))_offTile(off),
+          for(final holiday in _holidaysOn(date))_holidayTile(holiday),
+          for(final occasion in _occasionsOn(date))_occasionTile(occasion),
           for(final event in _entriesOn(date))_eventTile(event),
           for(final task in _tasksOn(date))ListTile(
             dense:true,
@@ -487,6 +490,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               tooltip: tr(context, 'previousMonth'),
               onPressed: () => setState(() {
                 _month = DateTime(_month.year, _month.month - 1);
+                _refreshExtras();
               }),
               icon: const Icon(Icons.chevron_left),
             ),
@@ -501,6 +505,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               tooltip: tr(context, 'nextMonth'),
               onPressed: () => setState(() {
                 _month = DateTime(_month.year, _month.month + 1);
+                _refreshExtras();
               }),
               icon: const Icon(Icons.chevron_right),
             ),
@@ -529,6 +534,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 entry['archived_at'] == null && _occurs(entry, date));
             final hasTask = _tasksOn(date).isNotEmpty;
             final hasOff=_offOn(date).isNotEmpty;
+            final hasHoliday=_holidaysOn(date).isNotEmpty;
+            final hasOccasion=_occasionsOn(date).isNotEmpty;
             return InkWell(
               key: Key('day-${CalendarRules.sqlDate(date)}'),
               borderRadius: BorderRadius.circular(10),
@@ -536,9 +543,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: Container(
                 margin: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF167E81) : null,
+                  color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
                   border: today && !selected
-                      ? Border.all(color: const Color(0xFF167E81)) : null,
+                      ? Border.all(color: Theme.of(context).colorScheme.primary) : null,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
@@ -549,14 +556,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         fontWeight: today || selected
                             ? FontWeight.bold : FontWeight.normal,
                         color: selected
-                            ? Colors.white
-                            : currentMonth ? null : Colors.grey,
+                            ? Theme.of(context).colorScheme.onPrimaryContainer
+                            : currentMonth ? null : Theme.of(context).colorScheme.outline,
                       ),
                     ),
-                    if (hasEvent || hasTask || hasOff)
+                    if (hasEvent || hasTask || hasOff || hasHoliday || hasOccasion)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          if(hasHoliday) Icon(Icons.circle,size:7,
+                            color:Theme.of(context).colorScheme.tertiary),
+                          if(hasOccasion) Icon(Icons.circle,size:7,
+                            color:Theme.of(context).colorScheme.secondary),
                           if (hasEvent) Icon(Icons.circle, size: 7,
                             color: selected ? Colors.white
                                 : const Color(0xFF167E81)),
@@ -662,15 +673,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final events = _entriesOn(_selected);
     final tasks = _tasksOn(_selected);
     final off=_offOn(_selected);
+    final holiday=_holidaysOn(_selected);
+    final occasion=_occasionsOn(_selected);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(CalendarRules.sqlDate(_selected),
           style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 6),
-        if (events.isEmpty && tasks.isEmpty && off.isEmpty)
+        if (events.isEmpty && tasks.isEmpty && off.isEmpty&&holiday.isEmpty&&occasion.isEmpty)
           Text(tr(context, 'noEventsOnDay')),
         ...off.map(_offTile),
+        ...holiday.map(_holidayTile),
+        ...occasion.map(_occasionTile),
         ...events.map((e) => _eventTile(e)),
         ...tasks.map((task) => Card(
           elevation: 0,
@@ -693,6 +708,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ..sort((a,b)=>a['starts_at'].toString().compareTo(b['starts_at'].toString()));
     final tasks=_tasksOn(_selected);
     final off=_offOn(_selected);
+    final holiday=_holidaysOn(_selected);
+    final occasion=_occasionsOn(_selected);
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Row(children:[
         IconButton(
@@ -708,8 +725,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
           onPressed:()=>setState(()=>
             _selected=_selected.add(const Duration(days:1)))),
       ]),
-      if(allDay.isNotEmpty||tasks.isNotEmpty||off.isNotEmpty)...[
+      if(allDay.isNotEmpty||tasks.isNotEmpty||off.isNotEmpty||holiday.isNotEmpty||occasion.isNotEmpty)...[
         for(final d in off)_offTile(d),
+        for(final d in holiday)_holidayTile(d),
+        for(final d in occasion)_occasionTile(d),
         Text('All day & deadlines',
           style:Theme.of(context).textTheme.titleSmall),
         for(final event in allDay)_eventTile(event),
@@ -738,7 +757,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ]),
           )),
         ]),
-      if(events.isEmpty&&tasks.isEmpty&&off.isEmpty)
+      if(events.isEmpty&&tasks.isEmpty&&off.isEmpty&&holiday.isEmpty&&occasion.isEmpty)
         const Padding(padding:EdgeInsets.all(12),
           child:Text('Nothing scheduled on this day.')),
     ]);
