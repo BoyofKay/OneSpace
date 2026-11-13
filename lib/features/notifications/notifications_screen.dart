@@ -4,6 +4,7 @@ import '../coordinate/activity_detail_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
+import '../notes/notes_screen.dart';
 
 class NotificationBell extends StatelessWidget {
  const NotificationBell({super.key});
@@ -28,64 +29,124 @@ class NotificationBell extends StatelessWidget {
  }
 }
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
  const NotificationsScreen({super.key});
- @override Widget build(BuildContext context) {
-  final db=Supabase.instance.client;
-  final user=db.auth.currentUser?.id;
-  if(user==null)return const Scaffold(body:Center(child:Text('Sign in required')));
-  return Scaffold(
-   appBar:AppBar(title:const Text('Notifications')),
-   body:StreamBuilder<List<Map<String,dynamic>>>(
-    stream:db.from('space_notifications').stream(primaryKey:['id'])
-     .eq('recipient_id',user).order('created_at',ascending:false).limit(100),
-    builder:(context,snapshot){
-     if(snapshot.hasError)return const Center(child:Text('Notifications unavailable'));
-     if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
-     final items=snapshot.data!;
-     if(items.isEmpty)return const Center(child:Text('All caught up.'));
-     return ListView.builder(itemCount:items.length,itemBuilder:(context,index){
-      final row=items[index];
-      final kind=row['kind']?.toString()??'';
-      final unread=row['read_at']==null;
-      return ListTile(
-       leading:Icon(kind=='mention'?Icons.alternate_email:
-          kind=='reply'?Icons.reply:
-          kind=='letter'?Icons.mail_outline:
-          kind=='gesture'?Icons.favorite_border:Icons.event_outlined),
-       title:Text(row['headline']?.toString()??'Update',
-         style:TextStyle(fontWeight:unread?FontWeight.bold:FontWeight.normal)),
-       subtitle:Text(kind=='mention'?'Mentioned you':
-          kind=='reply'?'Replied to you':
-          kind=='letter'?'New letter':
-          kind=='gesture'?'Your partner sent you some love':'Shared event'),
-       trailing:unread?const Icon(Icons.circle,size:8):null,
-       onTap:() async {
-        if(unread){
-         try{
-          await db.from('space_notifications').update({
-           'read_at':DateTime.now().toUtc().toIso8601String(),
-          }).eq('id',row['id'].toString()).eq('recipient_id',user);
-         }catch(_){}
-        }
-        if(!context.mounted)return;
-        final object=row['object_kind']?.toString()??'';
-        final Widget target;
-        if(object=='activity'){
-         target=ActivityScreen(id:row['activity_id'].toString());
-        }else if(object=='calendar'){
-         target=CalendarScreen(initialEventId:row['object_id']?.toString());
-        }else if(object=='letter'){
-         target=const CoupleLettersScreen();
-        }else if(object=='gesture'){
-         target=const PartnerGesturesScreen();
-        }else{return;}
-        Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
+ @override State<NotificationsScreen> createState()=>_NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+ final db=Supabase.instance.client;
+ bool unreadOnly=false;
+ bool saving=false;
+ String? error;
+
+ Future<void> _markAllRead(String userId) async {
+   if(saving)return;
+   setState((){saving=true;error=null;});
+   try{
+     await db.from('space_notifications')
+       .update({'read_at':DateTime.now().toUtc().toIso8601String()})
+       .eq('recipient_id',userId).isFilter('read_at',null);
+   }catch(_){
+     if(mounted){setState(()=>error='Could not mark all as read.');}
+   }finally{
+     if(mounted){setState(()=>saving=false);}
+   }
+ }
+
+ Future<void> _open(Map<String,dynamic> item,String userId) async {
+   if(item['read_at']==null){
+     try{
+       await db.from('space_notifications')
+         .update({'read_at':DateTime.now().toUtc().toIso8601String()})
+         .eq('id',item['id'].toString()).eq('recipient_id',userId);
+     }catch(_){}
+   }
+   if(!mounted)return;
+   final type=item['object_kind']?.toString()??'';
+   final Widget screen;
+   if(type=='activity'){
+     final id=item['activity_id']?.toString();
+     if(id==null)return;
+     screen=ActivityScreen(id:id);
+   }else if(type=='calendar'){
+     screen=CalendarScreen(initialEventId:item['object_id']?.toString());
+   }else if(type=='note'){
+     screen=NotesScreen(initialNoteId:item['object_id']?.toString());
+   }else if(type=='letter'){
+     screen=const CoupleLettersScreen();
+   }else if(type=='gesture'){
+     screen=const PartnerGesturesScreen();
+   }else{return;}
+   Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>screen));
+ }
+
+ @override Widget build(BuildContext context){
+   final userId=db.auth.currentUser?.id;
+   if(userId==null)return const Scaffold(
+     body:Center(child:Text('Sign in required')));
+   return Scaffold(
+     appBar:AppBar(title:const Text('Notifications')),
+     body:StreamBuilder<List<Map<String,dynamic>>>(
+       stream:db.from('space_notifications').stream(primaryKey:['id'])
+         .eq('recipient_id',userId).order('created_at',ascending:false).limit(100),
+       builder:(context,snapshot){
+         if(snapshot.hasError)return const Center(
+           child:Text('Notifications are unavailable.'));
+         if(!snapshot.hasData)return const Center(
+           child:CircularProgressIndicator());
+         final all=snapshot.data!;
+         final unread=all.where((item)=>item['read_at']==null).length;
+         final shown=unreadOnly?
+           all.where((item)=>item['read_at']==null).toList():all;
+         return Column(children:[
+           Padding(
+             padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),
+             child:Row(children:[
+               FilterChip(
+                 selected:unreadOnly,
+                 label:Text('Unread ($unread)'),
+                 onSelected:(v)=>setState(()=>unreadOnly=v)),
+               const Spacer(),
+               TextButton.icon(
+                 onPressed:unread==0||saving?null:()=>_markAllRead(userId),
+                 icon:const Icon(Icons.done_all),
+                 label:const Text('Mark all read')),
+             ]),
+           ),
+           if(error!=null)Text(error!,style:TextStyle(
+             color:Theme.of(context).colorScheme.error)),
+           Expanded(
+             child:shown.isEmpty?
+               Center(child:Text(unreadOnly?'No unread notifications.':'All caught up.')):
+               ListView.builder(
+                 itemCount:shown.length,
+                 itemBuilder:(context,i){
+                   final item=shown[i];
+                   final kind=item['kind']?.toString()??'';
+                   final unreadItem=item['read_at']==null;
+                   return ListTile(
+                     leading:Icon(kind=='mention'?Icons.alternate_email:
+                       kind=='reply'?Icons.reply:
+                       kind=='letter'?Icons.mail_outline:
+                       kind=='gesture'?Icons.favorite_border:Icons.event_outlined),
+                     title:Text(item['headline']?.toString()??'Update',
+                       style:TextStyle(fontWeight:unreadItem?
+                         FontWeight.bold:FontWeight.normal)),
+                     subtitle:Text(kind=='mention'?'Your partner mentioned you':
+                       kind=='reply'?'Your partner replied':
+                       kind=='letter'?'New letter':
+                       kind=='gesture'?'A little love from your partner':
+                       kind=='event'?'New shared event':'Shared update'),
+                     trailing:unreadItem?const Icon(Icons.circle,size:8):null,
+                     onTap:()=>_open(item,userId),
+                   );
+                 },
+               ),
+           ),
+         ]);
        },
-      );
-     });
-    },
-   ),
-  );
+     ),
+   );
  }
 }
