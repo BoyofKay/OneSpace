@@ -19,6 +19,7 @@ class SharedTask {
     required this.visibility,
     this.assignedTo,
     this.targetDate,
+    this.recurrence='none',
   });
   final String id;
   final String title;
@@ -28,6 +29,7 @@ class SharedTask {
   final String createdBy;
   final String? assignedTo;
   final String? targetDate;
+  final String recurrence;
 
   factory SharedTask.fromMap(Map<String, dynamic> row) => SharedTask(
     id: row['id'] as String,
@@ -42,6 +44,7 @@ class SharedTask {
     createdBy: row['created_by'] as String? ?? '',
     assignedTo: row['assigned_to'] as String?,
     targetDate: row['target_date'] as String?,
+    recurrence:(row['recurrence']??'none').toString(),
   );
 }
 
@@ -53,12 +56,14 @@ class TaskDraft {
     required this.visibility,
     this.assignedTo,
     this.targetDate,
+    this.recurrence='none',
   });
   final String title;
   final TaskPriority priority;
   final TaskVisibility visibility;
   final String? assignedTo;
   final DateTime? targetDate;
+  final String recurrence;
 
   String? get dateAsSql => targetDate == null ? null :
     '${targetDate!.year}-${targetDate!.month.toString().padLeft(2, '0')}-'
@@ -69,6 +74,7 @@ class TaskDraft {
     'priority': priority.name,
     'target_date': dateAsSql,
     'assigned_to': visibility == TaskVisibility.private ? null : assignedTo,
+    'recurrence':recurrence,
   };
 }
 
@@ -99,6 +105,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
   late TaskVisibility _visibility;
   DateTime? _date;
   String? _assignedTo;
+  String _recurrence='none';
   bool _saving = false;
   String? _error;
 
@@ -107,6 +114,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
     super.initState();
     _title = TextEditingController(text: widget.existing?.title ?? '');
     _priority = widget.existing?.priority ?? TaskPriority.normal;
+    _recurrence=widget.existing?.recurrence??'none';
     _visibility = widget.existing?.visibility ?? TaskVisibility.shared;
     _date = widget.existing?.targetDate == null ? null :
         DateTime.tryParse(widget.existing!.targetDate!);
@@ -151,6 +159,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
         visibility: _visibility,
         assignedTo: _visibility == TaskVisibility.private ? null : _assignedTo,
         targetDate: _date,
+        recurrence:_recurrence,
       ));
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -173,7 +182,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tr(context, existing == null ? 'newTask' : 'editTask'),
+              Text(existing==null?'Create to-do list':'Edit to-do list',
                 style: const TextStyle(
                   fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
@@ -208,6 +217,19 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                   : _visibility == TaskVisibility.private
                       ? 'privateDescription' : 'sharedDescription'),
                   style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+               initialValue:_recurrence,
+               decoration:const InputDecoration(
+                prefixIcon:Icon(Icons.repeat),labelText:'Repeat checklist'),
+               items:const [
+                DropdownMenuItem(value:'none',child:Text('One-time')),
+                DropdownMenuItem(value:'daily',child:Text('Every day')),
+                DropdownMenuItem(value:'weekly',child:Text('Every week')),
+                DropdownMenuItem(value:'monthly',child:Text('Every month')),
+                DropdownMenuItem(value:'yearly',child:Text('Every year')),
+               ],
+               onChanged:(v)=>setState(()=>_recurrence=v??'none')),
               const SizedBox(height: 14),
               Text(tr(context, 'priority'),
                 style: const TextStyle(fontWeight: FontWeight.w600)),

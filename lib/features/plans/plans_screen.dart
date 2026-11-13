@@ -7,6 +7,7 @@ import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/performance_timings.dart';
 import 'task_editor_sheet.dart';
+import 'task_checklist_panel.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -237,13 +238,43 @@ class _PlansScreenState extends State<PlansScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:AppBar(title:const Text('To-dos')),
+      appBar:AppBar(title:const Text('To-do and Checklists'),actions:[
+       IconButton(tooltip:'Filters',icon:const Icon(Icons.tune_outlined),
+        onPressed:()=>showModalBottomSheet<void>(context:context,
+         showDragHandle:true,builder:(_)=>StatefulBuilder(
+          builder:(ctx,rebuild)=>SafeArea(child:Padding(
+           padding:const EdgeInsets.all(18),child:Column(
+            mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,
+            children:[
+             Text('Filters',style:Theme.of(ctx).textTheme.titleLarge),
+             const SizedBox(height:12),
+             const Text('Visibility'),
+             Wrap(spacing:8,children:[
+              for(final v in TaskScope.values)ChoiceChip(
+               label:Text(v==TaskScope.all?'All visible':v.name),
+               selected:_scope==v,
+               onSelected:(_){setState(()=>_scope=v);rebuild((){});}),
+             ]),
+             const SizedBox(height:12),
+             const Text('List status'),
+             Wrap(spacing:8,children:[
+              for(final v in TaskFilter.values)ChoiceChip(
+               label:Text(v.name),selected:_filter==v,
+               onSelected:(_){setState(()=>_filter=v);rebuild((){});}),
+             ]),
+             const SizedBox(height:12),
+             SwitchListTile(title:const Text('Due today / overdue'),
+              value:_todayOnly,
+              onChanged:(v){setState(()=>_todayOnly=v);rebuild((){});}),
+            ]))))),
+       ),
+      ]),
       body:RefreshIndicator(
       onRefresh: _loadSpace,
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(tr(context, 'plansAndTasks'),
+          const Text('To-do and Checklists',
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Text(tr(context, 'tasksSubtitle')), 
@@ -267,44 +298,9 @@ class _PlansScreenState extends State<PlansScreen> {
             FilledButton.icon(
               onPressed: _busy ? null : () => _taskEditor(),
               icon: const Icon(Icons.add),
-              label: Text(tr(context, 'addTask')),
+              label:const Text('Add to-do list'),
             ),
             const SizedBox(height: 16),
-            SegmentedButton<bool>(
-              segments:const [
-                ButtonSegment(value:false,label:Text('All to-dos')),
-                ButtonSegment(value:true,label:Text('Due today')),
-              ],
-              selected:{_todayOnly},
-              onSelectionChanged:(v)=>setState(()=>_todayOnly=v.first),
-            ),
-            if(_todayOnly) Text('Includes overdue open to-dos.',
-              style:Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height:12),
-            const Text('Show'),
-            Wrap(
-              spacing: 8,
-              children: TaskScope.values.map((scope) => ChoiceChip(
-                    label: Text(scope == TaskScope.all
-                        ? tr(context, 'allVisible')
-                        : scope == TaskScope.shared
-                            ? tr(context, 'shared')
-                            : tr(context, 'private')),
-                    selected: scope == _scope,
-                    onSelected: (_) => setState(() => _scope = scope),
-                  )).toList(),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: TaskFilter.values.map((filter) => ChoiceChip(
-                    label: Text(tr(context, filter.name)),
-                    selected: filter == _filter,
-                    onSelected: (_) => setState(() => _filter = filter),
-                  )).toList(),
-            ),
-            const SizedBox(height: 12),
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: _tasksStream,
               builder: (context, snapshot) {
@@ -405,48 +401,36 @@ class _PlansScreenState extends State<PlansScreen> {
       elevation: 0,
       child: Column(
         children: [
-      CheckboxListTile(
-        value: completed,
-        onChanged: !canEdit || cancelled || _busy
-            ? null
-            : (value) => _changeStatus(
-                  task,
-                  value == true ? TaskStatus.completed : TaskStatus.open,
-                ),
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(
-          task.title,
-          style: TextStyle(
-            decoration: cancelled || completed
-                ? TextDecoration.lineThrough
-                : null,
-            color: cancelled || completed
-                ? Theme.of(context).colorScheme.outline
-                : null,
-          ),
-        ),
-        subtitle: Text(details.join(' • ')),
-        secondary: !canEdit
-            ? const Icon(Icons.lock_outline)
-            : PopupMenuButton<String>(
-          tooltip: tr(context, 'taskActions'),
-          onSelected: (choice) {
-            if (choice == 'edit') {
-              _taskEditor(existing: task);
-            } else if (choice == 'cancel') {
-              _cancelTask(task);
-            } else if (choice == 'reopen') {
-              _changeStatus(task, TaskStatus.open);
-            }
-          },
-          itemBuilder: (_) => [
-            PopupMenuItem(value: 'edit', child: Text(tr(context, 'edit'))),
-            if (!cancelled)
-              PopupMenuItem(value: 'cancel', child: Text(tr(context, 'cancelTask'))),
-            if (cancelled || completed)
-              PopupMenuItem(value: 'reopen', child: Text(tr(context, 'reopenTask'))),
-          ],
-        ),
+      ExpansionTile(
+       leading:Icon(cancelled?Icons.cancel_outlined:
+        completed?Icons.task_alt_outlined:Icons.format_list_bulleted_outlined),
+       title:Text(task.title,style:TextStyle(
+        decoration:cancelled||completed?TextDecoration.lineThrough:null,
+        color:cancelled?Theme.of(context).colorScheme.error:null)),
+       subtitle:Text(details.join(' • ')),
+       trailing:!canEdit?const Icon(Icons.lock_outline):
+        PopupMenuButton<String>(
+         tooltip:'List actions',
+         onSelected:(choice){
+          if(choice=='edit'){_taskEditor(existing:task);}
+          if(choice=='cancel'){_cancelTask(task);}
+          if(choice=='complete'){_changeStatus(task,TaskStatus.completed);}
+          if(choice=='reopen'){_changeStatus(task,TaskStatus.open);}
+         },
+         itemBuilder:(_)=>[
+          const PopupMenuItem(value:'edit',child:Text('Edit list')),
+          if(!cancelled&&!completed)
+           const PopupMenuItem(value:'complete',child:Text('Mark list complete')),
+          if(!cancelled)
+           const PopupMenuItem(value:'cancel',child:Text('Cancel list')),
+          if(cancelled||completed)
+           const PopupMenuItem(value:'reopen',child:Text('Reopen list')),
+         ]),
+       childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
+       children:[
+        TaskChecklistPanel(key:ValueKey(task.id),
+         taskId:task.id,recurrence:task.recurrence,canEdit:canEdit&&!cancelled),
+       ],
       ),
         if (canShare)
           Align(
