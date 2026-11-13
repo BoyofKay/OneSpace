@@ -33,6 +33,14 @@ class _GestureHistoryScreenState extends State<GestureHistoryScreen>{
      if(mounted)setState(()=>space=id);
    });
  }
+ String _sentAt(BuildContext context,Object? raw){
+   final date=DateTime.tryParse(raw?.toString()??'')?.toLocal();
+   if(date==null)return 'Time unavailable';
+   final locale=MaterialLocalizations.of(context);
+   return locale.formatMediumDate(date)+' · '+
+     locale.formatTimeOfDay(TimeOfDay.fromDateTime(date),
+       alwaysUse24HourFormat:MediaQuery.alwaysUse24HourFormatOf(context));
+ }
  @override Widget build(BuildContext context){
    final me=Supabase.instance.client.auth.currentUser?.id;
    return Scaffold(
@@ -66,8 +74,9 @@ class _GestureHistoryScreenState extends State<GestureHistoryScreen>{
                      backgroundColor:style.color.withValues(alpha:.16),
                      child:Icon(style.icon,color:style.color)),
                    title:Text(item['message']?.toString()??''),
-                   subtitle:Text(item['automated']==true?
-                     'Scheduled automatically':'Sent personally'),
+                   subtitle:Text(_sentAt(ctx,item['created_at'])+'\n'+
+                     (item['automated']==true?
+                       'Scheduled automatically':'Sent personally')),
                  ));
              });
            },
