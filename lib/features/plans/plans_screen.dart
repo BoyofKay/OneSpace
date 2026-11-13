@@ -32,6 +32,8 @@ class _PlansScreenState extends State<PlansScreen> {
   Map<String, String> _memberNames = const {};
   TaskFilter _filter = TaskFilter.open;
   bool _todayOnly = false;
+  // Only mount per-cycle realtime streams for an expanded checklist.
+  final Set<String> _expandedLists = <String>{};
   TaskScope _scope = TaskScope.all;
   bool _loadingSpace = true;
   bool _busy = false;
@@ -403,6 +405,10 @@ class _PlansScreenState extends State<PlansScreen> {
       child: Column(
         children: [
       ExpansionTile(
+       key:PageStorageKey<String>('todo-'+task.id),
+       onExpansionChanged:(expanded)=>setState((){
+        if(expanded){_expandedLists.add(task.id);}else{_expandedLists.remove(task.id);}
+       }),
        leading:Icon(cancelled?Icons.cancel_outlined:
         completed?Icons.task_alt_outlined:Icons.format_list_bulleted_outlined),
        title:Text(task.title,style:TextStyle(
@@ -429,7 +435,7 @@ class _PlansScreenState extends State<PlansScreen> {
          ]),
        childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
        children:[
-        TaskChecklistPanel(key:ValueKey(task.id),
+        if(_expandedLists.contains(task.id))TaskChecklistPanel(key:ValueKey(task.id),
          taskId:task.id,recurrence:task.recurrence,canEdit:canEdit&&!cancelled),
        ],
       ),
