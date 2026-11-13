@@ -113,8 +113,12 @@ class TodayCalendarEntry {
     required this.title,
     required this.date,
     required this.kind,
+    this.source='calendar',
+    this.activityId,
   });
   final String title;
   final DateTime date;
   final String kind;
+  final String source;
+  final String? activityId;
 }
