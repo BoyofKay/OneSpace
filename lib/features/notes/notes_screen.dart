@@ -13,7 +13,8 @@ import '../sharing/share_grant_watcher.dart';
 /// Partner-visible and creator-only notes. Live list updates are streamed, while
 /// edits use optimistic concurrency to avoid silently overwriting another edit.
 class NotesScreen extends StatefulWidget {
-  const NotesScreen({super.key});
+  const NotesScreen({super.key,this.initialNoteId});
+  final String? initialNoteId;
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
@@ -27,6 +28,7 @@ class _NotesScreenState extends State<NotesScreen> {
   bool _showArchived = false;
   String _scope = 'all';
   String? _error;
+  bool _deepLinkOpened=false;
 
   @override
   void initState() {
@@ -69,6 +71,18 @@ class _NotesScreenState extends State<NotesScreen> {
             .order('updated_at', ascending: false);
       });
       if (id != null) _watchGrants(id);
+      if(id!=null&&widget.initialNoteId!=null&&!_deepLinkOpened){
+        _deepLinkOpened=true;
+        try{
+          final found=await _client.from('notes').select()
+            .eq('space_id',id).eq('id',widget.initialNoteId!).limit(1);
+          if(mounted&&found.isNotEmpty){
+            WidgetsBinding.instance.addPostFrameCallback((_){
+              if(mounted){_openEditor(note:found.first);}
+            });
+          }
+        }catch(_){}
+      }
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -295,9 +309,46 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
   }
 
+
+  Future<void> _mentionPartner() async {
+    if(!_canEdit||_busy||_archived||_visibility!='shared')return;
+    final me=_client.auth.currentUser?.id;
+    if(me==null)return;
+    String? partner;
+    final names=CurrentSpaceCache.instance.memberNamesFor(widget.spaceId);
+    partner=names?.entries.where((e)=>e.key!=me)
+      .map((e)=>e.value).firstOrNull;
+    if(partner==null){
+      try{
+        final members=await _client.from('space_members')
+          .select('user_id').eq('space_id',widget.spaceId);
+        final other=members.where((entry)=>entry['user_id']!=me).firstOrNull;
+        if(other!=null){
+          final profile=await _client.from('profiles')
+            .select('display_name').eq('id',other['user_id'].toString()).single();
+          partner=profile['display_name']?.toString();
+        }
+      }catch(_){}
+    }
+    if(!mounted||partner==null||partner.trim().isEmpty)return;
+    final selection=_body.selection;
+    final start=selection.isValid?selection.start:_body.text.length;
+    final end=selection.isValid?selection.end:_body.text.length;
+    final mention='@'+partner.trim()+' ';
+    _body.value=TextEditingValue(
+      text:_body.text.replaceRange(start,end,mention),
+      selection:TextSelection.collapsed(offset:start+mention.length),
+    );
+  }
+
   Widget _formattingToolbar()=>SingleChildScrollView(
     scrollDirection:Axis.horizontal,
     child:Row(children:[
+      IconButton(
+        tooltip:'Mention partner in a shared note',
+        icon:const Icon(Icons.alternate_email),
+        onPressed:_visibility=='shared'?_mentionPartner:null,
+      ),
       IconButton(tooltip:'Heading',icon:const Icon(Icons.title),
         onPressed:()=>_insertFormatting('## ',placeholder:'Heading')),
       IconButton(tooltip:'Bold',icon:const Icon(Icons.format_bold),
