@@ -538,7 +538,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
         upcoming,(p['saving_lead_days'] as num).toInt())!))),
      ],
      const SizedBox(height:14),
-     OccasionBudgetWorkspace(plan:p),
+     OccasionBudgetWorkspace(plan:p,onEditPlan:editPlan),
      const SizedBox(height:14),
      if((p['notes']??'').toString().isNotEmpty)
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),

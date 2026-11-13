@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/responsive_field_pair.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'occasion_budget_rules.dart';
+import 'occasion_planning_insights.dart';
 import 'occasion_budget_item_editor.dart';
 import 'occasion_option_linker.dart';
 
@@ -13,14 +14,16 @@ const budgetStages=<String,String>{
 
 /// Embedded in Occasion detail: live wishlist, commitments, spending and history.
 class OccasionBudgetWorkspace extends StatefulWidget {
- const OccasionBudgetWorkspace({super.key,required this.plan});
+ const OccasionBudgetWorkspace({super.key,required this.plan,required this.onEditPlan});
  final Map<String,dynamic> plan;
+ final VoidCallback onEditPlan;
  @override State<OccasionBudgetWorkspace> createState()=>_OccasionBudgetWorkspaceState();
 }
 class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
  final db=Supabase.instance.client;
  late Stream<List<Map<String,dynamic>>> stream;
  bool showArchived=false,busy=false;
+ final _itemsAnchor=GlobalKey();
  String? error;
  @override void initState(){super.initState();_attach();}
  void _attach(){
@@ -56,6 +59,17 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
    isScrollControlled:true,
    builder:(_)=>OccasionOptionLinker(plan:widget.plan));
  }
+ void followInsight(String action){
+  switch(action){
+   case 'budget':widget.onEditPlan();
+   case 'purchase':edit();
+   case 'import':browseOptions();
+   default:
+    final context=_itemsAnchor.currentContext;
+    if(context!=null)Scrollable.ensureVisible(context,
+     duration:const Duration(milliseconds:250));
+  }
+ }
  Future<void> history()async{
   await showModalBottomSheet<void>(context:context,showDragHandle:true,
    isScrollControlled:true,builder:(_)=>_BudgetHistory(id:widget.plan['id'].toString()));
@@ -68,6 +82,8 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
     final budget=OccasionBudgetRules.summarize(widget.plan,data);
     final visible=data.where((r)=>showArchived||(
      r['archived_at']==null&&r['status']!='cancelled')).toList();
+    final suggestions=OccasionPlanningInsights.suggest(
+     plan:widget.plan,budget:budget,items:data,today:DateTime.now());
     String currency(double? value)=>value==null?'Not set':
      budget.currency+' '+value.toStringAsFixed(2);
     return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -116,6 +132,26 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
            '. Missing exchange rates are never guessed.',
           style:theme.textTheme.bodySmall)),
       ])),
+     if(suggestions.isNotEmpty)...[
+      const SizedBox(height:12),
+      Card(child:Padding(padding:const EdgeInsets.all(14),
+       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Row(children:[
+         Icon(Icons.auto_awesome_outlined,color:colors.primary),
+         const SizedBox(width:8),
+         Text('Planning intelligence',style:theme.textTheme.titleMedium),
+        ]),
+        const SizedBox(height:6),
+        for(final hint in suggestions.take(2))Padding(
+         padding:const EdgeInsets.symmetric(vertical:5),
+         child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Expanded(child:Text(hint.message,style:theme.textTheme.bodyMedium)),
+          const SizedBox(width:8),
+          TextButton(onPressed:()=>followInsight(hint.action),
+           child:Text(hint.actionLabel)),
+         ])),
+       ]))),
+     ],
      const SizedBox(height:12),
      Wrap(spacing:8,runSpacing:8,children:[
       FilledButton.icon(onPressed:()=>edit(null,'planned'),
@@ -129,7 +165,7 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
      const SizedBox(height:12),
      Wrap(spacing:10,runSpacing:8,
       alignment:WrapAlignment.spaceBetween,children:[
-       Text('Shopping & wishlist',style:theme.textTheme.titleLarge),
+       Text('Shopping & wishlist',key:_itemsAnchor,style:theme.textTheme.titleLarge),
        FilterChip(label:const Text('Show removed'),selected:showArchived,
         onSelected:(v)=>setState(()=>showArchived=v)),
      ]),
