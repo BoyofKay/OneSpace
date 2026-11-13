@@ -343,7 +343,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                  maxLines:2,overflow:TextOverflow.ellipsis),
                onTap:widget.manageOnly?()=>_createCustom(item):()=>_sendCustom(item),
                trailing:widget.manageOnly?
-                 Wrap(mainAxisSize:MainAxisSize.min,children:[
+                 Row(mainAxisSize:MainAxisSize.min,children:[
                    IconButton(icon:const Icon(Icons.edit_outlined),
                      tooltip:'Edit gesture',
                      onPressed:()=>_createCustom(item)),
