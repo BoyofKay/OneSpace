@@ -52,3 +52,9 @@ R19 fix removes two unused imports flagged by run 43519852832, with no Dart comp
 ## R19 final source-only verification after test corrections
 
 Run verify-only against d5c9e6c01e8945d83417f1760e0e482160fb0705. Previous verify passed analyzer and failed exactly four tests due outdated lock thresholds and test-only unbound mention pickers. Those are now addressed. No APK, no release, no account reset.
+
+## R20 release-candidate strengthening — source verification
+
+Source to verify: 00c62cd6e3a1903acf9652a29217cf809fa76fae
+
+The in-app 'Save a link or idea' option is removed while Android external Share -> OneSpace handling remains. Improvements: lazy checklist subscriptions, next-day cycle refreshing, enabling mention chooser when changed from private to shared, cached saved-login first name, contextual share intake heading, no dead external-platform buttons. Verify Flutter 3.50 deps/analyze/tests. DO NOT build an APK until verification passes and the separate release marker is updated.
