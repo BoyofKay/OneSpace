@@ -60,9 +60,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      }
      setState((){hits=output;busy=false;});
    }catch(_){
-     if(mounted&&request==version)setState(() {
+     if(mounted&&request==version){setState(() {
        busy=false;error='Search could not finish. Please try again.';
-     });
+     });}
    }
  }
  void openHit(_Hit hit) {
