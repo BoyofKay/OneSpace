@@ -1,28 +1,30 @@
-# R12–R17 — OneSpace consolidated Android private preview
+# R20 — OneSpace consolidated private Android test preview
 
-Iteration: R12–R17 — Hardened, verified source and one signed Android APK
-Previous confirmed APK: preview-0.1.395
+Iteration: R18–R20 source strengthening with all R12–R17 functionality retained
+Existing installed baseline: preview-0.1.397 (do not uninstall or clear app data)
 
-## Included functionality
-- R12: standalone contacts, Activity-linked contact-card navigation, collapsible editing and history, daily check-in readability, Letters and gesture improvements.
-- R13: Shared Experiences (movies, shows, music, books, games), comments, ratings, suggestions and shared planning.
-- R14: Trips & Journeys, itinerary, private/shared visibility, partner conversations and currency-aware estimated expenses.
-- R15: private PDF/image travel documents, native Android picker, signed previews and archive/restore.
-- R16: Android share-sheet intake, saved comparison links/options, Occasion & Surprise planner with budgeting and lead times, selfie and collage memory layouts.
-- R17: four Material 3 palettes, Light/Dark/Follow Phone, quiet optional seasonal banners, adaptive tablet/phone navigation, US/EG public-holiday overlays plus fixed Saudi civic dates, birthdays/anniversaries/special occasions with honoree and privacy.
+## Release candidate
+Source verified at 002712e86c7eeea974665d506ab8a5769fac39fd by https://github.com/BoyofKay/OneSpace/actions/runs/43521534804
+- Committed dependency lockfile passed
+- Flutter 3.50 analyzer passed
+- Flutter automated tests passed, including Android Share intent regression
+- Current test accounts, shared space, pairing and existing records were checked and preserved
 
-## Quality gate
-Verified R12–R17 source at commit 99f950ac3d167736cc88901cf688518d8d1299c7:
-https://github.com/BoyofKay/OneSpace/actions/runs/43451478578
-- Committed dependency lockfile: passed.
-- Flutter analyzer: passed.
-- Flutter test suite: passed.
-- Two analyzer blockers found in the first run were fixed before verification.
-- Non-destructive database migrations through 0071 deployed; two accounts, two memberships and the shared space preserved.
+## Included since the prior APK
+- R18–R19: restored tagline and first-name greetings; local biometric/PIN unlock improvements; less aggressive inactivity locking; Today squares for A little love and Shared Experiences.
+- Settings: Regional Holidays, weather unit preference (C/F), birthdays and important dates; Calendar and Notes archival access moved to History.
+- To-do and Checklists: nested items with individual completion state, daily/weekly/monthly/yearly recurrence, list filters, red cancelled-list styling. Existing tasks remain as list containers.
+- Notes: improved formatting actions, protected photo attachments, mention partner functionality.
+- A little love: custom gesture shortcut restored, tile hints removed, new I miss you category and refreshed symbols.
+- Daily Connection: two principal square actions, previous check-in records and requests preserved.
+- Shared Experiences: media collection categories, direct Watch/Play/Open and mark-watched/rating actions, scoped history and easier archive/restore.
+- Fixes: Activity like/dislike and Shared Experience review database permission-safe mutations; Contact edit history scoped to contact objects.
+- R20 strengthening: remove redundant in-app 'Save a link or idea' menu entry while keeping Android external Share -> OneSpace; lazy checklist subscriptions and local day-boundary refresh; repair private-to-shared mention toggle; use offline first-name cache on saved sign-in; hide platform actions without a link; clarify share-receiver copy.
+- All additive R19 schemas 0073–0076 were deployed, no destructive migrations. No R20 schema changes.
 
-## Release instructions
-Trigger exactly one optimized signed preview APK using the repository release workflow. Do not change package ID `com.onespace.onespace.preview`, signing certificate, or user data. Confirm signing fingerprint, artifact availability and GitHub Release URL if permitted. GitHub Release authorization errors must never cause a rebuild or loss of the verified APK. This remains a PRIVATE TEST PREVIEW, not a public production launch.
+## Safety and publication gate
+Trigger ONE signed optimized preview build. Keep package com.onespace.onespace.preview and original preview signing identity unchanged. Require Gradle build, analyzer and tests, APK signature and package verification, and retained artifact. Publish only the verified signed APK to GitHub Releases. Do not remove either test user's profile, saved data, keys, or relationships.
 
-The physical two-phone acceptance checklist, including upgrade without uninstall, night/day themes, privacy, holiday calendar, trips and documents, remains mandatory after APK delivery.
+This is a PRIVATE TEST PREVIEW, not a public production launch. Both physical Android devices must be tested after in-place upgrade, particularly biometric unlock, save/share navigation, checklist recurrence, signed Notes photos, notifications, and activity ratings.
 
-Trigger: consolidated verified iteration R12–R17, November 13, 2026.
+Trigger: R20 verified strengthening and consolidated R18–R20 Android preview, November 14, 2026.
