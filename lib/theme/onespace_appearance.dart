@@ -4,8 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum OneSpacePalette { ocean, rose, sage, indigo }
 enum SeasonChoice { off, automatic, valentines, spring, halloween, winter }
 
-class OneSpaceAppearance extends ChangeNotifier {
- OneSpaceAppearance._();
+class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
+ OneSpaceAppearance._(){WidgetsBinding.instance.addObserver(this);}
+ @override void didChangeAppLifecycleState(AppLifecycleState state){
+  if(state==AppLifecycleState.resumed)notifyListeners();
+ }
  static final instance=OneSpaceAppearance._();
  static const _paletteKey='appearance.palette.v1';
  static const _modeKey='appearance.mode.v1';

@@ -204,7 +204,9 @@ class OneSpaceApp extends StatelessWidget {
             darkTheme:OneSpaceTheme.build(
               palette:appearance.palette,brightness:Brightness.dark),
             themeMode:appearance.mode,
-            themeAnimationDuration:const Duration(milliseconds:280),
+            themeAnimationDuration:
+              WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
+                ?Duration.zero:const Duration(milliseconds:280),
             themeAnimationCurve:Curves.easeInOutCubic,
             home:const AuthGate(signedIn:OneSpaceHome()),
           ),
@@ -309,7 +311,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   @override
   Widget build(BuildContext context) {
     final visible = showProfile ? 5 : selectedIndex;
-    final wide=MediaQuery.sizeOf(context).width>=900;
+    final screen=MediaQuery.sizeOf(context);
+    final wide=screen.width>=900&&screen.height>=620;
     final pages=IndexedStack(index:visible,children:[
         SharedSpaceScreen(
           refreshToken:refreshToken,
@@ -415,6 +418,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
          constraints:const BoxConstraints(maxWidth:1050),child:pages))),
        ]):pages),
       bottomNavigationBar:showProfile||wide?null:NavigationBar(
+        labelBehavior:screen.width<380?
+          NavigationDestinationLabelBehavior.onlyShowSelected:
+          NavigationDestinationLabelBehavior.alwaysShow,
         selectedIndex:selectedIndex,
         onDestinationSelected:navigate,
         destinations:[
