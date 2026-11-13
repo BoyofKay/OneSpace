@@ -716,8 +716,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ],
             const Text('Explore our space', style: TextStyle(
               fontWeight: FontWeight.bold, fontSize: 17)),
-            /* Existing feature shortcuts remain data-driven and accessible. */
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
