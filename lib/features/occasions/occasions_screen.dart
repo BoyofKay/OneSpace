@@ -103,6 +103,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
       Icons.lock_outline:Icons.card_giftcard_outlined)),
      title:Text(p['title'].toString(),style:Theme.of(context).textTheme.titleMedium),
      subtitle:Text([
+      if((p['honoree_name']??'').toString().isNotEmpty)p['honoree_name'].toString(),
       occasionKinds[p['kind']]??'Occasion',
       occasionStages[p['status']]??'Planning',
       if(p['visibility']=='private')'Only me',
@@ -125,7 +126,7 @@ class OccasionEditor extends StatefulWidget{
 }
 class _OccasionEditorState extends State<OccasionEditor>{
  final db=Supabase.instance.client;
- late final TextEditingController title,notes,prep,saving,budget,currency;
+ late final TextEditingController title,notes,prep,saving,budget,currency,honoree;
  late String kind,status,visibility;
  late DateTime date;
  bool annual=true,busy=false;
@@ -134,6 +135,7 @@ class _OccasionEditorState extends State<OccasionEditor>{
   super.initState();
   final p=widget.existing??{};
   title=TextEditingController(text:(p['title']??'').toString());
+  honoree=TextEditingController(text:(p['honoree_name']??'').toString());
   notes=TextEditingController(text:(p['notes']??'').toString());
   prep=TextEditingController(text:(p['prep_lead_days']??30).toString());
   saving=TextEditingController(text:(p['saving_lead_days']??60).toString());
@@ -146,7 +148,7 @@ class _OccasionEditorState extends State<OccasionEditor>{
   annual=p['annual']!=false;
  }
  @override void dispose(){
-  for(final c in [title,notes,prep,saving,budget,currency]){c.dispose();}
+  for(final c in [title,notes,prep,saving,budget,currency,honoree]){c.dispose();}
   super.dispose();
  }
  Future<void> chooseDate()async{
@@ -175,6 +177,7 @@ class _OccasionEditorState extends State<OccasionEditor>{
   try{
    final values=<String,dynamic>{
     'title':title.text.trim(),'kind':kind,'status':status,
+    'honoree_name':honoree.text.trim(),
     'occasion_on':CalendarRules.sqlDate(date),'annual':annual,
     'prep_lead_days':preparation,'saving_lead_days':funds,
     'budget':money,'currency':code,'notes':notes.text.trim(),
@@ -195,6 +198,12 @@ class _OccasionEditorState extends State<OccasionEditor>{
   body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,35),children:[
    TextField(controller:title,maxLength:160,decoration:const InputDecoration(
     labelText:'What are we celebrating?',border:OutlineInputBorder())),
+   const SizedBox(height:10),
+   TextField(controller:honoree,maxLength:120,
+    decoration:const InputDecoration(
+     labelText:'Who are we celebrating? (optional)',
+     hintText:'My partner, our anniversary, Mom…',
+     prefixIcon:Icon(Icons.person_outline),border:OutlineInputBorder())),
    const SizedBox(height:10),
    DropdownButtonFormField<String>(initialValue:kind,
     decoration:const InputDecoration(labelText:'Occasion type',border:OutlineInputBorder()),
@@ -411,6 +420,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
      padding:const EdgeInsets.fromLTRB(16,12,16,35),children:[
      Text(p['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
      Text((occasionKinds[p['kind']]??'Occasion')+' · '+
+      ((p['honoree_name']??'').toString().isNotEmpty?p['honoree_name'].toString()+' · ':'')+
       (p['visibility']=='private'?'Only me':'Both of us')+' · '+
       (occasionStages[p['status']]??'Planning')),
      const SizedBox(height:9),
