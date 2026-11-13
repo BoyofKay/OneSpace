@@ -114,7 +114,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
               Text(deviceTime == null ? '—' :
                   PartnerTimeZones.timeLabel(deviceTime),
                 style: Theme.of(context).textTheme.titleLarge),
-              Text(deviceTime == null ? 'Waiting for partner's phone' :
+              Text(deviceTime == null ? "Waiting for partner's phone" :
                     PartnerTimeZones.dateLabel(deviceTime),
                 style: Theme.of(context).textTheme.bodySmall),
               Text(zoneLabel, maxLines: 2,
