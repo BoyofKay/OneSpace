@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/auth_gate.dart';
 import 'theme/onespace_appearance.dart';
 import 'theme/onespace_canvas.dart';
+import 'core/weather_unit_preference.dart';
 import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
 import 'features/share_in/share_intake_screen.dart';
@@ -43,6 +44,7 @@ Future<void> main() async {
   runApp(OneSpaceBootstrap(startupClock: timer));
   // Appearance loads without blocking the first frame or auth restoration.
   OneSpaceAppearance.instance.load();
+  WeatherUnitPreference.instance.load();
 }
 
 /// A visible, copyable diagnostic replaces a device-only red error surface.

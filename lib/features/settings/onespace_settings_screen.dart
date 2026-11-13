@@ -8,6 +8,9 @@ import '../hubs/section_hubs.dart';
 import 'personal_days_off_screen.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../theme/appearance_settings_screen.dart';
+import '../../core/weather_unit_preference.dart';
+import '../calendar/holiday_sources_panel.dart';
+import '../occasions/occasions_screen.dart';
 
 /// Central configuration hub, distinct from personal profile details.
 class OneSpaceSettingsScreen extends StatelessWidget {
@@ -75,6 +78,26 @@ class OneSpaceSettingsScreen extends StatelessWidget {
              MaterialPageRoute<void>(
                builder:(_)=>const PersonalDaysOffScreen())),
          ),
+         const Divider(height:1),
+         ListTile(
+          leading:const Icon(Icons.public_outlined),
+          title:const Text('Regional holidays'),
+          subtitle:const Text('Choose which national calendars we see'),
+          trailing:const Icon(Icons.chevron_right),
+          onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
+           builder:(_)=>const _HolidayPreferencesScreen())),
+         ),
+         const Divider(height:1),
+         ListTile(
+          leading:const Icon(Icons.celebration_outlined),
+          title:const Text('Birthdays, anniversaries & special dates'),
+          subtitle:const Text('Manage milestones and important occasions'),
+          trailing:const Icon(Icons.chevron_right),
+          onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
+           builder:(_)=>const OccasionsScreen())),
+         ),
+         const Divider(height:1),
+         _WeatherUnitsTile(),
          const Divider(height:1),
          ListTile(
            leading:const Icon(Icons.cloud_outlined),
@@ -155,4 +178,45 @@ class _ThoughtfulRitualsScreenState extends State<ThoughtfulRitualsScreen>{
        spaceId:space!,recipientId:partner!,recipientName:'your partner'),
    ])),
  );
+}
+
+class _WeatherUnitsTile extends StatelessWidget{
+ @override Widget build(BuildContext context)=>AnimatedBuilder(
+  animation:WeatherUnitPreference.instance,builder:(context,_){
+   final prefs=WeatherUnitPreference.instance;
+   return ListTile(
+    leading:const Icon(Icons.thermostat_outlined),
+    title:const Text('Weather temperature'),
+    subtitle:Text(prefs.fahrenheit?'US · Fahrenheit (°F)':'Metric · Celsius (°C)'),
+    trailing:PopupMenuButton<bool>(
+     tooltip:'Change temperature unit',
+     onSelected:(v)=>prefs.setFahrenheit(v),
+     itemBuilder:(_)=>const [
+      PopupMenuItem(value:false,child:Text('Metric · °C')),
+      PopupMenuItem(value:true,child:Text('US · °F')),
+     ]),
+   );
+  });
+}
+class _HolidayPreferencesScreen extends StatefulWidget{
+ const _HolidayPreferencesScreen();
+ @override State<_HolidayPreferencesScreen> createState()=>_HolidayPreferencesScreenState();
+}
+class _HolidayPreferencesScreenState extends State<_HolidayPreferencesScreen>{
+ String? space;
+ bool loading=true;
+ @override void initState(){super.initState();_load();}
+ Future<void> _load()async{
+  final id=await CurrentSpaceCache.instance.get();
+  if(mounted)setState((){space=id;loading=false;});
+ }
+ @override Widget build(BuildContext context)=>Scaffold(
+  appBar:AppBar(title:const Text('Regional holidays')),
+  body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
+   const Text('Choose the countries in our shared calendar.'),
+   const SizedBox(height:12),
+   if(loading)const LinearProgressIndicator()
+   else if(space==null)const Text('Connect your shared space first.')
+   else HolidaySourcesPanel(spaceId:space!,onChanged:(){}),
+  ])));
 }

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'partner_time_zones.dart';
 import 'shared_weather.dart';
+import 'weather_unit_preference.dart';
 
 /// Clocks and weather sit in the same partner columns. No new network requests.
 class PartnerClockStrip extends StatefulWidget {
@@ -17,11 +18,13 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
  Timer? refresh;
  @override void initState(){
    super.initState();
+   WeatherUnitPreference.instance.addListener(_refreshUnits);
    refresh=Timer.periodic(const Duration(minutes:1),(_){
      if(mounted)setState((){});
    });
  }
- @override void dispose(){refresh?.cancel();super.dispose();}
+ void _refreshUnits(){if(mounted)setState((){});}
+ @override void dispose(){refresh?.cancel();WeatherUnitPreference.instance.removeListener(_refreshUnits);super.dispose();}
  Widget _weather(Map<String,dynamic> member){
    final cs=Theme.of(context).colorScheme;
    if(member['city_weather_shared']!=true){
@@ -55,7 +58,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
        overflow:TextOverflow.ellipsis,
        style:Theme.of(context).textTheme.labelSmall),
      const SizedBox(height:10),
-     Text(temperature is num?temperature.toStringAsFixed(0)+'°C':'—',
+     Text(temperature is num?WeatherUnitPreference.instance.format(temperature):'—',
        style:Theme.of(context).textTheme.headlineSmall),
      const SizedBox(height:3),
      Text(code==null?'Conditions unavailable':SharedWeather.condition(code),
@@ -64,10 +67,10 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
      const SizedBox(height:8),
      Row(children:[
        Expanded(child:Text(high is num?
-         'H '+high.toStringAsFixed(0)+'°':'H —',
+         'H '+WeatherUnitPreference.instance.format(high,suffix:false):'H —',
          style:Theme.of(context).textTheme.labelMedium)),
        Expanded(child:Text(low is num?
-         'L '+low.toStringAsFixed(0)+'°':'L —',
+         'L '+WeatherUnitPreference.instance.format(low,suffix:false):'L —',
          style:Theme.of(context).textTheme.labelMedium)),
      ]),
      const SizedBox(height:6),
