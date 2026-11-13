@@ -44,7 +44,9 @@ class TodayAttentionItem {
       final id = item['id']?.toString();
       final activityId = item['activity_id']?.toString();
       if (id == null || id.isEmpty || activityId == null ||
-          activityId.isEmpty) continue;
+          activityId.isEmpty) {
+        continue;
+      }
       final due = DateTime.tryParse(item['due_on']?.toString() ?? '');
       result.add(TodayAttentionItem(
         id: id,
@@ -89,7 +91,9 @@ class TodayAttentionItem {
       );
       if (next == null ||
           CalendarRules.calendarDaysUntil(CalendarRules.day(now),next) >
-              horizonDays) continue;
+              horizonDays) {
+        continue;
+      }
       result.add(TodayCalendarEntry(
         title:rawEvent['title']?.toString() ?? '',
         date:next,
