@@ -46,7 +46,8 @@ class _SavedContactEditorState extends State<SavedContactEditor>{
    final label=name.text.trim();
    if(label.isEmpty){setState(()=>error='Give the contact a name.');return;}
    final contact=ActivityContact(
-     person:person.text.trim(),phone:phone.text.trim(),
+     person:person.text.trim().isEmpty?label:person.text.trim(),
+     phone:phone.text.trim(),
      email:email.text.trim(),address:address.text.trim(),
      workingHours:hours.text.trim(),note:notes.text.trim(),
    );
