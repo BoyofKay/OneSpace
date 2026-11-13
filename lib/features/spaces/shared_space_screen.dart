@@ -6,6 +6,7 @@ import 'invitation_code.dart';
 import 'space_task_summary.dart';
 import 'today_attention_rules.dart';
 import 'today_attention_section.dart';
+import '../../core/partner_clock_strip.dart';
 import '../calendar/calendar_rules.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../../core/performance_timings.dart';
@@ -25,6 +26,7 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenCheckins,
     this.onOpenCoordinate,
     this.onOpenWorld,
+    this.onOpenProfile,
     this.refreshToken = 0,
   });
 
@@ -37,6 +39,7 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenCheckins;
   final VoidCallback? onOpenCoordinate;
   final VoidCallback? onOpenWorld;
+  final VoidCallback? onOpenProfile;
   final int refreshToken;
 
   @override
@@ -50,6 +53,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   String? spaceName;
   int memberCount = 0;
   List<String> memberDisplayNames = const [];
+  List<Map<String, dynamic>> clockMembers = const [];
   SpaceTaskSummary? taskSummary;
   int activeShoppingLists = 0;
   int activeOtherLists = 0;
@@ -125,6 +129,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           spaceName = null;
           memberCount = 0;
           memberDisplayNames = const [];
+          clockMembers = const [];
           taskSummary = null;
           activeShoppingLists = 0;
           activeOtherLists = 0;
@@ -166,6 +171,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           spaceName = data['space_name']?.toString();
           memberCount = metric('member_count');
           memberDisplayNames = names;
+          clockMembers = [
+            for (final item in members)
+              if (item is Map) Map<String, dynamic>.from(item),
+          ];
           final rawExpiry = data['pending_invitation_expires_at'];
           pendingInviteExpiry = rawExpiry == null
               ? null : DateTime.tryParse(rawExpiry.toString());
@@ -530,6 +539,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             ),
           ] else ...[
             _relationshipPanel(),
+            const SizedBox(height: 8),
+            PartnerClockStrip(
+              members: clockMembers,
+              relationshipMode: relationshipMode,
+              onConfigure: widget.onOpenProfile,
+            ),
             const SizedBox(height:12),
             TodayAttentionSection(
               items:focusItems,

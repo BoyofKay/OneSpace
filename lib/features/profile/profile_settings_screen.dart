@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/performance_timings.dart';
+import '../../core/partner_time_zones.dart';
+import '../../core/time_zone_selector.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
@@ -20,6 +22,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   bool _loading = true;
   bool _saving = false;
   String _language = 'en';
+  String? _timeZone;
   String? _error;
   String? _status;
 
@@ -39,11 +42,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final id = _client.auth.currentUser!.id;
       final profile =
-          await _client.from('profiles').select('display_name,locale').eq('id', id).single();
+          await _client.from('profiles').select('display_name,locale,time_zone').eq('id', id).single();
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
         _language = (profile['locale'] as String?) ?? 'en';
+        _timeZone = profile['time_zone']?.toString();
       });
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -60,6 +64,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       setState(() => _error = 'Your display name must be 1–80 characters.');
       return;
     }
+    if (_timeZone != null && !PartnerTimeZones.valid(_timeZone)) {
+      setState(() => _error = 'Choose a valid time zone.');
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -69,6 +77,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await _client.from('profiles').update({
         'display_name': name,
         'locale': _language,
+        'time_zone': _timeZone,
       }).eq('id', _client.auth.currentUser!.id);
       OneSpaceLocaleController.instance.selectLanguage(_language);
       if (mounted) setState(() => _status = tr(context, 'profileSaved'));
@@ -268,6 +277,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             if (value != null) setState(() => _language = value);
           },
         ),
+        const SizedBox(height: 18),
+        TimeZoneSelector(
+          selected: _timeZone,
+          onChanged: (value) => setState(() => _timeZone = value),
+        ),
+        const SizedBox(height: 6),
+        Text('Choose your own time zone. Your partner can see it for '
+          'the shared clocks; no location or GPS is requested.',
+          style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
         Text(
           'Language is saved per account. Arabic and RTL are enabled for '

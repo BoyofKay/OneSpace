@@ -195,7 +195,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       appBar: AppBar(
         leading: showProfile ? IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => setState(() => showProfile = false),
+          onPressed: () => setState(() {
+            showProfile = false;
+            refreshToken++;
+          }),
           tooltip: tr(context, 'backHome'),
         ) : null,
         title: Column(crossAxisAlignment: CrossAxisAlignment.start,children: [
@@ -223,6 +226,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           onOpenCheckins:()=>open(const CheckinsScreen()),
           onOpenCoordinate:()=>navigate(2),
           onOpenWorld:()=>navigate(4),
+          onOpenProfile:()=>setState(() => showProfile = true),
         ),
         if(visited.contains(1)) RememberScreen(refreshToken:refreshToken)
           else const SizedBox.shrink(),
