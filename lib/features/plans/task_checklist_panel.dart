@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'task_recurrence_rules.dart';
@@ -16,11 +17,14 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  Stream<List<Map<String,dynamic>>>? itemsStream,checksStream;
  bool busy=false;
  String? error;
+ Timer? _dayBoundary;
  String get cycle=>TaskRecurrenceRules.cycle(widget.recurrence,DateTime.now());
- @override void initState(){super.initState();listen();}
+ @override void initState(){super.initState();listen();_scheduleNextDay();}
  @override void didUpdateWidget(covariant TaskChecklistPanel old){
   super.didUpdateWidget(old);
-  if(old.taskId!=widget.taskId||old.recurrence!=widget.recurrence)listen();
+  if(old.taskId!=widget.taskId||old.recurrence!=widget.recurrence){
+   listen();_scheduleNextDay();
+  }
  }
  void listen(){
   itemsStream=db.from('task_checklist_items').stream(primaryKey:['id'])
@@ -28,7 +32,22 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
   checksStream=db.from('task_checklist_checks').stream(primaryKey:['id'])
    .eq('cycle_date',cycle).limit(500);
  }
- @override void dispose(){input.dispose();super.dispose();}
+ void _scheduleNextDay(){
+  _dayBoundary?.cancel();
+  if(widget.recurrence=='none')return;
+  final now=DateTime.now();
+  final nextDay=DateTime(now.year,now.month,now.day+1);
+  _dayBoundary=Timer(nextDay.difference(now)+const Duration(seconds:1),(){
+   if(!mounted)return;
+   setState(listen);
+   _scheduleNextDay();
+  });
+ }
+ @override void dispose(){
+  _dayBoundary?.cancel();
+  input.dispose();
+  super.dispose();
+ }
  Future<void> add()async{
   final title=input.text.trim();
   if(title.isEmpty||busy||!widget.canEdit)return;
