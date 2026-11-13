@@ -474,15 +474,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     });
   }
 
-  String _modeLabel() {
-    switch (relationshipMode) {
-      case 'living_together': return tr(context,'modeTogether');
-      case 'apart_same_tz': return tr(context,'modeApartSame');
-      case 'apart_different_tz': return tr(context,'modeLdr');
-      default: return tr(context,'modeUnset');
-    }
-  }
-
   int? _dayDistance(DateTime? target) {
     if (target == null) return null;
     final now=DateTime.now();
