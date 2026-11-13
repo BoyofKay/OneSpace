@@ -4,7 +4,7 @@ class FirstName {
  static String of(Object? name,{String fallback='there'}){
   final input=(name??'').toString().trim();
   if(input.isEmpty)return fallback;
-  final words=input.split(RegExp(r'\\s+')).where((x)=>x.isNotEmpty);
+  final words=input.split(RegExp(r'\s+')).where((x)=>x.isNotEmpty);
   return words.isEmpty?fallback:words.first;
  }
 }

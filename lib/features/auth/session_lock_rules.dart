@@ -3,8 +3,8 @@
 class SessionLockRules {
   const SessionLockRules._();
 
-  static const idleTimeout = Duration(minutes: 5);
-  static const backgroundTimeout = Duration(seconds: 30);
+  static const idleTimeout = Duration(minutes: 30);
+  static const backgroundTimeout = Duration(minutes: 5);
 
   static bool idleExpired(DateTime lastActivity, DateTime now) =>
       now.difference(lastActivity) >= idleTimeout;

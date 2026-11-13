@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
 import 'device_unlock.dart';
+import '../../core/first_name.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// One restored Supabase session: the user's password OR OS verification can
 /// reopen it. No password, refresh token, or biometric template is saved here.
@@ -28,6 +30,17 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
   bool _busy = false;
   bool _obscure = true;
   String? _error;
+  String? _firstName;
+  @override void initState(){super.initState();_loadGreeting();}
+  Future<void> _loadGreeting()async{
+   try{
+    final db=Supabase.instance.client;
+    final id=db.auth.currentUser?.id;
+    if(id==null)return;
+    final r=await db.from('profiles').select('display_name').eq('id',id).single();
+    if(mounted&&db.auth.currentUser?.id==id)setState(()=>_firstName=FirstName.of(r['display_name'],fallback:''));
+   }catch(_){}
+  }
 
   @override
   void dispose() {
@@ -98,8 +111,10 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
               const SizedBox(height: 10),
               const Text('OneSpace', textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
+              Text(tr(context,'tagline'),textAlign:TextAlign.center),
               const SizedBox(height: 12),
-              Text(tr(context, 'welcome'), style: const TextStyle(
+              Text(_firstName==null||_firstName!.isEmpty?tr(context,'welcome'):'Welcome back, $_firstName', style: const TextStyle(
                   fontSize: 23, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(tr(context, 'savedSessionHelp'),

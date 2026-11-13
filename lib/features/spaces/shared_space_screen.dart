@@ -24,6 +24,7 @@ import '../../theme/appearance_settings_screen.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
 import '../../l10n/onespace_strings.dart';
+import '../../core/first_name.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
   const SharedSpaceScreen({
@@ -712,8 +713,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         children: [
           Text(
             spaceId == null ? tr(context, 'ourSpace') :
-              'Welcome back, ${clockMembers.where((m) => m['is_me'] == true).map((m) => m['name']?.toString() ?? '').firstOrNull ?? 'there'}',
+              'Welcome back, ${FirstName.of(clockMembers.where((m) => m['is_me'] == true).map((m) => m['name']).firstOrNull)}',
             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+
           ),
           if(spaceId!=null && !loading && clockMembers.length>1)
             Padding(

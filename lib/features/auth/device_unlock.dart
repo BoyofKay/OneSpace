@@ -34,7 +34,7 @@ class DeviceUnlock {
       return await auth.authenticate(
         localizedReason: reason,
         biometricOnly: false,
-        persistAcrossBackgrounding: false,
+        persistAcrossBackgrounding: true,
         authMessages: const [
           AndroidAuthMessages(
             signInTitle: 'Unlock OneSpace',

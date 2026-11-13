@@ -14,6 +14,8 @@ import 'auth_language_switcher.dart';
 import 'password_recovery_screen.dart';
 import 'remembered_accounts.dart';
 import 'saved_session_login.dart';
+import '../../core/first_name.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'session_lock_rules.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
@@ -43,7 +45,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     final auth = Supabase.instance.client.auth;
     _locked = auth.currentSession != null;
     if (!_locked) _startIdleTimer();
-    if (_locked) _loadAccountLocale();
+    if (_locked) unawaited(_loadAccountLocale());
     _subscription = auth.onAuthStateChange.listen(
       (state) {
         if (!mounted) return;
@@ -66,7 +68,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         } else if (state.event == AuthChangeEvent.signedIn) {
           // A refresh/restore must never bypass the locked saved-session UI.
           // Only the actual OS/password verification callback unlocks it.
-          _loadAccountLocale();
+          unawaited(_loadAccountLocale());
           if (!_locked){
             _startIdleTimer();
             unawaited(_refreshPersonalMoment());
@@ -85,11 +87,18 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (userId == null) return;
     try {
       final profile = await Supabase.instance.client.from('profiles')
-          .select('locale').eq('id', userId).single();
+          .select('locale,display_name').eq('id', userId).single();
       if (mounted && Supabase.instance.client.auth.currentUser?.id == userId) {
         OneSpaceLocaleController.instance.selectLanguage(
           profile['locale'] as String?,
         );
+        final name=FirstName.of(profile['display_name'],fallback:'');
+        final email=Supabase.instance.client.auth.currentUser?.email?.toLowerCase();
+        if(name.isNotEmpty&&email!=null){
+          final prefs=SharedPreferencesAsync();
+          await prefs.setString('onespace_greeting_first_name_v1',name);
+          await prefs.setString('onespace_greeting_email_v1',email);
+        }
       }
     } catch (_) {
       // Device locale remains available when offline.
