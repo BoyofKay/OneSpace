@@ -256,6 +256,8 @@ class _SignInScreenState extends State<SignInScreen> {
   bool awaitingConfirmation = false;
   bool showingRecovery = false;
   bool rememberAtSignup = true;
+  String? _rememberedFirstName;
+  String? _rememberedEmail;
   String? error;
   String? info;
 
@@ -270,6 +272,15 @@ class _SignInScreenState extends State<SignInScreen> {
       final email=await RememberedAccounts.lastUsedEmail();
       if(mounted&&email!=null&&emailController.text.isEmpty){
         emailController.text=email;
+        final prefs=SharedPreferencesAsync();
+        final matching=await prefs.getString('onespace_greeting_email_v1');
+        final name=await prefs.getString('onespace_greeting_first_name_v1');
+        if(mounted&&matching==email&&name!=null&&name.trim().isNotEmpty){
+         setState((){
+          _rememberedEmail=email;
+          _rememberedFirstName=FirstName.of(name,fallback:'');
+         });
+        }
       }
     }catch(_){}
   }
@@ -375,7 +386,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 Text(tr(context, 'tagline'), textAlign: TextAlign.center),
                 const SizedBox(height: 23),
                 Text(registering ? tr(context, 'createAccount')
-                    : tr(context, 'welcome'),
+                    : (_rememberedFirstName!=null&&
+                       emailController.text.trim().toLowerCase()==_rememberedEmail
+                       ?'Welcome back, $_rememberedFirstName':tr(context,'welcome')),
                     style: const TextStyle(
                         fontSize: 23, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 18),
@@ -400,6 +413,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ],
                         TextFormField(
                           key: const Key('loginEmail'),
+                  onChanged:(_)=>setState((){}),
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [
