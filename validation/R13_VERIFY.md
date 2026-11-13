@@ -20,3 +20,7 @@ Validation invocation: analyzer + automated Flutter tests, no APK.
 Validation pass 2: use the corrected nullable platform rendering.
 
 Validation pass 3: planned Shared Experiences in Today and deep-link destination; additive SQL 0062 deployed.
+
+## Consolidated R12–R17 quality gate, November 13, 2026
+
+Run once as an independent verification **without generating an APK**. Validate the exact lockfile, Flutter analyzer, and all Flutter tests against commit 2471a88a77e1543e111036e8a66c80ce56a446f3. Resolve any failures before updating the release-trigger marker. Do not delete users, memberships, or content.
