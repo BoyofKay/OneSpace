@@ -1,6 +1,6 @@
 # OneSpace
 
-**One Life. Two Places. One Space.**
+**One Life, Two Places.**
 
 A Flutter companion app for couples, whether living together or apart.
 
@@ -9,9 +9,9 @@ A Flutter companion app for couples, whether living together or apart.
 **Today | Remember | Coordinate | Connect | World**
 
 - **Today:** the couple's shared dashboard, relationship context, actionable attention, and unified next-seven-day agenda (including trip departures and itinerary stops).
-- **Remember:** calendar, to-do list, notes, upcoming dues and upcoming events (via a single RLS-filtered summary).
+- **Remember:** calendar, to-do lists, notes, saved contacts, and Occasions & Surprises with private gift budgets and preparation timelines.
 - **Coordinate:** reusable Activities and contributions for shared research and decisions.
-- **Connect:** check-ins, love gestures, letters, memories, and Shared Experiences (movies, shows, music, books and games).
+- **Connect:** check-ins, love gestures, letters, daily selfie and collage memories, and Shared Experiences (movies, shows, music, books and games).
 - **World:** Trips & Journeys with shared/private plans, flights, stays, bookings, itinerary, conversation, revisions and countdowns. Saved contacts remain in Remember.
 
 Previous development test content was cleared on 13 November 2026, while two existing login accounts, one shared space and partner memberships remained intact.
@@ -30,11 +30,11 @@ Previous development test content was cleared on 13 November 2026, while two exi
 - Home uses a single **SECURITY INVOKER** database snapshot instead of multiple HTTP requests; displays RLS-filtered task, shopping, checklist, note, calendar and memory counts. The paired space ID is cached briefly in memory per account.
 - **Shopping & checklists:** realtime shared/private lists, quantity/unit details, editable items, check-off, recoverable removal, archive/restore lists and bulk clear completed items.
 - **Collaborative notes:** realtime shared/private plain-text notes up to 30,000 characters, pinning, archive/restore and stale-edit conflict checks.
-- **Calendar and occasions:** month grid, private/shared dated events, yearly repeating celebrations and anniversaries, leap-day-safe countdowns, task target dates and archive/restore; day-based only (timed meetings, device reminders and push notifications are future features).
-- **Memories:** secure, dated shared/private text journal, editing, pinning, archiving and revocable view-only sharing; photo/video attachments require dedicated Storage security work.
+- **Calendar:** month grid, private/shared dated and timed events, yearly repeating celebrations and anniversaries, task deadlines and recoverable archive. **Occasion planner:** saving and preparation lead times, gift ideas, budgets and preparation checklists. Guaranteed OS push delivery is not yet verified.
+- **Memories:** private/shared journal and daily selfies with photo uploads, captions, four selectable scrapbook layouts, archive/restore and RLS-protected media. Video editing and automatic collage export remain outside the preview.
 - English and Arabic RTL are configured and core screens localized; some secondary copy and localized date formatting still require QA.
-- Recent-email selection and native Samsung Pass/Google autofill for switching accounts; opt-in device fingerprint/PIN unlock for a saved session. No passwords or custom app PINs are saved by OneSpace.
-- Signed-out password-recovery and reset-password screens are implemented; the preview callback is configured but **end-to-end email and device testing** is still required. Account deletion, timed reminders, photo storage and full Arabic QA remain future milestones.
+- Per-device saved session with optional Android biometric/PIN app unlock and session controls. No custom app PIN or password is saved by OneSpace. One test account is used on each phone.
+- Signed-out password recovery and reset are implemented, but email and physical-device testing remain required. Account deletion, guaranteed background reminders, an iOS native Share extension and full Arabic QA remain future work.
 - **Performance investigation:** project hosted in Supabase Seoul (`ap-northeast-2`). Home now uses one RPC; other modules reuse the in-memory membership cache. Profile → App performance shows local startup/network timings without collecting email, passwords or activity content. Physical-device timings remain unverified.
 
 ## Install a standalone Android APK
@@ -66,6 +66,12 @@ The additive database migration for Trips & Journeys is deployed and the Flutter
 Trips & Journeys now has PDF and image attachments for boarding passes, travel itineraries, tickets and receipts, with an OS-native document picker on Android and iOS, secure Supabase Storage, per-trip privacy, 90-second signed previews, itinerary associations, notifications and reversible archiving. No Flutter dependencies were added or upgraded.
 
 The R15 migrations are deployed. No CI workflow, build trigger, APK signing or release was run. Native Android and iOS compile validation and two-phone privacy tests are still required. See [R15 acceptance matrix](docs/R15_TRAVEL_DOCUMENTS_QA.md).
+
+## R16 — consolidated next preview, source and database only
+
+Since preview 0.1.395, source revisions R12–R16 add saved contact cards, expanded check-ins/gestures/letters, Shared Experiences, Trips & Journeys, secure travel documents, Android Share-to-OneSpace with comparison-ready options, private/shared occasion planning, and daily selfies/scrapbook layouts. No release marker was touched for these source changes.
+
+The new R16 database migrations are deployed. **Flutter analysis, native compilation and a signed R12–R16 APK have not been run yet.** We are conserving GitHub Actions quota. Follow [the consolidated acceptance and single-build checklist](docs/CONSOLIDATED_PREVIEW_R12_R16_QA.md).
 
 ## Ordered milestones
 
