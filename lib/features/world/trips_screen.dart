@@ -578,6 +578,6 @@ class _TripDetailState extends State<TripDetail>{
      ],
      if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     ])),
-   ));
+   );
  }
 }
