@@ -10,23 +10,39 @@ import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 
-class NotificationBell extends StatelessWidget {
+/// One stable realtime subscription per signed-in account, not per frame.
+class NotificationBell extends StatefulWidget {
  const NotificationBell({super.key});
+ @override State<NotificationBell> createState()=>_NotificationBellState();
+}
+class _NotificationBellState extends State<NotificationBell> {
+ final db=Supabase.instance.client;
+ Stream<List<Map<String,dynamic>>>? _stream;
+ String? _streamUser;
+ Stream<List<Map<String,dynamic>>> _forUser(String user) {
+  if(_streamUser!=user||_stream==null){
+   _streamUser=user;
+   _stream=db.from('space_notifications').stream(primaryKey:['id'])
+    .eq('recipient_id',user).order('created_at',ascending:false).limit(100);
+  }
+  return _stream!;
+ }
  @override Widget build(BuildContext context) {
-  final db=Supabase.instance.client;
   final user=db.auth.currentUser?.id;
-  if(user==null)return const SizedBox.shrink();
+  if(user==null){
+   _stream=null;_streamUser=null;
+   return const SizedBox.shrink();
+  }
   return StreamBuilder<List<Map<String,dynamic>>>(
-   stream:db.from('space_notifications').stream(primaryKey:['id'])
-     .eq('recipient_id',user).order('created_at',ascending:false).limit(100),
+   stream:_forUser(user),
    builder:(context,snapshot){
     final unread=snapshot.data?.where((n)=>n['read_at']==null).length??0;
     return IconButton(
-     tooltip:'Notifications',
+     tooltip:unread==0?'Notifications':'Notifications, $unread unread',
      onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
       builder:(_)=>const NotificationsScreen())),
      icon:Badge(isLabelVisible:unread>0,label:Text(unread>99?'99+':'$unread'),
-       child:const Icon(Icons.notifications_none_outlined)),
+      child:const Icon(Icons.notifications_none_outlined)),
     );
    },
   );
@@ -43,6 +59,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
  bool unreadOnly=false;
  bool saving=false;
  String? error;
+ Stream<List<Map<String,dynamic>>>? _stream;
+ String? _streamUser;
+ Stream<List<Map<String,dynamic>>> _feed(String user){
+  if(_streamUser!=user||_stream==null){
+   _streamUser=user;
+   _stream=db.from('space_notifications').stream(primaryKey:['id'])
+    .eq('recipient_id',user).order('created_at',ascending:false).limit(100);
+  }
+  return _stream!;
+ }
 
  Future<void> _markAllRead(String userId) async {
    if(saving)return;
@@ -106,8 +132,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    return Scaffold(
      appBar:AppBar(title:const Text('Notifications')),
      body:StreamBuilder<List<Map<String,dynamic>>>(
-       stream:db.from('space_notifications').stream(primaryKey:['id'])
-         .eq('recipient_id',userId).order('created_at',ascending:false).limit(100),
+       stream:_feed(userId),
        builder:(context,snapshot){
          if(snapshot.hasError)return const Center(
            child:Text('Notifications are unavailable.'));
@@ -149,6 +174,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                          gestureId:item['object_id'].toString()):
                        Icon(kind=='mention'?Icons.alternate_email:
                        kind=='reply'?Icons.reply:
+                       kind.startsWith('trip_')?Icons.flight_takeoff_outlined:
+                       kind=='occasion_shared'?Icons.card_giftcard_outlined:
+                       kind.startsWith('experience_')?Icons.movie_outlined:
                        kind=='letter'?Icons.mail_outline:
                        kind=='gesture'?Icons.favorite_border:
                        kind.startsWith('checkin_')?Icons.mark_chat_read_outlined:
