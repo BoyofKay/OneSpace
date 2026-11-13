@@ -87,7 +87,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
      title:Text(r['title'].toString()),
      subtitle:Text((experienceTypes[r['category']]??'Other')+' · '+
        (experienceStates[r['status']]??'Suggested')+
-       (r['platform'].toString().isEmpty?'':' · '+r['platform'].toString())),
+       ((r['platform']??'').toString().isEmpty?'':' · '+r['platform'].toString())),
      trailing:const Icon(Icons.chevron_right),onTap:()=>open(r))),
    ])));
  }
