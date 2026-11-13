@@ -16,3 +16,5 @@ Validate:
 Only after automated validation should the release marker be updated once for a consolidated APK.
 
 Validation invocation: analyzer + automated Flutter tests, no APK.
+
+Validation pass 2: use the corrected nullable platform rendering.
