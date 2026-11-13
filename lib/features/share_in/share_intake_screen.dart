@@ -45,6 +45,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen>{
     if(mounted)setState((){loading=false;error='Connect a shared space first.';});
     return;
    }
+   if(mounted)setState(()=>spaceId=id);
    final rows=await db.from('activities').select('id,title,visibility,archived_at')
     .eq('space_id',id).isFilter('archived_at',null)
     .order('updated_at',ascending:false).limit(100);
@@ -155,6 +156,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen>{
     decoration:const InputDecoration(labelText:'Title',border:OutlineInputBorder())),
    const SizedBox(height:8),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
+    onChanged:(_)=>setState((){}),
     decoration:const InputDecoration(labelText:'Web link (optional)',border:OutlineInputBorder())),
    const SizedBox(height:8),
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:6,
