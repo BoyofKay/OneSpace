@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
+import 'features/search/global_search_screen.dart';
 import 'features/coordinate/coordinate_screen.dart';
 import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
@@ -206,6 +207,11 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           Text(tr(context,'tagline'),style:const TextStyle(fontSize:12)),
         ]),
         actions: [
+          if (!showProfile) IconButton(
+            icon:const Icon(Icons.search_outlined),
+            tooltip:'Search our space',
+            onPressed:()=>open(const GlobalSearchScreen()),
+          ),
           if (!showProfile) IconButton(
             key: const Key('profileTopBarButton'),
             icon: const Icon(Icons.account_circle_outlined,size:28),

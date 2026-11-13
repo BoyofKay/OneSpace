@@ -465,6 +465,23 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       .difference(DateTime(now.year,now.month,now.day)).inDays;
   }
 
+  Future<void> _changeLivingArrangement(String next) async {
+    final id = spaceId;
+    if (id == null || next == relationshipMode) return;
+    final previous = relationshipMode;
+    setState(() => relationshipMode = next);
+    try {
+      await client.from('spaces').update({'relationship_mode': next})
+          .eq('id', id);
+      if (mounted) await _load();
+    } catch (_) {
+      if (mounted) setState(() {
+        relationshipMode = previous;
+        issue = 'Could not update our living arrangement.';
+      });
+    }
+  }
+
   Widget _relationshipPanel() {
     final ago=_dayDistance(lastMetOn);
     final until=_dayDistance(nextMeetOn);
@@ -476,24 +493,35 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           Row(children:[
             const Icon(Icons.favorite_outline,color:Color(0xFF167E81)),
             const SizedBox(width:8),
-            Expanded(child:Text(tr(context,'ourRelationship'),
+            Expanded(child:Text('Our space',
               style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17))),
-            IconButton(
-              onPressed:widget.onOpenWorld,
-              tooltip:tr(context,'relationshipEdit'),
-              icon:const Icon(Icons.tune_outlined)),
+            PopupMenuButton<String>(
+              tooltip: 'Change living arrangement',
+              onSelected: _changeLivingArrangement,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value:'living_together',child:Text('Living together')),
+                PopupMenuItem(value:'apart_different_tz',child:Text('Living apart')),
+              ],
+            ),
           ]),
-          Text(_modeLabel()),
-          const SizedBox(height:10),
+          Text(_modeLabel(),style:Theme.of(context).textTheme.bodySmall),
+          if (relationshipMode != 'living_together') PartnerClockStrip(
+            members: clockMembers,
+            relationshipMode: relationshipMode,
+            onConfigure: widget.onOpenProfile,
+          ),
+          if (ago != null || until != null) ...[
+          const SizedBox(height:7),
           Row(children:[
-            Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            if (ago != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
               Text(tr(context,'lastMetLabel'),
                 style:Theme.of(context).textTheme.bodySmall),
               Text(ago==null?tr(context,'dateNotSet'):
                 '${ago<0?-ago:0} ${tr(context,'daysAgo')}',
                 style:const TextStyle(fontWeight:FontWeight.bold)),
             ])),
-            Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            if (until != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
               Text(tr(context,'nextMeetingLabel'),
                 style:Theme.of(context).textTheme.bodySmall),
               Text(until==null?tr(context,'dateNotSet'):
@@ -503,6 +531,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                 style:const TextStyle(fontWeight:FontWeight.bold)),
             ])),
           ]),
+          ],
         ]),
       ),
     );
@@ -516,13 +545,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            spaceId == null ? tr(context, 'ourSpace') : tr(context, 'todayTab'),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            spaceId == null ? tr(context, 'ourSpace') :
+              'Welcome back, ${clockMembers.where((m) => m['is_me'] == true).map((m) => m['name']?.toString() ?? '').firstOrNull ?? 'there'}',
+            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 6),
-          Text(spaceId == null
-              ? tr(context, 'spaceSubtitle')
-              : tr(context, 'todayDashboardSubtitle')),
           const SizedBox(height: 16),
           if (issue != null) ...[
             Text(issue!, style: const TextStyle(color: Colors.red)),
@@ -597,12 +623,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ),
           ] else ...[
             _relationshipPanel(),
-            const SizedBox(height: 8),
-            PartnerClockStrip(
-              members: clockMembers,
-              relationshipMode: relationshipMode,
-              onConfigure: widget.onOpenProfile,
-            ),
             const SizedBox(height:12),
             TodayAttentionSection(
               items:focusItems,
@@ -668,68 +688,13 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ),
           ],
           if (spaceId != null) ...[
-            const SizedBox(height: 24),
-            Text(
-              tr(context, 'todayOverviewTitle'),
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    if (summaryLoading && taskSummary == null)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    if (summaryIssue != null) ...[
-                      Text(tr(context, 'dashboardStatsUnavailable')),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: _load,
-                        icon: const Icon(Icons.refresh),
-                        label: Text(tr(context, 'retry')),
-                      ),
-                    ],
-                    if (taskSummary != null) ...[
-                      _metric(tr(context, 'activeActivitiesCount'), activeActivities),
-                      _metric(tr(context, 'importantActivitiesCount'), importantActivities),
-                      _metric(tr(context, 'upcomingActivitiesCount'), upcomingActivities),
-                      _metric(tr(context, 'completedActivitiesCount'), completedActivities),
-                      const Divider(),
-                      ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        title: const Text('More shared totals'),
-                        subtitle: const Text('Tasks, lists, notes and memories'),
-                        children: [
-                          _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
-                      _metric(tr(context, 'assignedToMe'), taskSummary!.assignedToMe),
-                      _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
-                      _metric(tr(context, 'completedSharedTasks'),
-                          taskSummary!.completedShared),
-                      const Divider(),
-                      _metric(tr(context, 'shoppingListsCount'), activeShoppingLists),
-                      _metric(tr(context, 'otherListsCount'), activeOtherLists),
-                      _metric(tr(context, 'notesCount'), activeNotes),
-                      _metric(tr(context, 'calendarEntries'), activeCalendarEvents),
-                      _metric(tr(context, 'memoriesCount'), activeMemories),
-                      _metric(tr(context, 'activeGoalsCount'), activeGoals),
-                      _metric(tr(context, 'achievedGoalsCount'), achievedGoals),
-                          _metric(tr(context, 'recentCheckinsCount'), recentCheckins),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
             if (recentDiscussions.isNotEmpty) ...[
-              Text(tr(context,'recentDiscussionsTitle'),
-                style: const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                initiallyExpanded: false,
+                title: Text('Recent discussions (${recentDiscussions.length})',
+                  style: const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+                children: [
               for(final entry in recentDiscussions) Card(
                 elevation:0,
                 child:ListTile(
@@ -747,9 +712,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   },
                 ),
               ),
+              ],
+              ),
               const SizedBox(height:12),
             ],
-            Text(tr(context, 'todayQuickAccess'),
+            const Text('Explore our space', style: TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 17)),
+            /* Existing feature shortcuts remain data-driven and accessible. */
+            if (false) Text(tr(context, 'todayQuickAccess'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
             const SizedBox(height: 8),
             Wrap(
@@ -799,10 +769,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              tr(context, 'summaryHelp'),
-              style: TextStyle(fontSize: 12),
-            ),
+ 
           ],
         ],
       ),

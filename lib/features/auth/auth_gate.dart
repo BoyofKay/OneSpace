@@ -323,21 +323,6 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  void _fingerprintWithoutSession() {
-    // There is no session to unlock. Never launch a biometric prompt or
-    // Android enrollment from the signed-out screen.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(tr(context, 'firstSignInHelp')),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: tr(context, 'done'),
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        ),
-      ),
-    );
-  }
-
   void _selectAccount(String email) {
     setState(() {
       emailController.text = email;
@@ -471,24 +456,6 @@ class _SignInScreenState extends State<SignInScreen> {
                                         ? tr(context, 'passwordTooShort') : null,
                               ),
                             ),
-                            if (!registering) ...[
-                              const SizedBox(width: 10),
-                              SizedBox(
-                                width: 56, height: 56,
-                                child: OutlinedButton(
-                                  key: const Key('loginFingerprint'),
-                                  onPressed: loading ? null
-                                      : _fingerprintWithoutSession,
-                                  style: OutlinedButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Icon(Icons.fingerprint, size: 30),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                         if (registering)

@@ -66,7 +66,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
         return Text(
           member['is_me'] == true
             ? 'Choose a city in Profile to share its weather.'
-            : 'Your partner hasn't selected a shared weather city.',
+            : "Your partner has not selected a shared weather city.",
           style: Theme.of(context).textTheme.bodySmall,
         );
       }
@@ -131,9 +131,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
       );
     }
 
-    return Card(
-      elevation: 0,
-      child: Padding(
+    return Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -159,10 +157,12 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
               ],
             ]),
             const SizedBox(height: 6),
-            weatherLine(mine),
-            if (partner != null) weatherLine(partner),
-            if (mine?['city_weather_shared'] == true ||
-                partner?['city_weather_shared'] == true)
+            if (!livingTogether) ...[
+              weatherLine(mine),
+              if (partner != null) weatherLine(partner),
+            ],
+            if (!livingTogether && (mine?['city_weather_shared'] == true ||
+                partner?['city_weather_shared'] == true))
               Align(alignment: Alignment.centerRight,
                 child: InkWell(
                   onTap: () => unawaited(launchUrl(
@@ -190,7 +190,6 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
             ],
           ],
         ),
-      ),
     );
   }
 }

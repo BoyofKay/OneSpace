@@ -172,10 +172,6 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
                 onPressed: _busy ? null : _unlockWithPassword,
                 child: Text(tr(context, 'savedSessionPasswordAction')),
               ),
-              TextButton(
-                onPressed: _busy ? null : widget.onSwitchAccount,
-                child: Text(tr(context, 'switchAccount')),
-              ),
               Text(tr(context, 'phoneUnlockNotSetupHint'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall),
