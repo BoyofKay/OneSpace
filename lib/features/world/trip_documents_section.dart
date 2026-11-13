@@ -199,10 +199,12 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
      ],
     )));
    if(accepted!=true||title.text.trim().isEmpty)return;
-   await change(()async=>db.from('trip_attachments').update({
-    'title':title.text.trim(),'kind':kind,
-    'item_id':location=='whole_trip'?null:location,
-   }).eq('id',doc['id']));
+   await change(()async{
+    await db.from('trip_attachments').update({
+     'title':title.text.trim(),'kind':kind,
+     'item_id':location=='whole_trip'?null:location,
+    }).eq('id',doc['id']);
+   });
   }finally{title.dispose();}
  }
 
