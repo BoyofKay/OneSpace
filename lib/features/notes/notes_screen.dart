@@ -226,6 +226,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late String _visibility;
   late bool _pinned;
   bool _busy = false;
+  bool _preview = false;
   String? _error;
   StreamSubscription<List<Map<String, dynamic>>>? _revocationWatcher;
 
@@ -280,6 +281,39 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     _body.dispose();
     super.dispose();
   }
+
+  void _insertFormatting(String before,{String after='',String placeholder='text'}) {
+    if(!_canEdit || _busy || _archived){return;}
+    final selection=_body.selection;
+    final start=selection.isValid?selection.start:_body.text.length;
+    final end=selection.isValid?selection.end:_body.text.length;
+    final selected=start==end?placeholder:_body.text.substring(start,end);
+    final replacement='$before$selected$after';
+    _body.value=TextEditingValue(
+      text:_body.text.replaceRange(start,end,replacement),
+      selection:TextSelection.collapsed(offset:start+replacement.length),
+    );
+  }
+
+  Widget _formattingToolbar()=>SingleChildScrollView(
+    scrollDirection:Axis.horizontal,
+    child:Row(children:[
+      IconButton(tooltip:'Heading',icon:const Icon(Icons.title),
+        onPressed:()=>_insertFormatting('## ',placeholder:'Heading')),
+      IconButton(tooltip:'Bold',icon:const Icon(Icons.format_bold),
+        onPressed:()=>_insertFormatting('**',after:'**')),
+      IconButton(tooltip:'Italic',icon:const Icon(Icons.format_italic),
+        onPressed:()=>_insertFormatting('*',after:'*')),
+      IconButton(tooltip:'Checklist',icon:const Icon(Icons.check_box_outlined),
+        onPressed:()=>_insertFormatting('- [ ] ',placeholder:'To-do')),
+      IconButton(tooltip:'Bullets',icon:const Icon(Icons.format_list_bulleted),
+        onPressed:()=>_insertFormatting('- ',placeholder:'List item')),
+      IconButton(tooltip:'Numbers',icon:const Icon(Icons.format_list_numbered),
+        onPressed:()=>_insertFormatting('1. ',placeholder:'List item')),
+      IconButton(tooltip:'Link',icon:const Icon(Icons.link),
+        onPressed:()=>_insertFormatting('[',after:'](https://)',placeholder:'Link name')),
+    ]),
+  );
 
   Future<void> _save() async {
     if (!_canEdit) return;
