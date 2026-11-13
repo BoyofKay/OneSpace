@@ -159,7 +159,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
         return Column(children:[
           for(final item in rows.take(60))Card(elevation:0,child:ListTile(
             leading:Icon(item['sender_id']==me?
-              Icons.outgoing_mail_outlined:Icons.mark_email_unread_outlined),
+              Icons.send_outlined:Icons.mark_email_unread_outlined),
             title:Text(item['sender_id']==me?'You checked on your partner':
               'Your partner checked on you'),
             subtitle:Text([
