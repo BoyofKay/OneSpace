@@ -242,6 +242,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   bool _busy = false;
   bool _preview = false;
   String? _error;
+  String? _noteMention;
+  int _noteMentionStart=-1;
+  String? _partnerFullName;
   StreamSubscription<List<Map<String, dynamic>>>? _revocationWatcher;
 
   bool get _editing => widget.existing != null;
@@ -264,6 +267,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
     _visibility = widget.existing?['visibility'] as String? ?? 'shared';
     _pinned = widget.existing?['pinned'] == true;
+    _resolvePartner();
     if (_editing && !_canEdit) {
       _revocationWatcher = watchObjectShares(
         client: _client,
@@ -309,6 +313,365 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
   }
 
+
+  Future<void> _resolvePartner() async {
+    final me=_client.auth.currentUser?.id;
+    if(me==null)return;
+    final cached=CurrentSpaceCache.instance.memberNamesFor(widget.spaceId);
+    final existing=cached?.entries.where((e)=>e.key!=me)
+      .map((e)=>e.value).firstOrNull;
+    if(existing!=null){
+      if(mounted)setState(()=>_partnerFullName=existing);
+      return;
+    }
+    try{
+      final members=await _client.from('space_members').select('user_id')
+        .eq('space_id',widget.spaceId);
+      final partner=members.where((r)=>r['user_id']!=me).firstOrNull;
+      if(partner==null)return;
+      final profile=await _client.from('profiles').select('display_name')
+        .eq('id',partner['user_id'].toString()).single();
+      if(mounted)setState(()=>
+        _partnerFullName=profile['display_name']?.toString());
+    }catch(_){}
+  }
+  void _onNoteText(String text){
+    if(_visibility!='shared'||_partnerFullName==null)return;
+    final cursor=_body.selection.isValid?_body.selection.baseOffset:text.length;
+    final before=text.substring(0,cursor.clamp(0,text.length));
+    final match=RegExp(r'(^|\s)@([^\s@]*)
+    if(!_canEdit||_busy||_archived||_visibility!='shared')return;
+    final me=_client.auth.currentUser?.id;
+    if(me==null)return;
+    String? partner;
+    final names=CurrentSpaceCache.instance.memberNamesFor(widget.spaceId);
+    partner=names?.entries.where((e)=>e.key!=me)
+      .map((e)=>e.value).firstOrNull;
+    if(partner==null){
+      try{
+        final members=await _client.from('space_members')
+          .select('user_id').eq('space_id',widget.spaceId);
+        final other=members.where((entry)=>entry['user_id']!=me).firstOrNull;
+        if(other!=null){
+          final profile=await _client.from('profiles')
+            .select('display_name').eq('id',other['user_id'].toString()).single();
+          partner=profile['display_name']?.toString();
+        }
+      }catch(_){}
+    }
+    if(!mounted||partner==null||partner.trim().isEmpty)return;
+    final selection=_body.selection;
+    final start=selection.isValid?selection.start:_body.text.length;
+    final end=selection.isValid?selection.end:_body.text.length;
+    final mention='@'+partner.trim()+' ';
+    _body.value=TextEditingValue(
+      text:_body.text.replaceRange(start,end,mention),
+      selection:TextSelection.collapsed(offset:start+mention.length),
+    );
+  }
+
+  Widget _formattingToolbar()=>SingleChildScrollView(
+    scrollDirection:Axis.horizontal,
+    child:Row(children:[
+      IconButton(tooltip:'Heading',icon:const Icon(Icons.title),
+        onPressed:()=>_insertFormatting('## ',placeholder:'Heading')),
+      IconButton(tooltip:'Bold',icon:const Icon(Icons.format_bold),
+        onPressed:()=>_insertFormatting('**',after:'**')),
+      IconButton(tooltip:'Italic',icon:const Icon(Icons.format_italic),
+        onPressed:()=>_insertFormatting('*',after:'*')),
+      IconButton(tooltip:'Checklist',icon:const Icon(Icons.check_box_outlined),
+        onPressed:()=>_insertFormatting('- [ ] ',placeholder:'To-do')),
+      IconButton(tooltip:'Bullets',icon:const Icon(Icons.format_list_bulleted),
+        onPressed:()=>_insertFormatting('- ',placeholder:'List item')),
+      IconButton(tooltip:'Numbers',icon:const Icon(Icons.format_list_numbered),
+        onPressed:()=>_insertFormatting('1. ',placeholder:'List item')),
+      IconButton(tooltip:'Link',icon:const Icon(Icons.link),
+        onPressed:()=>_insertFormatting('[',after:'](https://)',placeholder:'Link name')),
+    ]),
+  );
+
+  Widget _previewRow(String line,int index){
+    final heading=line.startsWith('# ');
+    final subheading=line.startsWith('## ');
+    final task=line.startsWith('- [ ] ')||line.startsWith('- [x] ');
+    final done=line.startsWith('- [x] ');
+    final content=heading?line.substring(2):
+      subheading?line.substring(3):task?line.substring(6):line;
+    final style=heading?Theme.of(context).textTheme.titleLarge:
+      subheading?Theme.of(context).textTheme.titleMedium:
+      Theme.of(context).textTheme.bodyMedium;
+    final spans=<TextSpan>[];
+    final matcher=RegExp(r'(\*\*[^*]+\*\*|\*[^*]+\*)');
+    var position=0;
+    for(final match in matcher.allMatches(content)){
+      if(match.start>position){
+        spans.add(TextSpan(text:content.substring(position,match.start)));
+      }
+      final raw=match.group(0)!;
+      if(raw.startsWith('**')){
+        spans.add(TextSpan(text:raw.substring(2,raw.length-2),
+          style:const TextStyle(fontWeight:FontWeight.bold)));
+      }else{
+        spans.add(TextSpan(text:raw.substring(1,raw.length-1),
+          style:const TextStyle(fontStyle:FontStyle.italic)));
+      }
+      position=match.end;
+    }
+    if(position<content.length){
+      spans.add(TextSpan(text:content.substring(position)));
+    }
+    final preview=Text.rich(TextSpan(style:style,children:spans));
+    if(!task){
+      return Padding(
+        padding:const EdgeInsets.symmetric(vertical:4),
+        child:preview);
+    }
+    return CheckboxListTile(
+      contentPadding:EdgeInsets.zero,
+      controlAffinity:ListTileControlAffinity.leading,
+      value:done,
+      onChanged:!_canEdit||_busy?null:(value){
+        final lines=_body.text.split('\n');
+        if(index>=lines.length){return;}
+        lines[index]=lines[index].replaceFirst(
+          RegExp(r'^- \[[ x]\] '),
+          value==true?'- [x] ':'- [ ] ');
+        setState(()=>_body.text=lines.join('\n'));
+      },
+      title:DefaultTextStyle.merge(
+        style:TextStyle(decoration:done?TextDecoration.lineThrough:null,
+          color:done?Theme.of(context).colorScheme.outline:null),
+        child:preview,
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_canEdit) return;
+    final title = _title.text.trim();
+    final body = _body.text.trim();
+    if (!NoteDraftRules.isValid(title: title, body: body)) {
+      setState(() => _error = tr(context, 'noteValidation'));
+      return;
+    }
+    setState(() { _busy = true; _error = null; });
+    try {
+      final fields = <String,dynamic>{
+        'title': title, 'body': body, 'pinned': _pinned,
+      };
+      if (!_editing) {
+        await _client.from('notes').insert({
+          ...fields,
+          'space_id': widget.spaceId,
+          'created_by': _client.auth.currentUser!.id,
+          'visibility': _visibility,
+        });
+      } else {
+        final existing = widget.existing!;
+        final matches = await _client.from('notes')
+            .update(fields)
+            .eq('id', existing['id'] as String)
+            .eq('space_id', widget.spaceId)
+            .eq('updated_at', existing['updated_at'] as String)
+            .select('id');
+        if (matches.isEmpty) {
+          if (mounted) {
+            setState(() => _error = tr(context, 'noteConflict'));
+          }
+          return;
+        }
+      }
+      if (mounted) Navigator.of(context).pop();
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = tr(context, 'saveFailed'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _archiveOrRestore() async {
+    if (!_editing || !_canEdit) return;
+    final restoring = _archived;
+    if (!restoring) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(tr(context, 'archiveNote')),
+          content: Text(tr(context, 'archiveExplanation')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(tr(context, 'cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(tr(context, 'archive')),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+    setState(() => _busy = true);
+    try {
+      final matches = await _client.from('notes').update({
+        'archived_at': restoring
+            ? null : DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', widget.existing!['id'] as String)
+        .eq('space_id', widget.spaceId)
+        .eq('updated_at', widget.existing!['updated_at'] as String)
+        .select('id');
+      if (matches.isEmpty) {
+        if (mounted) setState(() => _error = tr(context, 'noteConflict'));
+        return;
+      }
+      if (mounted) Navigator.of(context).pop();
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = tr(context, 'saveFailed'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(tr(context,
+          _editing ? 'editNote' : 'newNote'))),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            if (!_canEdit)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(tr(context, 'viewOnly')),
+              ),
+            if (_archived)
+              Text(tr(context, 'archived'), style: const TextStyle(
+                fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _title, maxLength: 120,
+              readOnly: !_canEdit,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: tr(context, 'noteTitle'),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(children:[
+              Expanded(child:Text('Content',
+                style:Theme.of(context).textTheme.titleSmall)),
+              TextButton.icon(
+                onPressed:()=>setState(()=>_preview=!_preview),
+                icon:Icon(_preview?Icons.edit_outlined:Icons.visibility_outlined),
+                label:Text(_preview?'Edit':'Preview'),
+              ),
+            ]),
+            if(!_preview&&_canEdit)_formattingToolbar(),
+            if(_preview)Card(elevation:0,child:Padding(
+              padding:const EdgeInsets.all(12),
+              child:Column(crossAxisAlignment:CrossAxisAlignment.start,
+                children:[
+                  for(final line in _body.text.split('\n').indexed)
+                    _previewRow(line.$2,line.$1),
+                ]),
+            ))
+            else TextField(
+              controller: _body,
+              onChanged:_onNoteText,
+              readOnly: !_canEdit,
+              maxLength: 30000, maxLines: 12, minLines: 5,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: tr(context, 'noteBody'),
+                hintText: tr(context, 'noteHint'),
+                border: const OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            if(_noteMention!=null)Align(
+              alignment:AlignmentDirectional.centerStart,
+              child:ActionChip(
+                avatar:const Icon(Icons.alternate_email,size:17),
+                label:Text(_noteMention!),
+                onPressed:_acceptNoteMention)),
+            const SizedBox(height: 10),
+            Text(tr(context, 'visibility')),
+            Wrap(
+              spacing: 8,
+              children: ['shared','private'].map((scope) => ChoiceChip(
+                selected: _visibility == scope,
+                label: Text(tr(context, scope)),
+                onSelected: _busy || _editing ? null
+                    : (_) => setState(() => _visibility = scope),
+              )).toList(),
+            ),
+            const SizedBox(height: 5),
+            Text(tr(context,
+                _editing ? 'privacyAlreadyFixed' : 'privacyFixed'),
+                style: Theme.of(context).textTheme.bodySmall),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(tr(context, 'pinNote')),
+              value: _pinned,
+              onChanged: _busy || !_canEdit ? null
+                  : (value) => setState(() => _pinned = value),
+            ),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 12),
+            if (_canEdit) FilledButton.icon(
+              onPressed: _busy || _archived ? null : _save,
+              icon: const Icon(Icons.save_outlined),
+              label: Text(tr(context, 'saveNote')),
+            ),
+            if (_editing && _canEdit) ...[
+              const SizedBox(height: 14),
+              OutlinedButton(
+                onPressed: _busy ? null : _archiveOrRestore,
+                child: Text(tr(context, _archived ? 'restore' : 'archive')),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(tr(context, 'notesEditingInfo'),
+              style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+).firstMatch(before);
+    final typed=match?.group(2)??'';
+    final show=match!=null&&_partnerFullName!.toLowerCase()
+      .startsWith(typed.toLowerCase());
+    setState((){
+      _noteMention=show?_partnerFullName:null;
+      _noteMentionStart=show?cursor-typed.length-1:-1;
+    });
+  }
+  void _acceptNoteMention(){
+    final name=_noteMention;
+    if(name==null||_noteMentionStart<0)return;
+    final cursor=_body.selection.isValid?
+      _body.selection.baseOffset:_body.text.length;
+    final end=cursor.clamp(_noteMentionStart,_body.text.length);
+    final insertion='@'+name+' ';
+    _body.value=TextEditingValue(
+      text:_body.text.replaceRange(_noteMentionStart,end,insertion),
+      selection:TextSelection.collapsed(
+        offset:_noteMentionStart+insertion.length));
+    setState((){
+      _noteMention=null;_noteMentionStart=-1;
+    });
+  }
 
   Future<void> _mentionPartner() async {
     if(!_canEdit||_busy||_archived||_visibility!='shared')return;
