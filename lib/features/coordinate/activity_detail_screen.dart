@@ -49,6 +49,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? issue;
   bool sending = false;
   bool voiceMode=false;
+  bool showRemovedComponents=false;
   String? mentionSuggestion;
   int mentionOffset = -1;
   String? conversationSpaceId;
@@ -653,6 +654,74 @@ class _ActivityScreenState extends State<ActivityScreen> {
     composerFocus.requestFocus();
   }
 
+  Future<void> _setComponentRemoved(Map<String,dynamic> item,bool remove) async{
+    final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
+      AlertDialog(
+        title:Text(remove?'Remove this component?':'Restore this component?'),
+        content:Text(remove
+          ?'It will disappear from the active Activity. Its contents and '
+           'change history are preserved.'
+          :'Return this component to the Activity.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),
+            child:const Text('Keep')),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+            child:Text(remove?'Remove':'Restore')),
+        ],
+      ));
+    if(confirmed!=true||!mounted)return;
+    await run(() async{
+      final rows=await db.from('activity_components').update({
+        'archived_at':remove?DateTime.now().toUtc().toIso8601String():null,
+      }).eq('id',item['id'].toString())
+       .eq('updated_at',item['updated_at'].toString())
+       .select('id');
+      if(rows.isEmpty)throw StateError('Component changed. Please retry.');
+    });
+  }
+
+  Future<void> _setActivityArchived(Map<String,dynamic> item,bool archive) async{
+    final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
+      AlertDialog(
+        title:Text(archive?'Archive this Activity?':'Restore this Activity?'),
+        content:Text(archive
+          ?'Hide this Activity from active lists while keeping its '
+           'comments, evidence, decisions, and audit trail.'
+          :'Restore this Activity without losing history.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),
+            child:const Text('Cancel')),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+            child:Text(archive?'Archive':'Restore')),
+        ],
+      ));
+    if(confirmed!=true||!mounted)return;
+    await run(()async{
+      final rows=await db.from('activities').update({
+        'archived_at':archive?DateTime.now().toUtc().toIso8601String():null,
+      }).eq('id',widget.id)
+       .eq('updated_at',item['updated_at'].toString())
+       .select('id');
+      if(rows.isEmpty)throw StateError('Activity changed. Please retry.');
+    });
+  }
+
+  Future<void> _finishActivity(Map<String,dynamic> item) async{
+    final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
+      AlertDialog(
+        title:const Text('Mark Activity completed?'),
+        content:const Text('Every comment, component, decision and edit '
+          'remains available. You can reopen it later.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),
+            child:const Text('Not yet')),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+            child:const Text('Mark completed')),
+        ],
+      ));
+    if(confirmed==true&&mounted)await changeField(item,'stage','completed');
+  }
+
   Future<void> componentMenu(
     Map<String, dynamic> item,
     List<Map<String, dynamic>> votes,
@@ -756,9 +825,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 title: const Text('Edit'),
                 onTap: () => Navigator.pop(ctx, 'edit')),
               ListTile(
-                leading: const Icon(Icons.history),
-                title: const Text('Edit history'),
-                onTap: () => Navigator.pop(ctx, 'history')),
+                leading:const Icon(Icons.history),
+                title:const Text('Edit & removal history'),
+                onTap:()=>Navigator.pop(ctx,'history')),
+              ListTile(
+                leading:Icon(item['archived_at']==null
+                  ?Icons.remove_circle_outline:Icons.restore_outlined),
+                title:Text(item['archived_at']==null?
+                  'Remove from Activity':'Restore component'),
+                onTap:()=>Navigator.pop(ctx,'toggle-removed')),
             ]),
           ),
         ),
@@ -804,6 +879,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await openEditor(kind, existing: item);
       case 'history':
         await showComponentHistory(item);
+      case 'toggle-removed':
+        await _setComponentRemoved(item,item['archived_at']==null);
     }
   }
 
@@ -821,7 +898,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
               if (changes.isEmpty) const Text('No edits yet.'),
               for (final change in changes)
                 ListTile(
-                  title: Text(when(change['changed_at'])),
+                  title:Text((change['change_kind']?.toString()??'Edited')+
+                    ' · '+when(change['changed_at'])),
                   subtitle: Text(
                     '${change['old_label']} → ${change['new_label']}\n'
                     '${change['old_payload']} → ${change['new_payload']}'),
@@ -942,6 +1020,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final value = valueFor(item);
     final note = payload['note']?.toString() ?? '';
     final done = payload['status'] == 'done';
+    final removed=item['archived_at']!=null;
     final votes = allVotes.where((v) => v['component_id'] == item['id']);
     final likes = votes.where((v) => v['opinion'] == 1).length;
     final dislikes = votes.where((v) => v['opinion'] == -1).length;
@@ -975,7 +1054,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           // Voice content is controlled by its player, not by a card tap.
-          onTap: kind == 'voice' ? null : primaryAction,
+          onTap: kind == 'voice'||removed ? null : primaryAction,
           onLongPress: () => componentMenu(item, allVotes),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(11, 10, 7, 10),
@@ -998,8 +1077,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   Text(item['label']?.toString() ?? '',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      color:removed?Theme.of(context).colorScheme.outline:null,
                       decoration: done ? TextDecoration.lineThrough : null,
                     )),
+                  if(removed)const Text('Removed · kept in history'),
                   if (value.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     SelectableText(value,
@@ -1111,7 +1192,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
       if (snapshot.hasError) return const Text('Could not load attached items.');
       if (!snapshot.hasData) return const LinearProgressIndicator();
       final items = snapshot.data!;
-      final roots = items.where((i) => i['parent_component_id'] == null).toList();
+      final visible=showRemovedComponents?items:
+      items.where((i)=>i['archived_at']==null).toList();
+    final roots=visible.where((i)=>i['parent_component_id']==null).toList();
       final options = roots.where((i) => i['kind'] == 'option').toList();
       final steps = roots.where((i) => i['kind'] == 'step').toList();
       final references = roots.where(
@@ -1120,7 +1203,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
         stream: reactions,
         builder: (context, r) {
           final votes = r.data ?? [];
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          return Column(crossAxisAlignment: CrossAxisAlignment.start,children:[
+            if(items.any((i)=>i['archived_at']!=null))
+              Align(alignment:AlignmentDirectional.centerEnd,
+                child:TextButton.icon(
+                  onPressed:()=>setState(() =>
+                    showRemovedComponents=!showRemovedComponents),
+                  icon:Icon(showRemovedComponents?
+                    Icons.visibility_off_outlined:Icons.history_toggle_off),
+                  label:Text(showRemovedComponents?
+                    'Hide removed items':'View removed items'))),
             if (items.isEmpty) ...[
               Row(children: [
                 Expanded(child: Text('Add to this Activity',
@@ -1145,7 +1237,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   onPressed: () => openEditor('option'),
                   icon: const Icon(Icons.add)),
               ]),
-              for (final option in options) ...attachedTree(option, items, votes),
+              for (final option in options) ...attachedTree(option,visible,votes),
               const SizedBox(height: 10),
             ],
             if (steps.isNotEmpty) ...[
@@ -1157,7 +1249,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   onPressed: () => openEditor('step'),
                   icon: const Icon(Icons.add)),
               ]),
-              for (final step in steps) ...attachedTree(step, items, votes),
+              for (final step in steps) ...attachedTree(step,visible,votes),
               const SizedBox(height: 10),
             ],
             if (references.isNotEmpty) ...[
@@ -1169,7 +1261,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   icon: const Icon(Icons.add)),
               ]),
               for (final reference in references)
-                ...attachedTree(reference, items, votes),
+                ...attachedTree(reference,visible,votes),
             ],
           ]);
         },
@@ -1410,6 +1502,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final priority = item['priority']?.toString() ?? 'normal';
     final stage = item['stage']?.toString() ?? 'exploring';
     final due = item['due_on']?.toString();
+    final archived=item['archived_at']!=null;
     return Column(children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         PopupMenuButton<String>(
@@ -1452,8 +1545,37 @@ class _ActivityScreenState extends State<ActivityScreen> {
             onPressed: () => changeField(item, 'due_on', null)),
         IconButton(tooltip: 'Add an item', icon: const Icon(Icons.add_circle_outline),
           onPressed: chooseAdd),
-        IconButton(tooltip: 'History', icon: const Icon(Icons.history),
-          onPressed: () => showActivityHistory(item)),
+        PopupMenuButton<String>(
+          tooltip:'Activity actions',
+          icon:const Icon(Icons.more_horiz),
+          onSelected:(value){
+            if(value=='completed')_finishActivity(item);
+            if(value=='cancelled')recordDecision('cancelled');
+            if(value=='reopen')recordDecision('reopened');
+            if(value=='archive')_setActivityArchived(item,true);
+            if(value=='restore')_setActivityArchived(item,false);
+            if(value=='history')showActivityHistory(item);
+          },
+          itemBuilder:(_)=>[
+            if(!archived && stage!='completed')
+              const PopupMenuItem(value:'completed',
+                child:Text('Mark completed')),
+            if(!archived && stage!='cancelled')
+              const PopupMenuItem(value:'cancelled',
+                child:Text('Cancel Activity…')),
+            if(!archived && (stage=='cancelled'||stage=='completed'||
+              stage=='on_hold'))
+              const PopupMenuItem(value:'reopen',
+                child:Text('Reopen Activity…')),
+            if(!archived)
+              const PopupMenuItem(value:'archive',
+                child:Text('Archive (keep history)…')),
+            if(archived)
+              const PopupMenuItem(value:'restore',
+                child:Text('Restore Activity…')),
+            const PopupMenuItem(value:'history',child:Text('Audit history')),
+          ],
+        ),
       ]),
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -1487,7 +1609,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
               if (s.hasData)
                 for (final rev in s.data!)
                   ListTile(
-                    title: Text('Updated · ${when(rev['changed_at'])}'),
+                    title:Text((rev['change_kind']?.toString()??'Edited')+
+                      ' · '+when(rev['changed_at'])),
                     subtitle: Text(
                       '${rev['old_title']} → ${rev['new_title']}\n'
                       '${rev['old_body']} → ${rev['new_body']}\n'
