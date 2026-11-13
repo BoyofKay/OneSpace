@@ -422,8 +422,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Column(
         children: [
           ListTile(
-            leading: Icon(event['kind'] == 'occasion'
-                ? Icons.celebration_outlined : Icons.event_outlined),
+            leading: CircleAvatar(
+              radius:17,
+              backgroundColor:event['for_user_id']==null
+                ? Theme.of(context).colorScheme.tertiaryContainer
+                : event['for_user_id']==id
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : Theme.of(context).colorScheme.secondaryContainer,
+              child:Icon(event['kind']=='occasion'
+                ?Icons.celebration_outlined:Icons.event_outlined,size:19),
+            ),
             title: Text(event['title'] as String? ?? ''),
             subtitle: Text([
               tr(context,event['kind'] as String? ?? 'event'),
