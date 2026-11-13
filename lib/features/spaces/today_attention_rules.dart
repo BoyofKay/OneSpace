@@ -158,6 +158,7 @@ class TodayCalendarEntry {
     this.source='calendar',
     this.activityId,
     this.experienceId,
+    this.tripId,
   });
   final String title;
   final DateTime date;
@@ -165,4 +166,5 @@ class TodayCalendarEntry {
   final String source;
   final String? activityId;
   final String? experienceId;
+  final String? tripId;
 }

@@ -89,11 +89,12 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
 
 class TodayCalendarSection extends StatefulWidget {
  const TodayCalendarSection({super.key,required this.entries,required this.onOpen,
-  this.onOpenActivity,this.onOpenExperience,this.onOpenPlans});
+  this.onOpenActivity,this.onOpenExperience,this.onOpenTrip,this.onOpenPlans});
  final List<TodayCalendarEntry> entries;
  final VoidCallback onOpen;
  final void Function(String id)? onOpenActivity;
  final void Function(String id)? onOpenExperience;
+ final void Function(String id)? onOpenTrip;
  final VoidCallback? onOpenPlans;
  @override State<TodayCalendarSection> createState()=>_TodayCalendarSectionState();
 }
@@ -120,18 +121,22 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
          dense:true,
          leading:Icon(entry.kind=='occasion'?Icons.celebration_outlined:
            entry.source=='activity'?Icons.hub_outlined:
+           entry.source=='trip'||entry.source=='trip_item'?Icons.flight_outlined:
            entry.source=='experience'?Icons.movie_outlined:
            entry.source=='todo'?Icons.checklist_outlined:
            entry.source=='component'?Icons.alarm_outlined:
            Icons.event_outlined),
          title:Text(entry.title,maxLines:1,overflow:TextOverflow.ellipsis),
          subtitle:Text(CalendarRules.sqlDate(entry.date)+' · '+
-           (entry.source=='experience'?'Together time':
+           (entry.source=='trip'?'Trip':entry.source=='trip_item'?'Trip item':
+            entry.source=='experience'?'Together time':
             entry.source=='todo'?'To-do':entry.source=='activity'?'Activity':
              entry.source=='component'?'Activity item':'Calendar')),
          onTap:(){
            if(entry.activityId!=null && widget.onOpenActivity!=null){
              widget.onOpenActivity!(entry.activityId!);
+           }else if(entry.tripId!=null&&widget.onOpenTrip!=null){
+             widget.onOpenTrip!(entry.tripId!);
            }else if(entry.source=='experience'&&entry.experienceId!=null&&widget.onOpenExperience!=null){
              widget.onOpenExperience!(entry.experienceId!);
            }else if(entry.source=='todo'&&widget.onOpenPlans!=null){

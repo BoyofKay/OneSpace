@@ -6,6 +6,7 @@ import '../checkins/checkins_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
 import '../connect/shared_experiences_screen.dart';
+import '../world/trips_screen.dart';
 import '../../core/current_space_cache.dart';
 
 class SectionHub extends StatelessWidget {
@@ -69,9 +70,12 @@ class SectionHub extends StatelessWidget {
           const SizedBox(height: 14),
           const Text('Daily selfies and connected-app library imports are planned.'),
         ] else ...[
-          const Card(child:Padding(padding:EdgeInsets.all(18),
-            child:Text('Journeys, places and experiences are the next '
-              'parts of World. People & contacts are in Remember.'))),
+          _link(context, Icons.luggage_outlined,
+              'Trips & journeys',
+              'Flights, places to stay, plans, booking details and shared travel notes',
+              const TripsScreen()),
+          const SizedBox(height:12),
+          const Text('People & contacts live in Remember. More of our wider world will appear here.'),
         ],
       ],
     );

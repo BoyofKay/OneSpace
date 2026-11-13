@@ -7,6 +7,7 @@ import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
 import '../checkins/checkins_screen.dart';
 import '../connect/shared_experiences_screen.dart';
+import '../world/trips_screen.dart';
 
 class NotificationBell extends StatelessWidget {
  const NotificationBell({super.key});
@@ -76,6 +77,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
        (item['calendar_event_id']??item['object_id'])?.toString());
    }else if(type=='note'){
      screen=NotesScreen(initialNoteId:item['object_id']?.toString());
+   }else if(type=='trip'){
+     screen=TripsScreen(initialTripId:(item['trip_id']??item['object_id'])?.toString());
    }else if(type=='experience'){
      screen=SharedExperiencesScreen(initialExperienceId:
        (item['experience_id']??item['object_id'])?.toString());
@@ -160,6 +163,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                        kind=='checkin_request'?'Your partner is checking on you':
                        kind=='checkin_response'?'Your partner replied':
                        kind=='checkin_shared'?'Your partner shared their feelings':
+                       kind=='trip_suggestion'?'New shared trip':
+                       kind=='trip_message'?'Your partner wrote about a trip':
                        kind=='experience_suggestion'?'New experience idea':
                        kind=='experience_comment'?'Your partner added a thought':
                        kind=='event'?'New shared event':
