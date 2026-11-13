@@ -262,14 +262,14 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
   Widget build(BuildContext context) {
     final ready = draftPath != null && !recording && seconds >= 1;
     final isComment = widget.destination == VoiceDestination.comment;
-    final title = isComment ? 'Voice message' : 'Activity voice note';
+    final title = isComment ? 'Voice message' : 'Activity recording';
     final status = busy
         ? 'Opening microphone…'
         : recording
-            ? 'Recording — tap Stop when finished'
+            ? 'Recording… tap Stop to finish'
             : ready
-                ? 'Ready to share · listen first if you want'
-                : error == null ? 'Microphone is ready' : 'Try recording again';
+                ? 'Ready to send · preview optional'
+                : error == null ? 'Tap microphone to record' : 'Try again';
 
     return PopScope(
       canPop: false,
@@ -301,7 +301,20 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall),
                   ),
-                Text(status, style: Theme.of(context).textTheme.bodySmall),
+                Text(status,style:Theme.of(context).textTheme.bodySmall),
+                if(recording)...[
+                  const SizedBox(height:8),
+                  Row(mainAxisAlignment:MainAxisAlignment.center,
+                    children:[
+                      for(var i=0;i<25;i++)Container(
+                        width:3,height:8+(i%5)*5,
+                        margin:const EdgeInsets.symmetric(horizontal:2),
+                        decoration:BoxDecoration(
+                          color:Theme.of(context).colorScheme.error
+                            .withValues(alpha:.65),
+                          borderRadius:BorderRadius.circular(5))),
+                    ]),
+                ],
                 const SizedBox(height: 10),
                 Row(children: [
                   Icon(
@@ -348,10 +361,10 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                         icon: Icon(snapshot.data?.playing == true
                             ? Icons.pause_rounded : Icons.play_arrow_rounded),
                         label: Text(snapshot.data?.playing == true
-                            ? 'Pause preview' : 'Play preview'),
+                            ? 'Pause' : 'Preview'),
                       ),
                       const Spacer(),
-                      Text('Max 2 minutes',
+                      Text('Up to 2 min',
                           style: Theme.of(context).textTheme.labelSmall),
                     ]),
                   ),
@@ -361,14 +374,7 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                   Text(error!, style: TextStyle(
                     color: Theme.of(context).colorScheme.error)),
                 ],
-                if (!recording) ...[
-                  const SizedBox(height: 6),
-                  TextButton.icon(
-                    onPressed: sending || busy ? null : discardAndClose,
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Discard'),
-                  ),
-                ],
+
               ],
             ),
           ),
