@@ -9,7 +9,7 @@
 - The selected city is stored as its public city-centroid coordinates, Open-Meteo city ID and a human-readable label; these represent the city, **not the person's live position**.
 - Today displays each partner's selected city, temperature, weather conditions, today's high/low and rain probability. Auto refresh is throttled to approximately 45 minutes while the app is foregrounded; no background tracking.
 - Changing the city fetches today's conditions before committing the selection. Failed fetch keeps the prior setting; old permission-derived city snapshots are no longer shown as selected cities.
-- **Stop sharing** hides the city/weather from the paired partner while retaining the chosen city ID for convenience; re-selecting resumes sharing.
+- **Stop monitoring** clears the saved city name, public city ID, centroid and forecast from the profile, so it is not available even through direct profile queries; re-selecting resumes sharing.
 - API source: Open-Meteo (geocoding based on GeoNames). Attribution is visible in Today. Commercial/public use must obtain suitable data licensing.
 
 ## Connect → Letters
@@ -24,3 +24,6 @@
 - Repeated city names in different states, no-results, network outage, choosing/change/stop, two authorized accounts, weather stale warning, no location permissions.
 - Draft visibility and deletion, send, immutable sent letter, reply under same space, recipient-only read receipt, denying unrelated spaces, multi-device viewing.
 - Analyze/tests, signed Android APK, correct package ID and actual GitHub Release asset.
+
+## Permission regression fix
+The profiles table uses column-level UPDATE grants. Earlier added time-zone/weather columns did not inherit profile write grants. Migration 0036 explicitly grants UPDATE only for the new fields, while owner-only profile RLS continues to block changes to a partner's settings. Tested with an authenticated rollback-only city/profile write.
