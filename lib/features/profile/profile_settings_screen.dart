@@ -94,8 +94,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _status='Monitoring ${selected.label}. Shared with your partner.';
       });
     }catch(_){
-      if(mounted)setState(()=>_error='Unable to save this city or load its '
-        'weather. Please retry.');
+      if(mounted){setState(()=>_error='Unable to save this city or load its '
+        'weather. Please retry.');}
     }finally{
       if(mounted)setState(()=>_weatherBusy=false);
     }
@@ -106,12 +106,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     setState((){_weatherBusy=true;_error=null;_status=null;});
     try{
       await DeviceWeatherService.disable(_client);
-      if(mounted)setState((){
+      if(mounted){setState((){
         _shareCityWeather=false;
         _city=null;
         _temperature=null;_weatherCode=null;_high=null;_low=null;_rain=null;
         _status='Weather sharing stopped and saved city cleared.';
-      });
+      });}
     }catch(_){
       if(mounted)setState(()=>_error='Could not stop sharing. Try again.');
     }finally{
