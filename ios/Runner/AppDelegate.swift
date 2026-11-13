@@ -16,10 +16,9 @@ import UniformTypeIdentifiers
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OneSpaceTravelDocuments")
     let channel = FlutterMethodChannel(
       name: "onespace/travel_documents",
-      binaryMessenger: registrar.messenger()
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     channel.setMethodCallHandler { [weak self] call, result in
       guard call.method == "pickDocument" else {
@@ -39,7 +38,12 @@ import UniformTypeIdentifiers
     let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
     picker.delegate = self
     picker.allowsMultipleSelection = false
-    guard let viewController = window?.rootViewController else {
+    // UIScene owns the key window on current iOS versions.
+    let activeWindow = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap { $0.windows }
+      .first(where: { $0.isKeyWindow })
+    guard let viewController = (activeWindow ?? window)?.rootViewController else {
       result(FlutterError(code: "PICKER_UNAVAILABLE", message: "Cannot open document picker", details: nil))
       return
     }
