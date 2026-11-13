@@ -29,7 +29,7 @@ App-wide tokens now style the Scaffold atmosphere, background pattern, AppBar, n
 Seasonal choices in source: Valentine's, spring, Halloween, winter, Eid, birthday, anniversary, Thanksgiving, Christmas, New Year, Automatic and Off.
 
 - *Automatic fixed-date* overlays currently include Valentine's, spring, Halloween, U.S. Thanksgiving, Christmas and New Year. These are decorative windows, not legal holiday declarations.
-- Eid and personal birthday/anniversary appearances are **manual** until a privacy-aware per-user event resolver is implemented. Do not guess lunar dates or surface hidden gift-plan details to the other partner.
+- Eid appearances are manual until official lunar dates are available; no date is guessed. Birthday and anniversary appearances can be selected manually **or activated automatically** from the signed-in user's RLS-authorized Occasion records after app unlock. Context is cleared on sign-out and never synchronized to the other device.
 - Seasonal vector motifs are subtle: petals, stars, moon shapes, snowflakes and hearts. Never overwhelm user text, especially for dark-mode, accessibility large text, or reduced-motion settings.
 - Persist a theme locally per device; each partner can have a different experience.
 - Official country holidays, personal occasions, workplace time off and decorative seasons are separate concepts and must not silently change each other.
@@ -144,7 +144,7 @@ Guardrails:
 - Never run a new release build because a source-only feature was committed.
 
 ## 8. R18 acceptance and caveats
-Source has been committed and migration 0072 applied; no new release.
+Source has been committed and migration 0072 applied; no new release. Verification is source-only, not a new APK.
 Before a future APK:
 1. Run Flutter analyze and all widget/unit tests.
 2. Validate theme appearance over all screens and modal surfaces in Light, Dark and Follow Phone, including RTL/large text.
