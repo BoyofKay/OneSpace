@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/auth_gate.dart';
 import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
+import 'features/share_in/share_intake_screen.dart';
+import 'features/share_in/share_intake_rules.dart';
 import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/coordinate/coordinate_screen.dart';
@@ -221,6 +223,43 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   bool showProfile = false;
   final Set<int> visited = {0};
   final BackExitPolicy _exitPolicy=BackExitPolicy();
+  static const _incomingShares=MethodChannel('onespace/incoming_share');
+  bool _handlingIncomingShare=false;
+
+  @override void initState(){
+    super.initState();
+    _incomingShares.setMethodCallHandler((call)async{
+      if(call.method=='shareAvailable')await _takeIncomingShare();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      if(mounted)_takeIncomingShare();
+    });
+  }
+
+  @override void dispose(){
+    _incomingShares.setMethodCallHandler(null);
+    super.dispose();
+  }
+
+  Future<void> _takeIncomingShare() async{
+    if(_handlingIncomingShare||!mounted)return;
+    _handlingIncomingShare=true;
+    try{
+      final message=await _incomingShares.invokeMapMethod<String,dynamic>(
+       'takePendingShare');
+      if(!mounted||message==null)return;
+      final data=ShareIntakeRules.fromExternal(message);
+      if(!data.hasContent)return;
+      open(ShareIntakeScreen(shared:data));
+    }on MissingPluginException{
+      // iOS shares currently require manual paste, not a share extension.
+    }on PlatformException{
+      // Invalid shares must not interrupt authentication or normal browsing.
+    }finally{
+      _handlingIncomingShare=false;
+    }
+  }
+
 
   void _handleAndroidBack(){
     if(showProfile){
@@ -292,6 +331,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             onSelected:(choice){
               if(choice=='settings')open(const OneSpaceSettingsScreen());
               if(choice=='search')open(const GlobalSearchScreen());
+              if(choice=='share')open(const ShareIntakeScreen());
               if(choice=='language')open(Scaffold(
                 appBar:AppBar(title:const Text('Language')),
                 body:const SafeArea(child:ProfileSettingsScreen(
@@ -304,6 +344,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
               PopupMenuItem(value:'search',child:ListTile(
                 leading:Icon(Icons.search_outlined),
                 title:Text('Search our space'))),
+              PopupMenuItem(value:'share',child:ListTile(
+                leading:Icon(Icons.add_link),
+                title:Text('Save a link or idea'))),
               PopupMenuItem(value:'language',child:ListTile(
                 leading:Icon(Icons.translate),
                 title:Text('Language'))),
