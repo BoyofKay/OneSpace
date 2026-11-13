@@ -281,28 +281,39 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           }),
           tooltip: tr(context, 'backHome'),
         ) : null,
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start,children: [
-          const Text('OneSpace',style:TextStyle(fontWeight:FontWeight.w800)),
-          Text(tr(context,'tagline'),style:const TextStyle(fontSize:12)),
-        ]),
+        title:const Text('OneSpace',
+          maxLines:1,overflow:TextOverflow.ellipsis,
+          style:TextStyle(fontWeight:FontWeight.w800)),
         actions:[
-          IconButton(
-            icon:const Icon(Icons.settings_outlined),
-            tooltip:'OneSpace settings',
-            onPressed:()=>open(const OneSpaceSettingsScreen()),
+          if(!showProfile)const NotificationBell(),
+          PopupMenuButton<String>(
+            tooltip:'More options',
+            icon:const Icon(Icons.more_vert),
+            onSelected:(choice){
+              if(choice=='settings')open(const OneSpaceSettingsScreen());
+              if(choice=='search')open(const GlobalSearchScreen());
+              if(choice=='language')open(const Scaffold(
+                appBar:AppBar(title:Text('Language')),
+                body:SafeArea(child:ProfileSettingsScreen(
+                  settingsOnly:true,section:'language'))));
+            },
+            itemBuilder:(_)=>const [
+              PopupMenuItem(value:'settings',child:ListTile(
+                leading:Icon(Icons.settings_outlined),
+                title:Text('Settings'))),
+              PopupMenuItem(value:'search',child:ListTile(
+                leading:Icon(Icons.search_outlined),
+                title:Text('Search our space'))),
+              PopupMenuItem(value:'language',child:ListTile(
+                leading:Icon(Icons.translate),
+                title:Text('Language'))),
+            ],
           ),
-          if (!showProfile) IconButton(
-            icon:const Icon(Icons.search_outlined),
-            tooltip:'Search our space',
-            onPressed:()=>open(const GlobalSearchScreen()),
-          ),
-          if (!showProfile) const NotificationBell(),
-          if (!showProfile) IconButton(
-            key: const Key('profileTopBarButton'),
-            icon: const Icon(Icons.account_circle_outlined,size:28),
-            tooltip: tr(context,'profile'),
-            onPressed: () => setState(() => showProfile = true),
-          ),
+          if(!showProfile)IconButton(
+            key:const Key('profileTopBarButton'),
+            icon:const Icon(Icons.account_circle_outlined,size:28),
+            tooltip:tr(context,'profile'),
+            onPressed:()=>setState(()=>showProfile=true)),
         ],
       ),
       body:SafeArea(child:IndexedStack(index:visible,children:[
