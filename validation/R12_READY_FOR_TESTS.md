@@ -3,3 +3,5 @@
 All contact, check-in, gesture, letter and settings changes committed.
 This marker triggers *no APK compilation and no GitHub Release*.
 Only after analysis and tests pass will release/READY_TO_BUILD.md be updated once for R12.
+
+Validation pass 2: remove unused legacy sender; check analyzer and complete tests.
