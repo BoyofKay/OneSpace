@@ -224,7 +224,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final request=++_extrasVersion;
     try{
       final rows=await _client.from('occasion_plans').select(
-       'id,title,occasion_on,annual,kind,visibility,status,archived_at')
+       'id,title,honoree_name,occasion_on,annual,kind,visibility,status,archived_at')
        .eq('space_id',space).limit(300);
       if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
       setState(()=>_occasions=List<Map<String,dynamic>>.from(rows));
@@ -279,6 +279,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     leading:Icon(Icons.cake_outlined,color:Theme.of(context).colorScheme.primary),
     title:Text(row['title'].toString()),
     subtitle:Text('Personal occasion · '+
+     ((row['honoree_name']??'').toString().isEmpty?'':row['honoree_name'].toString()+' · ')+
      (row['visibility']=='private'?'Only me':'Both of us')+
      (row['annual']==true?' · Annual':'')),
     trailing:const Icon(Icons.chevron_right),
