@@ -13,7 +13,7 @@ class TodayAttentionSection extends StatefulWidget {
 }
 
 class _TodayAttentionSectionState extends State<TodayAttentionSection> {
-  bool expanded = true;
+  bool expanded = false;
   @override Widget build(BuildContext context) {
     final items = widget.items;
     final now = DateTime.now();
