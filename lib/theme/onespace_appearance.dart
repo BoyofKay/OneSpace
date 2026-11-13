@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum OneSpacePalette { ocean, rose, sage, indigo }
+enum OneSpacePalette { midnightBlue, monochrome, cleanLight, softRose }
 enum SeasonChoice { off, automatic, valentines, spring, halloween, winter }
 
 class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
@@ -13,7 +13,7 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  static const _paletteKey='appearance.palette.v1';
  static const _modeKey='appearance.mode.v1';
  static const _seasonKey='appearance.season.v1';
- OneSpacePalette palette=OneSpacePalette.ocean;
+ OneSpacePalette palette=OneSpacePalette.cleanLight;
  ThemeMode mode=ThemeMode.system;
  SeasonChoice season=SeasonChoice.automatic;
  bool loaded=false;
@@ -21,7 +21,15 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  Future<void> load()async{
   try{
    final prefs=await SharedPreferences.getInstance();
-   palette=_enumOf(OneSpacePalette.values,prefs.getString(_paletteKey),OneSpacePalette.ocean);
+   final saved=prefs.getString(_paletteKey);
+   // Keep old selections valid; never reset sessions or other preferences.
+   final migrated=switch(saved){
+    'ocean'||'indigo'=>'midnightBlue',
+    'sage'=>'monochrome',
+    'rose'=>'softRose',
+    _=>saved,
+   };
+   palette=_enumOf(OneSpacePalette.values,migrated,OneSpacePalette.cleanLight);
    mode=_enumOf(ThemeMode.values,prefs.getString(_modeKey),ThemeMode.system);
    season=_enumOf(SeasonChoice.values,prefs.getString(_seasonKey),SeasonChoice.automatic);
   }catch(_){ /* Default theme must remain available offline. */ }
@@ -46,16 +54,16 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  }
 
  static String paletteName(OneSpacePalette value)=>switch(value){
-  OneSpacePalette.ocean=>'Coastal Blue',
-  OneSpacePalette.rose=>'Rose & Plum',
-  OneSpacePalette.sage=>'Sage & Sand',
-  OneSpacePalette.indigo=>'Midnight Indigo',
+  OneSpacePalette.midnightBlue=>'Midnight Blue',
+  OneSpacePalette.monochrome=>'Monochrome',
+  OneSpacePalette.cleanLight=>'Clean Light',
+  OneSpacePalette.softRose=>'Soft Rose',
  };
  static Color paletteSeed(OneSpacePalette value)=>switch(value){
-  OneSpacePalette.ocean=>const Color(0xFF167E81),
-  OneSpacePalette.rose=>const Color(0xFFA54D74),
-  OneSpacePalette.sage=>const Color(0xFF597D6C),
-  OneSpacePalette.indigo=>const Color(0xFF5859A9),
+  OneSpacePalette.midnightBlue=>const Color(0xFF4A80D8),
+  OneSpacePalette.monochrome=>const Color(0xFF62646B),
+  OneSpacePalette.cleanLight=>const Color(0xFF3768BA),
+  OneSpacePalette.softRose=>const Color(0xFFBA688B),
  };
  static String seasonName(SeasonChoice value)=>switch(value){
   SeasonChoice.off=>'Off',
@@ -85,81 +93,168 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  };
 }
 
+/// Visual tokens stay semantic so the entire component tree can adapt.
+class OneSpaceVisualTokens extends ThemeExtension<OneSpaceVisualTokens> {
+ const OneSpaceVisualTokens({
+  required this.canvas,required this.panel,required this.raisedPanel,
+  required this.edge,required this.highlight,required this.seasonal,
+  required this.motifColor,required this.heroStart,required this.heroEnd,
+ });
+ final Color canvas,panel,raisedPanel,edge,highlight,seasonal,motifColor,heroStart,heroEnd;
+ @override OneSpaceVisualTokens copyWith({
+  Color? canvas,Color? panel,Color? raisedPanel,Color? edge,
+  Color? highlight,Color? seasonal,Color? motifColor,
+  Color? heroStart,Color? heroEnd,
+ })=>OneSpaceVisualTokens(
+  canvas:canvas??this.canvas,panel:panel??this.panel,
+  raisedPanel:raisedPanel??this.raisedPanel,edge:edge??this.edge,
+  highlight:highlight??this.highlight,seasonal:seasonal??this.seasonal,
+  motifColor:motifColor??this.motifColor,heroStart:heroStart??this.heroStart,
+  heroEnd:heroEnd??this.heroEnd);
+ @override OneSpaceVisualTokens lerp(
+  covariant ThemeExtension<OneSpaceVisualTokens>? other,double t){
+  if(other is! OneSpaceVisualTokens)return this;
+  Color mix(Color a,Color b)=>Color.lerp(a,b,t)??a;
+  return OneSpaceVisualTokens(
+   canvas:mix(canvas,other.canvas),panel:mix(panel,other.panel),
+   raisedPanel:mix(raisedPanel,other.raisedPanel),
+   edge:mix(edge,other.edge),highlight:mix(highlight,other.highlight),
+   seasonal:mix(seasonal,other.seasonal),
+   motifColor:mix(motifColor,other.motifColor),
+   heroStart:mix(heroStart,other.heroStart),heroEnd:mix(heroEnd,other.heroEnd));
+ }
+}
+
 class OneSpaceTheme {
  const OneSpaceTheme._();
- static ThemeData build({required OneSpacePalette palette,required Brightness brightness}){
+ static ThemeData build({
+  required OneSpacePalette palette,
+  required Brightness brightness,
+  SeasonChoice season=SeasonChoice.off,
+ }){
   final dark=brightness==Brightness.dark;
-  final scheme=ColorScheme.fromSeed(
-   seedColor:OneSpaceAppearance.paletteSeed(palette),
-   brightness:brightness,
+  final seed=OneSpaceAppearance.paletteSeed(palette);
+  final holiday=OneSpaceAppearance.seasonAccent(season);
+  // Seasonal color is an entire scheme-level overlay, not just a Today card.
+  final accent=holiday==null?seed:Color.lerp(seed,holiday,.65)!;
+  final scheme=ColorScheme.fromSeed(seedColor:accent,brightness:brightness);
+  final bg=switch(palette){
+   OneSpacePalette.midnightBlue=>dark?const Color(0xFF080F20):const Color(0xFFEDF3FC),
+   OneSpacePalette.monochrome=>dark?const Color(0xFF0D0E10):const Color(0xFFF4F4F4),
+   OneSpacePalette.cleanLight=>dark?const Color(0xFF111827):const Color(0xFFF6F8FC),
+   OneSpacePalette.softRose=>dark?const Color(0xFF211820):const Color(0xFFFFF6FA),
+  };
+  final surface=switch(palette){
+   OneSpacePalette.midnightBlue=>dark?const Color(0xFF16213B):Colors.white,
+   OneSpacePalette.monochrome=>dark?const Color(0xFF1F2024):Colors.white,
+   OneSpacePalette.cleanLight=>dark?const Color(0xFF1C2638):Colors.white,
+   OneSpacePalette.softRose=>dark?const Color(0xFF342431):Colors.white,
+  };
+  final border=dark?Colors.white.withValues(alpha:.13)
+    :scheme.outlineVariant.withValues(alpha:.75);
+  final card=holiday==null?surface:Color.alphaBlend(
+    holiday.withValues(alpha:dark?.15:.065),surface);
+  final accentText=scheme.onSurface;
+  final tokens=OneSpaceVisualTokens(
+   canvas:bg,panel:card,raisedPanel:surface,edge:border,
+   highlight:accent,seasonal:holiday??seed,
+   motifColor:(holiday??seed).withValues(alpha:dark?.18:.11),
+   heroStart:Color.alphaBlend(accent.withValues(alpha:dark?.30:.15),surface),
+   heroEnd:Color.alphaBlend(seed.withValues(alpha:dark?.10:.045),bg),
   );
-  final background=dark?const Color(0xFF11161C):const Color(0xFFF7F9FB);
-  final surface=dark?const Color(0xFF1C232B):Colors.white;
-  final border=dark?const Color(0xFF35424B):const Color(0xFFE5EAEE);
+  final radius=BorderRadius.circular(20);
   return ThemeData(
    useMaterial3:true,
    brightness:brightness,
    colorScheme:scheme,
-   scaffoldBackgroundColor:background,
+   extensions:[tokens],
+   // A transparent Scaffold exposes the unified canvas and decorative
+   // motifs across every screen, including routes, dialogs and sheets.
+   scaffoldBackgroundColor:Colors.transparent,
    splashFactory:InkRipple.splashFactory,
    appBarTheme:AppBarTheme(
-    backgroundColor:background,
-    foregroundColor:scheme.onSurface,
-    elevation:0,scrolledUnderElevation:0,
+    backgroundColor:Color.alphaBlend(accent.withValues(alpha:dark?.13:.06),surface),
+    foregroundColor:accentText,elevation:0,scrolledUnderElevation:0,
     centerTitle:false,
-    titleTextStyle:TextStyle(
-     fontSize:20,fontWeight:FontWeight.w700,color:scheme.onSurface),
+    titleTextStyle:TextStyle(fontSize:21,fontWeight:FontWeight.w800,
+     letterSpacing:-.3,color:accentText),
    ),
    cardTheme:CardThemeData(
-    color:surface,elevation:0,margin:const EdgeInsets.symmetric(vertical:5),
+    color:card,elevation:0,
+    margin:const EdgeInsets.symmetric(vertical:6),
+    shape:RoundedRectangleBorder(borderRadius:radius,
+     side:BorderSide(color:border,width:1)),
+   ),
+   dialogTheme:DialogThemeData(
+    backgroundColor:card,
+    surfaceTintColor:accent,
     shape:RoundedRectangleBorder(
-     borderRadius:BorderRadius.circular(20),
-     side:BorderSide(color:border,width:.9),
-    ),
+     borderRadius:BorderRadius.circular(26),
+     side:BorderSide(color:border)),
+   ),
+   bottomSheetTheme:BottomSheetThemeData(
+    backgroundColor:card,modalBackgroundColor:card,
+    showDragHandle:true,
+    shape:const RoundedRectangleBorder(
+     borderRadius:BorderRadius.vertical(top:Radius.circular(28))),
+   ),
+   snackBarTheme:SnackBarThemeData(
+    backgroundColor:scheme.inverseSurface,
+    contentTextStyle:TextStyle(color:scheme.onInverseSurface,
+     fontWeight:FontWeight.w600),
+    behavior:SnackBarBehavior.floating,
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(16)),
+   ),
+   popupMenuTheme:PopupMenuThemeData(
+    color:card,elevation:7,
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18),
+     side:BorderSide(color:border)),
    ),
    inputDecorationTheme:InputDecorationTheme(
     filled:true,fillColor:surface,
-    contentPadding:const EdgeInsets.symmetric(horizontal:16,vertical:14),
-    border:OutlineInputBorder(borderRadius:BorderRadius.circular(14)),
+    contentPadding:const EdgeInsets.symmetric(horizontal:17,vertical:15),
+    border:OutlineInputBorder(borderRadius:BorderRadius.circular(15)),
     enabledBorder:OutlineInputBorder(
-     borderRadius:BorderRadius.circular(14),
+     borderRadius:BorderRadius.circular(15),
      borderSide:BorderSide(color:border)),
     focusedBorder:OutlineInputBorder(
-     borderRadius:BorderRadius.circular(14),
-     borderSide:BorderSide(color:scheme.primary,width:1.8)),
+     borderRadius:BorderRadius.circular(15),
+     borderSide:BorderSide(color:scheme.primary,width:2)),
    ),
    navigationBarTheme:NavigationBarThemeData(
-    height:72,
-    backgroundColor:surface,
-    elevation:0,
+    height:74,backgroundColor:card,elevation:2,
     indicatorColor:scheme.primaryContainer,
     labelBehavior:NavigationDestinationLabelBehavior.alwaysShow,
    ),
    navigationRailTheme:NavigationRailThemeData(
-    backgroundColor:surface,
-    indicatorColor:scheme.primaryContainer,
+    backgroundColor:card,indicatorColor:scheme.primaryContainer,
     selectedIconTheme:IconThemeData(color:scheme.onPrimaryContainer),
    ),
    floatingActionButtonTheme:FloatingActionButtonThemeData(
     backgroundColor:scheme.primaryContainer,
     foregroundColor:scheme.onPrimaryContainer,
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18)),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(19)),
+    elevation:5,
    ),
    chipTheme:ChipThemeData(
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12)),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14)),
     side:BorderSide(color:border),
     selectedColor:scheme.primaryContainer,
    ),
-   filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
-    padding:const EdgeInsets.symmetric(horizontal:20,vertical:14),
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14)),
-   )),
-   outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
-    padding:const EdgeInsets.symmetric(horizontal:18,vertical:13),
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14)),
-   )),
+   listTileTheme:ListTileThemeData(
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(16)),
+    iconColor:scheme.primary,
+    contentPadding:const EdgeInsets.symmetric(horizontal:16,vertical:3),
+   ),
    dividerTheme:DividerThemeData(color:border,thickness:1,space:1),
-   // Let Material select supported platform-adaptive transitions.
+   filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
+    padding:const EdgeInsets.symmetric(horizontal:22,vertical:15),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15)))),
+   outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
+    padding:const EdgeInsets.symmetric(horizontal:18,vertical:14),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15)))),
+   textTheme:ThemeData(brightness:brightness).textTheme.apply(
+    bodyColor:accentText,displayColor:accentText),
    visualDensity:VisualDensity.standard,
   );
  }
