@@ -350,10 +350,21 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           completedActivities = metric('completed_activities');
           importantActivities = metric('important_activities');
           upcomingActivities = metric('upcoming_activities');
-          recentDiscussions = [
-            for(final row in data['recent_activity_comments'] as List<dynamic>? ?? const [])
-              if(row is Map) Map<String,dynamic>.from(row),
-          ];
+          final comments=<String,Map<String,dynamic>>{};
+          for(final raw in data['recent_activity_comments'] as List<dynamic>? ?? const []){
+            if(raw is! Map)continue;
+            final entry=Map<String,dynamic>.from(raw);
+            final id=entry['activity_id']?.toString();
+            if(id==null||id.isEmpty)continue;
+            if(!comments.containsKey(id)){
+              entry['comment_count']=1;
+              comments[id]=entry;
+            }else{
+              comments[id]!['comment_count']=
+                (comments[id]!['comment_count'] as int)+1;
+            }
+          }
+          recentDiscussions=comments.values.toList();
           focusItems = TodayAttentionItem.parse(
             data['focus_items'] as List<dynamic>? ?? const [],DateTime.now());
           nearEvents = TodayAttentionItem.upcomingEvents(
@@ -556,43 +567,56 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       .difference(DateTime(now.year,now.month,now.day)).inDays;
   }
 
-  Widget _relationshipPanel() {
-    if(relationshipMode=='living_together')return const SizedBox.shrink();
-    final ago=_dayDistance(lastMetOn);
-    final until=_dayDistance(nextMeetOn);
-    final accent=const Color(0xFF627FC1);
+  Widget _relationshipPanel(){
+    final together=relationshipMode=='living_together';
     return Card(
       elevation:0,
-      color:Color.alphaBlend(accent.withValues(alpha:.09),
-        Theme.of(context).colorScheme.surface),
+      color:Color.alphaBlend(
+        (together?const Color(0xFF40A48A):const Color(0xFF627FC1))
+        .withValues(alpha:.09),Theme.of(context).colorScheme.surface),
       child:Padding(
-        padding:const EdgeInsets.all(16),
-        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          PartnerClockStrip(members:clockMembers,
-            relationshipMode:relationshipMode),
-          if (relationshipMode != 'living_together' &&
-              (ago != null || until != null)) ...[
-          const SizedBox(height:7),
-          Row(children:[
-            if (ago != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-              Text(tr(context,'lastMetLabel'),
-                style:Theme.of(context).textTheme.bodySmall),
-              Text('${ago<0?-ago:0} ${tr(context,'daysAgo')}',
-                style:const TextStyle(fontWeight:FontWeight.bold)),
-            ])),
-            if (until != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-              Text(tr(context,'nextMeetingLabel'),
-                style:Theme.of(context).textTheme.bodySmall),
-              Text(until<0?tr(context,'meetingPassed'):
-                until==0?tr(context,'meetingToday'):
-                  '$until ${tr(context,'daysToGo')}',
-                style:const TextStyle(fontWeight:FontWeight.bold)),
-            ])),
-          ]),
-          ],
-        ]),
+        padding:const EdgeInsets.all(14),
+        child:together?Row(children:[
+          Icon(Icons.home_rounded,size:34,
+            color:Theme.of(context).colorScheme.primary),
+          const SizedBox(width:12),
+          Expanded(child:Column(
+            crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('Together under one roof',
+              style:Theme.of(context).textTheme.titleMedium),
+            const Text('One home, one shared space. ❤️'),
+          ])),
+        ]):PartnerClockStrip(
+          members:clockMembers,relationshipMode:relationshipMode),
       ),
     );
+  }
+
+  Widget _meetingCounters(){
+    final ago=_dayDistance(lastMetOn);
+    final until=_dayDistance(nextMeetOn);
+    if(ago==null&&until==null)return const SizedBox.shrink();
+    return Card(elevation:0,child:Padding(
+      padding:const EdgeInsets.all(14),child:Row(children:[
+        if(ago!=null)Expanded(child:Column(
+          crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(tr(context,'lastMetLabel'),
+              style:Theme.of(context).textTheme.bodySmall),
+            Text(ago>=0?'Coming up':(-ago).toString()+' days ago',
+              style:Theme.of(context).textTheme.titleSmall),
+          ])),
+        if(ago!=null&&until!=null)const SizedBox(width:12),
+        if(until!=null)Expanded(child:Column(
+          crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(tr(context,'nextMeetingLabel'),
+              style:Theme.of(context).textTheme.bodySmall),
+            Text(until<0?'Meeting date passed':
+              until==0?tr(context,'meetingToday'):
+              until.toString()+' days to go',
+              style:Theme.of(context).textTheme.titleSmall),
+          ])),
+      ]),
+    ));
   }
 
   @override
@@ -692,9 +716,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ),
             ),
           ] else ...[
-            if(relationshipMode!='living_together')...[
-              _relationshipPanel(),const SizedBox(height:12),
-            ],
+            _relationshipPanel(),
+            if(lastMetOn!=null||nextMeetOn!=null)_meetingCounters(),
+            const SizedBox(height:12),
             TodayAttentionSection(
               items:focusItems,
               onOpen:_openFocusActivity,
@@ -781,7 +805,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                     title:Text(entry['activity']?.toString()??'Activity'),
                     subtitle:Text(
                       (entry['author']?.toString()??'Partner')+': '+
-                      (entry['message']?.toString()??''),
+                      (entry['message']?.toString()??'')+
+                      ((entry['comment_count'] as int? ?? 1)>1?
+                        ' · '+entry['comment_count'].toString()+' recent messages':''),
                       maxLines:2,overflow:TextOverflow.ellipsis),
                     onTap:(){
                       final id=entry['activity_id']?.toString();
