@@ -25,7 +25,7 @@ class AppearanceSettingsScreen extends StatelessWidget{
   return Scaffold(
    appBar:AppBar(title:Text(tr(context,'themeSettings'))),
    body:SafeArea(child:AnimatedBuilder(animation:state,builder:(context,_) {
-    final theme=Theme.of(context),scheme=theme.colorScheme;
+    final theme=Theme.of(context);
     final width=MediaQuery.sizeOf(context).width;
     return ListView(padding:EdgeInsets.symmetric(
      horizontal:width>720?mathMax(20,(width-660)/2):16,vertical:16),children:[

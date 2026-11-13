@@ -35,7 +35,7 @@ class _AtmospherePainter extends CustomPainter{
   final paint=Paint()..color=accent..style=PaintingStyle.fill;
   // Soft atmospheric glows, not a repeated stock-pattern background.
   final halo=Paint()..shader=RadialGradient(
-   colors:[accent.withValues(alpha:light?.54:.32),Colors.transparent],
+   colors:[accent.withValues(alpha:light ? .54 : .32),Colors.transparent],
   ).createShader(Rect.fromCircle(
    center:Offset(size.width*.88,size.height*.09),
    radius:math.max(size.width,size.height)*.67));

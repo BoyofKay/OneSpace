@@ -192,14 +192,14 @@ class OneSpaceTheme {
   final border=dark?Colors.white.withValues(alpha:.13)
     :scheme.outlineVariant.withValues(alpha:.75);
   final card=holiday==null?surface:Color.alphaBlend(
-    holiday.withValues(alpha:dark?.15:.065),surface);
+    holiday.withValues(alpha:dark ? .15 : .065),surface);
   final accentText=scheme.onSurface;
   final tokens=OneSpaceVisualTokens(
    canvas:bg,panel:card,raisedPanel:surface,edge:border,
    highlight:accent,seasonal:holiday??seed,
-   motifColor:(holiday??seed).withValues(alpha:dark?.18:.11),
-   heroStart:Color.alphaBlend(accent.withValues(alpha:dark?.30:.15),surface),
-   heroEnd:Color.alphaBlend(seed.withValues(alpha:dark?.10:.045),bg),
+   motifColor:(holiday??seed).withValues(alpha:dark ? .18 : .11),
+   heroStart:Color.alphaBlend(accent.withValues(alpha:dark ? .30 : .15),surface),
+   heroEnd:Color.alphaBlend(seed.withValues(alpha:dark ? .10 : .045),bg),
   );
   final radius=BorderRadius.circular(20);
   return ThemeData(
@@ -212,7 +212,7 @@ class OneSpaceTheme {
    scaffoldBackgroundColor:Colors.transparent,
    splashFactory:InkRipple.splashFactory,
    appBarTheme:AppBarTheme(
-    backgroundColor:Color.alphaBlend(accent.withValues(alpha:dark?.13:.06),surface),
+    backgroundColor:Color.alphaBlend(accent.withValues(alpha:dark ? .13 : .06),surface),
     foregroundColor:accentText,elevation:0,scrolledUnderElevation:0,
     centerTitle:false,
     titleTextStyle:TextStyle(fontSize:21,fontWeight:FontWeight.w800,

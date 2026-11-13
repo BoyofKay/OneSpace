@@ -51,7 +51,7 @@ class ThemeConceptCard extends StatelessWidget{
           padding:const EdgeInsets.all(9),
           decoration:BoxDecoration(borderRadius:BorderRadius.circular(12),
            gradient:LinearGradient(colors:[
-            primary.withValues(alpha:dark?.60:.19),
+            primary.withValues(alpha:dark ? .60 : .19),
             surface,
            ])),
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
