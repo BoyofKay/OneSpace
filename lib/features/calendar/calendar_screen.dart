@@ -143,15 +143,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }
       _spaceId = id;
       _watchChanges(id);
-      try {
-        final members=await _client.from('space_members').select('user_id').eq('space_id',id);
-        final ids=members.map((m)=>m['user_id'].toString()).toList();
-        if(ids.isNotEmpty){
-          final people=await _client.from('profiles')
-            .select('id,display_name').inFilter('id',ids);
-          _people={for(final p in people) p['id'].toString():p['display_name'].toString()};
-        }
-      }catch(_){}
+      final cached=CurrentSpaceCache.instance.memberNamesFor(id);
+      if(cached!=null){
+        _people=cached;
+      }else{
+        unawaited(_loadCalendarNames(id));
+      }
       final results = await Future.wait<List<Map<String, dynamic>>>([
         _client.from('space_events')
             .select('id,space_id,created_by,title,details,event_date,kind,recurrence,visibility,archived_at,for_user_id,starts_at,ends_at,zone_id')
@@ -191,8 +188,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  DateTime? _eventDate(Map<String, dynamic> entry) =>
-      DateTime.tryParse(entry['event_date'] as String? ?? '');
+  Future<void> _loadCalendarNames(String id) async {
+    try {
+      final members=await _client.from('space_members').select('user_id')
+        .eq('space_id',id);
+      final ids=members.map((entry)=>entry['user_id'].toString()).toList();
+      if(ids.isEmpty)return;
+      final people=await _client.from('profiles')
+        .select('id,display_name').inFilter('id',ids);
+      if(mounted&&_spaceId==id){
+        setState(()=>_people={
+          for(final person in people)
+            person['id'].toString():person['display_name'].toString(),
+        });
+      }
+    }catch(_){}
+  }
+
+  DateTime? _eventDate(Map<String,dynamic> event) {
+    final timed=DateTime.tryParse(event['starts_at']?.toString()??'')?.toLocal();
+    return timed ?? DateTime.tryParse(event['event_date']?.toString()??'');
+  }
 
   bool _occurs(Map<String,dynamic> entry, DateTime day) {
     final date = _eventDate(entry);
@@ -497,6 +513,62 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  Widget _dayTimeline() {
+    final events=_entriesOn(_selected);
+    final allDay=events.where((e)=>e['starts_at']==null).toList();
+    final timed=events.where((e)=>e['starts_at']!=null).toList()
+      ..sort((a,b)=>a['starts_at'].toString().compareTo(b['starts_at'].toString()));
+    final tasks=_tasksOn(_selected);
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Row(children:[
+        IconButton(
+          tooltip:'Previous day',icon:const Icon(Icons.chevron_left),
+          onPressed:()=>setState(()=>
+            _selected=_selected.subtract(const Duration(days:1)))),
+        Expanded(child:Text(
+          MaterialLocalizations.of(context).formatMediumDate(_selected),
+          textAlign:TextAlign.center,
+          style:Theme.of(context).textTheme.titleMedium)),
+        IconButton(
+          tooltip:'Next day',icon:const Icon(Icons.chevron_right),
+          onPressed:()=>setState(()=>
+            _selected=_selected.add(const Duration(days:1)))),
+      ]),
+      if(allDay.isNotEmpty||tasks.isNotEmpty)...[
+        Text('All day & deadlines',
+          style:Theme.of(context).textTheme.titleSmall),
+        for(final event in allDay)_eventTile(event),
+        for(final task in tasks)Card(elevation:0,child:ListTile(
+          leading:const Icon(Icons.checklist_outlined),
+          title:Text(task['title']?.toString()??'To-do'),
+          subtitle:const Text('Due date'),
+          onTap:widget.onOpenPlans)),
+        const SizedBox(height:12),
+      ],
+      for(var hour=0;hour<24;hour++)
+        Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          SizedBox(width:54,child:Padding(
+            padding:const EdgeInsets.only(top:10),
+            child:Text(
+              hour.toString().padLeft(2,'0')+':00',
+              style:Theme.of(context).textTheme.labelSmall))),
+          Expanded(child:Container(
+            constraints:const BoxConstraints(minHeight:38),
+            decoration:BoxDecoration(border:Border(top:BorderSide(
+              color:Theme.of(context).colorScheme.outlineVariant))),
+            child:Column(children:[
+              for(final event in timed.where((e)=>
+                DateTime.tryParse(e['starts_at'].toString())?.toLocal().hour==hour))
+                _eventTile(event),
+            ]),
+          )),
+        ]),
+      if(events.isEmpty&&tasks.isEmpty)
+        const Padding(padding:EdgeInsets.all(12),
+          child:Text('Nothing scheduled on this day.')),
+    ]);
+  }
+
   Widget _upcoming() {
     final upcoming = <(DateTime, Map<String, dynamic>)>[];
     for (final entry in _events) {
@@ -572,7 +644,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           if(_view=='week')_weekAgenda(),
           const SizedBox(height: 12),
-          if(_view!='week')_selectedDay(),
+          if(_view=='month')_selectedDay(),
+          if(_view=='day')_dayTimeline(),
           const Divider(height: 36),
           _upcoming(),
           const SizedBox(height: 10),
