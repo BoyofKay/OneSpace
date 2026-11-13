@@ -481,6 +481,6 @@ class _OccasionDetailState extends State<OccasionDetail>{
        subtitle:Text(row['changed_at'].toString().replaceFirst('T',' ').split('.').first)),
      ],
      if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-   ]))));
+   ])));
  }
 }
