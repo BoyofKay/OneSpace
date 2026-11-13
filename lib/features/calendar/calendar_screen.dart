@@ -15,8 +15,10 @@ import 'calendar_rules.dart';
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
 /// calculated locally without moving birthdays across timezones.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key, this.onOpenPlans, this.active = true});
+  const CalendarScreen({super.key, this.onOpenPlans, this.active = true,
+    this.initialEventId});
   final VoidCallback? onOpenPlans;
+  final String? initialEventId;
   final bool active;
 
   @override
@@ -160,6 +162,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
       setState(() {
         _events = results[0];
         _tasks = results[1];
+        if(widget.initialEventId!=null){
+          final event=results[0].where(
+            (row)=>row['id']==widget.initialEventId).firstOrNull;
+          final date=DateTime.tryParse(event?['event_date']?.toString()??'');
+          if(date!=null){
+            _selected=CalendarRules.day(date);
+            _month=DateTime(date.year,date.month);
+            _view='day';
+          }
+        }
         _loading = false;
       });
       PerformanceTimings.instance.record('Calendar first data', stopwatch.elapsed);
