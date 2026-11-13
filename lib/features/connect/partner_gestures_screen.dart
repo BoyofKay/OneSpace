@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import 'gesture_experience.dart';
+import 'gesture_pool_rules.dart';
 
 /// Intentionally sent gestures. Messages are explicitly identified as presets;
 /// there is no automated impersonation or push-notification claim here.
@@ -147,22 +148,11 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      default:return const Color(0xFF518FB7);
    }
  }
- List<String> pool(_GestureOption option){
-   final candidates=<String>[];
-   for(var i=0;i<option.messages.length;i++){
-     final override=overrides.where((o)=>o['kind']==option.id&&
-       o['message_index']==i).firstOrNull;
-     if(override?['disabled']==true)continue;
-     candidates.add(override?['message']?.toString()??option.messages[i]);
-   }
-   for(final entry in custom){
-     if(entry['kind']==option.id){
-       final message=entry['message']?.toString()??'';
-       if(message.isNotEmpty)candidates.add(message);
-     }
-   }
-   return candidates.toSet().toList();
- }
+ List<String> pool(_GestureOption option)=>
+   GesturePoolRules.activeMessages(
+     kind:option.id,builtIn:option.messages,
+     overrides:overrides,custom:custom,
+   );
  Future<void> editPreset(_GestureOption option,int index) async{
    final old=overrides.where((o)=>o['kind']==option.id&&
       o['message_index']==index).firstOrNull;
