@@ -242,7 +242,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
       padding:const EdgeInsets.all(20),children:[
       Text(tr(context,'checkinSubtitle')),
       const SizedBox(height:12),
-      if(_error!=null)Text(_error!,style:const TextStyle(color:Colors.red)),
+      if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
       if(_loading)
         const Padding(padding:EdgeInsets.all(30),
           child:Center(child:CircularProgressIndicator()))
@@ -458,7 +458,7 @@ class _CheckinEditorState extends State<CheckinEditor> {
       Text(tr(context,'privacyFixed'),
         style:Theme.of(context).textTheme.bodySmall),
       const SizedBox(height:16),
-      if(_error!=null)Text(_error!,style:const TextStyle(color:Colors.red)),
+      if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
       if(_canEdit)FilledButton(
         onPressed:_saving?null:_save,child:Text(tr(context,'save'))),
     ])),

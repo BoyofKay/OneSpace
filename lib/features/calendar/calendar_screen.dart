@@ -581,13 +581,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           if(hasOccasion) Icon(Icons.circle,size:7,
                             color:Theme.of(context).colorScheme.secondary),
                           if (hasEvent) Icon(Icons.circle, size: 7,
-                            color: selected ? Colors.white
-                                : const Color(0xFF167E81)),
+                            color: selected ? Theme.of(context).colorScheme.onPrimaryContainer
+                                : Theme.of(context).colorScheme.primary),
                           if(hasOff)Icon(Icons.circle,size:7,
-                            color:selected?Colors.white70:const Color(0xFF669B79)),
+                            color:selected?Theme.of(context).colorScheme.onPrimaryContainer:
+                              Theme.of(context).colorScheme.tertiary),
                           if (hasTask) Icon(Icons.circle, size: 7,
-                            color: selected ? Colors.white70
-                                : const Color(0xFFC47D25)),
+                            color: selected ? Theme.of(context).colorScheme.onPrimaryContainer
+                                : Theme.of(context).colorScheme.secondary),
                         ],
                       ),
                   ],

@@ -655,7 +655,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     return Card(
       elevation:0,
       color:Color.alphaBlend(
-        (together?const Color(0xFF40A48A):const Color(0xFF627FC1))
+        (together?Theme.of(context).colorScheme.tertiary:
+          Theme.of(context).colorScheme.primary)
         .withValues(alpha:.09),Theme.of(context).colorScheme.surface),
       child:Padding(
         padding:const EdgeInsets.all(14),

@@ -184,9 +184,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       children: [
         content,
         if (_coveredForBackground)
-          const Positioned.fill(
+          Positioned.fill(
             child: ColoredBox(
-              color: Color(0xFFF7F8FA),
+              color:Theme.of(context).colorScheme.surface,
               child: Center(
                 child: Icon(Icons.lock_outline, size: 48),
               ),
@@ -324,8 +324,8 @@ class _SignInScreenState extends State<SignInScreen> {
               children: [
                 AuthLanguageSwitcher(disabled: loading),
                 const SizedBox(height: 12),
-                const Icon(Icons.favorite_rounded,
-                    size: 54, color: Color(0xFF167E81)),
+                Icon(Icons.favorite_rounded,
+                    size:54,color:Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
                 const Text('OneSpace',
                   textAlign: TextAlign.center,
@@ -421,12 +421,11 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 10),
-                  Text(error!, style: const TextStyle(color: Colors.red)),
+                  Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
                 ],
                 if (info != null) ...[
                   const SizedBox(height: 10),
-                  Text(info!, style: const TextStyle(
-                      color: Color(0xFF167E81))),
+                  Text(info!,style:TextStyle(color:Theme.of(context).colorScheme.primary)),
                 ],
                 if (awaitingConfirmation) TextButton(
                   onPressed: loading ? null : _resendConfirmation,

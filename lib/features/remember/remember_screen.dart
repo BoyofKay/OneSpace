@@ -110,7 +110,7 @@ class _RememberScreenState extends State<RememberScreen> {
   }) => Card(
     elevation: 0,
     child: ListTile(
-      leading: Icon(icon, color: const Color(0xFF167E81), size: 27),
+      leading: Icon(icon,color:Theme.of(context).colorScheme.primary,size:27),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle),
       trailing: Row(
