@@ -73,6 +73,14 @@ Since preview 0.1.395, source revisions R12–R16 add saved contact cards, expan
 
 The new R16 database migrations are deployed. **Flutter analysis, native compilation and a signed R12–R16 APK have not been run yet.** We are conserving GitHub Actions quota. Follow [the consolidated acceptance and single-build checklist](docs/CONSOLIDATED_PREVIEW_R12_R16_QA.md).
 
+## R17 — modern themes and real-life holiday planning (source and database staged)
+
+OneSpace now includes four Material 3 palettes (Coastal Blue, Rose & Plum, Sage & Sand, Midnight Indigo), Light/Dark/Follow Phone modes, separate per-device preferences, reduced-motion-aware seasonal accents and adaptive tablet navigation. Appearance controls and core holiday shortcuts support English/Arabic.
+
+The shared calendar now distinguishes existing personal events, birthdays, anniversaries, private/shared special occasions and opt-in national public holiday overlays for US/Egypt. Saudi Founding Day and National Day are date-only civic overlays; lunar or employer-adjusted dates are not guessed. Selected holidays do not duplicate calendar rows; private occasions remain RLS-filtered. Named honorees and preparation/saving workflows retain the existing R16 occasion planner.
+
+Migrations 0070–0071 were applied additively. No build/release workflow was triggered by this iteration. **Source is not yet compiled or phone tested.** See [R17 design/calendar QA](docs/R17_MODERN_DESIGN_AND_HOLIDAY_CALENDAR_QA.md) and the [single R12–R17 preview plan](release/PLANNED_R12_R17_BUNDLE.md).
+
 ## Ordered milestones
 
 1. **Foundation:** account creation, email confirmation, sign in, profile, secure pairing and direct APK previews
