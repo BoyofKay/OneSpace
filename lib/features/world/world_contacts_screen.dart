@@ -44,18 +44,22 @@ class _WorldContactsScreenState extends State<WorldContactsScreen> {
   }
 
   Future<void> load() async {
-    if (mounted) setState(() {
-      loading = true;
-      error = null;
-    });
+    if (mounted) {
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    }
     try {
       final spaceId = await CurrentSpaceCache.instance.get();
       if (spaceId == null) {
-        if (mounted) setState(() {
-          hasSpace = false;
-          contacts = const [];
-          loading = false;
-        });
+        if (mounted) {
+          setState(() {
+            hasSpace = false;
+            contacts = const [];
+            loading = false;
+          });
+        }
         return;
       }
       final rows = await db.from('activity_components').select(
@@ -77,10 +81,12 @@ class _WorldContactsScreenState extends State<WorldContactsScreen> {
         ];
       });
     } catch (_) {
-      if (mounted) setState(() {
-        loading = false;
-        error = 'Unable to load saved contacts. Pull down to retry.';
-      });
+      if (mounted) {
+        setState(() {
+          loading = false;
+          error = 'Unable to load saved contacts. Pull down to retry.';
+        });
+      }
     }
   }
 
@@ -97,9 +103,11 @@ class _WorldContactsScreenState extends State<WorldContactsScreen> {
         );
       }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content:Text('Unable to open this action.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Unable to open this action.')),
+        );
+      }
     }
   }
 
