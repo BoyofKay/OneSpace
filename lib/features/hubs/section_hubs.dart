@@ -5,6 +5,7 @@ import '../goals/goals_screen.dart';
 import '../checkins/checkins_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
+import '../connect/shared_experiences_screen.dart';
 import '../../core/current_space_cache.dart';
 
 class SectionHub extends StatelessWidget {
@@ -57,15 +58,16 @@ class SectionHub extends StatelessWidget {
               const PartnerGesturesScreen()),
           _link(context, Icons.favorite_outline, 'Daily check-ins',
               'Share how you feel today', const CheckinsScreen()),
+          _link(context, Icons.movie_filter_outlined,
+              'Shared experiences',
+              'Movies, shows, music, books and games to enjoy together',
+              const SharedExperiencesScreen()),
           _link(context, Icons.photo_library_outlined, 'Memories',
               'Stories and moments worth preserving', const MemoriesScreen()),
           _link(context, Icons.flag_outlined, 'Shared goals',
               'Progress and milestones together', const GoalsScreen()),
           const SizedBox(height: 14),
-          const Text(
-            'Shared movies, playlists, games and daily selfies are '
-            'planned. Letters are available above.',
-          ),
+          const Text('Daily selfies and connected-app library imports are planned.'),
         ] else ...[
           const Card(child:Padding(padding:EdgeInsets.all(18),
             child:Text('Journeys, places and experiences are the next '
