@@ -58,6 +58,7 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
                   padding: EdgeInsets.all(20),
                   child: Text('Unable to open this private image.'),
                 )),
+            ),
             Positioned(
               right: 4,
               top: 4,
