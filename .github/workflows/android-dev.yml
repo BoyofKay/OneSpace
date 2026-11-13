@@ -124,7 +124,6 @@ jobs:
           TAG="preview-0.1.${{ github.run_number }}"
           ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
           test -s "$ASSET"
-          echo "published_release=false" >> "$GITHUB_OUTPUT"
           if gh release view "$TAG" >/dev/null 2>&1; then
             if gh release upload "$TAG" "$ASSET" --clobber; then
               echo "published_release=true" >> "$GITHUB_OUTPUT"
@@ -139,6 +138,7 @@ jobs:
               exit 0
             fi
           fi
+          echo "published_release=false" >> "$GITHUB_OUTPUT"
           # An API 403 is an authorization issue, not a transient build error.
           # The verified, signed APK remains downloadable in this run's Artifacts.
           echo "::warning::GitHub Releases did not accept this token. The signed APK remains available from the build job's retained Artifacts. No retry loop is started."
