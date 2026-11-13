@@ -116,9 +116,11 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
 }
 
 class OccasionEditor extends StatefulWidget{
- const OccasionEditor({super.key,required this.spaceId,this.existing});
+ const OccasionEditor({super.key,required this.spaceId,this.existing,this.initialDate,this.initialKind});
  final String spaceId;
  final Map<String,dynamic>? existing;
+ final DateTime? initialDate;
+ final String? initialKind;
  @override State<OccasionEditor> createState()=>_OccasionEditorState();
 }
 class _OccasionEditorState extends State<OccasionEditor>{
@@ -137,8 +139,8 @@ class _OccasionEditorState extends State<OccasionEditor>{
   saving=TextEditingController(text:(p['saving_lead_days']??60).toString());
   budget=TextEditingController(text:(p['budget']??'').toString());
   currency=TextEditingController(text:(p['currency']??'USD').toString());
-  date=DateTime.tryParse((p['occasion_on']??'').toString())??DateTime.now();
-  kind=(p['kind']??'birthday').toString();
+  date=DateTime.tryParse((p['occasion_on']??'').toString())??widget.initialDate??DateTime.now();
+  kind=(p['kind']??widget.initialKind??'birthday').toString();
   status=(p['status']??'planning').toString();
   visibility=(p['visibility']??'private').toString();
   annual=p['annual']!=false;
