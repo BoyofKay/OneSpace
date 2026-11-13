@@ -113,10 +113,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: OneSpace-preview-0.1.${{ github.run_number }}
-      - name: Publish signed APK to GitHub Releases (retryable)
+      - name: Publish signed APK to GitHub Releases when permitted
+        id: publish
         env:
-          # Optional fine-grained repository release token if integration
-          # permissions prevent GITHUB_TOKEN from creating releases.
           GH_TOKEN: ${{ secrets.ONESPACE_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
         shell: bash
@@ -125,31 +124,26 @@ jobs:
           TAG="preview-0.1.${{ github.run_number }}"
           ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
           test -s "$ASSET"
-          published=false
-          for attempt in 1 2 3; do
-            if gh release view "$TAG" >/dev/null 2>&1; then
-              if gh release upload "$TAG" "$ASSET" --clobber; then
-                published=true
-                break
-              fi
-            else
-              if gh release create "$TAG" "$ASSET" \
-                --title "OneSpace Preview 0.1.${{ github.run_number }}" \
-                --notes "Signed Android test preview, not a production release. OneSpace uses a stable preview-only signing key and an unchanged application ID. Verify functionality on both partners' phones before production use." \
-                --prerelease --target "${{ github.sha }}"; then
-                published=true
-                break
-              fi
+          echo "published_release=false" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if gh release upload "$TAG" "$ASSET" --clobber; then
+              echo "published_release=true" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
-            if [ "$attempt" -lt 3 ]; then
-              sleep "$((attempt * 10))"
+          else
+            if gh release create "$TAG" "$ASSET" \
+              --title "OneSpace Preview 0.1.${{ github.run_number }}" \
+              --notes "Signed Android test preview, not a public launch. Verify on both partners' devices." \
+              --prerelease --target "${{ github.sha }}"; then
+              echo "published_release=true" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
-          done
-          if [ "$published" != true ]; then
-            echo "::error::GitHub Release publication failed; signed APK is retained under this workflow's Artifacts."
-            exit 1
           fi
+          # An API 403 is an authorization issue, not a transient build error.
+          # The verified, signed APK remains downloadable in this run's Artifacts.
+          echo "::warning::GitHub Releases did not accept this token. The signed APK remains available from the build job's retained Artifacts. No retry loop is started."
       - name: Confirm publicly listed release asset
+        if: steps.publish.outputs.published_release == 'true'
         env:
           GH_TOKEN: ${{ secrets.ONESPACE_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
