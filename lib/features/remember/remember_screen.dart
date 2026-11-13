@@ -7,6 +7,7 @@ import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
 import '../notes/notes_screen.dart';
 import '../plans/plans_screen.dart';
+import '../world/world_contacts_screen.dart';
 
 /// The Remember section keeps daily reference information visible in one place.
 /// One invoker-only RPC returns the partner's RLS-filtered overview.
@@ -103,7 +104,7 @@ class _RememberScreenState extends State<RememberScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required int count,
+    int? count,
     required Widget destination,
   }) => Card(
     elevation: 0,
@@ -114,9 +115,10 @@ class _RememberScreenState extends State<RememberScreen> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$count',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(width: 6),
+          if(count!=null)...[
+            Text(count.toString(),style:Theme.of(context).textTheme.titleMedium),
+            const SizedBox(width:6),
+          ],
           const Icon(Icons.chevron_right),
         ],
       ),
@@ -174,6 +176,12 @@ class _RememberScreenState extends State<RememberScreen> {
               subtitle: tr(context, 'rememberNotesSubtitle'),
               count: _count('notes_count'),
               destination: const NotesScreen(),
+            ),
+            _destination(
+              icon:Icons.contacts_outlined,
+              title:'People & saved contacts',
+              subtitle:'Family, friends, useful contacts and shared context',
+              destination:const WorldContactsScreen(),
             ),
           ],
         ],

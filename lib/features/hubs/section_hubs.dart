@@ -5,7 +5,6 @@ import '../goals/goals_screen.dart';
 import '../checkins/checkins_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
-import '../world/world_contacts_screen.dart';
 import '../../core/current_space_cache.dart';
 
 class SectionHub extends StatelessWidget {
@@ -68,20 +67,9 @@ class SectionHub extends StatelessWidget {
             'planned. Letters are available above.',
           ),
         ] else ...[
-          _link(context, Icons.contacts_outlined,
-            'Saved contacts',
-            'People, organizations and places from our shared Activities',
-            const WorldContactsScreen()),
-          const SizedBox(height: 12),
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(18),
-              child: Text(
-                'Family and people, journeys, travel and saved life context '
-                'will live here in future releases.',
-              ),
-            ),
-          ),
+          const Card(child:Padding(padding:EdgeInsets.all(18),
+            child:Text('Journeys, places and experiences are the next '
+              'parts of World. People & contacts are in Remember.'))),
         ],
       ],
     );
