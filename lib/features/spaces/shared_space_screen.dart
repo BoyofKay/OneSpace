@@ -111,17 +111,23 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
 
   Future<void> _syncDeviceContext({bool force = false}) async {
     if (_syncingDeviceContext || spaceId == null ||
-        client.auth.currentUser == null) return;
+        client.auth.currentUser == null) {
+      return;
+    }
     final now = DateTime.now();
     if (!force && _lastDeviceContextSync != null &&
         now.difference(_lastDeviceContextSync!) <
-            const Duration(minutes: 15)) return;
+            const Duration(minutes: 15)) {
+      return;
+    }
     _lastDeviceContextSync = now;
     _syncingDeviceContext = true;
     try {
       final myRecord = clockMembers.where(
         (member) => member['is_me'] == true).toList();
-      if (myRecord.isEmpty) return;
+      if (myRecord.isEmpty) {
+        return;
+      }
       final mine = myRecord.first;
       bool changed = false;
       try {
