@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
+import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
 import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
@@ -218,8 +219,32 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   int refreshToken = 0;
   bool showProfile = false;
   final Set<int> visited = {0};
+  final BackExitPolicy _exitPolicy=BackExitPolicy();
+
+  void _handleAndroidBack(){
+    if(showProfile){
+      _exitPolicy.reset();
+      setState((){showProfile=false;refreshToken++;});
+      return;
+    }
+    if(selectedIndex!=0){
+      _exitPolicy.reset();
+      navigate(0);
+      return;
+    }
+    if(_exitPolicy.shouldExit(DateTime.now())){
+      SystemNavigator.pop();
+    }else{
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        duration:Duration(seconds:2),
+        content:Text('Swipe back again to exit OneSpace'),
+      ));
+    }
+  }
 
   void navigate(int index) {
+    _exitPolicy.reset();
     setState(() {
       if ((index == 0 || index == 1) && selectedIndex != index) refreshToken++;
       selectedIndex = index;
@@ -229,6 +254,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   }
 
   void open(Widget screen) {
+    _exitPolicy.reset();
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(builder: (_) => screen),
     ).then((_) {
@@ -239,7 +265,12 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   @override
   Widget build(BuildContext context) {
     final visible = showProfile ? 5 : selectedIndex;
-    return Scaffold(
+    return PopScope<Object?>(
+      canPop:false,
+      onPopInvokedWithResult:(didPop,result){
+        if(!didPop)_handleAndroidBack();
+      },
+      child:Scaffold(
       appBar: AppBar(
         leading: showProfile ? IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -310,6 +341,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             selectedIcon:const Icon(Icons.public),label:tr(context,'worldTab')),
         ],
       ),
-    );
+    ));
   }
 }
