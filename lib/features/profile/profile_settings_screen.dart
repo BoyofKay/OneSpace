@@ -12,7 +12,8 @@ import '../../core/weather_city_picker.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
-  const ProfileSettingsScreen({super.key});
+  const ProfileSettingsScreen({super.key,this.settingsOnly=false});
+  final bool settingsOnly;
 
   @override
   State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
@@ -359,23 +360,24 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(tr(context, 'yourAccount'),
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        const Text('Your profile belongs to you, independently of your partner.'),
-        const SizedBox(height: 22),
-        Text(_client.auth.currentUser?.email ?? 'Signed in'),
-        const SizedBox(height: 18),
-        TextField(
-          controller: _name,
-          maxLength: 80,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            labelText: tr(context, 'yourName'),
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 10),
+        if(!widget.settingsOnly)...[
+          Text('My profile',style:Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height:8),
+          Text(_client.auth.currentUser?.email??'Signed in'),
+          const SizedBox(height:16),
+          TextField(controller:_name,maxLength:80,
+            textCapitalization:TextCapitalization.words,
+            decoration:InputDecoration(labelText:tr(context,'yourName'),
+              border:const OutlineInputBorder())),
+          const SizedBox(height:10),
+        ],
+        if(widget.settingsOnly)...[
+          Text('Personalization & preferences',
+            style:Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height:6),
+          const Text('These settings belong to your account. '
+            'Your partner can choose different preferences.'),
+          const SizedBox(height:16),
         DropdownButtonFormField<String>(
           initialValue: _language,
           decoration: InputDecoration(
@@ -507,6 +509,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           'the main interface; remaining screens are being translated.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        ], // end preferences-only fields
         if (_error != null) ...[
           const SizedBox(height: 14),
           Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -520,6 +523,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           onPressed: _saving ? null : _save,
           child: Text(tr(context, 'saveProfile')),
         ),
+        if(!widget.settingsOnly)...[
         const SizedBox(height: 22),
         const Divider(),
         ListTile(
@@ -546,6 +550,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           icon: const Icon(Icons.logout),
           label: Text(tr(context, 'signOut')),
         ),
+        ],
       ],
     );
   }
