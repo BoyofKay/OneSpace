@@ -16,6 +16,7 @@ import 'activity_image_preview.dart';
 import 'activity_contact.dart';
 import 'activity_contact_view.dart';
 import 'activity_voice_player.dart';
+import 'activity_inline_voice_composer.dart';
 import 'activity_voice_recorder_sheet.dart';
 import 'activity_voice_service.dart';
 import 'activity_message_identity.dart';
@@ -46,6 +47,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? onComponentTitle;
   String? issue;
   bool sending = false;
+  bool voiceMode=false;
   String? mentionSuggestion;
   int mentionOffset = -1;
   String? conversationSpaceId;
@@ -1347,11 +1349,26 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ),
           )),
         ),
-        Row(children:[
+        if(voiceMode)ActivityInlineVoiceComposer(
+          activityId:widget.id,
+          replyToId:replyingTo,
+          componentId:onComponent,
+          onFinished:(){
+            setState((){
+              voiceMode=false;
+              replyingTo=null;replyPreview=null;
+              onComponent=null;onComponentTitle=null;
+            });
+          },
+          onCancel:()=>setState(()=>voiceMode=false),
+        )
+        else Row(children:[
           IconButton(
             tooltip:'Record voice message',
-            onPressed:sending?null:()=>recordVoice(
-              destination:VoiceDestination.comment),
+            onPressed:sending?null:(){
+              FocusScope.of(context).unfocus();
+              setState(()=>voiceMode=true);
+            },
             icon:const Icon(Icons.mic_none_outlined)),
           Expanded(child:TextField(
             controller:composer,focusNode:composerFocus,
