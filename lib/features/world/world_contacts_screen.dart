@@ -135,11 +135,23 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
    final source=selected;
    try{
      final direct=source?.direct;
-     final a=await db.from('saved_contact_revisions')
+     // Limit revision queries to actual contacts in the current visible list.
+     // Never include revisions from unrelated Activity components.
+     final directIds=source!=null?
+       (direct==true?<String>[source.id]:<String>[]):
+       contacts.where((x)=>x.direct).map((x)=>x.id).toList();
+     final linkedIds=source!=null?
+       (direct==false?<String>[source.id]:<String>[]):
+       contacts.where((x)=>!x.direct).map((x)=>x.id).toList();
+     final a=directIds.isEmpty?<Map<String,dynamic>>[]:
+      await db.from('saved_contact_revisions')
        .select('contact_id,changed_by,changed_at,change_kind,old_label,new_label')
+       .inFilter('contact_id',directIds)
        .order('changed_at',ascending:false).limit(120);
-     final b=await db.from('activity_component_revisions')
+     final b=linkedIds.isEmpty?<Map<String,dynamic>>[]:
+      await db.from('activity_component_revisions')
        .select('component_id,changed_by,changed_at,change_kind,old_label,new_label')
+       .inFilter('component_id',linkedIds)
        .order('changed_at',ascending:false).limit(120);
      final entries=<Map<String,dynamic>>[
        for(final row in a)
