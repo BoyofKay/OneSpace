@@ -372,7 +372,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             onSelected:(choice){
               if(choice=='settings')open(const OneSpaceSettingsScreen());
               if(choice=='search')open(const GlobalSearchScreen());
-              if(choice=='share')open(const ShareIntakeScreen());
               if(choice=='language')open(Scaffold(
                 appBar:AppBar(title:const Text('Language')),
                 body:const SafeArea(child:ProfileSettingsScreen(
@@ -385,9 +384,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
               PopupMenuItem(value:'search',child:ListTile(
                 leading:Icon(Icons.search_outlined),
                 title:Text('Search our space'))),
-              PopupMenuItem(value:'share',child:ListTile(
-                leading:Icon(Icons.add_link),
-                title:Text('Save a link or idea'))),
               PopupMenuItem(value:'language',child:ListTile(
                 leading:Icon(Icons.translate),
                 title:Text('Language'))),
