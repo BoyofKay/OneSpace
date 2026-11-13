@@ -6,6 +6,7 @@ import '../../core/current_space_cache.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../hubs/section_hubs.dart';
 import 'personal_days_off_screen.dart';
+import '../../theme/appearance_settings_screen.dart';
 
 /// Central configuration hub, distinct from personal profile details.
 class OneSpaceSettingsScreen extends StatelessWidget {
@@ -37,6 +38,14 @@ class OneSpaceSettingsScreen extends StatelessWidget {
        )),
        const SizedBox(height:16),
        Text('My preferences',style:Theme.of(context).textTheme.titleMedium),
+       Card(elevation:0,child:ListTile(
+        leading:const Icon(Icons.palette_outlined),
+        title:const Text('Appearance & seasonal themes'),
+        subtitle:const Text('Four colors · Light, dark or follow phone · Holidays'),
+        trailing:const Icon(Icons.chevron_right),
+        onTap:()=>Navigator.of(context).push<void>(MaterialPageRoute<void>(
+          builder:(_)=>const AppearanceSettingsScreen())),
+       )),
        Card(elevation:0,child:Column(children:[
          ListTile(
            leading:const Icon(Icons.badge_outlined),

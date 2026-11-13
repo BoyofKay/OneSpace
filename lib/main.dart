@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
+import 'theme/onespace_appearance.dart';
 import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
 import 'features/share_in/share_intake_screen.dart';
@@ -39,6 +40,8 @@ Future<void> main() async {
   // session. Previously OneSpace displayed a blank startup while awaiting
   // Supabase.initialize(), which can be slow on a remote region.
   runApp(OneSpaceBootstrap(startupClock: timer));
+  // Appearance loads without blocking the first frame or auth restoration.
+  OneSpaceAppearance.instance.load();
 }
 
 /// A visible, copyable diagnostic replaces a device-only red error surface.
@@ -181,31 +184,32 @@ class OneSpaceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ink = Color(0xFF20334A);
-    const teal = Color(0xFF167E81);
-    return ValueListenableBuilder<Locale?>(
-      valueListenable: OneSpaceLocaleController.instance,
-      builder: (context, currentLocale, child) => MaterialApp(
-        title: 'OneSpace',
-        locale: currentLocale,
-        supportedLocales: const [Locale('en'), Locale('ar')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-        ],
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-          colorScheme: ColorScheme.fromSeed(seedColor: teal),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFF7F8FA),
-            foregroundColor: ink,
-            centerTitle: false,
+    return AnimatedBuilder(
+      animation:OneSpaceAppearance.instance,
+      builder:(context,_) {
+        final appearance=OneSpaceAppearance.instance;
+        return ValueListenableBuilder<Locale?>(
+          valueListenable:OneSpaceLocaleController.instance,
+          builder:(context,currentLocale,child)=>MaterialApp(
+            title:'OneSpace',
+            locale:currentLocale,
+            supportedLocales:const [Locale('en'),Locale('ar')],
+            localizationsDelegates:const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            debugShowCheckedModeBanner:false,
+            theme:OneSpaceTheme.build(
+              palette:appearance.palette,brightness:Brightness.light),
+            darkTheme:OneSpaceTheme.build(
+              palette:appearance.palette,brightness:Brightness.dark),
+            themeMode:appearance.mode,
+            themeAnimationDuration:const Duration(milliseconds:280),
+            themeAnimationCurve:Curves.easeInOutCubic,
+            home:const AuthGate(signedIn:OneSpaceHome()),
           ),
-        ),
-        home: const AuthGate(signedIn: OneSpaceHome()),
-      ),
+        );
+      },
     );
   }
 }
