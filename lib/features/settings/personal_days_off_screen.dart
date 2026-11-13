@@ -116,8 +116,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
        'off_day_wake_at':_time(wake),
      };
      if(existing==null){
-       await db.from('personal_days_off').upsert(values,
-         onConflict:'user_id,off_date');
+       await db.from('personal_days_off').insert(values);
      }else{
        await db.from('personal_days_off').update({
          'off_date':CalendarRules.sqlDate(date),
