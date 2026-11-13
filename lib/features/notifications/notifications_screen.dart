@@ -163,6 +163,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                        kind=='checkin_request'?'Your partner is checking on you':
                        kind=='checkin_response'?'Your partner replied':
                        kind=='checkin_shared'?'Your partner shared their feelings':
+                       kind=='trip_document'?'Your partner shared a travel document':
                        kind=='trip_suggestion'?'New shared trip':
                        kind=='trip_message'?'Your partner wrote about a trip':
                        kind=='experience_suggestion'?'New experience idea':

@@ -58,15 +58,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .ilike('title',pattern).limit(30),
        db.from('trip_items').select('id,trip_id,title')
          .ilike('title',pattern).limit(30),
+       db.from('trip_attachments').select('id,trip_id,title')
+         .ilike('title',pattern).limit(30),
      ]);
      if(!mounted||request!=version)return;
-     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item'];
+     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
          output.add(_Hit(types[n],
            (n==5?'#':'')+(row[n==5?'label':'title']?.toString()??''),
-           row[n==5?'activity_id':n==8?'trip_id':'id']?.toString()??''));
+           row[n==5?'activity_id':(n==8||n==9)?'trip_id':'id']?.toString()??''));
        }
      }
      setState((){hits=output;busy=false;});
@@ -85,7 +87,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'To-do':target=const PlansScreen();break;
      case 'Note':target=NotesScreen(initialNoteId:hit.id);break;
      case 'Trip':
-     case 'Trip item':target=TripsScreen(initialTripId:hit.id);break;
+     case 'Trip item':
+     case 'Travel document':target=TripsScreen(initialTripId:hit.id);break;
      case 'Experience':target=SharedExperiencesScreen(initialExperienceId:hit.id);break;
      default:target=const CoupleLettersScreen();
    }
@@ -117,6 +120,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
            hit.kind=='To-do'?Icons.checklist_outlined:
            hit.kind=='Note'?Icons.note_outlined:
            hit.kind=='Tag'?Icons.sell_outlined:
+           hit.kind=='Travel document'?Icons.attach_file:
            hit.kind=='Trip'||hit.kind=='Trip item'?Icons.flight_outlined:
            hit.kind=='Experience'?Icons.movie_outlined:Icons.mail_outline),
          title:Text(hit.title),
