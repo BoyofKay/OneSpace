@@ -17,6 +17,12 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  ThemeMode mode=ThemeMode.system;
  SeasonChoice season=SeasonChoice.automatic;
  bool loaded=false;
+ SeasonChoice? personalSeason;
+ void setPersonalSeason(SeasonChoice? value){
+  if(personalSeason==value)return;
+  personalSeason=value;
+  notifyListeners();
+ }
 
  Future<void> load()async{
   try{
@@ -79,8 +85,10 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.christmas=>'Christmas',
   SeasonChoice.newYear=>'New Year',
  };
- static SeasonChoice effectiveSeason(SeasonChoice setting,DateTime date){
+ static SeasonChoice effectiveSeason(SeasonChoice setting,DateTime date,
+   {SeasonChoice? personal}){
   if(setting!=SeasonChoice.automatic)return setting;
+  if(personal!=null)return personal;
   // Seasonal styling is decorative, not a statement of a public holiday.
   if(date.month==2&&date.day>=10&&date.day<=15)return SeasonChoice.valentines;
   if(date.month==10&&date.day>=25)return SeasonChoice.halloween;

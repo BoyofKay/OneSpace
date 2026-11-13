@@ -189,7 +189,8 @@ class OneSpaceApp extends StatelessWidget {
       animation:OneSpaceAppearance.instance,
       builder:(context,_) {
         final appearance=OneSpaceAppearance.instance;
-        final activeSeason=OneSpaceAppearance.effectiveSeason(appearance.season,DateTime.now());
+        final activeSeason=OneSpaceAppearance.effectiveSeason(appearance.season,DateTime.now(),
+         personal:appearance.personalSeason);
         return ValueListenableBuilder<Locale?>(
           valueListenable:OneSpaceLocaleController.instance,
           builder:(context,currentLocale,child)=>MaterialApp(

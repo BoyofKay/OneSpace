@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_redirect.dart';
 import '../../core/current_space_cache.dart';
+import '../../theme/onespace_appearance.dart';
+import '../../theme/occasion_theme_resolver.dart';
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
@@ -53,6 +55,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         } else if (state.event == AuthChangeEvent.signedOut) {
           // Never reuse an earlier account's partner identity or space ID.
           CurrentSpaceCache.instance.clear();
+          OneSpaceAppearance.instance.setPersonalSeason(null);
           _idleTimer?.cancel();
           OneSpaceLocaleController.instance.selectLanguage(null);
           setState(() {
@@ -64,8 +67,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           // A refresh/restore must never bypass the locked saved-session UI.
           // Only the actual OS/password verification callback unlocks it.
           _loadAccountLocale();
-          if (!_locked) _startIdleTimer();
-          if (!_locked) setState(() {});
+          if (!_locked){
+            _startIdleTimer();
+            unawaited(_refreshPersonalMoment());
+            setState(() {});
+          }
         }
       },
       onError: (Object error, StackTrace trace) {
@@ -90,6 +96,28 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
+  /// A private/specific annual celebration changes only THIS phone's theme.
+  /// Supabase RLS filters the user's allowed occasions before resolution.
+  Future<void> _refreshPersonalMoment()async{
+    if(_locked)return;
+    final client=Supabase.instance.client;
+    final user=client.auth.currentUser?.id;
+    if(user==null)return;
+    try{
+     final space=await CurrentSpaceCache.instance.get();
+     if(space==null||client.auth.currentUser?.id!=user)return;
+     final rows=await client.from('occasion_plans')
+      .select('kind,occasion_on,annual,status,archived_at')
+      .eq('space_id',space).isFilter('archived_at',null).limit(300);
+     if(!mounted||_locked||client.auth.currentUser?.id!=user)return;
+     OneSpaceAppearance.instance.setPersonalSeason(
+      OccasionThemeResolver.forDate(
+       List<Map<String,dynamic>>.from(rows),DateTime.now()));
+    }catch(_){
+     // Theme/biometric unlock must never depend on the network.
+    }
+  }
+
   void _unlockCurrentAccount() {
     if (mounted && Supabase.instance.client.auth.currentSession != null) {
       setState(() {
@@ -97,6 +125,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         // Keep the privacy shield until Android signals resumed.
       });
       if (!_coveredForBackground) _startIdleTimer();
+      unawaited(_refreshPersonalMoment());
     }
   }
 
@@ -138,7 +167,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         _coveredForBackground = false;
         if (lockOnReturn) _locked = true;
       });
-      if (!_locked) _startIdleTimer();
+      if (!_locked){
+        _startIdleTimer();
+        unawaited(_refreshPersonalMoment());
+      }
     }
   }
 
