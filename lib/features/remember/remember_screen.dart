@@ -5,10 +5,8 @@ import '../../core/current_space_cache.dart';
 import '../../l10n/onespace_strings.dart';
 import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
-import '../coordinate/coordinate_screen.dart';
 import '../notes/notes_screen.dart';
 import '../plans/plans_screen.dart';
-import 'remember_rules.dart';
 
 /// The Remember section keeps daily reference information visible in one place.
 /// One invoker-only RPC returns the partner's RLS-filtered overview.
@@ -101,9 +99,6 @@ class _RememberScreenState extends State<RememberScreen> {
   int _count(String key) =>
       (_overview?[key] as num?)?.toInt() ?? 0;
 
-  List<dynamic> _items(String key) =>
-      _overview?[key] as List<dynamic>? ?? const [];
-
   Widget _destination({
     required IconData icon,
     required String title,
@@ -129,36 +124,8 @@ class _RememberScreenState extends State<RememberScreen> {
     ),
   );
 
-  Widget _sectionHeading(String title, Widget? destination) => Row(
-    children: [
-      Expanded(child: Text(title,
-          style: Theme.of(context).textTheme.titleLarge)),
-      if (destination != null)
-        TextButton(
-          onPressed: () => _open(destination),
-          child: Text(tr(context, 'rememberSeeAll')),
-        ),
-    ],
-  );
-
-  String _dueLabel(RememberDue due) {
-    final days = RememberRules.daysFromToday(due.date, DateTime.now());
-    if (days < 0) {
-      return '${tr(context, 'rememberOverdue')} ${-days} '
-          '${tr(context, 'rememberDays')}';
-    }
-    if (days == 0) return tr(context, 'rememberDueToday');
-    return '${tr(context, 'rememberDueIn')} $days '
-        '${tr(context, 'rememberDays')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final events = RememberRules.upcomingEvents(
-      _items('upcoming_events'), now);
-    final dues = RememberRules.upcomingDues(_items('upcoming_dues'));
-    final recentNotes = _items('recent_notes');
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -208,85 +175,10 @@ class _RememberScreenState extends State<RememberScreen> {
               count: _count('notes_count'),
               destination: const NotesScreen(),
             ),
-            const SizedBox(height: 18),
-            _sectionHeading(
-                tr(context, 'rememberUpcomingDues'), null),
-            const SizedBox(height: 4),
-            if (dues.isEmpty)
-              _empty(tr(context, 'rememberNoDues'))
-            else
-              for (final due in dues)
-                Card(
-                  elevation: 0,
-                  child: ListTile(
-                    leading: Icon(
-                      due.kind == 'reminder'
-                          ? Icons.notifications_outlined
-                          : due.kind == 'activity'
-                              ? Icons.hub_outlined
-                              : Icons.check_circle_outline,
-                    ),
-                    title: Text(due.title),
-                    subtitle: Text(
-                        '${_dueLabel(due)} · ${CalendarRules.sqlDate(due.date)}'),
-                    onTap: () => _open(
-                      due.kind == 'todo'
-                          ? const PlansScreen()
-                          : ActivityScreen(id: due.activityId ?? due.id),
-                    ),
-                  ),
-                ),
-            const SizedBox(height: 15),
-            _sectionHeading(
-                tr(context, 'rememberUpcomingEvents'),
-                const CalendarScreen()),
-            const SizedBox(height: 4),
-            if (events.isEmpty)
-              _empty(tr(context, 'rememberNoEvents'))
-            else
-              for (final event in events.take(6))
-                Card(
-                  elevation: 0,
-                  child: ListTile(
-                    leading: Icon(event.kind == 'occasion'
-                        ? Icons.celebration_outlined
-                        : Icons.event_outlined),
-                    title: Text(event.title),
-                    subtitle: Text(CalendarRules.sqlDate(event.date)),
-                    onTap: () => _open(const CalendarScreen()),
-                  ),
-                ),
-            const SizedBox(height: 15),
-            _sectionHeading(
-                tr(context, 'rememberRecentNotes'), const NotesScreen()),
-            const SizedBox(height: 4),
-            if (recentNotes.isEmpty)
-              _empty(tr(context, 'rememberNoNotes'))
-            else
-              for (final raw in recentNotes)
-                if (raw is Map)
-                  Card(
-                    elevation: 0,
-                    child: ListTile(
-                      leading: const Icon(Icons.note_alt_outlined),
-                      title: Text(raw['title']?.toString() ?? ''),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _open(const NotesScreen()),
-                    ),
-                  ),
           ],
         ],
       ),
     );
   }
 
-  Widget _empty(String message) => Card(
-    elevation: 0,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Text(message,
-          style: Theme.of(context).textTheme.bodyMedium),
-    ),
-  );
 }
-

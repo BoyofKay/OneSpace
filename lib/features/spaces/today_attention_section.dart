@@ -18,10 +18,11 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
     final items = widget.items;
     final now = DateTime.now();
     return ExpansionTile(
-      initiallyExpanded:true,
+      initiallyExpanded:false,
       onExpansionChanged:(v)=>setState(()=>expanded=v),
       leading:const Icon(Icons.notifications_active_outlined),
-      title: Text('Needs attention (${items.length})'),
+      title:Text('Needs attention ('+items.length.toString()+')',
+        style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
       childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
       children:[
         if(items.isEmpty) const ListTile(
@@ -64,9 +65,11 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
  @override Widget build(BuildContext context) {
    final entries=widget.entries;
    return ExpansionTile(
-     initiallyExpanded:true,
+     tilePadding:EdgeInsets.zero,
+     initiallyExpanded:false,
      leading:const Icon(Icons.calendar_month_outlined),
-     title:Text('Coming up together (${entries.length})'),
+     title:Text('Coming up together ('+entries.length.toString()+')',
+       style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
      childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
      children:[
        if(entries.isEmpty)const ListTile(title:Text('Nothing scheduled in the next 7 days.')),
