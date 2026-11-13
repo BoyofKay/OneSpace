@@ -587,6 +587,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
+  Future<void> mentionPartner() async {
+    final space=await CurrentSpaceCache.instance.get();
+    if(space==null||!mounted)return;
+    final names=CurrentSpaceCache.instance.memberNamesFor(space);
+    final partner=names?.entries.where((entry)=>entry.key!=me).firstOrNull;
+    if(partner==null||partner.value.trim().isEmpty)return;
+    final prefix=composer.text;
+    composer.text='$prefix${prefix.isNotEmpty&&!prefix.endsWith(' ')?' ':''}@${partner.value.trim()} ';
+    composer.selection=TextSelection.collapsed(offset:composer.text.length);
+    composerFocus.requestFocus();
+  }
+
   void focusOnComponent(Map<String,dynamic> item) {
     setState(() {
       onComponent = item['id'] as String;
@@ -1302,6 +1314,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
               destination: VoiceDestination.comment,
             ),
             icon: const Icon(Icons.mic_none_outlined),
+          ),
+          IconButton(
+            tooltip:'Mention your partner',
+            onPressed:mentionPartner,
+            icon:const Icon(Icons.alternate_email),
           ),
           Expanded(child: TextField(
             controller: composer, focusNode: composerFocus,
