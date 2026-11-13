@@ -26,7 +26,7 @@ void main(){
     documentId:document,mime:'application/pdf'),throwsFormatException);
  });
  test('Filename is sanitized before entering metadata',(){
-  expect(TripDocumentRules.safeFileName(' ../board/pass.pdf'), ' ..-board-pass.pdf');
+  expect(TripDocumentRules.safeFileName(' ../board/pass.pdf'), '..-board-pass.pdf');
   expect(TripDocumentRules.safeTitle('   '),'Travel document');
  });
 }
