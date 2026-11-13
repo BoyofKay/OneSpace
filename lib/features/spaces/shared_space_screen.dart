@@ -510,8 +510,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   Widget _relationshipPanel() {
     final ago=_dayDistance(lastMetOn);
     final until=_dayDistance(nextMeetOn);
+    final together=relationshipMode=='living_together';
+    final accent=together?const Color(0xFF40A48A):const Color(0xFF627FC1);
     return Card(
       elevation:0,
+      color:Color.alphaBlend(accent.withValues(alpha:.09),
+        Theme.of(context).colorScheme.surface),
       child:Padding(
         padding:const EdgeInsets.all(16),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
