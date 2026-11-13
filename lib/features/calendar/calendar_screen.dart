@@ -243,11 +243,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final years=<int>{activeDate.year};
       if(activeDate.month==1)years.add(activeDate.year-1);
       if(activeDate.month==12)years.add(activeDate.year+1);
-      final data=await Future.wait(years.map((y)=>_holidayService.forYear(y,active)));
+      final data=await Future.wait(years.map((y)=>_holidayService.forYearDetailed(y,active)));
       if(!mounted||request!=_extrasVersion)return;
+      final missing=data.expand((x)=>x.unavailableCountries).toSet();
       setState((){
-       _holidays=data.expand((x)=>x).toList();
-       _holidayError=null;
+       _holidays=data.expand((x)=>x.days).toList();
+       _holidayError=missing.isEmpty?null:
+        'Some holiday sources could not load: '+missing.map(HolidayCatalog.label).join(', ');
       });
     }catch(_){
       if(mounted&&request==_extrasVersion)setState(
@@ -406,10 +408,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 _holidaysOn(date).length+_occasionsOn(date).length).toString()+
               ' shared calendar items and due dates'),
             trailing:const Icon(Icons.chevron_right),
-            onTap:()=>setState((){
+            onTap:(){setState((){
               _selected=date;
               _view='day';
-            }),
+            });_refreshExtras();},
           ),
           for(final off in _offOn(date))_offTile(off),
           for(final holiday in _holidaysOn(date))_holidayTile(holiday),
