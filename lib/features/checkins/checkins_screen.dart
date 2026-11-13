@@ -171,6 +171,15 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
       builder:(_)=>PartnerCheckinReplyScreen(request:request)));
   }
 
+  Widget _detail(String label,String value)=>Padding(
+    padding:const EdgeInsets.symmetric(vertical:7),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(label,style:Theme.of(context).textTheme.labelMedium),
+      const SizedBox(height:5),
+      SelectableText(value,style:Theme.of(context).textTheme.bodyMedium),
+    ]),
+  );
+
   Widget _requestHistory(){
     final me=_client.auth.currentUser?.id;
     return StreamBuilder<List<Map<String,dynamic>>>(
@@ -182,32 +191,45 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           padding:EdgeInsets.all(14),
           child:Text('No requests yet. You can check on each other anytime.')));
         return Column(children:[
-          for(final item in rows.take(60))Card(elevation:0,child:ListTile(
-            leading:Icon(item['sender_id']==me?
-              Icons.send_outlined:Icons.mark_email_unread_outlined),
-            title:Text(item['sender_id']==me?'You checked on your partner':
-              'Your partner checked on you'),
-            subtitle:Text([
-              _dateTime(item['requested_at']),
-              if((item['note']?.toString()??'').isNotEmpty)
-                item['note'].toString(),
-              if(item['responded_at']!=null)
-                'Answered: '+_dateTime(item['responded_at']),
-              if(item['response_mood']!=null)
-                'Mood '+item['response_mood'].toString()+'/5',
-              if((item['response_message']?.toString()??'').isNotEmpty)
-                'On their mind: '+item['response_message'].toString(),
-              if((item['response_topic']?.toString()??'').isNotEmpty)
-                'To talk about: '+item['response_topic'].toString(),
-              if(item['responded_at']==null)'Awaiting a reply',
-            ].join('\n'),maxLines:7,overflow:TextOverflow.ellipsis),
-            isThreeLine:true,
-            trailing:item['recipient_id']==me&&item['responded_at']==null?
-              FilledButton(onPressed:()=>_respond(item),
-                child:const Text('Respond')):null,
-            onTap:item['recipient_id']==me&&item['responded_at']==null?
-              ()=>_respond(item):null,
-          )),
+          for(final item in rows.take(60))Card(
+            elevation:0,clipBehavior:Clip.antiAlias,
+            child:ExpansionTile(
+              initiallyExpanded:item['recipient_id']==me&&
+                item['responded_at']==null,
+              leading:Icon(item['sender_id']==me?
+                Icons.send_outlined:Icons.mark_email_unread_outlined),
+              title:Text(item['sender_id']==me?
+                'You checked on your partner':'Your partner checked on you',
+                style:Theme.of(context).textTheme.titleSmall),
+              subtitle:Text(_dateTime(item['requested_at'])+
+                (item['responded_at']==null?' · Awaiting response':
+                ' · Responded'),
+                style:Theme.of(context).textTheme.bodySmall),
+              childrenPadding:const EdgeInsets.fromLTRB(15,0,15,14),
+              children:[
+                if((item['note']?.toString()??'').isNotEmpty)
+                  _detail('The check-in message',item['note'].toString()),
+                if(item['response_mood']!=null)ListTile(
+                  contentPadding:EdgeInsets.zero,
+                  leading:const Icon(Icons.favorite_outline),
+                  title:Text('How they felt · '+item['response_mood'].toString()+'/5'),
+                  subtitle:Text('Answered '+_dateTime(item['responded_at'])),
+                ),
+                if((item['response_message']?.toString()??'').isNotEmpty)
+                  _detail('What’s on their mind',
+                    item['response_message'].toString()),
+                if((item['response_topic']?.toString()??'').isNotEmpty)
+                  _detail('Something to talk about',
+                    item['response_topic'].toString()),
+                if(item['recipient_id']==me&&item['responded_at']==null)
+                  Align(alignment:AlignmentDirectional.centerEnd,
+                    child:FilledButton.icon(
+                      onPressed:()=>_respond(item),
+                      icon:const Icon(Icons.reply_outlined),
+                      label:const Text('Respond to your love'))),
+              ],
+            ),
+          ),
         ]);
       },
     );
@@ -279,26 +301,34 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
               Icons.sentiment_satisfied_outlined,
               Icons.sentiment_very_satisfied_outlined,
             ];
-            return Card(elevation:0,child:Column(children:[
-              ListTile(
-                leading:Icon(moodIcons[mood.clamp(1,5).toInt()-1]),
-                title:Text(entry['checkin_date'] as String? ?? ''),
-                subtitle:Text([
-                  tr(context,entry['visibility'] as String? ?? 'shared'),
-                  if(own)tr(context,'me') else tr(context,'partner'),
-                  if((entry['message'] as String? ?? '').isNotEmpty)
-                    entry['message'] as String,
-                  if((entry['gratitude'] as String? ?? '').isNotEmpty)
-                    '${tr(context,'gratitude')}: ${entry['gratitude']}',
-                ].join(' • '),maxLines:4,overflow:TextOverflow.ellipsis),
-                trailing:own?const Icon(Icons.edit_outlined):
-                  const Icon(Icons.visibility_outlined),
-                onTap:()=>_edit(entry)),
-              if(own && private) Align(
-                alignment:AlignmentDirectional.centerEnd,
-                child:PrivateShareButton(
-                  objectType:'checkin',objectId:entry['id'] as String)),
-            ]));
+            return Card(elevation:0,clipBehavior:Clip.antiAlias,
+              child:ExpansionTile(
+                leading:CircleAvatar(
+                  child:Icon(moodIcons[mood.clamp(1,5).toInt()-1])),
+                title:Text(entry['checkin_date']?.toString()??'Check-in',
+                  style:Theme.of(context).textTheme.titleSmall),
+                subtitle:Text((own?'You':'Partner')+' · Mood '+mood.toString()+
+                  '/5 · '+(private?'Private':'Shared'),
+                  style:Theme.of(context).textTheme.bodySmall),
+                trailing:own?IconButton(
+                  tooltip:'Edit my check-in',
+                  icon:const Icon(Icons.edit_outlined),
+                  onPressed:()=>_edit(entry)):null,
+                childrenPadding:const EdgeInsets.fromLTRB(15,2,15,15),
+                children:[
+                  if((entry['message']?.toString()??'').isNotEmpty)
+                    _detail('What’s on my mind',
+                      entry['message'].toString()),
+                  if((entry['gratitude']?.toString()??'').isNotEmpty)
+                    _detail('Something I’m grateful for',
+                      entry['gratitude'].toString()),
+                  if(own&&private)Align(
+                    alignment:AlignmentDirectional.centerEnd,
+                    child:PrivateShareButton(
+                      objectType:'checkin',objectId:entry['id'] as String)),
+                ],
+              ));
+
           }).toList());
         }),
       ],
