@@ -21,6 +21,9 @@ class _PartnerMentionButtonState extends State<PartnerMentionButton>{
   if(old.spaceId!=widget.spaceId)load();
  }
  Future<void> load()async{
+  // A reusable editor can mount without a shared space; avoid initializing
+  // Supabase (including in widget tests) until a real space is available.
+  if(widget.spaceId.trim().isEmpty||!widget.enabled)return;
   final client=Supabase.instance.client,me=client.auth.currentUser?.id;
   if(me==null)return;
   try{
