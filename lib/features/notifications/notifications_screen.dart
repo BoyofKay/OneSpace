@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../connect/couple_letters_screen.dart';
+import '../connect/partner_gestures_screen.dart';
 
 class NotificationBell extends StatelessWidget {
  const NotificationBell({super.key});
@@ -50,12 +51,14 @@ class NotificationsScreen extends StatelessWidget {
       return ListTile(
        leading:Icon(kind=='mention'?Icons.alternate_email:
           kind=='reply'?Icons.reply:
-          kind=='letter'?Icons.mail_outline:Icons.event_outlined),
+          kind=='letter'?Icons.mail_outline:
+          kind=='gesture'?Icons.favorite_border:Icons.event_outlined),
        title:Text(row['headline']?.toString()??'Update',
          style:TextStyle(fontWeight:unread?FontWeight.bold:FontWeight.normal)),
        subtitle:Text(kind=='mention'?'Mentioned you':
           kind=='reply'?'Replied to you':
-          kind=='letter'?'New letter':'Shared event'),
+          kind=='letter'?'New letter':
+          kind=='gesture'?'Your partner sent you some love':'Shared event'),
        trailing:unread?const Icon(Icons.circle,size:8):null,
        onTap:() async {
         if(unread){
@@ -74,6 +77,8 @@ class NotificationsScreen extends StatelessWidget {
          target=CalendarScreen(initialEventId:row['object_id']?.toString());
         }else if(object=='letter'){
          target=const CoupleLettersScreen();
+        }else if(object=='gesture'){
+         target=const PartnerGesturesScreen();
         }else{return;}
         Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
        },
