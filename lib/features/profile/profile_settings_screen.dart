@@ -173,7 +173,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> _save() async {
     final name = _name.text.trim();
-    if (name.isEmpty || name.length > 80) {
+    if (!widget.settingsOnly && (name.isEmpty || name.length > 80)) {
       setState(() => _error = 'Your display name must be 1–80 characters.');
       return;
     }
@@ -184,7 +184,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     });
     try {
       await _client.from('profiles').update({
-        'display_name': name,
+        if(!widget.settingsOnly)'display_name': name,
         'locale': _language,
         'partner_label':_partnerLabel.text.trim().isEmpty?null:_partnerLabel.text.trim(),
         'partner_labels':_partnerLabels,
@@ -375,14 +375,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ],
         if(widget.settingsOnly)...[
           Text(widget.section=='labels'?'Preferred names':
-            widget.section=='schedule'?'Schedule & quiet hours':
-            'Weather & language',
+            widget.section=='schedule'?'Schedule & days off':
+            widget.section=='language'?'Language':'Weather city',
             style:Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height:6),
           const Text('These settings belong to your account. '
             'Your partner can choose different preferences.'),
           const SizedBox(height:16),
-        if(widget.section=='weather')...[
+        if(widget.section=='language')...[
         DropdownButtonFormField<String>(
           initialValue: _language,
           decoration: InputDecoration(
@@ -514,12 +514,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               style:Theme.of(context).textTheme.bodySmall),
           ]),
         )),
-        const SizedBox(height: 8),
-        Text(
-          'Language is saved per account. Arabic and RTL are enabled for '
-          'the main interface; remaining screens are being translated.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
         ], // end weather fields
         ], // end preferences-only fields
         if (_error != null) ...[
