@@ -7,7 +7,7 @@ class ActivityConversationReferences {
     final value = raw?.toString().replaceAll(RegExp(r'\s+'), ' ').trim() ?? '';
     if (value.runes.length <= maxCharacters) return value;
     final runes = value.runes.take(maxCharacters - 1).toList();
-    return String.fromCharCodes(runes).trimRight() + '…';
+    return '${String.fromCharCodes(runes).trimRight()}…';
   }
 
   static String? quotedMessage(
