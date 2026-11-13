@@ -145,12 +145,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
          return Column(children:[
            Padding(
              padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),
-             child:Row(children:[
+             child:Wrap(spacing:8,runSpacing:4,
+              alignment:WrapAlignment.spaceBetween,
+              crossAxisAlignment:WrapCrossAlignment.center,children:[
                FilterChip(
                  selected:unreadOnly,
                  label:Text('Unread ($unread)'),
                  onSelected:(v)=>setState(()=>unreadOnly=v)),
-               const Spacer(),
                TextButton.icon(
                  onPressed:unread==0||saving?null:()=>_markAllRead(userId),
                  icon:const Icon(Icons.done_all),

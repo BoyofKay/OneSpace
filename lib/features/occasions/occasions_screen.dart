@@ -543,11 +543,14 @@ class _OccasionDetailState extends State<OccasionDetail>{
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
        child:SelectableText(p['notes'].toString()))),
      const Divider(height:26),
-     Row(children:[
-      Expanded(child:Text('Preparation ('+current.where((s)=>s['done']==true).length.toString()+
-       '/'+current.length.toString()+')',style:Theme.of(context).textTheme.titleLarge)),
-      TextButton.icon(onPressed:()=>editStep(),icon:const Icon(Icons.add),label:const Text('Add step')),
-     ]),
+     Wrap(spacing:10,runSpacing:6,
+      alignment:WrapAlignment.spaceBetween,crossAxisAlignment:WrapCrossAlignment.center,
+      children:[
+       Text('Preparation ('+current.where((s)=>s['done']==true).length.toString()+
+        '/'+current.length.toString()+')',style:Theme.of(context).textTheme.titleLarge),
+       TextButton.icon(onPressed:()=>editStep(),icon:const Icon(Icons.add),
+        label:const Text('Add step')),
+      ]),
      SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Show removed steps'),
       value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v)),
      if(current.isEmpty)const Text('Add shopping, reservations, surprises or budget milestones.'),

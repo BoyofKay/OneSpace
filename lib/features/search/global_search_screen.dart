@@ -121,7 +121,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
  }
  @override Widget build(BuildContext context)=>Scaffold(
    appBar:AppBar(title:const Text('Search our space')),
-   body:Column(children:[
+   body:SafeArea(child:Center(child:ConstrainedBox(
+    constraints:const BoxConstraints(maxWidth:860),child:Column(children:[
      Padding(padding:const EdgeInsets.all(15),child:TextField(
        controller:query,autofocus:true,
        maxLength:GlobalSearchRules.maxQueryLength,
@@ -141,7 +142,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          prefixIcon:const Icon(Icons.search),
          hintText:'Activities, trips, experiences, notes and more',
          border:const OutlineInputBorder(),
-         suffixIcon:IconButton(icon:const Icon(Icons.clear),
+         suffixIcon:IconButton(tooltip:'Clear search',icon:const Icon(Icons.clear),
            onPressed:(){query.clear();debounce?.cancel();search('');}),
        ),
      )),
@@ -153,7 +154,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          TextButton(onPressed:busy?null:()=>search(query.text),
           child:const Text('Retry')),
        ])),
-     Expanded(child:ListView.builder(itemCount:hits.length,itemBuilder:(context,index){
+     Expanded(child:ListView.builder(
+       keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
+       itemCount:hits.length,itemBuilder:(context,index){
        final hit=hits[index];
        return ListTile(
          leading:Icon(hit.kind=='Activity'?Icons.hub_outlined:
@@ -165,15 +168,18 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
            hit.kind=='Travel document'?Icons.attach_file:
            hit.kind=='Trip'||hit.kind=='Trip item'?Icons.flight_outlined:
            hit.kind=='Experience'?Icons.movie_outlined:Icons.mail_outline),
-         title:Text(hit.title),
+         title:Text(hit.title,maxLines:2,overflow:TextOverflow.ellipsis),
          subtitle:Text(hit.kind),
+         trailing:const Icon(Icons.chevron_right),
          onTap:()=>openHit(hit),
        );
      })),
-     if(!busy&&hits.isEmpty&&GlobalSearchRules.canSearch(query.text)&&error==null)
-       const Padding(padding:EdgeInsets.all(10),
-         child:Text('No matching items found.')),
-   ]),
+     if(!busy&&hits.isEmpty&&error==null)
+       Padding(padding:const EdgeInsets.all(14),
+        child:Text(GlobalSearchRules.canSearch(query.text)
+         ?'No matching items found.':'Type at least two characters to search.',
+         textAlign:TextAlign.center)),
+   ])))),
  );
 }
 class _Hit {
