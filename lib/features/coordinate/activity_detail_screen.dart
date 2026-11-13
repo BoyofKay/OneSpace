@@ -15,6 +15,10 @@ import 'activity_image_service.dart';
 import 'activity_image_preview.dart';
 import 'activity_contact.dart';
 import 'activity_contact_view.dart';
+import 'activity_voice_rules.dart';
+import 'activity_voice_player.dart';
+import 'activity_voice_recorder_sheet.dart';
+import 'activity_voice_service.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -379,6 +383,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ('option', Icons.compare_arrows, 'Compare an option'),
       ('link', Icons.link, 'Link'),
       ('image', Icons.image_outlined, 'Photo / screenshot'),
+      ('voice', Icons.mic_none_outlined, 'Voice note'),
       ('note', Icons.subject, 'Note'),
       ('step', Icons.check_circle_outline, 'Step'),
       ('price', Icons.payments_outlined, 'Price'),
@@ -420,8 +425,44 @@ class _ActivityScreenState extends State<ActivityScreen> {
           parentComponentId: under,
         );
       });
+    } else if (chosen == 'voice') {
+      await recordVoice(
+        destination: VoiceDestination.component,
+        parentComponentId: under,
+      );
     } else {
       await openEditor(chosen, parent: under);
+    }
+  }
+
+  Future<void> recordVoice({
+    required VoiceDestination destination,
+    String? parentComponentId,
+  }) async {
+    final sent = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      showDragHandle: false,
+      builder: (_) => ActivityVoiceRecorderSheet(
+        activityId: widget.id,
+        destination: destination,
+        parentComponentId: parentComponentId,
+        replyToCommentId: destination == VoiceDestination.comment
+            ? replyingTo : null,
+        relatedComponentId: destination == VoiceDestination.comment
+            ? onComponent : null,
+      ),
+    );
+    if (sent == true && mounted &&
+        destination == VoiceDestination.comment) {
+      setState(() {
+        replyingTo = null;
+        replyPreview = null;
+        onComponent = null;
+        onComponentTitle = null;
+      });
     }
   }
 
@@ -610,6 +651,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   title: const Text('Attach another source link'),
                   onTap: () => Navigator.pop(ctx, 'add-link')),
                 ListTile(
+                  leading: const Icon(Icons.mic_none_outlined),
+                  title: const Text('Attach voice note'),
+                  onTap: () => Navigator.pop(ctx, 'add-voice')),
+                ListTile(
                   leading: const Icon(Icons.contact_phone_outlined),
                   title: const Text('Attach contact information'),
                   onTap: () => Navigator.pop(ctx, 'add-contact')),
@@ -673,6 +718,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await openEditor('link', parent: id);
       case 'add-contact':
         await openEditor('contact', parent: id);
+      case 'add-voice':
+        await recordVoice(
+          destination: VoiceDestination.component,
+          parentComponentId: id,
+        );
       case 'child':
         await chooseAdd(under: id, underTitle: title);
       case 'edit':
@@ -771,6 +821,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       case 'option': return Icons.compare_arrows;
       case 'link': return Icons.link;
       case 'image': return Icons.image_outlined;
+      case 'voice': return Icons.mic_none_outlined;
       case 'note': return Icons.subject;
       case 'step': return Icons.check_circle_outline;
       case 'price': return Icons.payments_outlined;
@@ -790,7 +841,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final payload = item['payload'] as Map? ?? const {};
     final value = payload['value']?.toString() ?? '';
     if (kind == 'price') return '${payload['currency'] ?? ''} $value';
-    if (kind == 'contact') return '';
+    if (kind == 'contact' || kind == 'voice') return '';
     if (kind == 'option') {
       final price = payload['price']?.toString() ?? '';
       final currency = payload['currency']?.toString() ?? '';
@@ -878,6 +929,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       onPhone: openContactAction,
                       onEmail: openContactAction,
                       onMap: openMap,
+                    ),
+                  ],
+                  if (kind == 'voice' &&
+                      (payload['voice_path']?.toString() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    ActivityVoicePlayer(
+                      objectPath: payload['voice_path'].toString(),
+                      seconds: (payload['voice_seconds'] as num?)?.toInt() ?? 0,
                     ),
                   ],
                   if (kind == 'image' &&
@@ -1148,8 +1207,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 ),
               ],
               const SizedBox(height: 4),
-              Text(msg['body']?.toString() ?? '',
-                style: Theme.of(context).textTheme.bodyMedium),
+              if ((msg['voice_path']?.toString() ?? '').isNotEmpty)
+                ActivityVoicePlayer(
+                  objectPath: msg['voice_path'].toString(),
+                  seconds: (msg['voice_seconds'] as num?)?.toInt() ?? 0,
+                )
+              else
+                Text(msg['body']?.toString() ?? '',
+                  style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -1177,6 +1242,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
               })),
           ]),
         Row(children: [
+          IconButton(
+            tooltip: 'Record voice message',
+            onPressed: sending ? null : () => recordVoice(
+              destination: VoiceDestination.comment,
+            ),
+            icon: const Icon(Icons.mic_none_outlined),
+          ),
           Expanded(child: TextField(
             controller: composer, focusNode: composerFocus,
             minLines: 1, maxLines: 3,
