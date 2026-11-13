@@ -5,6 +5,9 @@ import '../../core/current_space_cache.dart';
 import 'activity_detail_screen.dart';
 import 'coordinate_activity_filters.dart';
 
+// Keep navigation imports from Remember and other existing features working.
+export 'activity_detail_screen.dart' show ActivityScreen;
+
 /// The shared-life workspace: active work, items needing attention and a
 /// searchable history. There is no requirement to assign a task or deadline.
 class CoordinateScreen extends StatefulWidget {
