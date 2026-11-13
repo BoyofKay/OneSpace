@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'validation/R12_READY_FOR_TESTS.md'
+      - 'validation/R13_VERIFY.md'
 
 permissions:
   contents: read
