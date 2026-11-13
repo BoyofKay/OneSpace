@@ -257,6 +257,8 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
   final db=Supabase.instance.client;
   bool? partnerRead;
   List<Map<String,dynamic>> replies=const [];
+  Map<String,dynamic>? fresh;
+  bool reading=true;
   String? error;
   String get me=>db.auth.currentUser?.id??'';
   bool get mine=>widget.letter['author_id']==me;
@@ -266,28 +268,48 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
   Future<void> load() async {
     final id=widget.letter['id']?.toString();
     if(id==null)return;
+    if(mounted)setState((){
+      reading=true;error=null;
+    });
     try{
+      // Always load the letter by ID with its original RLS. Stream list
+      // snapshots may be incomplete or stale after inbox/sent navigation.
+      final row=await db.from('couple_letters')
+        .select('id,space_id,author_id,title,body,status,sent_at,reply_to')
+        .eq('id',id).single();
+      if(!mounted)return;
+      setState(()=>fresh=Map<String,dynamic>.from(row));
+      // The read receipt is independent; a failure must never block a letter.
       if(!mine){
         try{
-          await db.from('couple_letter_reads').insert({
-            'letter_id':id,
-          });
-        }on PostgrestException catch(e){
-          if(e.code!='23505')rethrow;
-        }
+          await db.from('couple_letter_reads').upsert({
+            'letter_id':id,'reader_id':me,
+          },onConflict:'letter_id,reader_id');
+        }catch(_){/* Reading remains available even without a receipt. */}
       }else{
-        final receipts=await db.from('couple_letter_reads')
-          .select('reader_id').eq('letter_id',id).limit(5);
-        if(mounted)setState(()=>partnerRead=receipts.isNotEmpty);
+        try{
+          final receipts=await db.from('couple_letter_reads')
+            .select('reader_id').eq('letter_id',id).limit(5);
+          if(mounted)setState(()=>partnerRead=receipts.isNotEmpty);
+        }catch(_){if(mounted)setState(()=>partnerRead=null);}
       }
-      final children=await db.from('couple_letters')
-        .select('id,title,body,status,author_id,space_id,sent_at,reply_to')
-        .eq('reply_to',id).eq('status','sent')
-        .order('sent_at',ascending:true).limit(100);
-      if(mounted){setState(()=>replies=[
-        for(final child in children)Map<String,dynamic>.from(child),
-      ]);}
-    }catch(_){if(mounted)setState(()=>error='Could not load all letter details.');}
+      try{
+        final children=await db.from('couple_letters')
+          .select('id,title,body,status,author_id,space_id,sent_at,reply_to')
+          .eq('reply_to',id).eq('status','sent')
+          .order('sent_at',ascending:true).limit(100);
+        if(mounted)setState(()=>replies=[
+          for(final child in children)Map<String,dynamic>.from(child)]);
+      }catch(_){
+        // Replies may be inaccessible without preventing the main letter read.
+      }
+    }on PostgrestException catch(e){
+      if(mounted)setState(()=>error='Could not open this letter: '+e.message);
+    }catch(_){
+      if(mounted)setState(()=>error='Could not open this letter. Refresh to retry.');
+    }finally{
+      if(mounted)setState(()=>reading=false);
+    }
   }
 
   Future<void> reply() async {
@@ -302,7 +324,7 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
 
   @override
   Widget build(BuildContext context){
-    final letter=widget.letter;
+    final letter=fresh??widget.letter;
     return Scaffold(
       appBar:AppBar(title:const Text('Letter')),
       body:RefreshIndicator(
@@ -310,13 +332,27 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
         child:ListView(padding:const EdgeInsets.all(18),
           physics:const AlwaysScrollableScrollPhysics(),
           children:[
+            if(reading)const LinearProgressIndicator(),
+            if(error!=null)...[
+              Card(child:Padding(padding:const EdgeInsets.all(12),
+                child:Text(error!,style:TextStyle(
+                  color:Theme.of(context).colorScheme.error)))),
+              TextButton.icon(onPressed:load,
+                icon:const Icon(Icons.refresh),
+                label:const Text('Retry opening letter')),
+            ],
             Text(letter['title']?.toString()??'Letter',
               style:Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height:8),
             Text(mine?'From You':'From your partner',
               style:Theme.of(context).textTheme.labelMedium),
-            Text(letter['sent_at']?.toString()??'',
-              style:Theme.of(context).textTheme.bodySmall),
+            Text(() {
+              final sent=DateTime.tryParse(letter['sent_at']?.toString()??'');
+              return sent==null?'Date unavailable':
+                MaterialLocalizations.of(context).formatMediumDate(sent.toLocal())+
+                ' · '+MaterialLocalizations.of(context).formatTimeOfDay(
+                  TimeOfDay.fromDateTime(sent.toLocal()));
+            }(),style:Theme.of(context).textTheme.bodySmall),
             const SizedBox(height:18),
             SelectableText(letter['body']?.toString()??'',
               style:Theme.of(context).textTheme.bodyLarge),
@@ -332,7 +368,6 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
               onPressed:reply,
               icon:const Icon(Icons.reply_outlined),
               label:const Text('Write a reply')),
-            if(error!=null)Text(error!),
             if(replies.isNotEmpty)...[
               const Divider(height:30),
               Text('Replies',style:Theme.of(context).textTheme.titleMedium),
