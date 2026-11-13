@@ -40,3 +40,7 @@ Source at bf1797724bfe2b9f108d590c32f2f465b8495ab8 fixes the R18 compact ternary
 ## R18 corrected holiday expectation — final verify only
 
 Run source-only analyzer and Flutter tests against 5ba059836cc7a84b8dc8d3193c0ef1664c6c57d8. The previous verify-only job passed analysis and 176/177 tests; the sole failure was an outdated Dec 25 Winter expectation replaced by dedicated Christmas theming. No APK/release marker changes.
+
+## R19 acceptance-feedback source-only verification
+
+Verify R19 at a6be135f3f89c4f620c9fb4258dfc18dc8771b0c with lockfile, Flutter analyze and all Flutter tests. Covers biometric/local lock, first-name, To-do nested cycle checklists, Notes photos, mentions, experiences and gesture UX. Do not build/sign/release APK or touch test accounts. Existing R12–R17 APK remains the baseline.
