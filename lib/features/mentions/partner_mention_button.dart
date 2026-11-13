@@ -18,7 +18,10 @@ class _PartnerMentionButtonState extends State<PartnerMentionButton>{
  @override void initState(){super.initState();load();}
  @override void didUpdateWidget(covariant PartnerMentionButton old){
   super.didUpdateWidget(old);
-  if(old.spaceId!=widget.spaceId)load();
+  if(old.spaceId!=widget.spaceId||old.enabled!=widget.enabled){
+   if(old.spaceId!=widget.spaceId)partner=null;
+   if(widget.enabled)load();
+  }
  }
  Future<void> load()async{
   // A reusable editor can mount without a shared space; avoid initializing
