@@ -1,19 +1,22 @@
 name: Build and publish OneSpace APK
 
+# Regular development commits do NOT start APK builds.
+# A finalized iteration updates release/READY_TO_BUILD.md exactly once.
+# It can also be started manually from GitHub Actions if needed.
 on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'release/READY_TO_BUILD.md'
 
 permissions:
   contents: write
 
-# Each development push supersedes earlier pending previews. Preserve
-# completed GitHub Releases, but build only the newest candidate to keep QA
-# focused on the version testers will actually install.
+# Never cancel a final release just because another commit arrives.
 concurrency:
-  group: android-preview-latest-${{ github.ref }}
-  cancel-in-progress: true
+  group: android-preview-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -49,20 +52,13 @@ jobs:
           flutter-version: '3.50.0'
           channel: stable
           cache: true
-      - name: Resolve Flutter dependencies
-        run: flutter pub get
-      - name: Commit refreshed dependency lockfile if needed
+      - name: Resolve exact committed Flutter dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Verify lockfile has not changed
         shell: bash
         run: |
-          if ! git diff --quiet -- pubspec.lock; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add pubspec.lock
-            git commit -m "chore: lock Flutter dependency versions [skip ci]"
-            git push origin HEAD:refs/heads/main
-          fi
-      - name: Verify reproducible dependency resolution
-        run: flutter pub get --enforce-lockfile
+          git diff --exit-code -- pubspec.lock
+          echo 'Dependency lockfile is committed and reproducible.'
       - name: Analyze
         run: flutter analyze --no-fatal-infos
       - name: Test
