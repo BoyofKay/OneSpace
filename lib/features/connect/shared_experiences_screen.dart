@@ -185,48 +185,117 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   if(mounted)await load();
  }
  @override Widget build(BuildContext context){
+  final scheme=Theme.of(context).colorScheme;
   final filtered=rows.where((r)=>
    (showArchived?r['archived_at']!=null:r['archived_at']==null)&&
    (kind=='all'||r['category']==kind)&&(status=='all'||r['status']==status)&&
    (r['title'].toString().toLowerCase().contains(search.toLowerCase())||
-    (r['description']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
-  return Scaffold(appBar:AppBar(title:const Text('Shared experiences')),
+    (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
+  return Scaffold(
+   appBar:AppBar(title:const Text('Our experience'),actions:[
+    IconButton(tooltip:'Experience filters',icon:const Icon(Icons.tune_outlined),
+     onPressed:()=>showModalBottomSheet<void>(context:context,showDragHandle:true,
+      builder:(_)=>StatefulBuilder(builder:(ctx,refresh)=>SafeArea(
+       child:Padding(padding:const EdgeInsets.all(18),
+        child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+         Text('Filter collection',style:Theme.of(ctx).textTheme.titleLarge),
+         const SizedBox(height:10),
+         Wrap(spacing:8,runSpacing:5,children:[
+          for(final e in <String,String>{'all':'All',...experienceStates}.entries)
+           ChoiceChip(label:Text(e.value),selected:status==e.key,
+            onSelected:(_){setState(()=>status=e.key);refresh((){});}),
+         ]),
+         SwitchListTile(title:const Text('Archived experiences'),
+          value:showArchived,onChanged:(v){setState(()=>showArchived=v);refresh((){});}),
+        ]))))),
+    IconButton(tooltip:'Experience edit history',
+     icon:const Icon(Icons.history_outlined),onPressed:openHistory),
+   ]),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
-    onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Suggest')),
+    onPressed:()=>edit(),icon:const Icon(Icons.add),
+    label:const Text('Add an experience')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
-    Text('Enjoy something together',style:Theme.of(context).textTheme.titleLarge),
-    const SizedBox(height:7),
-    const Text('Suggest movies, shows, music, books or games. Plan, enjoy, rate and discuss together.'),
-    const SizedBox(height:14),
+    padding:const EdgeInsets.fromLTRB(16,12,16,110),children:[
+    Text('Discover, watch, play, read',style:Theme.of(context).textTheme.titleLarge),
+    const SizedBox(height:8),
     TextField(onChanged:(v)=>setState(()=>search=v),
-      decoration:const InputDecoration(labelText:'Search ideas',prefixIcon:Icon(Icons.search),
-       border:OutlineInputBorder())),
-    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
-     for(final e in <String,String>{'all':'All',...experienceTypes}.entries)
-      Padding(padding:const EdgeInsets.only(right:5),child:ChoiceChip(
-       label:Text(e.value),selected:kind==e.key,
-       onSelected:(_)=>setState(()=>kind=e.key))),
-    ])),
-    Wrap(spacing:6,children:[
-     for(final e in <String,String>{'all':'Any status',...experienceStates}.entries)
-      FilterChip(label:Text(e.value),selected:status==e.key,
-       onSelected:(_)=>setState(()=>status=e.key)),
-     FilterChip(label:const Text('Archived'),selected:showArchived,
-      onSelected:(v)=>setState(()=>showArchived=v)),
+     decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
+      labelText:'Search by title or platform')),
+    const SizedBox(height:15),
+    LayoutBuilder(builder:(ctx,size)=>GridView.count(
+     shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),
+     crossAxisCount:size.maxWidth>=600?3:2,childAspectRatio:1.75,
+     mainAxisSpacing:9,crossAxisSpacing:9,
+     children:[
+      for(final e in experienceTypes.entries)
+       Card(clipBehavior:Clip.antiAlias,
+        color:Color.alphaBlend(
+         scheme.primary.withValues(alpha:kind==e.key?.20:.05),
+         scheme.surface),
+        child:InkWell(
+         onTap:()=>setState(()=>kind=kind==e.key?'all':e.key),
+         child:Padding(padding:const EdgeInsets.all(8),
+          child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+           Icon(typeIcon(e.key),size:25,color:scheme.primary),
+           const SizedBox(height:6),
+           Text(e.value,maxLines:2,textAlign:TextAlign.center,
+            style:Theme.of(context).textTheme.labelLarge),
+          ])))),
+     ])),
+    const SizedBox(height:12),
+    Row(children:[
+     Expanded(child:Text(kind=='all'?'All experiences':experienceTypes[kind]??'Other',
+      style:Theme.of(context).textTheme.titleMedium)),
+     if(kind!='all')TextButton(onPressed:()=>setState(()=>kind='all'),
+      child:const Text('All collections')),
     ]),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    if(error!=null)Text(error!,style:TextStyle(color:scheme.error)),
     if(loading)const Center(child:CircularProgressIndicator())
     else if(space==null)const Text('Connect your shared space first.')
-    else if(filtered.isEmpty)const Padding(padding:EdgeInsets.all(22),child:Text('No ideas here yet.'))
-    else for(final r in filtered)Card(elevation:0,child:ListTile(
-     leading:const Icon(Icons.video_library_outlined),
-     title:Text(r['title'].toString()),
-     subtitle:Text((experienceTypes[r['category']]??'Other')+' · '+
-       (experienceStates[r['status']]??'Suggested')+
-       ((r['platform']??'').toString().isEmpty?'':' · '+r['platform'].toString())),
-     trailing:const Icon(Icons.chevron_right),onTap:()=>open(r))),
+    else if(filtered.isEmpty)const Padding(padding:EdgeInsets.all(22),
+      child:Text('Nothing in this collection yet. Add the first title.'))
+    else for(final r in filtered)Card(child:Padding(
+     padding:const EdgeInsets.fromLTRB(12,10,12,10),
+     child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+      ListTile(contentPadding:EdgeInsets.zero,
+       leading:Icon(typeIcon(r['category'].toString()),color:scheme.primary,size:29),
+       title:Text(r['title'].toString(),
+        style:Theme.of(context).textTheme.titleMedium),
+       subtitle:Text((r['platform']??'').toString().isEmpty?
+        (experienceTypes[r['category']]??'Other'):
+        (experienceTypes[r['category']]??'Other')+' · '+r['platform'].toString()),
+       trailing:PopupMenuButton<String>(
+        tooltip:'Experience actions',
+        onSelected:(choice){
+         if(choice=='edit'){edit(r);}
+         if(choice=='archive'){archiveFromList(r);}
+         if(choice=='rate'){quickRate(r);}
+        },
+        itemBuilder:(_)=>[
+         const PopupMenuItem(value:'edit',child:Text('Edit details')),
+         const PopupMenuItem(value:'rate',child:Text('Rate & review')),
+         PopupMenuItem(value:'archive',child:Text(
+          r['archived_at']==null?'Archive':'Restore')),
+        ]),
+       onTap:()=>open(r)),
+      Wrap(spacing:8,runSpacing:6,children:[
+       OutlinedButton.icon(
+        onPressed:()=>openPlatform(r),
+        icon:Icon(r['category']=='music'?Icons.play_arrow:
+         r['category']=='movie'||r['category']=='show'?Icons.play_circle_outline:
+         Icons.open_in_new),
+        label:Text(r['category']=='music'?'Play':
+         r['category']=='movie'||r['category']=='show'?'Watch':'Open')),
+       if(canWatch(r))FilledButton.tonalIcon(
+        onPressed:busy||r['status']=='enjoyed'?null:()=>markWatched(r),
+        icon:Icon(r['status']=='enjoyed'?Icons.check_circle:Icons.visibility_outlined),
+        label:Text(r['status']=='enjoyed'?'Watched':'Mark watched')),
+       if(r['status']=='enjoyed'&&canWatch(r))
+        OutlinedButton.icon(onPressed:()=>quickRate(r),
+         icon:const Icon(Icons.star_border),label:const Text('Rate')),
+      ]),
+     ]))),
    ])));
  }
 }
@@ -271,8 +340,7 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
   try{
    final values=<String,dynamic>{'title':title.text.trim(),'category':kind,
     'description':description.text.trim(),'platform':platform.text.trim(),
-    'source_url':url.text.trim(),'status':status,
-    'planned_on':planned==null?null:format(planned),'enjoyed_on':enjoyed==null?null:format(enjoyed)};
+    'source_url':url.text.trim(),'status':status};
    if(widget.original==null){
     await db.from('shared_experiences').insert({...values,'space_id':widget.spaceId});
    }else{
@@ -297,16 +365,6 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
     decoration:const InputDecoration(labelText:'Platform (optional)')),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
     decoration:const InputDecoration(labelText:'Link (optional)')),
-   DropdownButtonFormField<String>(initialValue:status,
-    decoration:const InputDecoration(labelText:'Progress'),
-    items:[for(final e in experienceStates.entries)DropdownMenuItem(value:e.key,child:Text(e.value))],
-    onChanged:(v)=>setState(()=>status=v??status)),
-   ListTile(title:const Text('Planned for'),subtitle:Text(format(planned)),
-    onTap:()=>choose(true),trailing:IconButton(tooltip:'Clear planned date',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>planned=null))),
-   ListTile(title:const Text('Enjoyed on'),subtitle:Text(format(enjoyed)),
-    onTap:()=>choose(false),trailing:IconButton(tooltip:'Clear enjoyed date',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>enjoyed=null))),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
    FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save),
     label:Text(saving?'Saving…':'Save')),
@@ -419,8 +477,6 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     Text((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested')),
     if((r['description']??'').toString().isNotEmpty)Text(r['description'].toString()),
     if((r['platform']??'').toString().isNotEmpty)Text('Platform: '+r['platform'].toString()),
-    if(r['planned_on']!=null)Text('Planned: '+r['planned_on'].toString()),
-    if(r['enjoyed_on']!=null)Text('Enjoyed: '+r['enjoyed_on'].toString()),
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
      onPressed:openLink,icon:const Icon(Icons.open_in_new),label:const Text('Open link')),
     const Divider(height:28),
@@ -455,13 +511,6 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     Align(alignment:Alignment.centerRight,child:FilledButton.icon(
      onPressed:busy?null:send,icon:const Icon(Icons.send_outlined),
      label:const Text('Send'))),
-    const Divider(height:28),
-    ListTile(title:const Text('Edit history'),leading:const Icon(Icons.history),
-     trailing:Icon(showAudit?Icons.expand_less:Icons.expand_more),
-     onTap:()=>setState(()=>showAudit=!showAudit)),
-    if(showAudit)for(final x in audit)ListTile(
-      title:Text('Changed by '+who(x['changed_by'])),
-      subtitle:Text((x['changed_at']??'').toString().replaceFirst('T',' ').split('.').first)),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
   ]));
  }
