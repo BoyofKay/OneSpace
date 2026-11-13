@@ -14,3 +14,5 @@ Validate:
 - Existing accounts, pairing, Activities, Notes, Calendar and contacts unchanged.
 
 Only after automated validation should the release marker be updated once for a consolidated APK.
+
+Validation invocation: analyzer + automated Flutter tests, no APK.
