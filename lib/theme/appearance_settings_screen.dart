@@ -5,8 +5,10 @@ import '../l10n/onespace_strings.dart';
 class AppearanceSettingsScreen extends StatelessWidget{
  const AppearanceSettingsScreen({super.key});
  static String paletteLabel(BuildContext context,OneSpacePalette p)=>tr(context,switch(p){
-  OneSpacePalette.ocean=>'themeOcean',OneSpacePalette.rose=>'themeRose',
-  OneSpacePalette.sage=>'themeSage',OneSpacePalette.indigo=>'themeIndigo',
+  OneSpacePalette.midnightBlue=>'themeMidnightBlue',
+  OneSpacePalette.monochrome=>'themeMonochrome',
+  OneSpacePalette.cleanLight=>'themeCleanLight',
+  OneSpacePalette.softRose=>'themeSoftRose',
  });
  static String seasonLabel(BuildContext context,SeasonChoice s)=>tr(context,switch(s){
   SeasonChoice.off=>'themeOff',SeasonChoice.automatic=>'themeAutomatic',

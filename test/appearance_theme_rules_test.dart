@@ -29,7 +29,7 @@ void main(){
  });
  test('Material themes keep text colors tied to their brightness',(){
   final theme=OneSpaceTheme.build(
-    palette:OneSpacePalette.indigo,brightness:Brightness.dark);
+    palette:OneSpacePalette.midnightBlue,brightness:Brightness.dark);
   expect(theme.appBarTheme.foregroundColor,theme.colorScheme.onSurface);
   expect(theme.scaffoldBackgroundColor, isNot(equals(Colors.white)));
  });

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'theme/onespace_appearance.dart';
+import 'theme/onespace_canvas.dart';
 import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
 import 'features/share_in/share_intake_screen.dart';
@@ -188,6 +189,7 @@ class OneSpaceApp extends StatelessWidget {
       animation:OneSpaceAppearance.instance,
       builder:(context,_) {
         final appearance=OneSpaceAppearance.instance;
+        final activeSeason=OneSpaceAppearance.effectiveSeason(appearance.season,DateTime.now());
         return ValueListenableBuilder<Locale?>(
           valueListenable:OneSpaceLocaleController.instance,
           builder:(context,currentLocale,child)=>MaterialApp(
@@ -200,10 +202,12 @@ class OneSpaceApp extends StatelessWidget {
             ],
             debugShowCheckedModeBanner:false,
             theme:OneSpaceTheme.build(
-              palette:appearance.palette,brightness:Brightness.light),
+              palette:appearance.palette,brightness:Brightness.light,season:activeSeason),
             darkTheme:OneSpaceTheme.build(
-              palette:appearance.palette,brightness:Brightness.dark),
+              palette:appearance.palette,brightness:Brightness.dark,season:activeSeason),
             themeMode:appearance.mode,
+            builder:(context,child)=>OneSpaceCanvas(
+             season:activeSeason,child:child??const SizedBox.shrink()),
             themeAnimationDuration:
               WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
                 ?Duration.zero:const Duration(milliseconds:280),
