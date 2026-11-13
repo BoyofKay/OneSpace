@@ -335,39 +335,36 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         _partnerFullName=profile['display_name']?.toString());
     }catch(_){}
   }
-  void _onNoteText(String text){
+  void _onNoteText(String text) {
     if(_visibility!='shared'||_partnerFullName==null)return;
-    final cursor=_body.selection.isValid?_body.selection.baseOffset:text.length;
-    final before=text.substring(0,cursor.clamp(0,text.length));
-    final match=RegExp(r'(^|\s)@([^\s@]*)
-    if(!_canEdit||_busy||_archived||_visibility!='shared')return;
-    final me=_client.auth.currentUser?.id;
-    if(me==null)return;
-    String? partner;
-    final names=CurrentSpaceCache.instance.memberNamesFor(widget.spaceId);
-    partner=names?.entries.where((e)=>e.key!=me)
-      .map((e)=>e.value).firstOrNull;
-    if(partner==null){
-      try{
-        final members=await _client.from('space_members')
-          .select('user_id').eq('space_id',widget.spaceId);
-        final other=members.where((entry)=>entry['user_id']!=me).firstOrNull;
-        if(other!=null){
-          final profile=await _client.from('profiles')
-            .select('display_name').eq('id',other['user_id'].toString()).single();
-          partner=profile['display_name']?.toString();
-        }
-      }catch(_){}
-    }
-    if(!mounted||partner==null||partner.trim().isEmpty)return;
-    final selection=_body.selection;
-    final start=selection.isValid?selection.start:_body.text.length;
-    final end=selection.isValid?selection.end:_body.text.length;
-    final mention='@'+partner.trim()+' ';
+    final caret=_body.selection.isValid
+      ?_body.selection.baseOffset:text.length;
+    final before=text.substring(0,caret.clamp(0,text.length));
+    final hit=RegExp(r'(^|\s)@([^\s@]*)$').firstMatch(before);
+    final partial=hit?.group(2)??'';
+    final show=hit!=null&&_partnerFullName!.toLowerCase()
+      .startsWith(partial.toLowerCase());
+    setState((){
+      _noteMention=show?_partnerFullName:null;
+      _noteMentionStart=show?caret-partial.length-1:-1;
+    });
+  }
+
+  void _acceptNoteMention() {
+    final name=_noteMention;
+    if(name==null||_noteMentionStart<0)return;
+    final caret=_body.selection.isValid
+      ?_body.selection.baseOffset:_body.text.length;
+    final end=caret.clamp(_noteMentionStart,_body.text.length);
+    final insertion='@'+name+' ';
     _body.value=TextEditingValue(
-      text:_body.text.replaceRange(start,end,mention),
-      selection:TextSelection.collapsed(offset:start+mention.length),
-    );
+      text:_body.text.replaceRange(_noteMentionStart,end,insertion),
+      selection:TextSelection.collapsed(
+        offset:_noteMentionStart+insertion.length));
+    setState((){
+      _noteMention=null;
+      _noteMentionStart=-1;
+    });
   }
 
   Widget _formattingToolbar()=>SingleChildScrollView(

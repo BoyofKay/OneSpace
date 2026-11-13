@@ -591,29 +591,50 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
-  Future<void> mentionPartner() async {
-    final space=await CurrentSpaceCache.instance.get();
-    if(space==null||!mounted)return;
-    final names=CurrentSpaceCache.instance.memberNamesFor(space);
-    final partner=names?.entries.where((entry)=>entry.key!=me).firstOrNull;
-    if(partner==null||partner.value.trim().isEmpty)return;
-    final prefix=composer.text;
-    composer.text='$prefix${prefix.isNotEmpty&&!prefix.endsWith(' ')?' ':''}@${partner.value.trim()} ';
-    composer.selection=TextSelection.collapsed(offset:composer.text.length);
+  /// Suggest only when @ starts a message token, never in email addresses.
+  void _onComposerChanged(String text) {
+    final caret=composer.selection.isValid
+      ?composer.selection.baseOffset:text.length;
+    final before=text.substring(0,caret.clamp(0,text.length));
+    final hit=RegExp(r'(^|\s)@([^\s@]*)$').firstMatch(before);
+    final names=CurrentSpaceCache.instance.memberNamesFor(conversationSpaceId??'');
+    final partner=names?.entries.where((entry)=>entry.key!=me)
+      .map((entry)=>entry.value).firstOrNull;
+    final partial=hit?.group(2)??'';
+    final show=hit!=null&&partner!=null&&
+      partner.toLowerCase().startsWith(partial.toLowerCase());
+    final position=show?caret-partial.length-1:-1;
+    if(mentionSuggestion!=(show?partner:null)||mentionOffset!=position) {
+      setState((){
+        mentionSuggestion=show?partner:null;
+        mentionOffset=position;
+      });
+    }
+  }
+
+  void _acceptMention() {
+    final name=mentionSuggestion;
+    if(name==null||mentionOffset<0)return;
+    final caret=composer.selection.isValid
+      ?composer.selection.baseOffset:composer.text.length;
+    final end=caret.clamp(mentionOffset,composer.text.length);
+    final insertion='@'+name+' ';
+    composer.value=TextEditingValue(
+      text:composer.text.replaceRange(mentionOffset,end,insertion),
+      selection:TextSelection.collapsed(offset:mentionOffset+insertion.length));
+    setState((){
+      mentionSuggestion=null;
+      mentionOffset=-1;
+    });
     composerFocus.requestFocus();
   }
 
-  /// A standalone @ opens partner suggestions; typing an email will not.
-  void _onComposerChanged(String text){
-    final cursor=composer.selection.isValid?
-      composer.selection.baseOffset:text.length;
-    final before=text.substring(0,cursor.clamp(0,text.length));
-    final match=RegExp(r'(^|\s)@([^\s@]*)
-    setState(() {
-      onComponent = item['id'] as String;
-      onComponentTitle = item['label']?.toString();
-      replyingTo = null;
-      replyPreview = null;
+  void focusOnComponent(Map<String,dynamic> item) {
+    setState((){
+      onComponent=item['id'] as String;
+      onComponentTitle=item['label']?.toString();
+      replyingTo=null;
+      replyPreview=null;
     });
     composerFocus.requestFocus();
   }
