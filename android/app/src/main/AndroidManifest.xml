@@ -6,6 +6,7 @@
         android:label="OneSpace"
         android:name="${applicationName}"
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name="com.onespace.onespace.MainActivity"
