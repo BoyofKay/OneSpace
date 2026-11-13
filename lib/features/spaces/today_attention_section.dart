@@ -21,6 +21,7 @@ class TodayAttentionSection extends StatefulWidget {
 
 class _TodayAttentionSectionState extends State<TodayAttentionSection> {
   bool expanded = false;
+  bool showAll=false;
   @override Widget build(BuildContext context) {
     final items = widget.items;
     final now = DateTime.now();
@@ -49,7 +50,7 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
             child:const Text('Retry'))),
         if(items.isEmpty&&!widget.loading&&widget.error==null)
           const ListTile(title:Text('All clear. Nothing needs your action.')),
-        for(final item in items.take(6)) ListTile(
+        for(final item in (showAll?items:items.take(6))) ListTile(
           dense:true,
           leading:Icon(item.source=='checkin'?
             Icons.mark_chat_unread_outlined:
@@ -75,15 +76,11 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
             ],
           ),
         ),
-        if(items.length>6) ListTile(
-          title:Text('And ${items.length-6} more.'),
-          trailing:const Icon(Icons.chevron_right),
-          onTap:(){
-            final item=items[6];
-            if(item.source=='checkin')widget.onOpenCheckins?.call();
-            else if(item.source=='task')widget.onOpenPlans?.call();
-            else if(item.activityId.isNotEmpty)widget.onOpen(item.activityId);
-          },
+        if(items.length>6)ListTile(
+          title:Text(showAll?'Show fewer actions':
+            'Show all ${items.length} actions'),
+          trailing:Icon(showAll?Icons.expand_less:Icons.expand_more),
+          onTap:()=>setState(()=>showAll=!showAll),
         ),
       ],
     );

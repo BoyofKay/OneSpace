@@ -477,6 +477,25 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if (mounted) await _load();
   }
 
+  Future<void> _openAttentionActivity(String id) async{
+    final user=client.auth.currentUser?.id;
+    if(user!=null){
+      try{
+        // Opening a requested Activity acknowledges its mention and reply
+        // notifications for this viewer; it never edits the Activity itself.
+        await client.from('space_notifications').update({
+          'read_at':DateTime.now().toUtc().toIso8601String(),
+        }).eq('recipient_id',user).eq('activity_id',id)
+          .inFilter('kind',['mention','reply'])
+          .isFilter('read_at',null);
+      }catch(_){
+        // Opening the Activity is always more important than read status.
+      }
+    }
+    if(!mounted)return;
+    await _openFocusActivity(id);
+  }
+
   Future<void> _snoozeFocus(TodayAttentionItem item,int days) async {
     final userId=client.auth.currentUser?.id;
     if(userId==null)return;
@@ -780,7 +799,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               loading:focusLoading,
               error:focusError,
               onRetry:()=>unawaited(_load()),
-              onOpen:_openFocusActivity,
+              onOpen:_openAttentionActivity,
               onOpenPlans:widget.onOpenPlans,
               onOpenCheckins:widget.onOpenCheckins,
               onSnooze:_snoozeFocus,
