@@ -71,7 +71,7 @@ class NotificationsScreen extends StatelessWidget {
         if(object=='activity'){
          target=ActivityScreen(id:row['activity_id'].toString());
         }else if(object=='calendar'){
-         target=const CalendarScreen();
+         target=CalendarScreen(initialEventId:row['object_id']?.toString());
         }else if(object=='letter'){
          target=const CoupleLettersScreen();
         }else{return;}
