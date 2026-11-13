@@ -431,16 +431,24 @@ class _OccasionDetailState extends State<OccasionDetail>{
   if(user==null)return;
   try{
    final p=await db.from('occasion_plans').select().eq('id',widget.id).single();
+   var failures=0;
+   Future<dynamic> safe(dynamic task)async{
+    try{return await task;}catch(_){failures++;return null;}
+   }
    final other=await Future.wait([
-    db.from('occasion_plan_steps').select().eq('plan_id',widget.id)
-     .order('due_on',ascending:true).limit(200),
-    db.from('occasion_plan_revisions').select('record_kind,changed_by,changed_at')
-     .eq('plan_id',widget.id).order('changed_at',ascending:false).limit(60),
+    safe(db.from('occasion_plan_steps').select().eq('plan_id',widget.id)
+     .order('due_on',ascending:true).limit(200)),
+    safe(db.from('occasion_plan_revisions').select('record_kind,changed_by,changed_at')
+     .eq('plan_id',widget.id).order('changed_at',ascending:false).limit(60)),
    ]);
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    setState((){
-    plan=p;steps=List<Map<String,dynamic>>.from(other[0]);
-    history=List<Map<String,dynamic>>.from(other[1]);loading=false;error=null;
+    plan=p;
+    if(other[0]!=null)steps=List<Map<String,dynamic>>.from(other[0]);
+    if(other[1]!=null)history=List<Map<String,dynamic>>.from(other[1]);
+    loading=false;
+    error=failures==0?null:
+      'Some occasion details could not refresh. Existing information is kept; pull down to retry.';
    });
   }on PostgrestException catch(e){
    if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==user)

@@ -350,15 +350,21 @@ class _TripDetailState extends State<TripDetail>{
   if(user==null)return;
   try{
    final t=await db.from('shared_trips').select().eq('id',widget.tripId).single();
+   var failures=0;
+   Future<dynamic> safe(dynamic task)async{
+    try{return await task;}catch(_){failures++;return null;}
+   }
    final results=await Future.wait([
-    db.from('trip_items').select().eq('trip_id',widget.tripId).limit(250),
-    db.from('trip_messages').select().eq('trip_id',widget.tripId)
-     .order('created_at',ascending:true).limit(250),
-    db.from('trip_revisions').select('id,record_kind,changed_by,changed_at,before_snapshot,after_snapshot')
-     .eq('trip_id',widget.tripId).order('changed_at',ascending:false).limit(60),
+    safe(db.from('trip_items').select().eq('trip_id',widget.tripId).limit(250)),
+    safe(db.from('trip_messages').select().eq('trip_id',widget.tripId)
+     .order('created_at',ascending:true).limit(250)),
+    // Only request the audit fields used by the collapsed history UI.
+    safe(db.from('trip_revisions')
+     .select('id,record_kind,changed_by,changed_at')
+     .eq('trip_id',widget.tripId).order('changed_at',ascending:false).limit(60)),
    ]);
    if(!mounted||request!=_request||db.auth.currentUser?.id!=user)return;
-   final ordered=List<Map<String,dynamic>>.from(results[0])
+   final ordered=List<Map<String,dynamic>>.from(results[0]??items)
     ..sort((a,b){
      final da=(a['local_date']??'9999-12-31').toString();
      final db=(b['local_date']??'9999-12-31').toString();
@@ -368,9 +374,11 @@ class _TripDetailState extends State<TripDetail>{
     });
    setState((){
     trip=t;items=ordered;
-    messages=List<Map<String,dynamic>>.from(results[1]);
-    history=List<Map<String,dynamic>>.from(results[2]);
-    loading=false;error=null;
+    if(results[1]!=null)messages=List<Map<String,dynamic>>.from(results[1]);
+    if(results[2]!=null)history=List<Map<String,dynamic>>.from(results[2]);
+    loading=false;
+    error=failures==0?null:
+      'Some trip sections could not refresh. Existing information is kept; pull down to retry.';
    });
   }on PostgrestException catch(e){
    if(mounted&&request==_request&&db.auth.currentUser?.id==user)
