@@ -57,18 +57,33 @@ class AppearanceSettingsScreen extends StatelessWidget{
      const SizedBox(height:24),
      Text('Brightness',style:theme.textTheme.titleLarge),
      const SizedBox(height:8),
-     SegmentedButton<ThemeMode>(
-      showSelectedIcon:true,
-      segments:const [
-       ButtonSegment(value:ThemeMode.system,icon:Icon(Icons.brightness_auto_outlined),
-        label:Text('Phone')),
-       ButtonSegment(value:ThemeMode.light,icon:Icon(Icons.light_mode_outlined),
-        label:Text('Light')),
-       ButtonSegment(value:ThemeMode.dark,icon:Icon(Icons.dark_mode_outlined),
-        label:Text('Dark')),
-      ],
-      selected:{state.mode},
-      onSelectionChanged:(value)=>state.setMode(value.first)),
+     LayoutBuilder(builder:(ctx,box){
+      if(box.maxWidth<390){
+       return Wrap(spacing:8,runSpacing:8,children:[
+        for(final item in const [
+         (ThemeMode.system,'Phone',Icons.brightness_auto_outlined),
+         (ThemeMode.light,'Light',Icons.light_mode_outlined),
+         (ThemeMode.dark,'Dark',Icons.dark_mode_outlined),
+        ])ChoiceChip(
+         avatar:Icon(item.$3,size:18),
+         label:Text(item.$2),
+         selected:state.mode==item.$1,
+         onSelected:(_)=>state.setMode(item.$1)),
+       ]);
+      }
+      return SegmentedButton<ThemeMode>(
+       showSelectedIcon:true,
+       segments:const [
+        ButtonSegment(value:ThemeMode.system,icon:Icon(Icons.brightness_auto_outlined),
+         label:Text('Phone')),
+        ButtonSegment(value:ThemeMode.light,icon:Icon(Icons.light_mode_outlined),
+         label:Text('Light')),
+        ButtonSegment(value:ThemeMode.dark,icon:Icon(Icons.dark_mode_outlined),
+         label:Text('Dark')),
+       ],
+       selected:{state.mode},
+       onSelectionChanged:(value)=>state.setMode(value.first));
+     }),
      const SizedBox(height:8),
      Text('Phone follows the device setting, including automatic dark mode.',
       style:theme.textTheme.bodySmall),
