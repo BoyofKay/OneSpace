@@ -4,6 +4,7 @@ import '../coordinate/activity_detail_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
+import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
 
 class NotificationBell extends StatelessWidget {
@@ -77,7 +78,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    }else if(type=='letter'){
      screen=const CoupleLettersScreen();
    }else if(type=='gesture'){
-     screen=const PartnerGesturesScreen();
+     await GestureNotificationDialog.show(context,
+       item['object_id'].toString());
+     return;
    }else{return;}
    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>screen));
  }
