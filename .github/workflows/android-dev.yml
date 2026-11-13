@@ -11,7 +11,7 @@ permissions:
 # Releases are user-downloadable artifacts. Never cancel an in-flight APK
 # merely because a new development commit arrives. Keep builds sequential.
 concurrency:
-  group: android-preview-${{ github.ref }}
+  group: android-preview-${{ github.ref }}${{ contains(github.event.head_commit.message, '[fast-track]') && '-fast-track' || '' }}
   cancel-in-progress: false
   queue: max
 
