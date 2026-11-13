@@ -16,6 +16,7 @@ import 'calendar_rules.dart';
 import 'holiday_calendar_service.dart';
 import 'holiday_sources_panel.dart';
 import '../occasions/occasions_screen.dart';
+import '../occasions/occasion_rules.dart';
 import '../../theme/appearance_settings_screen.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
@@ -777,29 +778,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _upcoming() {
-    final upcoming = <(DateTime, Map<String, dynamic>)>[];
-    for (final entry in _events) {
-      if (entry['archived_at'] != null) continue;
-      final date = _eventDate(entry);
-      if (date == null) continue;
-      final next = CalendarRules.nextOccurrence(
-        original: date, recurrence: entry['recurrence'] as String? ?? 'none',
-        today: DateTime.now(),
-      );
-      if (next != null) upcoming.add((next,entry));
+    final today=CalendarRules.day(DateTime.now());
+    final upcoming=<({DateTime date,Widget Function() buildTile})>[];
+    for(final entry in _events){
+      if(entry['archived_at']!=null)continue;
+      final date=_eventDate(entry);
+      if(date==null)continue;
+      final next=CalendarRules.nextOccurrence(
+       original:date,recurrence:entry['recurrence'] as String? ?? 'none',
+       today:today);
+      if(next!=null)upcoming.add((
+       date:next,buildTile:()=>_eventTile(entry,upcoming:true)));
     }
-    upcoming.sort((a,b) => a.$1.compareTo(b.$1));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(tr(context, 'nextOccasions'),
-          style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        if (upcoming.isEmpty) Text(tr(context, 'noUpcomingEvents')),
-        ...upcoming.take(5).map((entry) =>
-            _eventTile(entry.$2, upcoming: true)),
-      ],
-    );
+    for(final event in _occasions){
+      if(event['archived_at']!=null||event['status']=='cancelled')continue;
+      final origin=DateTime.tryParse(event['occasion_on']?.toString()??'');
+      if(origin==null)continue;
+      final next=OccasionRules.nextDate(
+       original:origin,annual:event['annual']==true,today:today);
+      if(next!=null)upcoming.add((date:next,buildTile:()=>_occasionTile(event)));
+    }
+    for(final holiday in _holidays){
+      if(holiday.date.isBefore(today))continue;
+      upcoming.add((date:holiday.date,buildTile:()=>_holidayTile(holiday)));
+    }
+    upcoming.sort((a,b)=>a.date.compareTo(b.date));
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Text(tr(context,'nextOccasions'),
+      style:Theme.of(context).textTheme.titleLarge),
+     const SizedBox(height:8),
+     if(upcoming.isEmpty)Text(tr(context,'noUpcomingEvents')),
+     for(final item in upcoming.take(7))item.buildTile(),
+    ]);
   }
 
   @override
