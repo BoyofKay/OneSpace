@@ -7,6 +7,8 @@ class GestureScheduleRules {
       (partner['time_zone']?.toString().isNotEmpty!=true)){
      return false;
    }
+   if(partner['sleep_start_local']==null ||
+      partner['sleep_end_local']==null)return false;
    if(moment=='morning'){
      return partner['sleep_end_local']!=null;
    }
@@ -27,6 +29,10 @@ class GestureScheduleRules {
    }
    if(partner['time_zone']?.toString().isNotEmpty!=true){
      return 'Waiting for their phone time zone';
+   }
+   if(partner['sleep_start_local']==null ||
+      partner['sleep_end_local']==null){
+     return 'Waiting for their bedtime and wake-up times (quiet hours)';
    }
    if(moment=='morning'&&partner['sleep_end_local']==null){
      return 'Waiting for their wake-up time';
