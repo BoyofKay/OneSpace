@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
 
-const experienceTypes={'movie':'Movies','show':'TV shows','music':'Music','book':'Books','game':'Games','other':'Other'};
+const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
 const experienceStates={'suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed'};
 
 class SharedExperiencesScreen extends StatefulWidget {
@@ -14,7 +14,7 @@ class SharedExperiencesScreen extends StatefulWidget {
 class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  final db=Supabase.instance.client;
  String? space,error;
- bool loading=true,showArchived=false,opened=false;
+ bool loading=true,showArchived=false,opened=false,busy=false;
  String kind='all',status='all',search='';
  List<Map<String,dynamic>> rows=[];
  @override void initState(){super.initState();load();}
@@ -34,6 +34,144 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     });
    }
   }catch(_){if(mounted)setState((){error='Unable to load experiences.';loading=false;});}
+ }
+ IconData typeIcon(String c)=>switch(c){
+  'movie'=>Icons.movie_creation_outlined,
+  'show'=>Icons.live_tv_outlined,
+  'music'=>Icons.queue_music_outlined,
+  'book'=>Icons.menu_book_outlined,
+  'game'=>Icons.sports_esports_outlined,
+  _=>Icons.explore_outlined,
+ };
+ bool canWatch(Map<String,dynamic> row)=>
+  row['category']=='movie'||row['category']=='show';
+ Future<void> markWatched(Map<String,dynamic> row)async{
+  if(busy)return;
+  setState(()=>busy=true);
+  try{
+   await db.from('shared_experiences').update({
+    'status':'enjoyed',
+    'enjoyed_on':DateTime.now().toIso8601String().substring(0,10),
+   }).eq('id',row['id']);
+   await load();
+   if(mounted)await quickRate(row);
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Could not mark as watched.')));
+  }finally{if(mounted)setState(()=>busy=false);}
+ }
+ Future<void> openPlatform(Map<String,dynamic> row)async{
+  final raw=(row['source_url']??'').toString();
+  final url=Uri.tryParse(raw);
+  if(url==null||!['http','https'].contains(url.scheme)||url.host.isEmpty){
+   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    content:Text('Add a valid platform link in Edit first.')));
+   return;
+  }
+  if(!await launchUrl(url,mode:LaunchMode.externalApplication)&&mounted){
+   ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Could not open this platform.')));
+  }
+ }
+ Future<void> quickRate(Map<String,dynamic> row)async{
+  int? rating;
+  final review=TextEditingController();
+  try{
+   final old=await db.from('shared_experience_reviews')
+    .select('rating,review').eq('experience_id',row['id'])
+    .eq('user_id',db.auth.currentUser!.id).limit(1);
+   rating=(old.firstOrNull?['rating'] as num?)?.toInt();
+   review.text=(old.firstOrNull?['review']??'').toString();
+   if(!mounted)return;
+   final confirm=await showDialog<bool>(context:context,builder:(ctx)=>
+    StatefulBuilder(builder:(ctx,update)=>AlertDialog(
+     title:Text('Rate '+row['title'].toString()),
+     content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+      Wrap(children:[for(var i=1;i<=5;i++)IconButton(
+       tooltip:'Rate '+i.toString(),
+       icon:Icon((rating??0)>=i?Icons.star:Icons.star_border),
+       onPressed:()=>update(()=>rating=i))]),
+      TextField(controller:review,maxLength:2000,maxLines:3,
+       decoration:const InputDecoration(labelText:'Review (optional)')),
+     ])),
+     actions:[
+      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
+      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save rating')),
+     ],
+    )));
+   if(confirm!=true||rating==null)return;
+   final me=db.auth.currentUser!.id;
+   final found=await db.from('shared_experience_reviews')
+    .select('user_id').eq('experience_id',row['id']).eq('user_id',me).limit(1);
+   final fields={'rating':rating,'review':review.text.trim()};
+   if(found.isNotEmpty){
+    await db.from('shared_experience_reviews').update(fields)
+     .eq('experience_id',row['id']).eq('user_id',me);
+   }else{
+    try{
+     await db.from('shared_experience_reviews').insert({
+      'experience_id':row['id'],'user_id':me,...fields});
+    }on PostgrestException catch(e){
+     if(e.code!='23505')rethrow;
+     await db.from('shared_experience_reviews').update(fields)
+      .eq('experience_id',row['id']).eq('user_id',me);
+    }
+   }
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Unable to save review. Try again.')));
+  }finally{review.dispose();}
+ }
+ Future<void> archiveFromList(Map<String,dynamic> row)async{
+  final archived=row['archived_at']!=null;
+  if(!archived){
+   final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+    title:const Text('Archive this experience?'),
+    content:const Text('It will move to experience history. Reviews remain saved.'),
+    actions:[
+     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Keep')),
+     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Archive')),
+    ]));
+   if(yes!=true)return;
+  }
+  try{
+   await db.from('shared_experiences').update({
+    'archived_at':archived?null:DateTime.now().toUtc().toIso8601String()
+   }).eq('id',row['id']);
+   await load();
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Could not change archive status.')));
+  }
+ }
+ Future<void> openHistory()async{
+  if(space==null)return;
+  try{
+   final ids=rows.map((r)=>r['id'].toString()).take(250).toList();
+   if(ids.isEmpty)return;
+   final records=await db.from('shared_experience_revisions')
+    .select('experience_id,changed_by,changed_at,before_snapshot,after_snapshot')
+    .inFilter('experience_id',ids).order('changed_at',ascending:false).limit(80);
+   if(!mounted)return;
+   await showModalBottomSheet<void>(context:context,showDragHandle:true,
+    isScrollControlled:true,builder:(ctx)=>SafeArea(
+     child:SizedBox(height:MediaQuery.sizeOf(ctx).height*.68,
+      child:ListView(padding:const EdgeInsets.all(16),children:[
+       Text('Our experience history',style:Theme.of(ctx).textTheme.titleLarge),
+       const Text('Only changes to Movies, TV, Music, Books, Games and Others.'),
+       for(final r in records)ListTile(
+        leading:const Icon(Icons.history_outlined),
+        title:Text(rows.where((x)=>x['id']==r['experience_id'])
+         .map((x)=>x['title'].toString()).firstOrNull??'Experience'),
+        subtitle:Text(((r['before_snapshot'] as Map?)?['status']??'').toString()+
+         ' → '+((r['after_snapshot'] as Map?)?['status']??'').toString()+
+         ' · '+(r['changed_at']??'').toString().split('T').first),
+       ),
+      ]))));
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Experience history is unavailable.')));
+  }
  }
  Future<void> edit([Map<String,dynamic>? row])async{
   if(space==null)return;
