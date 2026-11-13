@@ -15,6 +15,7 @@ import '../../core/device_weather_service.dart';
 import '../calendar/calendar_rules.dart';
 import '../coordinate/activity_countdown_rules.dart';
 import '../coordinate/activity_detail_screen.dart';
+import '../connect/partner_gestures_screen.dart';
 import '../../core/performance_timings.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
@@ -809,6 +810,20 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               onOpen:widget.onOpenCalendar ?? () {},
               onOpenPlans:widget.onOpenPlans,
               onOpenActivity:_openFocusActivity),
+            const SizedBox(height:12),
+            Card(elevation:0,clipBehavior:Clip.antiAlias,
+              child:ListTile(
+                leading:CircleAvatar(
+                  backgroundColor:Theme.of(context).colorScheme.primaryContainer,
+                  child:const Icon(Icons.volunteer_activism_outlined)),
+                title:const Text('A little love',
+                  style:TextStyle(fontWeight:FontWeight.w600)),
+                subtitle:const Text('Send your partner a gesture that says it all'),
+                trailing:const Icon(Icons.chevron_right),
+                onTap:()=>Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder:(_)=>const PartnerGesturesScreen())),
+              )),
             const SizedBox(height:12),
             if(milestoneCountdowns.isNotEmpty)...[
               _countdownPanel(),
