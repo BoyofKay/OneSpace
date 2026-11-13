@@ -1,21 +1,24 @@
-# R11 — Ready for one final candidate
+# R12 — Final release candidate
 
-Iteration: R11 — Personal actionable Needs Attention
-Previous confirmed preview: 0.1.394
+Iteration: R12 — Contact cards, Love Gesture pools, Check-in clarity and Letters
+Previous confirmed APK: preview-0.1.395
 
-Release scope:
-- User-specific action queue with overdue, due-today, directly requested,
-  tomorrow and urgent/high-priority ranking.
-- Grouping by Activity so related reminders and mentions do not duplicate it.
-- Personal snooze with source-level RLS, without modifying shared data.
-- Deep links for Activity, To-do and pending partner check-in reply.
-- Opened Activity mentions/replies acknowledged for that viewer.
-- Show all actions, not a single seventh-item shortcut.
-- Updated CI: source commits never start APK builds and cannot cancel a
-  final build; lockfile is not pushed from the CI runner.
+Changes:
+- Standalone Contacts independent of Activities and a reusable Contact Card editor.
+- Collapsible cards, origin-specific links, private/shared choice and edit history.
+- Soft removal and restoration; 30-day purge eligibility for standalone contacts
+  without automatic irreversible deletion.
+- Readable daily feelings and check-in request/response logs.
+- Editable user-specific preset message overrides, grouped message pools by
+  gesture type and randomized combined manual sending.
+- Gesture management only in Settings, separate Thoughtful Rituals controls.
+- Gesture-specific notification icons, strength and togetherness symbols.
+- A Little Love shortcut on Today.
+- Letter detail fetched by ID with independent read receipt and reply loading.
+- Days Off editor simplified to date and label; normal sleep schedule respected.
+- Database RLS, owner checks, revision auditing and regression tests.
 
-QA gates: Flutter analysis, automated tests, preview APK signing/package
-verification, workflow artifact, GitHub Release asset verification.
-Two-device acceptance remains required after APK publication.
+Validation-only run 2 passed: https://github.com/BoyofKay/OneSpace/actions/runs/43433870843
 
-This file must be changed only once for the completed iteration.
+Trigger exactly one signed APK release for this completed iteration.
+Do not alter the marker until R13.
