@@ -20,6 +20,7 @@ import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../../core/performance_timings.dart';
+import '../../theme/appearance_settings_screen.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
 import '../../l10n/onespace_strings.dart';
@@ -726,8 +727,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ),
             )
           else const SizedBox(height:16),
+          const SeasonalThemePreview(compact:true),
+          const SizedBox(height:12),
           if (issue != null) ...[
-            Text(issue!, style: const TextStyle(color: Colors.red)),
+            Text(issue!, style:TextStyle(color:Theme.of(context).colorScheme.error)),
             const SizedBox(height: 12),
           ],
           if (loading)
@@ -991,17 +994,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   Widget _panel(String title, String description, IconData icon, Widget action) {
     return Card(
       elevation: 0,
-      color: const Color(0xFFE4F2F0),
+      color:Theme.of(context).colorScheme.primaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 30, color: const Color(0xFF167E81)),
+            Icon(icon, size: 30, color:Theme.of(context).colorScheme.onPrimaryContainer),
             const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
+            Text(title, style:TextStyle(fontSize:21,fontWeight:FontWeight.w700,
+             color:Theme.of(context).colorScheme.onPrimaryContainer)),
             const SizedBox(height: 8),
-            Text(description),
+            Text(description,style:TextStyle(color:Theme.of(context).colorScheme.onPrimaryContainer)),
             const SizedBox(height: 14),
             action,
           ],
