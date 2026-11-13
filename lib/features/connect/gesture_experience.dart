@@ -15,6 +15,12 @@ class GestureTheme {
      case 'morning':return const GestureTheme(Icons.wb_sunny_outlined,Color(0xFFD99242),'Good morning');
      case 'goodnight':return const GestureTheme(Icons.nightlight_round,Color(0xFF7382C7),'Sweet dreams');
      case 'proud':return const GestureTheme(Icons.auto_awesome_outlined,Color(0xFF409F8B),'Proud of you');
+     case 'thanks':return const GestureTheme(Icons.handshake_outlined,Color(0xFF218E80),'Thank you');
+     case 'lucky':return const GestureTheme(Icons.stars_outlined,Color(0xFF9977D7),'Lucky to have you');
+     case 'miss_together':return const GestureTheme(Icons.favorite_border,Color(0xFFDC658A),'Missing our togetherness');
+     case 'miss_home':return const GestureTheme(Icons.home_outlined,Color(0xFFDC9960),'Missing our home');
+     case 'miss_kids':return const GestureTheme(Icons.child_care_outlined,Color(0xFF729CC8),'Missing our kids');
+     case 'miss_pets':return const GestureTheme(Icons.pets_outlined,Color(0xFFBC804D),'Missing our furry ones');
      default:return const GestureTheme(Icons.favorite_outline,Color(0xFF518FB7),'Here for you');
    }
  }

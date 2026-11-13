@@ -54,10 +54,10 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
            leading:const Icon(Icons.cloud_outlined),
-           title:const Text('Weather city & language'),
+           title:const Text('Weather city'),
            subtitle:const Text('Choose your city; use the phone time zone automatically'),
            trailing:const Icon(Icons.chevron_right),
-           onTap:()=>_open(context,'Weather & language',
+           onTap:()=>_open(context,'Weather city',
              const ProfileSettingsScreen(settingsOnly:true,section:'weather')),
          ),
        ])),
@@ -68,20 +68,11 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          ListTile(
            leading:const Icon(Icons.volunteer_activism_outlined),
            title:const Text('My love gestures'),
-           subtitle:const Text('Create, send or remove gestures and manage triggers'),
+           subtitle:const Text('Manage my gesture list and thoughtful rituals'),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>Navigator.of(context).push<void>(
              MaterialPageRoute<void>(
-               builder:(_)=>const PartnerGesturesScreen())),
-         ),
-         const Divider(height:1),
-         ListTile(
-           leading:const Icon(Icons.nights_stay_outlined),
-           title:const Text('Automatic gestures & consent'),
-           subtitle:const Text('Allow or disable automatic gestures and adjust quiet hours'),
-           trailing:const Icon(Icons.chevron_right),
-           onTap:()=>_open(context,'Gesture preferences',
-             const ProfileSettingsScreen(settingsOnly:true,section:'schedule')),
+               builder:(_)=>const PartnerGesturesScreen(manageOnly:true))),
          ),
        ])),
      ],
