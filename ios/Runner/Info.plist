@@ -8,6 +8,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record voice messages to share privately with your partner.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Use your approximate city to share local weather with your partner when you opt in.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose photos to share privately in your OneSpace Activities.</string>
 	<key>CFBundleDisplayName</key>

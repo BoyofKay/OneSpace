@@ -5,8 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/performance_timings.dart';
-import '../../core/partner_time_zones.dart';
-import '../../core/time_zone_selector.dart';
+import '../../core/device_time_zone.dart';
+import '../../core/device_weather_service.dart';
+import '../../core/shared_weather.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
@@ -23,6 +24,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   bool _saving = false;
   String _language = 'en';
   String? _timeZone;
+  bool _shareCityWeather = false;
+  bool _weatherBusy = false;
+  String? _city;
+  num? _temperature;
+  int? _weatherCode;
   String? _error;
   String? _status;
 
@@ -42,13 +48,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final id = _client.auth.currentUser!.id;
       final profile =
-          await _client.from('profiles').select('display_name,locale,time_zone').eq('id', id).single();
+          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code').eq('id', id).single();
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
         _language = (profile['locale'] as String?) ?? 'en';
         _timeZone = profile['time_zone']?.toString();
+        _shareCityWeather = profile['city_weather_shared'] == true;
+        _city = profile['city_name']?.toString();
+        _temperature = profile['temperature_c'] as num?;
+        _weatherCode = (profile['weather_code'] as num?)?.toInt();
       });
+      final zone = await DeviceTimeZone.sync(_client,storedZone:_timeZone);
+      if (mounted && zone != null) setState(() => _timeZone = zone);
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -58,14 +70,74 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  Future<void> _toggleCityWeather(bool enabled) async {
+    if (_weatherBusy) return;
+    if (enabled) {
+      final consent = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Share your city and weather?'),
+          content: const Text(
+            'When you open OneSpace, your phone can use approximate '
+            'location to identify your city and fetch its weather. '
+            'Only your city name, temperature, conditions and update time '
+            'are shared with your partner. No GPS coordinates or street '
+            'address are saved. Open-Meteo receives a rounded location '
+            'for the weather request. You can turn this off any time.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx,false),
+              child: const Text('Not now')),
+            FilledButton(onPressed: () => Navigator.pop(ctx,true),
+              child: const Text('Allow city and weather')),
+          ],
+        ),
+      );
+      if (consent != true || !mounted) return;
+    }
+    setState(() {
+      _weatherBusy = true;
+      _error = null;
+      _status = null;
+    });
+    try {
+      if (enabled) {
+        final weather = await DeviceWeatherService.enable(_client);
+        if (!mounted) return;
+        setState(() {
+          _shareCityWeather = true;
+          _city = weather.city;
+          _temperature = weather.temperatureC;
+          _weatherCode = weather.code;
+          _status = 'Your city and weather are shared with your partner.';
+        });
+      } else {
+        await DeviceWeatherService.disable(_client);
+        if (!mounted) return;
+        setState(() {
+          _shareCityWeather = false;
+          _city = null;
+          _temperature = null;
+          _weatherCode = null;
+          _status = 'City and weather sharing turned off and cleared.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = enabled
+          ? 'Could not enable city/weather. Check location access '
+            'and your network, then try again. $e'
+          : 'Unable to stop sharing on the server. Check your connection '
+            'and try again. $e');
+      }
+    } finally {
+      if (mounted) setState(() => _weatherBusy = false);
+    }
+  }
+
   Future<void> _save() async {
     final name = _name.text.trim();
     if (name.isEmpty || name.length > 80) {
       setState(() => _error = 'Your display name must be 1–80 characters.');
-      return;
-    }
-    if (_timeZone != null && !PartnerTimeZones.valid(_timeZone)) {
-      setState(() => _error = 'Choose a valid time zone.');
       return;
     }
     setState(() {
@@ -77,7 +149,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await _client.from('profiles').update({
         'display_name': name,
         'locale': _language,
-        'time_zone': _timeZone,
       }).eq('id', _client.auth.currentUser!.id);
       OneSpaceLocaleController.instance.selectLanguage(_language);
       if (mounted) setState(() => _status = tr(context, 'profileSaved'));
@@ -278,14 +349,34 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           },
         ),
         const SizedBox(height: 18),
-        TimeZoneSelector(
-          selected: _timeZone,
-          onChanged: (value) => setState(() => _timeZone = value),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.schedule_outlined),
+          title: const Text('Time zone — automatic from this phone'),
+          subtitle: Text(_timeZone ?? 'Using phone time; zone not synced yet'),
         ),
-        const SizedBox(height: 6),
-        Text('Choose your own time zone. Your partner can see it for '
-          'the shared clocks; no location or GPS is requested.',
-          style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.cloud_outlined),
+          title: const Text('Share my city and weather'),
+          subtitle: const Text(
+            'Optional. Approximate city only, when the app is open. '
+            'No exact location or background tracking.'),
+          value: _shareCityWeather,
+          onChanged: _weatherBusy ? null : _toggleCityWeather,
+        ),
+        if (_weatherBusy) const LinearProgressIndicator(),
+        if (_shareCityWeather)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 12),
+            child: Text(
+              '${_city ?? 'City unavailable'} · '
+              '${_temperature?.toStringAsFixed(0) ?? '—'}°C · '
+              '${_weatherCode == null ? 'Weather pending' :
+                  SharedWeather.condition(_weatherCode!)}',
+            ),
+          ),
         const SizedBox(height: 8),
         Text(
           'Language is saved per account. Arabic and RTL are enabled for '

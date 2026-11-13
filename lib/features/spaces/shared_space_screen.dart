@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +9,8 @@ import 'space_task_summary.dart';
 import 'today_attention_rules.dart';
 import 'today_attention_section.dart';
 import '../../core/partner_clock_strip.dart';
+import '../../core/device_time_zone.dart';
+import '../../core/device_weather_service.dart';
 import '../calendar/calendar_rules.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../../core/performance_timings.dart';
@@ -46,7 +50,8 @@ class SharedSpaceScreen extends StatefulWidget {
   State<SharedSpaceScreen> createState() => _SharedSpaceScreenState();
 }
 
-class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
+class _SharedSpaceScreenState extends State<SharedSpaceScreen>
+    with WidgetsBindingObserver {
   final client = Supabase.instance.client;
   final invitationController = TextEditingController();
   String? spaceId;
@@ -79,12 +84,15 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   bool summaryLoading = false;
   String? summaryIssue;
   int _requestVersion = 0;
+  DateTime? _lastDeviceContextSync;
+  bool _syncingDeviceContext = false;
   bool working = false;
   String? issue;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
@@ -95,7 +103,48 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && spaceId != null) {
+      unawaited(_syncDeviceContext(force: true));
+    }
+  }
+
+  Future<void> _syncDeviceContext({bool force = false}) async {
+    if (_syncingDeviceContext || spaceId == null ||
+        client.auth.currentUser == null) return;
+    final now = DateTime.now();
+    if (!force && _lastDeviceContextSync != null &&
+        now.difference(_lastDeviceContextSync!) <
+            const Duration(minutes: 15)) return;
+    _lastDeviceContextSync = now;
+    _syncingDeviceContext = true;
+    try {
+      final myRecord = clockMembers.where(
+        (member) => member['is_me'] == true).toList();
+      if (myRecord.isEmpty) return;
+      final mine = myRecord.first;
+      bool changed = false;
+      try {
+        final saved = mine['time_zone']?.toString();
+        final device = await DeviceTimeZone.sync(client,
+          storedZone: saved);
+        changed = device != null && device != saved;
+      } catch (_) {
+        // System clock always remains usable without a network connection.
+      }
+      if (mine['city_weather_shared'] == true) {
+        changed = await DeviceWeatherService.refreshIfEnabled(client)
+            || changed;
+      }
+      if (changed && mounted) await _load();
+    } finally {
+      _syncingDeviceContext = false;
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _requestVersion++;
     invitationController.dispose();
     super.dispose();
@@ -222,6 +271,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
         );
       }
       PerformanceTimings.instance.record('Home overview network', watch.elapsed);
+      if (spaceId != null && mounted) {
+        unawaited(_syncDeviceContext());
+      }
     } on PostgrestException catch (error) {
       PerformanceTimings.instance.record('Home overview failed', watch.elapsed);
       if (mounted && request == _requestVersion) {

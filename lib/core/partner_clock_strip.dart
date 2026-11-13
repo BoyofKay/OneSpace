@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'partner_time_zones.dart';
+import 'shared_weather.dart';
 
 /// Clock display uses the existing Today snapshot, never a new API request.
 /// DST and the current day are derived from the same UTC instant.
@@ -55,8 +56,45 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
       mineZone, theirZone, now,
     );
     final hint = knownDifference == null
-        ? 'Choose time zones in Profile to compare your clocks.'
+        ? 'Phone time zones sync automatically as each partner opens OneSpace.'
         : PartnerTimeZones.differenceLabel(knownDifference);
+
+    Widget weatherLine(Map<String, dynamic>? member) {
+      if (member == null) return const SizedBox.shrink();
+      if (member['city_weather_shared'] != true) {
+        return Text(
+          member['is_me'] == true
+            ? 'Your city/weather are private. Enable sharing in Profile.'
+            : 'Partner has not enabled city/weather sharing.',
+          style: Theme.of(context).textTheme.bodySmall,
+        );
+      }
+      final city = member['city_name']?.toString() ?? 'City unavailable';
+      final rawTemp = member['temperature_c'];
+      final temp = rawTemp is num ? rawTemp.toStringAsFixed(0)
+        : rawTemp?.toString() ?? '—';
+      final rawCode = member['weather_code'];
+      final code = rawCode is num ? rawCode.toInt()
+        : int.tryParse(rawCode?.toString() ?? '');
+      final last = DateTime.tryParse(
+        member['weather_updated_at']?.toString() ?? '');
+      final stale = last == null ||
+          DateTime.now().difference(last.toLocal()) >
+              const Duration(hours: 2);
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start,children: [
+          const Icon(Icons.cloud_outlined, size: 17),
+          const SizedBox(width: 6),
+          Expanded(child: Text(
+            '${member['name'] ?? 'Partner'} · $city · $temp°C'
+            '${code == null ? '' : ' · ${SharedWeather.condition(code)}'}'
+            '${stale ? ' · Weather may be outdated' : ''}',
+            style: Theme.of(context).textTheme.bodySmall,
+          )),
+        ]),
+      );
+    }
 
     Widget clock(String label, String? zone, DateTime? time, {
       bool myClock = false,
@@ -65,7 +103,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
       final zoneLabel = time != null && zone != null
           ? '${PartnerTimeZones.zoneLabel(zone)} · '
             '${PartnerTimeZones.offsetLabel(time.timeZoneOffset)}'
-          : myClock ? 'This phone · time zone not saved' : 'Time zone not set';
+          : myClock ? 'This phone · syncing time zone' : 'Waiting for phone';
       return Expanded(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
@@ -76,7 +114,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
               Text(deviceTime == null ? '—' :
                   PartnerTimeZones.timeLabel(deviceTime),
                 style: Theme.of(context).textTheme.titleLarge),
-              Text(deviceTime == null ? 'Ask your partner to set their zone' :
+              Text(deviceTime == null ? 'Waiting for partner's phone' :
                     PartnerTimeZones.dateLabel(deviceTime),
                 style: Theme.of(context).textTheme.bodySmall),
               Text(zoneLabel, maxLines: 2,
@@ -101,7 +139,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
                 style: Theme.of(context).textTheme.titleMedium)),
               IconButton(
                 icon: const Icon(Icons.settings_outlined, size: 19),
-                tooltip: 'Set my time zone in Profile',
+                tooltip: 'View automatic time and city/weather settings',
                 onPressed: widget.onConfigure,
               ),
             ]),
@@ -114,6 +152,9 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
                   theirZone, theirTime),
               ],
             ]),
+            const SizedBox(height: 6),
+            weatherLine(mine),
+            if (partner != null) weatherLine(partner),
             if (!livingTogether && partner != null) ...[
               const SizedBox(height: 5),
               Text(hint, style: Theme.of(context).textTheme.bodySmall),
@@ -121,7 +162,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
                   knownDifference != null && knownDifference != 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text('Your saved zones differ. Check your '
+                  child: Text('Your device zones differ. Check your '
                     'relationship setting or time zones.',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error),
