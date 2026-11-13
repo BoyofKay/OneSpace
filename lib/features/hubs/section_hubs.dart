@@ -4,6 +4,7 @@ import '../memories/memories_screen.dart';
 import '../goals/goals_screen.dart';
 import '../checkins/checkins_screen.dart';
 import '../connect/couple_letters_screen.dart';
+import '../connect/partner_gestures_screen.dart';
 import '../world/world_contacts_screen.dart';
 import '../../core/current_space_cache.dart';
 
@@ -51,6 +52,10 @@ class SectionHub extends StatelessWidget {
               'Letters',
               'Private drafts, sent letters, replies and read status',
               const CoupleLettersScreen()),
+          _link(context, Icons.volunteer_activism_outlined,
+              'A little love',
+              'Send a hug, a thought, support or sweet dreams',
+              const PartnerGesturesScreen()),
           _link(context, Icons.favorite_outline, 'Daily check-ins',
               'Share how you feel today', const CheckinsScreen()),
           _link(context, Icons.photo_library_outlined, 'Memories',
