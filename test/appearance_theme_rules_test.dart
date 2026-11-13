@@ -19,7 +19,7 @@ void main(){
   expect(OneSpaceAppearance.effectiveSeason(
    SeasonChoice.automatic,DateTime(2026,10,31)),SeasonChoice.halloween);
   expect(OneSpaceAppearance.effectiveSeason(
-   SeasonChoice.automatic,DateTime(2026,12,25)),SeasonChoice.winter);
+   SeasonChoice.automatic,DateTime(2026,12,25)),SeasonChoice.christmas);
   expect(OneSpaceAppearance.effectiveSeason(
    SeasonChoice.automatic,DateTime(2026,7,1)),SeasonChoice.off);
  });
