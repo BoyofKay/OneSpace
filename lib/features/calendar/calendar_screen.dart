@@ -641,7 +641,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
+  Widget build(BuildContext context) => Scaffold(
+    appBar:AppBar(title:const Text('Shared calendar')),
+    body:RefreshIndicator(
     onRefresh: _load,
     child: ListView(
       padding: const EdgeInsets.all(16),
@@ -708,5 +710,5 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ],
       ],
     ),
-  );
+  ));
 }

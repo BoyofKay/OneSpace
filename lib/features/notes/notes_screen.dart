@@ -104,7 +104,9 @@ class _NotesScreenState extends State<NotesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return Scaffold(
+      appBar:AppBar(title:const Text('Notes')),
+      body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(20),
@@ -216,7 +218,7 @@ class _NotesScreenState extends State<NotesScreen> {
           ],
         ],
       ),
-    );
+    ));
   }
 }
 

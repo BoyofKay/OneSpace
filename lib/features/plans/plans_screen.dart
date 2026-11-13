@@ -174,7 +174,7 @@ class _PlansScreenState extends State<PlansScreen> {
           }
         },
       ),
-    );
+    ));
   }
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
@@ -236,7 +236,9 @@ class _PlansScreenState extends State<PlansScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return Scaffold(
+      appBar:AppBar(title:const Text('To-dos')),
+      body:RefreshIndicator(
       onRefresh: _loadSpace,
       child: ListView(
         padding: const EdgeInsets.all(20),
