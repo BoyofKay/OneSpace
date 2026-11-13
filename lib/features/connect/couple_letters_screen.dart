@@ -32,9 +32,9 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
           .order('updated_at',ascending:false);
       });
     }catch(_){
-      if(mounted)setState((){
+      if(mounted){setState((){
         loading=false;error='Could not load your letters.';
-      });
+      });}
     }
   }
 
@@ -97,7 +97,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
               final data=CoupleLetterRules.filter(
                 snapshot.data!,view,db.auth.currentUser?.id??'',
               );
-              if(data.isEmpty)return Padding(
+              if(data.isEmpty){return Padding(
                 padding:const EdgeInsets.symmetric(vertical:35),
                 child:Text(
                   view=='inbox'?'No letters received yet.':
@@ -105,7 +105,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
                   'No letters sent yet.',
                   textAlign:TextAlign.center,
                 ),
-              );
+              );}
               return Column(children:[
                 for(final letter in data)
                   Card(elevation:0,child:ListTile(
@@ -187,8 +187,8 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
       }
       if(mounted)Navigator.pop(context);
     }catch(_){
-      if(mounted)setState(()=>error='Unable to save this letter. '
-        'Your text is still here. Try again.');
+      if(mounted){setState(()=>error='Unable to save this letter. '
+        'Your text is still here. Try again.');}
     }finally{if(mounted)setState(()=>saving=false);}
   }
 
@@ -284,9 +284,9 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
         .select('id,title,body,status,author_id,space_id,sent_at,reply_to')
         .eq('reply_to',id).eq('status','sent')
         .order('sent_at',ascending:true).limit(100);
-      if(mounted)setState(()=>replies=[
+      if(mounted){setState(()=>replies=[
         for(final child in children)Map<String,dynamic>.from(child),
-      ]);
+      ]);}
     }catch(_){if(mounted)setState(()=>error='Could not load all letter details.');}
   }
 
