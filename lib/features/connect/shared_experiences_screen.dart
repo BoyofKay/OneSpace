@@ -208,7 +208,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          ]),
          SwitchListTile(title:const Text('Archived experiences'),
           value:showArchived,onChanged:(v){setState(()=>showArchived=v);refresh((){});}),
-        ]))))),
+       ])))))) ,
     IconButton(tooltip:'Experience edit history',
      icon:const Icon(Icons.history_outlined),onPressed:openHistory),
    ]),
