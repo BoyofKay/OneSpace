@@ -9,7 +9,7 @@ class RememberedAccounts {
 
   static Future<List<String>> list() async {
     final emails = await _prefs.getStringList(_key) ?? <String>[];
-    return emails.where((email) => email.contains('@')).take(4).toList();
+    return emails.where((email) => email.contains('@')).take(1).toList();
   }
 
   static Future<String?> lastUsedEmail() async {
@@ -20,11 +20,8 @@ class RememberedAccounts {
   static Future<void> remember(String email) async {
     final normalized = email.trim().toLowerCase();
     if (!normalized.contains('@')) return;
-    final old = await list();
-    await _prefs.setStringList(_key, [
-      normalized,
-      ...old.where((entry) => entry != normalized),
-    ].take(4).toList());
+    // A private device remembers only its most recently authenticated email.
+    await _prefs.setStringList(_key,[normalized]);
   }
 
   static Future<void> forgetAll() => _prefs.remove(_key);

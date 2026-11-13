@@ -214,42 +214,23 @@ class _SignInScreenState extends State<SignInScreen> {
   bool hidePassword = true;
   bool awaitingConfirmation = false;
   bool showingRecovery = false;
-  bool choosingAccount = false;
   bool rememberAtSignup = true;
   String? error;
   String? info;
-  List<String> savedEmails = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadSavedEmails();
+    _prefillLastEmail();
   }
 
-  Future<void> _loadSavedEmails() async {
-    try {
-      final saved = await RememberedAccounts.list();
-      if (!mounted) return;
-      setState(() {
-        savedEmails = saved;
-        if (saved.isNotEmpty && emailController.text.isEmpty) {
-          emailController.text = saved.first;
-        }
-      });
-    } catch (_) {
-      // Logging in never depends on local email preferences.
-    }
-  }
-
-  Future<void> _forgetAccounts() async {
-    await RememberedAccounts.forgetAll();
-    if (!mounted) return;
-    setState(() {
-      savedEmails = const [];
-      choosingAccount = false;
-      emailController.clear();
-      passwordController.clear();
-    });
+  Future<void> _prefillLastEmail() async {
+    try{
+      final email=await RememberedAccounts.lastUsedEmail();
+      if(mounted&&email!=null&&emailController.text.isEmpty){
+        emailController.text=email;
+      }
+    }catch(_){}
   }
 
   @override
@@ -323,15 +304,6 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  void _selectAccount(String email) {
-    setState(() {
-      emailController.text = email;
-      passwordController.clear();
-      choosingAccount = false;
-      error = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (showingRecovery) {
@@ -366,29 +338,6 @@ class _SignInScreenState extends State<SignInScreen> {
                     style: const TextStyle(
                         fontSize: 23, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 18),
-                if (choosingAccount && !registering) ...[
-                  Text(tr(context, 'recentAccounts'),
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  for (final email in savedEmails)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.account_circle_outlined),
-                      title: Text(email, maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      onTap: () => _selectAccount(email),
-                    ),
-                  TextButton.icon(
-                    onPressed: loading ? null : () => _selectAccount(''),
-                    icon: const Icon(Icons.person_add_alt_outlined),
-                    label: Text(tr(context, 'useAnotherEmail')),
-                  ),
-                  TextButton(
-                    onPressed: loading ? null : _forgetAccounts,
-                    child: Text(tr(context, 'forgetEmails')),
-                  ),
-                  const Divider(),
-                ],
                 AutofillGroup(
                   child: Form(
                     key: formKey,
@@ -499,16 +448,10 @@ class _SignInScreenState extends State<SignInScreen> {
                         setState(() => showingRecovery = true),
                     child: Text(tr(context, 'forgotPassword')),
                   ),
-                  TextButton(
-                    onPressed: loading ? null : () =>
-                        setState(() => choosingAccount = !choosingAccount),
-                    child: Text(tr(context, 'switchAccount')),
-                  ),
                 ],
                 TextButton(
                   onPressed: loading ? null : () => setState(() {
                     registering = !registering;
-                    choosingAccount = false;
                     awaitingConfirmation = false;
                     error = null;
                     info = null;
