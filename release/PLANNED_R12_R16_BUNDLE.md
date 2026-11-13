@@ -1,3 +1,5 @@
+> Superseded by [R12–R17 consolidated plan](PLANNED_R12_R17_BUNDLE.md). Keep this older plan for history only; it does not trigger a build.
+
 # Planned private preview — R12 through R16 (NOT AN APK BUILD TRIGGER)
 
 ## Release intent
