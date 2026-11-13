@@ -238,6 +238,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           icon:const Icon(Icons.chevron_left),
           onPressed:()=>setState(()=>
             _selected=_selected.subtract(const Duration(days:7))),
+        ),
         Expanded(child:Text(
           CalendarRules.sqlDate(days.first)+' — '+
             CalendarRules.sqlDate(days.last),
@@ -247,6 +248,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           icon:const Icon(Icons.chevron_right),
           onPressed:()=>setState(()=>
             _selected=_selected.add(const Duration(days:7))),
+        ),
       ]),
       for(final date in days)
         Card(elevation:0,child:Column(children:[

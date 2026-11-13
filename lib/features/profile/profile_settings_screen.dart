@@ -63,7 +63,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _workEnd=_parseTime(profile['work_end_local']);
         _bedTime=_parseTime(profile['sleep_start_local']);
         _wakeTime=_parseTime(profile['sleep_end_local']);
-        _workDays={for(final day in (profile['work_days'] as List<dynamic>? ?? const []) if(day is num) day.toInt()};
+        _workDays={for(final day in (profile['work_days'] as List<dynamic>? ?? const [])) if(day is num) day.toInt()};
         _language = (profile['locale'] as String?) ?? 'en';
         _timeZone = profile['time_zone']?.toString();
         _shareCityWeather = profile['city_weather_shared'] == true;
