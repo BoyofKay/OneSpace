@@ -61,6 +61,12 @@ for two-account verification scenarios.
 
 The additive database migration for Trips & Journeys is deployed and the Flutter source is committed. The accounts, memberships and existing app data are retained. Flutter analysis, automated execution, signed APK release and real two-phone validation **have not been run for R14** because GitHub Actions usage must be conserved. The documented acceptance cases are in [R14 Trips & Journeys QA](docs/R14_TRIPS_JOURNEYS_QA.md).
 
+## R15 private travel documents (source and database only)
+
+Trips & Journeys now has PDF and image attachments for boarding passes, travel itineraries, tickets and receipts, with an OS-native document picker on Android and iOS, secure Supabase Storage, per-trip privacy, 90-second signed previews, itinerary associations, notifications and reversible archiving. No Flutter dependencies were added or upgraded.
+
+The R15 migrations are deployed. No CI workflow, build trigger, APK signing or release was run. Native Android and iOS compile validation and two-phone privacy tests are still required. See [R15 acceptance matrix](docs/R15_TRAVEL_DOCUMENTS_QA.md).
+
 ## Ordered milestones
 
 1. **Foundation:** account creation, email confirmation, sign in, profile, secure pairing and direct APK previews
