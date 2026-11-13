@@ -174,7 +174,7 @@ class _PlansScreenState extends State<PlansScreen> {
           }
         },
       ),
-    ));
+    );
   }
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
@@ -347,7 +347,7 @@ class _PlansScreenState extends State<PlansScreen> {
           ],
         ],
       ),
-    );
+    ));
   }
 
   Widget _emptySpace() => Card(
