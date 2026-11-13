@@ -2,6 +2,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../calendar/calendar_rules.dart';
+import 'activity_countdown_rules.dart';
 import 'activity_contact.dart';
 
 /// Type-specific inputs produce a reusable structured JSON payload.
@@ -39,6 +40,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   String? error;
   List<String> existingTags=[];
   bool tagsLoading=false;
+  bool _repeatYearly=false;
 
   Map<String, dynamic> get original =>
       Map<String, dynamic>.from(widget.existing?['payload'] as Map? ?? const {});
@@ -47,6 +49,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   void initState() {
     super.initState();
     final p = original;
+    _repeatYearly=p['repeat_yearly']==true;
     if(widget.kind=='tag')_loadTags();
     title = TextEditingController(text: widget.existing?['label']?.toString() ?? '');
     value = TextEditingController(text: p['value']?.toString() ?? '');
@@ -133,7 +136,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     ),
   );
 
-  bool get isDated => widget.kind == 'date' || widget.kind == 'reminder';
+  bool get isDated => widget.kind == 'date' || widget.kind == 'reminder' || widget.kind == 'countdown';
 
   Future<void> save() async {
     final label = widget.kind=='tag' && title.text.trim().isEmpty
@@ -214,7 +217,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
         return;
       }
     }
-    if (isDated && DateTime.tryParse(v) == null) {
+    if (isDated && ActivityCountdownRules.parseDate(v) == null) {
       setState(() => error = 'Choose a valid date.');
       return;
     }
@@ -249,6 +252,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
         payload.putIfAbsent('status', () => 'open');
       case 'reminder':
         payload.putIfAbsent('status', () => 'open');
+      case 'countdown':
+        payload['repeat_yearly']=_repeatYearly;
     }
     Navigator.of(context).pop({'label': label, 'payload': payload});
   }
@@ -309,6 +314,18 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
               ),
               if (kind == 'reminder')
                 const Text('Appears in Today and Remember. Phone alerts are not yet enabled.'),
+              if(kind=='countdown')...[
+                SwitchListTile(
+                  contentPadding:EdgeInsets.zero,
+                  title:const Text('Repeat every year'),
+                  subtitle:const Text('For birthdays and annual celebrations'),
+                  value:_repeatYearly,
+                  onChanged:(next)=>setState(()=>_repeatYearly=next)),
+                input(details,'What makes this moment special? (optional)',
+                  max:1000,lines:2),
+                const Text('Milestones use calendar dates, so both '
+                  'partners see the same date in different time zones.'),
+              ],
             ] else if (kind == 'image') ...[
               const Text('This photo remains private to authorized partners.'),
               const SizedBox(height: 12),
