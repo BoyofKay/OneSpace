@@ -25,8 +25,12 @@ class OccasionRules {
    date==null?null:CalendarRules.calendarDaysUntil(
      CalendarRules.day(today),CalendarRules.day(date));
 
- static DateTime? prepStart(DateTime? next,int days)=>
-   next?.subtract(Duration(days:days));
+ /// Date arithmetic must use calendar fields, not 24-hour durations,
+ /// because local daylight-saving transitions are not always 24 hours long.
+ static DateTime? prepStart(DateTime? next,int days){
+  if(next==null)return null;
+  return DateTime(next.year,next.month,next.day-days);
+ }
 
  static String countdown(DateTime? date,DateTime today){
   final days=daysUntil(date,today);

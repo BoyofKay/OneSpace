@@ -18,6 +18,12 @@ void main(){
  test('Preparation lead time spans previous month or year',(){
   expect(OccasionRules.prepStart(DateTime(2027,1,2),40),DateTime(2026,11,23));
  });
+ test('Preparation start is based on calendar days across a DST boundary',(){
+  // The calendar-day operation is independent of local UTC offset.
+  expect(OccasionRules.prepStart(DateTime(2027,3,15),7),DateTime(2027,3,8));
+  expect(OccasionRules.prepStart(DateTime(2027,1,1),2),DateTime(2026,12,30));
+  expect(OccasionRules.prepStart(null,30),isNull);
+ });
  test('Estimated cost respects currency and archived steps',(){
   final out=OccasionRules.estimatedByCurrency([
    {'currency':'USD','estimated_cost':45,'archived_at':null},

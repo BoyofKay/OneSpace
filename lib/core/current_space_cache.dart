@@ -13,9 +13,11 @@ class CurrentSpaceCache {
   Map<String, String>? _memberNames;
   DateTime? _loadedAt;
   Future<String?>? _pending;
+  int _generation = 0;
 
   void seed(String userId, String? spaceId,
       {Map<String, String>? memberNames}) {
+    _generation++;
     _userId = userId;
     _spaceId = spaceId;
     // Only cache names returned by an authenticated, RLS-checked snapshot.
@@ -37,6 +39,7 @@ class CurrentSpaceCache {
   }
 
   void clear() {
+    _generation++;
     _userId = null;
     _spaceId = null;
     _memberNames = null;
@@ -60,11 +63,12 @@ class CurrentSpaceCache {
     }
     if (!refresh && _userId == id && _pending != null) return _pending!;
     _userId = id;
+    final generation=++_generation;
     final request = client.from('space_members')
         .select('space_id').eq('user_id', id).limit(1)
         .then((rows) {
           final spaceId = rows.isEmpty ? null : rows.first['space_id'] as String?;
-          if (_userId == id) {
+          if (_userId == id && _generation == generation) {
             if (_spaceId != spaceId) _memberNames = null;
             _spaceId = spaceId;
             _loadedAt = DateTime.now();
@@ -73,7 +77,7 @@ class CurrentSpaceCache {
           return spaceId;
         })
         .catchError((Object error) {
-          if (_userId == id) {
+          if (_userId == id && _generation == generation) {
             _loadedAt = null;
             _pending = null;
           }
