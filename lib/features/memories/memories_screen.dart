@@ -10,6 +10,8 @@ import '../calendar/calendar_rules.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
+import 'memory_photo_gallery.dart';
+import 'memory_photo_layout_rules.dart';
 
 class MemoriesScreen extends StatefulWidget {
   const MemoriesScreen({super.key});
@@ -76,12 +78,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     }
   }
 
-  Future<void> _edit({Map<String,dynamic>? existing}) async {
+  Future<void> _edit({Map<String,dynamic>? existing,bool selfie=false}) async {
     final id = _spaceId;
     if (id == null) return;
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(builder: (_) =>
-        MemoryEditorScreen(spaceId: id, existing: existing)),
+        MemoryEditorScreen(spaceId: id, existing: existing,
+         initialType:selfie?'daily_selfie':null)),
     );
     if (mounted && changed == true) await _load();
   }
@@ -118,6 +121,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               icon: const Icon(Icons.edit_note),
               label: Text(tr(context, 'newMemory')),
             ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(onPressed:()=>_edit(selfie:true),
+             icon:const Icon(Icons.photo_camera_outlined),
+             label:const Text('Daily selfie')),
             const SizedBox(height: 14),
             Wrap(spacing: 8, children: ['all','shared','private'].map((value) =>
               ChoiceChip(
@@ -193,7 +200,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               },
             ),
             const SizedBox(height: 18),
-            Text(tr(context,'memoriesNoPhotosYet'),
+            Text('Open a memory to add photos, choose a collage layout and write captions.',
               style: Theme.of(context).textTheme.bodySmall),
           ],
         ],
@@ -205,9 +212,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 /// Dated journal entry editor. Viewer-only recipients cannot edit, pin or
 /// archive someone else's private memory.
 class MemoryEditorScreen extends StatefulWidget {
-  const MemoryEditorScreen({super.key,required this.spaceId,this.existing});
+  const MemoryEditorScreen({super.key,required this.spaceId,this.existing,this.initialType});
   final String spaceId;
   final Map<String,dynamic>? existing;
+  final String? initialType;
 
   @override
   State<MemoryEditorScreen> createState() => _MemoryEditorScreenState();
@@ -220,6 +228,8 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
   late DateTime _date;
   late String _visibility;
   late bool _pinned;
+  late String _memoryType;
+  late String _photoLayout;
   bool _busy = false;
   String? _error;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
@@ -243,6 +253,8 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
         ?? DateTime.now();
     _visibility = widget.existing?['visibility'] as String? ?? 'shared';
     _pinned = widget.existing?['pinned'] == true;
+    _memoryType=(widget.existing?['memory_type']??widget.initialType??'story').toString();
+    _photoLayout=MemoryPhotoLayoutRules.safe(widget.existing?['photo_layout']);
     if (_editing && !_editable) {
       _grants = watchObjectShares(
         client: _client, spaceId: widget.spaceId, objectType: 'memory',
@@ -291,6 +303,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
         'title': title, 'body': body,
         'memory_date': CalendarRules.sqlDate(_date),
         'pinned': _pinned,
+        'memory_type':_memoryType,'photo_layout':_photoLayout,
       };
       if (!_editing) {
         await _client.from('memories').insert({
@@ -398,6 +411,23 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
               border: const OutlineInputBorder(), alignLabelWithHint: true,
             ),
           ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(initialValue:_memoryType,
+           decoration:const InputDecoration(labelText:'Memory type',border:OutlineInputBorder()),
+           items:const [
+            DropdownMenuItem(value:'story',child:Text('Story / journal')),
+            DropdownMenuItem(value:'daily_selfie',child:Text('Daily selfie')),
+            DropdownMenuItem(value:'collage',child:Text('Photo collage')),
+           ],onChanged:!_editable||_busy?null:(v)=>setState(()=>_memoryType=v??_memoryType)),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(initialValue:_photoLayout,
+           decoration:const InputDecoration(labelText:'Photo layout',border:OutlineInputBorder()),
+           items:const [
+            DropdownMenuItem(value:'grid',child:Text('Photo grid')),
+            DropdownMenuItem(value:'feature',child:Text('One large, others below')),
+            DropdownMenuItem(value:'polaroid',child:Text('Polaroid-style collage')),
+            DropdownMenuItem(value:'overlap',child:Text('Overlapping photo stack')),
+           ],onChanged:!_editable||_busy?null:(v)=>setState(()=>_photoLayout=v??_photoLayout)),
           const SizedBox(height: 8),
           Text(tr(context,'visibility')),
           Wrap(spacing: 8,children: ['shared','private'].map((v) =>
@@ -416,6 +446,11 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
             onChanged: !_editable || _busy ? null
               : (value) => setState(() => _pinned = value),
           ),
+          if(_editing&&!_archived)MemoryPhotoGallery(
+           memoryId:widget.existing!['id'].toString(),
+           editable:_editable,layout:_photoLayout),
+          if(!_editing)const Padding(padding:EdgeInsets.only(top:12),
+           child:Text('Save this memory first, then reopen it to attach photos.')),
           if (_error != null) Text(_error!,
             style: const TextStyle(color: Colors.red)),
           const SizedBox(height: 16),
