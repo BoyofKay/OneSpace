@@ -11,6 +11,7 @@ import 'activity_countdown_rules.dart';
 import 'activity_decision_rules.dart';
 import 'activity_comparison_matrix.dart';
 import 'activity_comparison_sheet.dart';
+import '../occasions/occasion_option_linker.dart';
 import 'activity_conversation_references.dart';
 import 'activity_image_service.dart';
 import 'activity_image_preview.dart';
@@ -1143,6 +1144,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 0)),
                     ),
+                  if(kind=='option'&&!removed)
+                   TextButton.icon(
+                    onPressed:()=>showModalBottomSheet<void>(
+                     context:context,isScrollControlled:true,showDragHandle:true,
+                     builder:(_)=>SendOptionToOccasionSheet(
+                      activityId:widget.id,option:item)),
+                    icon:const Icon(Icons.card_giftcard_outlined,size:16),
+                    label:const Text('Send to occasion plan'),
+                   ),
                   if (kind == 'reminder')
                     Text('Notification not active',
                         style: Theme.of(context).textTheme.labelSmall),

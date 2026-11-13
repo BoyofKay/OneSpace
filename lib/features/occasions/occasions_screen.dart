@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
+import 'occasion_budget_workspace.dart';
 import '../../core/responsive_field_pair.dart';
 
 const occasionKinds=<String,String>{
@@ -536,9 +537,9 @@ class _OccasionDetailState extends State<OccasionDetail>{
        subtitle:Text(CalendarRules.sqlDate(OccasionRules.prepStart(
         upcoming,(p['saving_lead_days'] as num).toInt())!))),
      ],
-     if(p['budget']!=null)ListTile(leading:const Icon(Icons.account_balance_wallet_outlined),
-      title:const Text('Budget'),subtitle:Text(p['currency'].toString()+
-       ' '+(p['budget'] as num).toStringAsFixed(2))),
+     const SizedBox(height:14),
+     OccasionBudgetWorkspace(plan:p),
+     const SizedBox(height:14),
      if((p['notes']??'').toString().isNotEmpty)
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
        child:SelectableText(p['notes'].toString()))),
