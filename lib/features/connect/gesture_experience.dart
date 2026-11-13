@@ -2,6 +2,51 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 
+/// Recognizable emojis are kept within the same colored icon circle.
+class GestureKindSymbol extends StatelessWidget{
+ const GestureKindSymbol({super.key,required this.kind,
+   this.color,this.size=24});
+ final String? kind;
+ final Color? color;
+ final double size;
+ @override Widget build(BuildContext context){
+   if(kind=='support'||kind=='miss_together'){
+     return Text(kind=='support'?'💪':'👩‍❤️‍💋‍👨',
+       textAlign:TextAlign.center,
+       style:TextStyle(fontSize:kind=='support'?size*.94:size*.78,height:1));
+   }
+   return Icon(GestureTheme.forKind(kind).icon,color:color,size:size);
+ }
+}
+class GestureNotificationIcon extends StatefulWidget{
+ const GestureNotificationIcon({super.key,required this.gestureId});
+ final String gestureId;
+ @override State<GestureNotificationIcon> createState()=>
+   _GestureNotificationIconState();
+}
+class _GestureNotificationIconState extends State<GestureNotificationIcon>{
+ static final cache=<String,String>{};
+ String? kind;
+ @override void initState(){super.initState();_load();}
+ Future<void> _load()async{
+   if(cache.containsKey(widget.gestureId)){
+     kind=cache[widget.gestureId];return;
+   }
+   try{
+     final row=await Supabase.instance.client.from('partner_gestures')
+       .select('kind').eq('id',widget.gestureId).single();
+     final result=row['kind']?.toString()??'';
+     cache[widget.gestureId]=result;
+     if(mounted)setState(()=>kind=result);
+   }catch(_){}
+ }
+ @override Widget build(BuildContext context){
+   final theme=GestureTheme.forKind(kind);
+   return CircleAvatar(
+     backgroundColor:theme.color.withValues(alpha:.16),
+     child:GestureKindSymbol(kind:kind,color:theme.color));
+ }
+}
 class GestureTheme {
  const GestureTheme(this.icon,this.color,this.title);
  final IconData icon;
@@ -78,7 +123,7 @@ class _GestureHistoryScreenState extends State<GestureHistoryScreen>{
                  child:ListTile(
                    leading:CircleAvatar(
                      backgroundColor:style.color.withValues(alpha:.16),
-                     child:Icon(style.icon,color:style.color)),
+                     child:GestureKindSymbol(kind:item['kind']?.toString(),color:style.color)),
                    title:Text(item['message']?.toString()??''),
                    subtitle:Text(_sentAt(ctx,item['created_at'])+'\n'+
                      (item['automated']==true?
@@ -106,7 +151,7 @@ class GestureNotificationDialog {
      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
        icon:CircleAvatar(radius:34,
          backgroundColor:theme.color.withValues(alpha:.16),
-         child:Icon(theme.icon,size:36,color:theme.color)),
+         child:GestureKindSymbol(kind:row['kind']?.toString(),size:36,color:theme.color)),
        title:Text(theme.title,textAlign:TextAlign.center),
        content:Column(mainAxisSize:MainAxisSize.min,children:[
          Text(row['message']?.toString()??'',textAlign:TextAlign.center,
