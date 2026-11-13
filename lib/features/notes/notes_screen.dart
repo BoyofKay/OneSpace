@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
 import 'note_draft_rules.dart';
+import 'note_photos_panel.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -371,13 +372,19 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Widget _formattingToolbar()=>SingleChildScrollView(
     scrollDirection:Axis.horizontal,
     child:Row(children:[
-      IconButton(tooltip:'Heading',icon:const Icon(Icons.title),
+      TextButton.icon(onPressed:()=>_insertFormatting('## ',placeholder:'Heading'),
+       icon:const Icon(Icons.title),label:const Text('Heading')),
+      IconButton(tooltip:'Heading (compact)',icon:const Icon(Icons.title),
         onPressed:()=>_insertFormatting('## ',placeholder:'Heading')),
-      IconButton(tooltip:'Bold',icon:const Icon(Icons.format_bold),
+      TextButton.icon(onPressed:()=>_insertFormatting('**',after:'**'),
+       icon:const Icon(Icons.format_bold),label:const Text('Bold')),
+      IconButton(tooltip:'Bold (compact)',icon:const Icon(Icons.format_bold),
         onPressed:()=>_insertFormatting('**',after:'**')),
       IconButton(tooltip:'Italic',icon:const Icon(Icons.format_italic),
         onPressed:()=>_insertFormatting('*',after:'*')),
-      IconButton(tooltip:'Checklist',icon:const Icon(Icons.check_box_outlined),
+      TextButton.icon(onPressed:()=>_insertFormatting('- [ ] ',placeholder:'To-do'),
+       icon:const Icon(Icons.check_box_outlined),label:const Text('Checklist')),
+      IconButton(tooltip:'Checklist (compact)',icon:const Icon(Icons.check_box_outlined),
         onPressed:()=>_insertFormatting('- [ ] ',placeholder:'To-do')),
       IconButton(tooltip:'Bullets',icon:const Icon(Icons.format_list_bulleted),
         onPressed:()=>_insertFormatting('- ',placeholder:'List item')),
@@ -585,11 +592,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               controller: _body,
               onChanged:_onNoteText,
               readOnly: !_canEdit,
-              maxLength: 30000, maxLines: 12, minLines: 5,
+              maxLength: 30000, maxLines: 18, minLines: 7,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: tr(context, 'noteBody'),
-                hintText: tr(context, 'noteHint'),
+                hintText:'Write your thoughts. Select text then tap a formatting action above.',
                 border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -600,6 +607,18 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 avatar:const Icon(Icons.alternate_email,size:17),
                 label:Text(_noteMention!),
                 onPressed:_acceptNoteMention)),
+            const SizedBox(height: 14),
+            if(_editing)...[
+             NotePhotosPanel(noteId:widget.existing!['id'].toString(),
+              canEdit:_canEdit&&!_archived),
+             const SizedBox(height:10),
+            ]else Card(child:Padding(
+             padding:const EdgeInsets.all(12),
+             child:Row(children:[
+              const Icon(Icons.add_photo_alternate_outlined),
+              const SizedBox(width:9),
+              const Expanded(child:Text('Save this note to attach pictures securely.')),
+             ]))),
             const SizedBox(height: 10),
             Text(tr(context, 'visibility')),
             Wrap(
