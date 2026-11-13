@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../memories/memories_screen.dart';
 import '../goals/goals_screen.dart';
 import '../checkins/checkins_screen.dart';
+import '../connect/couple_letters_screen.dart';
 import '../world/world_contacts_screen.dart';
 import '../../core/current_space_cache.dart';
 
@@ -46,6 +47,10 @@ class SectionHub extends StatelessWidget {
             : 'Our people, places, travels and the wider context of our lives.'),
         const SizedBox(height: 16),
         if (isConnect) ...[
+          _link(context, Icons.mark_email_unread_outlined,
+              'Letters',
+              'Private drafts, sent letters, replies and read status',
+              const CoupleLettersScreen()),
           _link(context, Icons.favorite_outline, 'Daily check-ins',
               'Share how you feel today', const CheckinsScreen()),
           _link(context, Icons.photo_library_outlined, 'Memories',
@@ -54,8 +59,8 @@ class SectionHub extends StatelessWidget {
               'Progress and milestones together', const GoalsScreen()),
           const SizedBox(height: 14),
           const Text(
-            'Shared movies, playlists, games, love letters and daily selfies '
-            'are planned. They are not active features yet.',
+            'Shared movies, playlists, games and daily selfies are '
+            'planned. Letters are available above.',
           ),
         ] else ...[
           const RelationshipSettings(),

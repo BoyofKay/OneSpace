@@ -65,8 +65,8 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
       if (member['city_weather_shared'] != true) {
         return Text(
           member['is_me'] == true
-            ? 'Your city/weather are private. Enable sharing in Profile.'
-            : 'Partner has not enabled city/weather sharing.',
+            ? 'Choose a city in Profile to share its weather.'
+            : 'Your partner hasn't selected a shared weather city.',
           style: Theme.of(context).textTheme.bodySmall,
         );
       }
@@ -77,6 +77,9 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
       final rawCode = member['weather_code'];
       final code = rawCode is num ? rawCode.toInt()
         : int.tryParse(rawCode?.toString() ?? '');
+      final high=member['weather_high_c'];
+      final low=member['weather_low_c'];
+      final rain=member['weather_rain_pct'];
       final last = DateTime.tryParse(
         member['weather_updated_at']?.toString() ?? '');
       final stale = last == null ||
@@ -90,6 +93,8 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
           Expanded(child: Text(
             '${member['name'] ?? 'Partner'} · $city · $temp°C'
             '${code == null ? '' : ' · ${SharedWeather.condition(code)}'}'
+            '${high is num && low is num ? ' · H ${high.toStringAsFixed(0)}° / L ${low.toStringAsFixed(0)}°' : ''}'
+            '${rain is num ? ' · Rain ${rain.toStringAsFixed(0)}%' : ''}'
             '${stale ? ' · Weather may be outdated' : ''}',
             style: Theme.of(context).textTheme.bodySmall,
           )),
