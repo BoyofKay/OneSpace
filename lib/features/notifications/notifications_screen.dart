@@ -134,7 +134,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                    final kind=item['kind']?.toString()??'';
                    final unreadItem=item['read_at']==null;
                    return ListTile(
-                     leading:Icon(kind=='mention'?Icons.alternate_email:
+                     leading:kind=='gesture'&&item['object_id']!=null?
+                       GestureNotificationIcon(
+                         gestureId:item['object_id'].toString()):
+                       Icon(kind=='mention'?Icons.alternate_email:
                        kind=='reply'?Icons.reply:
                        kind=='letter'?Icons.mail_outline:
                        kind=='gesture'?Icons.favorite_border:
