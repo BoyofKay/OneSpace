@@ -282,9 +282,13 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
       // The read receipt is independent; a failure must never block a letter.
       if(!mine){
         try{
-          await db.from('couple_letter_reads').upsert({
+          await db.from('couple_letter_reads').insert({
             'letter_id':id,'reader_id':me,
-          },onConflict:'letter_id,reader_id');
+          });
+        }on PostgrestException catch(e){
+          if(e.code!='23505'){
+            // A read-receipt problem must not block the letter itself.
+          }
         }catch(_){/* Reading remains available even without a receipt. */}
       }else{
         try{
