@@ -418,11 +418,9 @@ class _PlansScreenState extends State<PlansScreen> {
             decoration: cancelled || completed
                 ? TextDecoration.lineThrough
                 : null,
-            color: cancelled
-                ? Colors.red.shade700
-                : completed
-                    ? Colors.blueGrey
-                    : null,
+            color: cancelled || completed
+                ? Theme.of(context).colorScheme.outline
+                : null,
           ),
         ),
         subtitle: Text(details.join(' • ')),
