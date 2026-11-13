@@ -223,9 +223,24 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  Future<void> saveReview()async{
   if(rating==null&&review.text.trim().isEmpty)return;
   await mutate(()async{
-   await db.from('shared_experience_reviews').upsert({
-    'experience_id':widget.id,'user_id':db.auth.currentUser!.id,
-    'rating':rating,'review':review.text.trim()},onConflict:'experience_id,user_id');
+   final me=db.auth.currentUser!.id;
+   final values={'rating':rating,'review':review.text.trim()};
+   final existing=await db.from('shared_experience_reviews')
+    .select('experience_id').eq('experience_id',widget.id).eq('user_id',me)
+    .limit(1);
+   if(existing.isEmpty){
+    try{
+     await db.from('shared_experience_reviews').insert({
+      'experience_id':widget.id,'user_id':me,...values});
+    }on PostgrestException catch(e){
+     if(e.code!='23505')rethrow;
+     await db.from('shared_experience_reviews').update(values)
+      .eq('experience_id',widget.id).eq('user_id',me);
+    }
+   }else{
+    await db.from('shared_experience_reviews').update(values)
+     .eq('experience_id',widget.id).eq('user_id',me);
+   }
   });
  }
  Future<void> send()async{

@@ -537,12 +537,29 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   Future<void> opinion(Map<String,dynamic> item, int vote) async {
     await run(() async {
-      await db.from('activity_component_reactions').upsert({
-        'activity_id': widget.id,
-        'component_id': item['id'],
-        'user_id': me,
-        'opinion': vote,
-      }, onConflict: 'component_id,user_id');
+      final componentId=item['id'].toString();
+      final existing=await db.from('activity_component_reactions')
+        .select('component_id').eq('component_id',componentId)
+        .eq('user_id',me).limit(1);
+      if(existing.isEmpty){
+        try{
+          await db.from('activity_component_reactions').insert({
+            'activity_id':widget.id,
+            'component_id':componentId,
+            'user_id':me,
+            'opinion':vote,
+          });
+        }on PostgrestException catch(e){
+          if(e.code!='23505')rethrow;
+          await db.from('activity_component_reactions')
+            .update({'opinion':vote})
+            .eq('component_id',componentId).eq('user_id',me);
+        }
+      }else{
+        await db.from('activity_component_reactions')
+          .update({'opinion':vote})
+          .eq('component_id',componentId).eq('user_id',me);
+      }
     });
   }
 
