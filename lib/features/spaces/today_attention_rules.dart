@@ -157,10 +157,12 @@ class TodayCalendarEntry {
     required this.kind,
     this.source='calendar',
     this.activityId,
+    this.experienceId,
   });
   final String title;
   final DateTime date;
   final String kind;
   final String source;
   final String? activityId;
+  final String? experienceId;
 }

@@ -16,6 +16,7 @@ import '../calendar/calendar_rules.dart';
 import '../coordinate/activity_countdown_rules.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../connect/partner_gestures_screen.dart';
+import '../connect/shared_experiences_screen.dart';
 import '../../core/performance_timings.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
@@ -276,6 +277,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             date:date,
             source:item['source']?.toString()??'calendar',
             activityId:item['activity_id']?.toString(),
+            experienceId:item['source']=='experience'?item['id']?.toString():null,
           ));
         }
       }
@@ -809,7 +811,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             TodayCalendarSection(entries:nearEvents,
               onOpen:widget.onOpenCalendar ?? () {},
               onOpenPlans:widget.onOpenPlans,
-              onOpenActivity:_openFocusActivity),
+              onOpenActivity:_openFocusActivity,
+              onOpenExperience:(id)=>Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder:(_)=>SharedExperiencesScreen(initialExperienceId:id)))),
             const SizedBox(height:12),
             Card(elevation:0,clipBehavior:Clip.antiAlias,
               child:ListTile(
