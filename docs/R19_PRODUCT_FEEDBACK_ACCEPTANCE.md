@@ -1,6 +1,8 @@
 # R19 — Feedback-led acceptance checklist, implementation status, and open design work
 
 **Source-only iteration. No R19 APK or release marker update. User test accounts and their records are never reset.**
+
+**Verification:** [R19 verify-only workflow 43520422462](https://github.com/BoyofKay/OneSpace/actions/runs/43520422462) passed committed dependencies, Flutter analysis, and automated tests. Native Android compilation and physical phone acceptance remain pending.
 The shipped R12–R17 APK remains an unchanged baseline. R18 source and the subsequent R19 changes have NOT been built into an installable APK.
 
 ## P0 stability and privacy
