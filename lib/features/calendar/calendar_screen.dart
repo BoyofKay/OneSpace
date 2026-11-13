@@ -212,6 +212,53 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (mounted && changed == true) await _load();
   }
 
+  Widget _weekAgenda() {
+    final first=CalendarRules.day(_selected.subtract(
+      Duration(days:_selected.weekday%7)));
+    final days=List<DateTime>.generate(7,
+      (i)=>first.add(Duration(days:i)));
+    return Column(children:[
+      Row(children:[
+        IconButton(
+          tooltip:'Previous week',
+          icon:const Icon(Icons.chevron_left),
+          onPressed:()=>setState(()=>
+            _selected=_selected.subtract(const Duration(days:7))),
+        Expanded(child:Text(
+          CalendarRules.sqlDate(days.first)+' — '+
+            CalendarRules.sqlDate(days.last),
+          textAlign:TextAlign.center)),
+        IconButton(
+          tooltip:'Next week',
+          icon:const Icon(Icons.chevron_right),
+          onPressed:()=>setState(()=>
+            _selected=_selected.add(const Duration(days:7))),
+      ]),
+      for(final date in days)
+        Card(elevation:0,child:Column(children:[
+          ListTile(
+            title:Text(MaterialLocalizations.of(context).formatMediumDate(date)),
+            subtitle:Text(
+              (_entriesOn(date).length+_tasksOn(date).length).toString()+
+              ' shared calendar items and due dates'),
+            trailing:const Icon(Icons.chevron_right),
+            onTap:()=>setState((){
+              _selected=date;
+              _view='day';
+            }),
+          ),
+          for(final event in _entriesOn(date))_eventTile(event),
+          for(final task in _tasksOn(date))ListTile(
+            dense:true,
+            leading:const Icon(Icons.checklist),
+            title:Text(task['title']?.toString()??'To-do'),
+            subtitle:const Text('Due date'),
+            onTap:widget.onOpenPlans,
+          ),
+        ])),
+    ]);
+  }
+
   Widget _monthGrid() {
     final first = DateTime(_month.year, _month.month);
     final offset = first.weekday % 7; // Sunday is the first day of the week.
@@ -471,18 +518,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             elevation:0,
             child:Padding(padding:const EdgeInsets.all(9),child:_monthGrid()),
           ),
-          if(_view=='week')...[
-            for(var offset=0;offset<7;offset++)
-              ListTile(
-                title:Text(CalendarRules.sqlDate(_selected.subtract(
-                  Duration(days:_selected.weekday%7)).add(Duration(days:offset)))),
-                onTap:()=>setState(()=>_selected=CalendarRules.day(
-                  _selected.subtract(Duration(days:_selected.weekday%7))
-                    .add(Duration(days:offset)))),
-              ),
-          ],
+          if(_view=='week')_weekAgenda(),
           const SizedBox(height: 12),
-          _selectedDay(),
+          if(_view!='week')_selectedDay(),
           const Divider(height: 36),
           _upcoming(),
           const SizedBox(height: 10),
