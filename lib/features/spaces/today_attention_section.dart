@@ -62,9 +62,12 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
 }
 
 class TodayCalendarSection extends StatefulWidget {
- const TodayCalendarSection({super.key,required this.entries,required this.onOpen});
+ const TodayCalendarSection({super.key,required this.entries,required this.onOpen,
+  this.onOpenActivity,this.onOpenPlans});
  final List<TodayCalendarEntry> entries;
  final VoidCallback onOpen;
+ final void Function(String id)? onOpenActivity;
+ final VoidCallback? onOpenPlans;
  @override State<TodayCalendarSection> createState()=>_TodayCalendarSectionState();
 }
 class _TodayCalendarSectionState extends State<TodayCalendarSection> {
@@ -88,10 +91,22 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
        if(entries.isEmpty)const ListTile(title:Text('Nothing scheduled in the next 7 days.')),
        for(final entry in entries.take(5)) ListTile(
          dense:true,
-         leading:Icon(entry.kind=='occasion'?Icons.celebration_outlined:Icons.event_outlined),
+         leading:Icon(entry.kind=='occasion'?Icons.celebration_outlined:
+           entry.source=='activity'?Icons.hub_outlined:
+           entry.source=='todo'?Icons.checklist_outlined:
+           entry.source=='component'?Icons.alarm_outlined:
+           Icons.event_outlined),
          title:Text(entry.title,maxLines:1,overflow:TextOverflow.ellipsis),
-         subtitle:Text(CalendarRules.sqlDate(entry.date)),
-         onTap:widget.onOpen,
+         subtitle:Text(CalendarRules.sqlDate(entry.date)+' · '+
+           (entry.source=='todo'?'To-do':entry.source=='activity'?'Activity':
+             entry.source=='component'?'Activity item':'Calendar')),
+         onTap:(){
+           if(entry.activityId!=null && widget.onOpenActivity!=null){
+             widget.onOpenActivity!(entry.activityId!);
+           }else if(entry.source=='todo'&&widget.onOpenPlans!=null){
+             widget.onOpenPlans!();
+           }else{widget.onOpen();}
+         },
        ),
        TextButton.icon(onPressed:widget.onOpen,
          icon:const Icon(Icons.open_in_new),
