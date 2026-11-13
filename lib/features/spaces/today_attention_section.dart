@@ -5,10 +5,17 @@ import 'today_attention_rules.dart';
 
 class TodayAttentionSection extends StatefulWidget {
   const TodayAttentionSection({super.key, required this.items,
-    required this.onOpen, required this.onSnooze});
+    required this.onOpen, required this.onSnooze,
+    this.onOpenPlans,this.onOpenCheckins,this.loading=false,this.error,
+    this.onRetry});
   final List<TodayAttentionItem> items;
   final void Function(String activityId) onOpen;
   final Future<void> Function(TodayAttentionItem item, int days) onSnooze;
+  final VoidCallback? onOpenPlans;
+  final VoidCallback? onOpenCheckins;
+  final bool loading;
+  final String? error;
+  final VoidCallback? onRetry;
   @override State<TodayAttentionSection> createState() => _TodayAttentionSectionState();
 }
 
@@ -31,16 +38,33 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
       ]),
       childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
       children:[
-        if(items.isEmpty) const ListTile(
-          title:Text('Nothing needs attention right now.')),
+        if(widget.loading)const ListTile(
+          leading:SizedBox(width:20,height:20,child:CircularProgressIndicator(
+            strokeWidth:2)),
+          title:Text('Checking for actions that need you…')),
+        if(widget.error!=null)ListTile(
+          leading:const Icon(Icons.error_outline),
+          title:Text(widget.error!),
+          trailing:TextButton(onPressed:widget.onRetry,
+            child:const Text('Retry'))),
+        if(items.isEmpty&&!widget.loading&&widget.error==null)
+          const ListTile(title:Text('All clear. Nothing needs your action.')),
         for(final item in items.take(6)) ListTile(
           dense:true,
-          leading:Icon(item.isReminder ? Icons.alarm_outlined :
-            item.daysUntil(now) != null && item.daysUntil(now)! < 0
-              ? Icons.error_outline : Icons.flag_outlined),
+          leading:Icon(item.source=='checkin'?
+            Icons.mark_chat_unread_outlined:
+            item.source=='task'?Icons.checklist_outlined:
+            item.kind=='mention'?Icons.alternate_email:
+            item.isReminder?Icons.alarm_outlined:
+            item.daysUntil(now)!=null&&item.daysUntil(now)!<0?
+              Icons.error_outline:Icons.flag_outlined),
           title:Text(item.title,maxLines:2),
-          subtitle:Text(item.relativeLabel(now)),
-          onTap:()=>widget.onOpen(item.activityId),
+          subtitle:Text(item.reason??item.relativeLabel(now)),
+          onTap:(){
+            if(item.source=='checkin')widget.onOpenCheckins?.call();
+            else if(item.source=='task')widget.onOpenPlans?.call();
+            else if(item.activityId.isNotEmpty)widget.onOpen(item.activityId);
+          },
           trailing:PopupMenuButton<int>(
             tooltip:'Snooze for me',
             onSelected:(days)=>widget.onSnooze(item,days),
@@ -54,7 +78,12 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
         if(items.length>6) ListTile(
           title:Text('And ${items.length-6} more.'),
           trailing:const Icon(Icons.chevron_right),
-          onTap:()=>widget.onOpen(items[6].activityId),
+          onTap:(){
+            final item=items[6];
+            if(item.source=='checkin')widget.onOpenCheckins?.call();
+            else if(item.source=='task')widget.onOpenPlans?.call();
+            else if(item.activityId.isNotEmpty)widget.onOpen(item.activityId);
+          },
         ),
       ],
     );

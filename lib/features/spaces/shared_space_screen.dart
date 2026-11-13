@@ -78,6 +78,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   int upcomingActivities = 0;
   List<Map<String,dynamic>> recentDiscussions = const [];
   List<TodayAttentionItem> focusItems = const [];
+  bool focusLoading=false;
+  String? focusError;
   List<TodayCalendarEntry> nearEvents = const [];
   bool recentExpanded=false;
   List<Map<String,dynamic>> milestoneCountdowns=const [];
@@ -282,6 +284,27 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     }
   }
 
+  Future<void> _loadActionableFocus(String space,int request)async{
+    try{
+      final raw=await client.rpc('onespace_my_attention',
+        params:{'p_today':CalendarRules.sqlDate(DateTime.now())})
+        .timeout(const Duration(seconds:12));
+      if(!mounted||request!=_requestVersion||spaceId!=space)return;
+      setState((){
+        focusItems=TodayAttentionItem.fromActionQueue(
+          raw is List?raw:const []);
+        focusLoading=false;
+        focusError=null;
+      });
+    }catch(_){
+      if(!mounted||request!=_requestVersion)return;
+      setState((){
+        focusLoading=false;
+        focusError='Unable to load your attention queue.';
+      });
+    }
+  }
+
   /// First load membership; render the space as soon as we have its ID.
   /// Remaining independent groups load concurrently, so one failing optional
   /// query cannot hide the entire dashboard.
@@ -296,6 +319,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       summaryLoading = spaceId != null;
       issue = null;
       summaryIssue = null;
+      focusLoading=true;
+      focusError=null;
     });
     try {
       final result = await client.rpc('get_home_snapshot_v2',
@@ -326,6 +351,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           upcomingActivities = 0;
           recentDiscussions = const [];
           focusItems = const [];
+          focusLoading=false;
           nearEvents = const [];
           milestoneCountdowns=const [];
           relationshipMode = 'not_set';
@@ -393,8 +419,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             }
           }
           recentDiscussions=comments.values.toList();
-          focusItems = TodayAttentionItem.parse(
-            data['focus_items'] as List<dynamic>? ?? const [],DateTime.now());
+          // The action queue supersedes the legacy broad-priority snapshot.
+          focusItems=const [];
           nearEvents = TodayAttentionItem.upcomingEvents(
             data['next_events'] as List<dynamic>? ?? const [],DateTime.now());
           relationshipMode = data['relationship_mode']?.toString() ?? 'not_set';
@@ -417,6 +443,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       PerformanceTimings.instance.record('Home overview network', watch.elapsed);
       if (spaceId != null && mounted) {
         unawaited(_syncDeviceContext());
+        unawaited(_loadActionableFocus(spaceId!,request));
         unawaited(_loadMilestones(spaceId!,request));
         unawaited(_loadComingUp(spaceId!,request));
       }
@@ -456,12 +483,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final now=DateTime.now();
     final until=DateTime(now.year,now.month,now.day+days);
     try{
-      await client.from('activity_attention_snoozes').upsert({
-        'activity_id':item.activityId,
-        'component_id':item.isReminder?item.id:null,
+      await client.from('user_attention_snoozes').upsert({
+        'source':item.source,
+        'object_id':item.id,
         'user_id':userId,
         'snoozed_until':CalendarRules.sqlDate(until),
-      },onConflict:'user_id,activity_id,component_id');
+      },onConflict:'user_id,source,object_id');
       if(!mounted)return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content:Text('Hidden from your Today feed until '
@@ -750,7 +777,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             const SizedBox(height:12),
             TodayAttentionSection(
               items:focusItems,
+              loading:focusLoading,
+              error:focusError,
+              onRetry:()=>unawaited(_load()),
               onOpen:_openFocusActivity,
+              onOpenPlans:widget.onOpenPlans,
+              onOpenCheckins:widget.onOpenCheckins,
               onSnooze:_snoozeFocus,
             ),
             const SizedBox(height:16),

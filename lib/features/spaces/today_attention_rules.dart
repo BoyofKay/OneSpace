@@ -10,6 +10,9 @@ class TodayAttentionItem {
     required this.kind,
     required this.priority,
     this.dueOn,
+    this.source='activity',
+    this.reason,
+    this.score=5,
   });
 
   final String id;
@@ -18,6 +21,45 @@ class TodayAttentionItem {
   final String kind;
   final String priority;
   final DateTime? dueOn;
+  final String source;
+  final String? reason;
+  final int score;
+
+  /// Acknowledging something is different from changing the source object.
+  /// The attention row is personal; activities and tasks stay collaborative.
+  static List<TodayAttentionItem> fromActionQueue(List<dynamic> raw){
+    final unique=<String,TodayAttentionItem>{};
+    for(final row in raw){
+      if(row is! Map)continue;
+      final source=row['source']?.toString()??'';
+      if(!const ['activity','task','checkin'].contains(source))continue;
+      final id=row['id']?.toString()??'';
+      if(id.isEmpty)continue;
+      final key=source+':'+id;
+      final item=TodayAttentionItem(
+        id:id,
+        activityId:row['activity_id']?.toString()??'',
+        title:row['title']?.toString()??'Needs attention',
+        kind:row['kind']?.toString()??'activity',
+        priority:row['priority']?.toString()??'normal',
+        dueOn:DateTime.tryParse(row['due_on']?.toString()??''),
+        source:source,
+        reason:row['reason']?.toString(),
+        score:(row['score'] as num?)?.toInt()??5,
+      );
+      final existing=unique[key];
+      if(existing==null||item.score<existing.score)unique[key]=item;
+    }
+    final result=unique.values.toList()
+      ..sort((a,b){
+        final rank=a.score.compareTo(b.score);
+        if(rank!=0)return rank;
+        final date=(a.dueOn??DateTime(2100))
+          .compareTo(b.dueOn??DateTime(2100));
+        return date!=0?date:a.title.compareTo(b.title);
+      });
+    return result;
+  }
 
   bool get isReminder => kind == 'reminder';
 
