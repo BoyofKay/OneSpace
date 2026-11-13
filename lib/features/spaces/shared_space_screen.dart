@@ -76,6 +76,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   List<TodayAttentionItem> focusItems = const [];
   List<TodayCalendarEntry> nearEvents = const [];
   String relationshipMode = 'not_set';
+  String? partnerLabel;
   DateTime? lastMetOn;
   DateTime? nextMeetOn;
   DateTime? pendingInviteExpiry;
@@ -94,12 +95,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    unawaited(_loadPartnerLabel());
   }
 
   @override
   void didUpdateWidget(covariant SharedSpaceScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshToken != widget.refreshToken) _load();
+    if (oldWidget.refreshToken != widget.refreshToken){
+      _load();
+      unawaited(_loadPartnerLabel());
+    }
   }
 
   @override
@@ -154,6 +159,19 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     _requestVersion++;
     invitationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPartnerLabel() async {
+    final me=client.auth.currentUser?.id;
+    if(me==null)return;
+    try{
+      final profile=await client.from('profiles').select('partner_label')
+        .eq('id',me).single();
+      if(mounted){
+        final nickname=profile['partner_label']?.toString().trim();
+        setState(()=>partnerLabel=nickname==null||nickname.isEmpty?null:nickname);
+      }
+    }catch(_){}
   }
 
   /// First load membership; render the space as soon as we have its ID.
@@ -511,7 +529,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             relationshipMode: relationshipMode,
             onConfigure: widget.onOpenProfile,
           ),
-          if (ago != null || until != null) ...[
+          if (relationshipMode != 'living_together' &&
+              (ago != null || until != null)) ...[
           const SizedBox(height:7),
           Row(children:[
             if (ago != null) Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -547,7 +566,19 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               'Welcome back, ${clockMembers.where((m) => m['is_me'] == true).map((m) => m['name']?.toString() ?? '').firstOrNull ?? 'there'}',
             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
+          if(spaceId!=null && !loading && clockMembers.length>1)
+            Padding(
+              padding:const EdgeInsets.only(top:4,bottom:12),
+              child:Text(
+                'Your space with '+
+                  (partnerLabel??clockMembers.where((member)=>
+                    member['is_me']!=true).map((member)=>
+                      member['name']?.toString()??'your partner'
+                    ).firstOrNull??'your partner'),
+                style:Theme.of(context).textTheme.bodyMedium,
+              ),
+            )
+          else const SizedBox(height:16),
           if (issue != null) ...[
             Text(issue!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 12),
