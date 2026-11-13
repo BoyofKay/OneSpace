@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../connect/couple_letters_screen.dart';
-import '../connect/partner_gestures_screen.dart';
 import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
 
