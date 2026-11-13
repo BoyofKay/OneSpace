@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,8 +26,33 @@ class _TripsScreenState extends State<TripsScreen> {
  bool loading=true,openedDeepLink=false,showArchived=false;
  String filter='upcoming',query='';
  List<Map<String,dynamic>> trips=[];
+ RealtimeChannel? _changes;
+ Timer? _debounce;
+ String? _watchedSpace;
 
  @override void initState(){super.initState();load();}
+ @override void dispose(){
+  _debounce?.cancel();
+  final channel=_changes;
+  if(channel!=null)unawaited(db.removeChannel(channel));
+  super.dispose();
+ }
+ void _watch(String spaceId){
+  if(_watchedSpace==spaceId)return;
+  _watchedSpace=spaceId;
+  _changes=db.channel('trips-list-'+spaceId)
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_trips',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'space_id',value:spaceId),
+    callback:(_)=>_scheduleRefresh())
+   .subscribe();
+ }
+ void _scheduleRefresh(){
+  _debounce?.cancel();
+  _debounce=Timer(const Duration(milliseconds:700),(){
+   if(mounted)load();
+  });
+ }
  Future<void> load() async{
   try{
    final id=await CurrentSpaceCache.instance.get();
@@ -39,6 +66,7 @@ class _TripsScreenState extends State<TripsScreen> {
    setState((){
     space=id;loading=false;error=null;trips=List<Map<String,dynamic>>.from(data);
    });
+   _watch(id);
    if(!openedDeepLink&&widget.initialTripId!=null){
     openedDeepLink=true;
     final match=trips.where((t)=>t['id']==widget.initialTripId).firstOrNull;
@@ -261,11 +289,45 @@ class _TripDetailState extends State<TripDetail>{
  List<Map<String,dynamic>> items=[],messages=[],history=[];
  bool loading=true,busy=false,showRemoved=false,showHistory=false;
  String? error;
+ RealtimeChannel? _changes;
+ Timer? _debounce;
+ int _request=0;
 
- @override void initState(){super.initState();load();}
- @override void dispose(){message.dispose();super.dispose();}
+ @override void initState(){
+  super.initState();
+  _changes=db.channel('trip-detail-'+widget.tripId)
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_trips',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'id',value:widget.tripId),
+    callback:(_)=>_scheduleRefresh())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'trip_items',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'trip_id',value:widget.tripId),
+    callback:(_)=>_scheduleRefresh())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'trip_messages',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'trip_id',value:widget.tripId),
+    callback:(_)=>_scheduleRefresh())
+   .subscribe();
+  load();
+ }
+ void _scheduleRefresh(){
+  _debounce?.cancel();
+  _debounce=Timer(const Duration(milliseconds:700),(){
+   if(mounted)load();
+  });
+ }
+ @override void dispose(){
+  _request++;
+  _debounce?.cancel();
+  final channel=_changes;
+  if(channel!=null)unawaited(db.removeChannel(channel));
+  message.dispose();
+  super.dispose();
+ }
 
  Future<void> load()async{
+  final request=++_request;
   try{
    final t=await db.from('shared_trips').select().eq('id',widget.tripId).single();
    final results=await Future.wait([
@@ -275,7 +337,7 @@ class _TripDetailState extends State<TripDetail>{
     db.from('trip_revisions').select('id,record_kind,changed_by,changed_at,before_snapshot,after_snapshot')
      .eq('trip_id',widget.tripId).order('changed_at',ascending:false).limit(60),
    ]);
-   if(!mounted)return;
+   if(!mounted||request!=_request)return;
    final ordered=List<Map<String,dynamic>>.from(results[0])
     ..sort((a,b){
      final da=(a['local_date']??'9999-12-31').toString();
@@ -291,9 +353,9 @@ class _TripDetailState extends State<TripDetail>{
     loading=false;error=null;
    });
   }on PostgrestException catch(e){
-   if(mounted)setState((){loading=false;error=e.message;});
+   if(mounted&&request==_request)setState((){loading=false;error=e.message;});
   }catch(_){
-   if(mounted)setState((){loading=false;error='Unable to open this trip.';});
+   if(mounted&&request==_request)setState((){loading=false;error='Unable to open this trip.';});
   }
  }
  Future<void> mutate(Future<void> Function() work)async{
