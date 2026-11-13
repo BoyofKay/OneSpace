@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'features/search/global_search_screen.dart';
+import 'features/notifications/notifications_screen.dart';
 import 'features/coordinate/coordinate_screen.dart';
 import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
@@ -212,6 +213,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             tooltip:'Search our space',
             onPressed:()=>open(const GlobalSearchScreen()),
           ),
+          if (!showProfile) const NotificationBell(),
           if (!showProfile) IconButton(
             key: const Key('profileTopBarButton'),
             icon: const Icon(Icons.account_circle_outlined,size:28),
