@@ -21,6 +21,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   final _client=Supabase.instance.client;
   String? _space;
   Stream<List<Map<String,dynamic>>>? _stream;
+  Stream<List<Map<String,dynamic>>>? _requests;
   String? _error;
   bool _loading=true;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
@@ -42,6 +43,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           _stream = _client.from('daily_checkins')
             .stream(primaryKey:['id']).eq('space_id',id)
             .order('checkin_date',ascending:false);
+          _requests=_client.from('partner_checkin_requests')
+            .stream(primaryKey:['id']).eq('space_id',id)
+            .order('requested_at',ascending:false);
         });
       },
     );
@@ -59,6 +63,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           .stream(primaryKey:['id']).eq('space_id',id)
           .order('checkin_date',ascending:false);
         _loading=false;
+        _requests=id==null?null:_client.from('partner_checkin_requests')
+          .stream(primaryKey:['id']).eq('space_id',id)
+          .order('requested_at',ascending:false);
       });
       if (id != null) _watchGrants(id);
     }catch(_){
@@ -71,6 +78,114 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
     if(id==null)return;
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
       builder:(_)=>CheckinEditor(spaceId:id,existing:record)));
+  }
+
+    String _dateTime(Object? raw){
+    final date=DateTime.tryParse(raw?.toString()??'')?.toLocal();
+    if(date==null)return 'Date unavailable';
+    return MaterialLocalizations.of(context).formatMediumDate(date)+' · '+
+      MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay.fromDateTime(date));
+  }
+
+  Future<void> _askPartner() async{
+    final space=_space,me=_client.auth.currentUser?.id;
+    if(space==null||me==null)return;
+    try{
+      final people=await _client.from('space_members').select('user_id')
+        .eq('space_id',space);
+      final peer=people.where((p)=>p['user_id']!=me).firstOrNull;
+      if(peer==null||!mounted){
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:Text('Connect your partner before sending a check-in.')));
+        return;
+      }
+      final note=TextEditingController();
+      try{
+        final accepted=await showDialog<bool>(
+          context:context,builder:(ctx)=>AlertDialog(
+            title:const Text('Check on your love'),
+            content:Column(mainAxisSize:MainAxisSize.min,
+              crossAxisAlignment:CrossAxisAlignment.start,children:[
+              const Text('A gentle invitation for your partner to share '
+                'how they feel. They choose when to respond.'),
+              const SizedBox(height:12),
+              TextField(controller:note,maxLength:500,maxLines:3,
+                decoration:const InputDecoration(
+                  labelText:'Personal message (optional)',
+                  hintText:'How are you doing, my love?',
+                  border:OutlineInputBorder())),
+            ]),
+            actions:[
+              TextButton(onPressed:()=>Navigator.pop(ctx,false),
+                child:const Text('Cancel')),
+              FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+                child:const Text('Send check-in')),
+            ],
+          ),
+        );
+        if(accepted!=true||!mounted)return;
+        await _client.from('partner_checkin_requests').insert({
+          'space_id':space,'sender_id':me,
+          'recipient_id':peer['user_id'],'note':note.text.trim(),
+        });
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Your check-in was sent.')));
+      }finally{note.dispose();}
+    }on PostgrestException catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text('Check-in could not be sent: '+e.message)));
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Could not send check-in. Please retry.')));
+    }
+  }
+
+  Future<void> _respond(Map<String,dynamic> request) async{
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+      builder:(_)=>PartnerCheckinReplyScreen(request:request)));
+  }
+
+  Widget _requestHistory(){
+    final me=_client.auth.currentUser?.id;
+    return StreamBuilder<List<Map<String,dynamic>>>(
+      stream:_requests,builder:(ctx,snapshot){
+        if(snapshot.hasError)return const Text('Could not load partner check-ins.');
+        if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
+        final rows=snapshot.data!;
+        if(rows.isEmpty)return const Card(elevation:0,child:Padding(
+          padding:EdgeInsets.all(14),
+          child:Text('No requests yet. You can check on each other anytime.')));
+        return Column(children:[
+          for(final item in rows.take(60))Card(elevation:0,child:ListTile(
+            leading:Icon(item['sender_id']==me?
+              Icons.outgoing_mail_outlined:Icons.mark_email_unread_outlined),
+            title:Text(item['sender_id']==me?'You checked on your partner':
+              'Your partner checked on you'),
+            subtitle:Text([
+              _dateTime(item['requested_at']),
+              if((item['note']?.toString()??'').isNotEmpty)
+                item['note'].toString(),
+              if(item['responded_at']!=null)
+                'Answered: '+_dateTime(item['responded_at']),
+              if(item['response_mood']!=null)
+                'Mood '+item['response_mood'].toString()+'/5',
+              if((item['response_message']?.toString()??'').isNotEmpty)
+                'On their mind: '+item['response_message'].toString(),
+              if((item['response_topic']?.toString()??'').isNotEmpty)
+                'To talk about: '+item['response_topic'].toString(),
+              if(item['responded_at']==null)'Awaiting a reply',
+            ].join('\n'),maxLines:7,overflow:TextOverflow.ellipsis),
+            isThreeLine:true,
+            trailing:item['recipient_id']==me&&item['responded_at']==null?
+              FilledButton(onPressed:()=>_respond(item),
+                child:const Text('Respond')):null,
+            onTap:item['recipient_id']==me&&item['responded_at']==null?
+              ()=>_respond(item):null,
+          )),
+        ]);
+      },
+    );
   }
 
   @override
@@ -86,10 +201,29 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           child:Center(child:CircularProgressIndicator()))
       else if(_space==null)Text(tr(context,'noSpace'))
       else ...[
-        FilledButton.icon(
-          onPressed:()=>_edit(),
-          icon:const Icon(Icons.favorite_outline),
-          label:Text(tr(context,'dailyCheckin'))),
+        Card(elevation:0,child:Padding(padding:const EdgeInsets.all(12),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('How is your heart today?',
+              style:Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height:8),
+            Wrap(spacing:8,runSpacing:8,children:[
+              FilledButton.icon(
+                onPressed:()=>_edit(),
+                icon:const Icon(Icons.favorite_outline),
+                label:const Text('Record my feelings')),
+              FilledButton.tonalIcon(
+                onPressed:_askPartner,
+                icon:const Icon(Icons.mark_chat_unread_outlined),
+                label:const Text('Check on my partner')),
+            ]),
+          ]))),
+        const SizedBox(height:13),
+        Text('Check-in conversations',
+          style:Theme.of(context).textTheme.titleMedium),
+        _requestHistory(),
+        const SizedBox(height:20),
+        Text('Our feelings journal',
+          style:Theme.of(context).textTheme.titleMedium),
         const SizedBox(height:12),
         Wrap(spacing:8,children:['all','shared','private'].map((v)=>ChoiceChip(
           label:Text(tr(context,v)),selected:_filter==v,
@@ -252,13 +386,13 @@ class _CheckinEditorState extends State<CheckinEditor> {
       TextField(controller:_message,readOnly:!_canEdit,
         maxLength:2000,minLines:2,maxLines:5,
         decoration:InputDecoration(
-          labelText:tr(context,'checkinMessage'),
+          labelText:'What’s on your mind?',
           border:const OutlineInputBorder())),
       const SizedBox(height:12),
       TextField(controller:_gratitude,readOnly:!_canEdit,maxLength:500,
         minLines:1,maxLines:3,
         decoration:InputDecoration(
-          labelText:tr(context,'gratitude'),
+          labelText:'Something I’m grateful for',
           border:const OutlineInputBorder())),
       const SizedBox(height:12),
       Text(tr(context,'visibility')),
@@ -274,4 +408,82 @@ class _CheckinEditorState extends State<CheckinEditor> {
         onPressed:_saving?null:_save,child:Text(tr(context,'save'))),
     ])),
   );
+}
+
+class PartnerCheckinReplyScreen extends StatefulWidget {
+ const PartnerCheckinReplyScreen({super.key,required this.request});
+ final Map<String,dynamic> request;
+ @override State<PartnerCheckinReplyScreen> createState()=>
+   _PartnerCheckinReplyScreenState();
+}
+class _PartnerCheckinReplyScreenState extends State<PartnerCheckinReplyScreen> {
+ final mind=TextEditingController();
+ final topic=TextEditingController();
+ int mood=3;
+ bool saving=false;
+ String? error;
+ @override void dispose(){mind.dispose();topic.dispose();super.dispose();}
+ Future<void> _save() async{
+   if(saving)return;
+   setState((){
+     saving=true;error=null;
+   });
+   try{
+     final db=Supabase.instance.client;
+     final rows=await db.from('partner_checkin_requests')
+       .update({
+         'response_mood':mood,
+         'response_message':mind.text.trim(),
+         'response_topic':topic.text.trim(),
+       })
+       .eq('id',widget.request['id'].toString())
+       .eq('recipient_id',db.auth.currentUser!.id)
+       .isFilter('responded_at',null).select('id');
+     if(rows.isEmpty)throw StateError('This request was already answered.');
+     if(mounted)Navigator.pop(context);
+   }on PostgrestException catch(e){
+     if(mounted)setState(()=>error=e.message);
+   }catch(e){
+     if(mounted)setState(()=>error=e.toString());
+   }finally{
+     if(mounted)setState(()=>saving=false);
+   }
+ }
+ @override Widget build(BuildContext context)=>Scaffold(
+   appBar:AppBar(title:const Text('Respond to your love')),
+   body:SafeArea(child:ListView(padding:const EdgeInsets.all(20),children:[
+     const Text('Your partner wants to know how you are doing.',
+       style:TextStyle(fontSize:17,fontWeight:FontWeight.w600)),
+     if((widget.request['note']?.toString()??'').isNotEmpty)
+       Card(child:Padding(padding:const EdgeInsets.all(14),
+         child:Text(widget.request['note'].toString()))),
+     const SizedBox(height:16),
+     Text('How do you feel? ($mood/5)',
+       style:Theme.of(context).textTheme.titleMedium),
+     const SizedBox(height:7),
+     Wrap(spacing:8,children:[
+       for(var i=1;i<=5;i++)ChoiceChip(
+         label:Text(i.toString()),selected:mood==i,
+         onSelected:saving?null:(_)=>setState(()=>mood=i)),
+     ]),
+     const SizedBox(height:15),
+     TextField(controller:mind,maxLength:2000,minLines:2,maxLines:5,
+       decoration:const InputDecoration(labelText:'What’s on your mind?',
+         border:OutlineInputBorder())),
+     const SizedBox(height:15),
+     TextField(controller:topic,maxLength:1000,minLines:2,maxLines:4,
+       decoration:const InputDecoration(
+         labelText:'Something you need to talk about?',
+         border:OutlineInputBorder())),
+     const Text('Your response is shared only with your partner. '
+       'You can answer whenever you feel comfortable.'),
+     if(error!=null)Text(error!,
+       style:TextStyle(color:Theme.of(context).colorScheme.error)),
+     const SizedBox(height:12),
+     FilledButton.icon(
+       onPressed:saving?null:_save,
+       icon:const Icon(Icons.send_outlined),
+       label:Text(saving?'Sending…':'Send my response')),
+   ])),
+ );
 }
