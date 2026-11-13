@@ -48,14 +48,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .ilike('title',pattern).limit(30),
        db.from('couple_letters').select('id,title,created_at').eq('space_id',id)
          .eq('status','sent').ilike('title',pattern).limit(30),
+       db.from('activity_components').select('id,activity_id,label')
+         .eq('kind','tag').ilike('label',pattern).limit(30),
      ]);
      if(!mounted||request!=version)return;
-     final types=['Activity','Calendar','To-do','Note','Letter'];
+     final types=['Activity','Calendar','To-do','Note','Letter','Tag'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
-         output.add(_Hit(types[n],row['title']?.toString()??'',
-           row['id']?.toString()??''));
+         output.add(_Hit(types[n],
+           (n==5?'#':'')+(row[n==5?'label':'title']?.toString()??''),
+           row[n==5?'activity_id':'id']?.toString()??''));
        }
      }
      setState((){hits=output;busy=false;});
@@ -69,6 +72,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
    Widget target;
    switch(hit.kind){
      case 'Activity':target=ActivityScreen(id:hit.id);break;
+     case 'Tag':target=ActivityScreen(id:hit.id);break;
      case 'Calendar':target=CalendarScreen(initialEventId:hit.id);break;
      case 'To-do':target=const PlansScreen();break;
      case 'Note':target=NotesScreen(initialNoteId:hit.id);break;
@@ -86,7 +90,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          const Duration(milliseconds:300),()=>search(v));},
        decoration:InputDecoration(
          prefixIcon:const Icon(Icons.search),
-         hintText:'Activities, dates, to-dos, notes and letters',
+         hintText:'Activities, tags, dates, to-dos, notes, letters',
          border:const OutlineInputBorder(),
          suffixIcon:IconButton(icon:const Icon(Icons.clear),
            onPressed:(){query.clear();debounce?.cancel();search('');}),
@@ -100,7 +104,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          leading:Icon(hit.kind=='Activity'?Icons.hub_outlined:
            hit.kind=='Calendar'?Icons.event_outlined:
            hit.kind=='To-do'?Icons.checklist_outlined:
-           hit.kind=='Note'?Icons.note_outlined:Icons.mail_outline),
+           hit.kind=='Note'?Icons.note_outlined:
+           hit.kind=='Tag'?Icons.sell_outlined:Icons.mail_outline),
          title:Text(hit.title),
          subtitle:Text(hit.kind),
          onTap:()=>openHit(hit),
