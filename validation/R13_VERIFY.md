@@ -48,3 +48,7 @@ Verify R19 at a6be135f3f89c4f620c9fb4258dfc18dc8771b0c with lockfile, Flutter an
 ## R19 post-analyzer cleanup / verify only
 
 R19 fix removes two unused imports flagged by run 43519852832, with no Dart compile errors. Re-run analyzer plus tests on 016ae9f6a7124450f19986b75f6c0bcf41508e8d. Do not build or release an APK, reset accounts or change the release marker.
+
+## R19 final source-only verification after test corrections
+
+Run verify-only against d5c9e6c01e8945d83417f1760e0e482160fb0705. Previous verify passed analyzer and failed exactly four tests due outdated lock thresholds and test-only unbound mention pickers. Those are now addressed. No APK, no release, no account reset.
