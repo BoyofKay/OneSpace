@@ -56,9 +56,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
     final knownDifference = PartnerTimeZones.differenceHoursMinutes(
       mineZone, theirZone, now,
     );
-    final hint = knownDifference == null
-        ? 'Phone time zones sync automatically as each partner opens OneSpace.'
-        : PartnerTimeZones.differenceLabel(knownDifference);
+    final hint = knownDifference == null ? '' : PartnerTimeZones.differenceLabel(knownDifference);
 
     Widget weatherLine(Map<String, dynamic>? member) {
       if (member == null) return const SizedBox.shrink();
@@ -135,18 +133,6 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              const Icon(Icons.public_outlined, size: 21),
-              const SizedBox(width: 7),
-              Expanded(child: Text(
-                livingTogether ? 'Our local time' : 'Our clocks',
-                style: Theme.of(context).textTheme.titleMedium)),
-              IconButton(
-                icon: const Icon(Icons.settings_outlined, size: 19),
-                tooltip: 'View automatic time and city/weather settings',
-                onPressed: widget.onConfigure,
-              ),
-            ]),
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               clock(mine?['name']?.toString() ?? 'You', mineZone, mineTime,
                 myClock: true),
@@ -174,7 +160,8 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
                     )),
                 )),
 
-            if (!livingTogether && partner != null) ...[
+            if (!livingTogether && partner != null && hint.isNotEmpty
+                && knownDifference != 0) ...[
               const SizedBox(height: 5),
               Text(hint, style: Theme.of(context).textTheme.bodySmall),
               if (widget.relationshipMode == 'apart_same_tz' &&
