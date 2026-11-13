@@ -392,6 +392,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
         Text('Your daily schedule',
           style:Theme.of(context).textTheme.titleMedium),
+        Text('Working days',style:Theme.of(context).textTheme.labelLarge),
+        Wrap(spacing:7,runSpacing:4,children:[
+          for(var i=0;i<7;i++)
+            ChoiceChip(
+              label:Text(const ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]),
+              selected:_workDays.contains(i==0?7:i),
+              onSelected:(value)=>setState((){
+                final day=i==0?7:i;
+                if(value){_workDays.add(day);}
+                else {_workDays.remove(day);}
+              }),
+            ),
+        ]),
+        const SizedBox(height:9),
         _timeRow('Work starts','start',_workStart),
         _timeRow('Work ends','end',_workEnd),
         _timeRow('Bedtime','bed',_bedTime),
