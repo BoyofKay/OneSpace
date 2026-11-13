@@ -5,6 +5,7 @@ import '../calendar/calendar_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
+import '../checkins/checkins_screen.dart';
 
 class NotificationBell extends StatelessWidget {
  const NotificationBell({super.key});
@@ -76,6 +77,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      screen=NotesScreen(initialNoteId:item['object_id']?.toString());
    }else if(type=='letter'){
      screen=const CoupleLettersScreen();
+   }else if(type=='checkin'||type=='checkin_request'){
+     screen=const CheckinsScreen();
    }else if(type=='gesture'){
      await GestureNotificationDialog.show(context,
        item['object_id'].toString());
@@ -132,7 +135,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                      leading:Icon(kind=='mention'?Icons.alternate_email:
                        kind=='reply'?Icons.reply:
                        kind=='letter'?Icons.mail_outline:
-                       kind=='gesture'?Icons.favorite_border:Icons.event_outlined),
+                       kind=='gesture'?Icons.favorite_border:
+                       kind.startsWith('checkin_')?Icons.mark_chat_read_outlined:
+                       Icons.event_outlined),
                      title:Text(item['headline']?.toString()??'Update',
                        style:TextStyle(fontWeight:unreadItem?
                          FontWeight.bold:FontWeight.normal)),
@@ -143,6 +148,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                          (item['generated_automatically']==true
                            ?'Scheduled by your partner'
                            :'Personally sent by your partner'):
+                       kind=='checkin_request'?'Your partner is checking on you':
+                       kind=='checkin_response'?'Your partner replied':
+                       kind=='checkin_shared'?'Your partner shared their feelings':
                        kind=='event'?'New shared event':
                        kind=='reminder'?'Your partner sent an event reminder':
                          'Shared update'),
