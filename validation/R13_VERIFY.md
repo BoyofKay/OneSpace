@@ -32,3 +32,7 @@ Retest consolidated R12–R17 after replacing the invalid travel-document TextFi
 ## R18 — one source-only verification gate (no APK)
 
 Validate the immersive theme changes, occasion shopping ledger UI, private source links, automatic personal themes and regression tests at commit 2e35c04d3815b5684091e6abdbbc0fa72093db1b. This gate must run only Flutter dependency verification, analyzer and tests; do not modify release/READY_TO_BUILD.md or build/publish an APK. Current R12–R17 release remains unchanged.
+
+## R18 corrected analyzer recheck (no APK)
+
+Source at bf1797724bfe2b9f108d590c32f2f465b8495ab8 fixes the R18 compact ternary opacity syntax reported by verify-only run 43459943995. Run one corrected source validation (lockfile, analyzer, tests). Do not run signing or APK publication.
