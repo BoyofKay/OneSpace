@@ -1,5 +1,6 @@
 
 import 'package:material_ui/material_ui.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../calendar/calendar_rules.dart';
 import 'activity_contact.dart';
 
@@ -11,10 +12,12 @@ class ComponentEditorSheet extends StatefulWidget {
     super.key,
     required this.kind,
     this.existing,
+    this.spaceId,
   });
 
   final String kind;
   final Map<String, dynamic>? existing;
+  final String? spaceId;
 
   @override
   State<ComponentEditorSheet> createState() => _ComponentEditorSheetState();
@@ -34,6 +37,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   late final TextEditingController contactAddress;
   late final TextEditingController contactHours;
   String? error;
+  List<String> existingTags=[];
+  bool tagsLoading=false;
 
   Map<String, dynamic> get original =>
       Map<String, dynamic>.from(widget.existing?['payload'] as Map? ?? const {});
@@ -42,6 +47,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   void initState() {
     super.initState();
     final p = original;
+    if(widget.kind=='tag')_loadTags();
     title = TextEditingController(text: widget.existing?['label']?.toString() ?? '');
     value = TextEditingController(text: p['value']?.toString() ?? '');
     details = TextEditingController(text: p['note']?.toString() ?? '');
@@ -71,6 +77,28 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     contactAddress.dispose();
     contactHours.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTags() async {
+    final space=widget.spaceId;
+    if(space==null)return;
+    setState(()=>tagsLoading=true);
+    try{
+      final rows=await Supabase.instance.client.from('space_tags')
+        .select('label').eq('space_id',space).order('label').limit(100);
+      if(mounted)setState(()=>existingTags=[
+        for(final row in rows)row['label'].toString()]);
+    }catch(_){
+      // Component creation still works without a loaded tag inventory.
+    }finally{
+      if(mounted)setState(()=>tagsLoading=false);
+    }
+  }
+  void _chooseTag(String tag){
+    setState((){
+      title.text=tag;
+      value.text=tag;
+    });
   }
 
   Future<void> chooseDate() async {
@@ -107,12 +135,44 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
 
   bool get isDated => widget.kind == 'date' || widget.kind == 'reminder';
 
-  void save() {
+  Future<void> save() async {
     final label = title.text.trim();
     final v = value.text.trim();
     final kind = widget.kind;
     if (label.isEmpty) {
       setState(() => error = 'Give this item a name.');
+      return;
+    }
+    if(kind=='tag'){
+      final tag=(value.text.trim().isEmpty?label:value.text.trim());
+      if(tag.length>50){
+        setState(()=>error='Tag must be 50 characters or fewer.');
+        return;
+      }
+      final space=widget.spaceId;
+      if(space!=null){
+        try{
+          final found=await Supabase.instance.client.from('space_tags')
+            .select('id').eq('space_id',space).ilike('label',tag).limit(1);
+          if(found.isEmpty){
+            await Supabase.instance.client.from('space_tags').insert({
+              'space_id':space,'label':tag,
+            });
+          }
+        }on PostgrestException catch(e){
+          if(e.code!='23505'){
+            if(mounted)setState(()=>error='Could not add tag to our inventory.');
+            return;
+          }
+        }catch(_){
+          if(mounted)setState(()=>error='Could not save tag inventory.');
+          return;
+        }
+      }
+      if(!mounted)return;
+      Navigator.of(context).pop({
+        'label':tag,'payload':{...original,'value':tag,'note':details.text.trim()},
+      });
       return;
     }
     if (kind == 'contact') {
@@ -253,7 +313,22 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
               const SizedBox(height: 12),
               input(details, 'Photo caption', max: 4000, lines: 3),
             ] else if (kind == 'tag') ...[
-              const Text('Tags help describe and group related items.'),
+              const Text('Reuse a saved tag or create a new one.'),
+              const SizedBox(height:8),
+              input(value,'Tag',max:50,hint:'e.g. Health, Travel, Home'),
+              if(tagsLoading)const LinearProgressIndicator(),
+              if(existingTags.isNotEmpty)...[
+                const SizedBox(height:6),
+                Text('Saved tags',style:Theme.of(context).textTheme.labelLarge),
+                Wrap(spacing:6,runSpacing:5,children:[
+                  for(final tag in existingTags.where((tag)=>
+                     value.text.trim().isEmpty||
+                     tag.toLowerCase().contains(value.text.trim().toLowerCase())))
+                    ActionChip(
+                      avatar:const Icon(Icons.sell_outlined,size:15),
+                      label:Text(tag),onPressed:()=>_chooseTag(tag)),
+                ]),
+              ],
             ] else if (kind == 'price') ...[
               const Text('Capture the amount and currency observed for this option.'),
             ] else ...[
