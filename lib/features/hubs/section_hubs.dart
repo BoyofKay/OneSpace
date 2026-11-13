@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../memories/memories_screen.dart';
 import '../goals/goals_screen.dart';
 import '../checkins/checkins_screen.dart';
+import '../world/world_contacts_screen.dart';
 import '../../core/current_space_cache.dart';
 
 class SectionHub extends StatelessWidget {
@@ -58,6 +59,11 @@ class SectionHub extends StatelessWidget {
           ),
         ] else ...[
           const RelationshipSettings(),
+          const SizedBox(height: 12),
+          _link(context, Icons.contacts_outlined,
+            'Saved contacts',
+            'People, organizations and places from our shared Activities',
+            const WorldContactsScreen()),
           const SizedBox(height: 12),
           const Card(
             child: Padding(
