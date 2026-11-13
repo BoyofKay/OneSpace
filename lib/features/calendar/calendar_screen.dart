@@ -31,6 +31,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   String? _error;
   bool _loading = true;
   bool _showArchived = false;
+  String _view='month';
+  Map<String,String> _people=const {};
   List<Map<String, dynamic>> _events = const [];
   List<Map<String, dynamic>> _tasks = const [];
   int _loadVersion = 0;
@@ -137,9 +139,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }
       _spaceId = id;
       _watchChanges(id);
+      try {
+        final members=await _client.from('space_members').select('user_id').eq('space_id',id);
+        final ids=members.map((m)=>m['user_id'].toString()).toList();
+        if(ids.isNotEmpty){
+          final people=await _client.from('profiles')
+            .select('id,display_name').inFilter('id',ids);
+          _people={for(final p in people) p['id'].toString():p['display_name'].toString()};
+        }
+      }catch(_){}
       final results = await Future.wait<List<Map<String, dynamic>>>([
         _client.from('space_events')
-            .select('id,space_id,created_by,title,details,event_date,kind,recurrence,visibility,archived_at')
+            .select('id,space_id,created_by,title,details,event_date,kind,recurrence,visibility,archived_at,for_user_id,starts_at,ends_at,zone_id')
             .eq('space_id', id).order('event_date').limit(500),
         _client.from('tasks')
             .select('id,title,target_date,status,visibility,created_by')
@@ -335,6 +346,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (!upcoming && sourceDate != null)
                 CalendarRules.sqlDate(sourceDate),
               if (event['recurrence'] == 'yearly') tr(context, 'yearly'),
+              event['for_user_id']==null?'Both':
+                (_people[event['for_user_id']]??'Partner'),
+              if(event['starts_at']!=null)
+                TimeOfDay.fromDateTime(DateTime.parse(
+                  event['starts_at'].toString()).toLocal()).format(context),
               if (visibility == 'private') tr(context, 'private'),
               if (!canEdit) tr(context, 'viewOnly'),
               if (event['archived_at'] != null) tr(context, 'archived'),
@@ -442,13 +458,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
           Text(tr(context, 'noSpace'))
         else ...[
           const SizedBox(height: 12),
-          Card(
-            elevation: 0,
-            child: Padding(
-              padding: const EdgeInsets.all(9),
-              child: _monthGrid(),
-            ),
+          SegmentedButton<String>(
+            segments:const [
+              ButtonSegment(value:'month',label:Text('Month')),
+              ButtonSegment(value:'week',label:Text('Week')),
+              ButtonSegment(value:'day',label:Text('Day')),
+            ],
+            selected:{_view},
+            onSelectionChanged:(value)=>setState(()=>_view=value.first),
           ),
+          if(_view=='month')Card(
+            elevation:0,
+            child:Padding(padding:const EdgeInsets.all(9),child:_monthGrid()),
+          ),
+          if(_view=='week')...[
+            for(var offset=0;offset<7;offset++)
+              ListTile(
+                title:Text(CalendarRules.sqlDate(_selected.subtract(
+                  Duration(days:_selected.weekday%7)).add(Duration(days:offset)))),
+                onTap:()=>setState(()=>_selected=CalendarRules.day(
+                  _selected.subtract(Duration(days:_selected.weekday%7))
+                    .add(Duration(days:offset)))),
+              ),
+          ],
           const SizedBox(height: 12),
           _selectedDay(),
           const Divider(height: 36),
