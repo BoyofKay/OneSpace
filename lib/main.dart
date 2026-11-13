@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'features/search/global_search_screen.dart';
+import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/coordinate/coordinate_screen.dart';
 import 'features/hubs/section_hubs.dart';
@@ -232,6 +233,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           onOpenMemories:()=>open(const MemoriesScreen()),
           onOpenGoals:()=>open(const GoalsScreen()),
           onOpenCheckins:()=>open(const CheckinsScreen()),
+          onOpenLetters:()=>open(const CoupleLettersScreen()),
           onOpenCoordinate:()=>navigate(2),
           onOpenWorld:()=>navigate(4),
           onOpenProfile:()=>setState(() => showProfile = true),
