@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import '../profile/profile_settings_screen.dart';
 import '../connect/partner_gestures_screen.dart';
 import '../hubs/section_hubs.dart';
+import 'personal_days_off_screen.dart';
 
 /// Central configuration hub, distinct from personal profile details.
 class OneSpaceSettingsScreen extends StatelessWidget {
@@ -50,6 +51,16 @@ class OneSpaceSettingsScreen extends StatelessWidget {
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>_open(context,'Daily schedule',
              const ProfileSettingsScreen(settingsOnly:true,section:'schedule')),
+         ),
+         const Divider(height:1),
+         ListTile(
+           leading:const Icon(Icons.event_available_outlined),
+           title:const Text('Days off & sleep exceptions'),
+           subtitle:const Text('Share days off on our calendar; adjust bedtime and wake-up'),
+           trailing:const Icon(Icons.chevron_right),
+           onTap:()=>Navigator.of(context).push<void>(
+             MaterialPageRoute<void>(
+               builder:(_)=>const PersonalDaysOffScreen())),
          ),
          const Divider(height:1),
          ListTile(
