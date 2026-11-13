@@ -17,7 +17,7 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
   @override Widget build(BuildContext context) {
     final items = widget.items;
     final now = DateTime.now();
-    return Card(elevation:0,child: ExpansionTile(
+    return ExpansionTile(
       initiallyExpanded:true,
       onExpansionChanged:(v)=>setState(()=>expanded=v),
       leading:const Icon(Icons.notifications_active_outlined),
@@ -50,7 +50,7 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
           onTap:()=>widget.onOpen(items[6].activityId),
         ),
       ],
-    ));
+    );
   }
 }
 
@@ -63,7 +63,7 @@ class TodayCalendarSection extends StatefulWidget {
 class _TodayCalendarSectionState extends State<TodayCalendarSection> {
  @override Widget build(BuildContext context) {
    final entries=widget.entries;
-   return Card(elevation:0,child:ExpansionTile(
+   return ExpansionTile(
      initiallyExpanded:true,
      leading:const Icon(Icons.calendar_month_outlined),
      title:Text('Coming up together (${entries.length})'),
@@ -81,6 +81,6 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
          icon:const Icon(Icons.open_in_new),
          label:const Text('Open shared calendar')),
      ],
-   ));
+   );
  }
 }
