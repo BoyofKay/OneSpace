@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
@@ -22,27 +24,66 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
  bool loading=true,archived=false,opened=false;
  String filter='upcoming';
  List<Map<String,dynamic>> plans=[];
+ RealtimeChannel? _channel;
+ Timer? _refresh;
+ String? _watchedSpace;
+ int _loadVersion=0;
+
  @override void initState(){super.initState();load();}
+ @override void dispose(){
+  _loadVersion++;
+  _refresh?.cancel();
+  final old=_channel;
+  if(old!=null)unawaited(db.removeChannel(old));
+  super.dispose();
+ }
+ void _scheduleRefresh(){
+  _refresh?.cancel();
+  _refresh=Timer(const Duration(milliseconds:650),(){
+   if(mounted)load();
+  });
+ }
+ void _watch(String id){
+  if(_watchedSpace==id)return;
+  final old=_channel;
+  if(old!=null)unawaited(db.removeChannel(old));
+  _watchedSpace=id;
+  _channel=db.channel('occasion-plans-'+id)
+   .onPostgresChanges(
+     event:PostgresChangeEvent.all,schema:'public',table:'occasion_plans',
+     filter:PostgresChangeFilter(
+       type:PostgresChangeFilterType.eq,column:'space_id',value:id),
+     callback:(_)=>_scheduleRefresh())
+   .subscribe();
+ }
  Future<void> load()async{
+  final request=++_loadVersion;
   try{
    final id=await CurrentSpaceCache.instance.get();
-   if(id==null){if(mounted)setState(()=>loading=false);return;}
+   if(id==null){if(mounted&&request==_loadVersion)setState(()=>loading=false);return;}
    final rows=await db.from('occasion_plans').select().eq('space_id',id)
      .order('updated_at',ascending:false).limit(200);
-   if(!mounted)return;
+   if(!mounted||request!=_loadVersion)return;
    setState((){
     space=id;plans=List<Map<String,dynamic>>.from(rows);
     loading=false;error=null;
    });
+   _watch(id);
    if(!opened&&widget.initialPlanId!=null){
     opened=true;
     final match=plans.where((p)=>p['id']==widget.initialPlanId).firstOrNull;
-    if(match!=null)WidgetsBinding.instance.addPostFrameCallback((_){
-     if(mounted)open(match);
+    WidgetsBinding.instance.addPostFrameCallback((_){
+     if(!mounted)return;
+     if(match!=null){open(match);}else{
+      Navigator.of(context).push<void>(MaterialPageRoute(
+       builder:(_)=>OccasionDetail(id:widget.initialPlanId!)));
+     }
     });
    }
   }catch(_){
-   if(mounted)setState((){loading=false;error='Unable to load occasion plans.';});
+   if(mounted&&request==_loadVersion)setState((){
+    loading=false;error='Unable to load occasion plans.';
+   });
   }
  }
  Future<void> edit([Map<String,dynamic>? plan])async{
@@ -342,8 +383,38 @@ class _OccasionDetailState extends State<OccasionDetail>{
  List<Map<String,dynamic>> steps=[],history=[];
  bool loading=true,busy=false,showRemoved=false,showHistory=false;
  String? error;
- @override void initState(){super.initState();load();}
+ RealtimeChannel? _channel;
+ Timer? _refresh;
+ int _loadVersion=0;
+ @override void initState(){
+  super.initState();
+  _channel=db.channel('occasion-detail-'+widget.id)
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'occasion_plans',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'id',value:widget.id),
+    callback:(_)=>_scheduleRefresh())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'occasion_plan_steps',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'plan_id',value:widget.id),
+    callback:(_)=>_scheduleRefresh())
+   .subscribe();
+  load();
+ }
+ @override void dispose(){
+  _loadVersion++;
+  _refresh?.cancel();
+  final old=_channel;
+  if(old!=null)unawaited(db.removeChannel(old));
+  super.dispose();
+ }
+ void _scheduleRefresh(){
+  _refresh?.cancel();
+  _refresh=Timer(const Duration(milliseconds:650),(){
+   if(mounted)load();
+  });
+ }
  Future<void> load()async{
+  final request=++_loadVersion;
   try{
    final p=await db.from('occasion_plans').select().eq('id',widget.id).single();
    final other=await Future.wait([
@@ -352,13 +423,16 @@ class _OccasionDetailState extends State<OccasionDetail>{
     db.from('occasion_plan_revisions').select('record_kind,changed_by,changed_at')
      .eq('plan_id',widget.id).order('changed_at',ascending:false).limit(60),
    ]);
-   if(!mounted)return;
+   if(!mounted||request!=_loadVersion)return;
    setState((){
     plan=p;steps=List<Map<String,dynamic>>.from(other[0]);
     history=List<Map<String,dynamic>>.from(other[1]);loading=false;error=null;
    });
-  }on PostgrestException catch(e){if(mounted)setState((){loading=false;error=e.message;});}
-   catch(_){if(mounted)setState((){loading=false;error='Could not open plan.';});}
+  }on PostgrestException catch(e){
+   if(mounted&&request==_loadVersion)setState((){loading=false;error=e.message;});
+  }catch(_){
+   if(mounted&&request==_loadVersion)setState((){loading=false;error='Could not open plan.';});
+  }
  }
  Future<void> change(Future<void> Function() task)async{
   if(busy)return;
