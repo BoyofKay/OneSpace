@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'holiday_calendar_service.dart';
+import '../../l10n/onespace_strings.dart';
 
 /// Holiday calendars are overlays, not copied or duplicated as editable events.
 class HolidaySourcesPanel extends StatefulWidget{
@@ -50,8 +51,8 @@ class _HolidaySourcesPanelState extends State<HolidaySourcesPanel>{
  @override Widget build(BuildContext context)=>Card(elevation:0,
   child:ExpansionTile(
    leading:const Icon(Icons.public_outlined),
-   title:const Text('Regional holidays'),
-   subtitle:const Text('Choose which country calendars we see together'),
+   title:Text(tr(context,'holidaySourceTitle')),
+   subtitle:Text(tr(context,'holidaySourceHint')),
    childrenPadding:const EdgeInsets.fromLTRB(12,0,12,12),
    children:[
     if(loading)const LinearProgressIndicator()
