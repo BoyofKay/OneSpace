@@ -223,7 +223,15 @@ class _PlansScreenState extends State<PlansScreen> {
         task.status.name == _filter.name;
     final matchingScope = _scope == TaskScope.all ||
         task.visibility.name == _scope.name;
-    return matchingStatus && matchingScope;
+    final today=DateTime.now();
+    final day=[
+      today.year.toString().padLeft(4,'0'),
+      today.month.toString().padLeft(2,'0'),
+      today.day.toString().padLeft(2,'0'),
+    ].join('-');
+    final due=task.status==TaskStatus.open && task.targetDate!=null &&
+      task.targetDate!.compareTo(day)<=0;
+    return matchingStatus && matchingScope && (!_todayOnly||due);
   }
 
   @override
