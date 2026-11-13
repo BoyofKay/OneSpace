@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
+import '../../core/device_time_zone.dart';
 import '../sharing/object_permissions.dart';
 import 'calendar_rules.dart';
 
@@ -64,7 +65,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
     if(initialStart!=null){
       _allDay=false;
       _start=TimeOfDay.fromDateTime(initialStart);
-      if(initialEnd!=null)_end=TimeOfDay.fromDateTime(initialEnd);
+      if(initialEnd!=null){_end=TimeOfDay.fromDateTime(initialEnd);}
     }
     _loadPeople();
   }
@@ -134,7 +135,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
         if(!end.isAfter(start))throw StateError('End time must be after start time');
         fields['starts_at']=start.toUtc().toIso8601String();
         fields['ends_at']=end.toUtc().toIso8601String();
-        fields['zone_id']=null;
+        fields['zone_id']=await DeviceTimeZone.readPhone();
       }
       if (!_editing) {
         await _client.from('space_events').insert({
@@ -241,7 +242,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             key:ValueKey('person_${_forUser}_${_people.length}'),
-            initialValue:_forUser??'both',
+            initialValue:_forUser!=null && _people.any((p)=>p['id']==_forUser)?_forUser:'both',
             decoration:const InputDecoration(
               labelText:'Event belongs to',border:OutlineInputBorder()),
             items:[
