@@ -8,9 +8,12 @@ on:
 permissions:
   contents: write
 
+# Releases are user-downloadable artifacts. Never cancel an in-flight APK
+# merely because a new development commit arrives. Keep builds sequential.
 concurrency:
   group: android-preview-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   build:
@@ -85,3 +88,13 @@ jobs:
             --title "OneSpace Preview 0.1.${{ github.run_number }}" \
             --notes "Optimized test preview, not a production release. Download the APK directly. OneSpace previews use a consistent development-only signing key and increasing Android version codes. Future previews should install as updates over this preview; production signing and full account recovery testing are separate release gates. If you installed the original unsuffixed Flutter sample app, it is a different package from the OneSpace Preview app." \
             --prerelease --target "$(git rev-parse HEAD)"
+      - name: Verify APK is actually available in Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="preview-0.1.${{ github.run_number }}"
+          ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fx "$ASSET"
+          gh release view "$TAG" --json url --jq '.url'
+
