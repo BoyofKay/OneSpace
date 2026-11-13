@@ -388,6 +388,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ('price', Icons.payments_outlined, 'Price'),
       ('spec', Icons.tune, 'Specification'),
       ('date', Icons.event, 'Date'),
+      ('reminder', Icons.notifications_outlined, 'Remind us'),
       ('location', Icons.place_outlined, 'Map location'),
       ('contact', Icons.contact_phone_outlined, 'Contact information'),
       ('tag', Icons.sell_outlined, 'Tag'),
@@ -507,6 +508,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
     });
   }
 
+  Future<void> toggleReminder(Map<String,dynamic> item) async {
+    final payload=Map<String,dynamic>.from(
+      item['payload'] as Map? ?? const {});
+    payload['status']=payload['status']=='done'?'open':'done';
+    await run(() async {
+      final rows=await db.from('activity_components')
+        .update({'payload':payload}).eq('id',item['id'] as String)
+        .eq('updated_at',item['updated_at'] as String).select('id');
+      if(rows.isEmpty) {
+        throw StateError('This reminder changed on another device.');
+      }
+    });
+  }
+
   Future<void> opinion(Map<String,dynamic> item, int vote) async {
     await run(() async {
       await db.from('activity_component_reactions').upsert({
@@ -621,6 +636,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   leading: const Icon(Icons.map_outlined),
                   title: const Text('Open in Maps'),
                   onTap: () => Navigator.pop(ctx, 'open-location')),
+              if (kind == 'reminder')
+                ListTile(
+                  leading: Icon(payload['status']=='done'
+                    ? Icons.restart_alt : Icons.done_all),
+                  title: Text(payload['status']=='done'
+                    ? 'Reopen shared reminder'
+                    : 'Mark reminder handled for both of us'),
+                  onTap: () => Navigator.pop(ctx,'reminder'),
+                ),
               if (kind == 'step')
                 ListTile(
                   leading: Icon(payload['status'] == 'done'
@@ -699,6 +723,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await openMap(payload['value']?.toString() ?? '');
       case 'step':
         await toggleStep(item);
+      case 'reminder':
+        await toggleReminder(item);
       case 'choose':
         await recordDecision('chosen', componentId: id);
       case 'comment':
@@ -879,6 +905,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await openMap(location);
       } else if (kind == 'step') {
         await toggleStep(item);
+      } else if (kind == 'reminder') {
+        await componentMenu(item, allVotes);
       } else {
         await componentMenu(item, allVotes);
       }
@@ -899,7 +927,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
               if (kind == 'step')
                 SizedBox(width: 30, height: 30,
                   child: Checkbox(value: done,
-                      onChanged: (_) => toggleStep(item)))
+                    onChanged: (_) => toggleStep(item)))
+              else if (kind == 'reminder')
+                SizedBox(width: 30, height: 30,
+                  child: Checkbox(value: done,
+                    onChanged: (_) => toggleReminder(item)))
               else
                 Padding(padding: const EdgeInsets.only(top: 4, right: 8),
                   child: Icon(typeIcon(kind), size: 19,

@@ -186,6 +186,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
         payload.putIfAbsent('observed_at', () => DateTime.now().toUtc().toIso8601String());
       case 'step':
         payload.putIfAbsent('status', () => 'open');
+      case 'reminder':
+        payload.putIfAbsent('status', () => 'open');
     }
     Navigator.of(context).pop({'label': label, 'payload': payload});
   }
@@ -238,7 +240,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
                 label: Text(value.text.isEmpty ? 'Choose a date' : value.text),
               ),
               if (kind == 'reminder')
-                const Text('Saves a date; phone notifications are not enabled yet.'),
+                const Text('Appears in Today and Remember. Phone alerts are not yet enabled.'),
             ] else if (kind == 'image') ...[
               const Text('This photo remains private to authorized partners.'),
               const SizedBox(height: 12),

@@ -4,6 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'invitation_code.dart';
 import 'space_task_summary.dart';
+import 'today_attention_rules.dart';
+import 'today_attention_section.dart';
+import '../calendar/calendar_rules.dart';
+import '../coordinate/activity_detail_screen.dart';
 import '../../core/performance_timings.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
@@ -60,6 +64,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
   int importantActivities = 0;
   int upcomingActivities = 0;
   List<Map<String,dynamic>> recentDiscussions = const [];
+  List<TodayAttentionItem> focusItems = const [];
+  List<TodayCalendarEntry> nearEvents = const [];
   String relationshipMode = 'not_set';
   DateTime? lastMetOn;
   DateTime? nextMeetOn;
@@ -107,7 +113,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
       summaryIssue = null;
     });
     try {
-      final result = await client.rpc('get_home_snapshot')
+      final result = await client.rpc('get_home_snapshot_v2',
+            params: {'p_today': CalendarRules.sqlDate(DateTime.now())})
           .timeout(const Duration(seconds: 14));
       if (!mounted || request != _requestVersion) return;
 
@@ -132,6 +139,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           importantActivities = 0;
           upcomingActivities = 0;
           recentDiscussions = const [];
+          focusItems = const [];
+          nearEvents = const [];
           relationshipMode = 'not_set';
           lastMetOn = null;
           nextMeetOn = null;
@@ -182,6 +191,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
             for(final row in data['recent_activity_comments'] as List<dynamic>? ?? const [])
               if(row is Map) Map<String,dynamic>.from(row),
           ];
+          focusItems = TodayAttentionItem.parse(
+            data['focus_items'] as List<dynamic>? ?? const [],DateTime.now());
+          nearEvents = TodayAttentionItem.upcomingEvents(
+            data['next_events'] as List<dynamic>? ?? const [],DateTime.now());
           relationshipMode = data['relationship_mode']?.toString() ?? 'not_set';
           lastMetOn = DateTime.tryParse(data['last_met_on']?.toString() ?? '');
           nextMeetOn = DateTime.tryParse(data['next_meet_on']?.toString() ?? '');
@@ -217,6 +230,40 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           loading = false;
           summaryLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _openFocusActivity(String activityId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ActivityScreen(id: activityId),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _snoozeFocus(TodayAttentionItem item,int days) async {
+    final userId=client.auth.currentUser?.id;
+    if(userId==null)return;
+    final now=DateTime.now();
+    final until=DateTime(now.year,now.month,now.day+days);
+    try{
+      await client.from('activity_attention_snoozes').upsert({
+        'activity_id':item.activityId,
+        'component_id':item.isReminder?item.id:null,
+        'user_id':userId,
+        'snoozed_until':CalendarRules.sqlDate(until),
+      },onConflict:'user_id,activity_id,component_id');
+      if(!mounted)return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:Text('Hidden from your Today feed until '
+          '${CalendarRules.sqlDate(until)}.')));
+      await _load();
+    } catch(_){
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:Text('Unable to snooze this item. Try again.')));
       }
     }
   }
@@ -484,6 +531,15 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
           ] else ...[
             _relationshipPanel(),
             const SizedBox(height:12),
+            TodayAttentionSection(
+              items:focusItems,
+              onOpen:_openFocusActivity,
+              onSnooze:_snoozeFocus,
+            ),
+            const SizedBox(height:16),
+            TodayCalendarSection(entries:nearEvents,
+              onOpen:widget.onOpenCalendar ?? () {}),
+            const SizedBox(height:12),
             if (memberCount < 2) _panel(
               spaceName ?? 'Our Space',
               memberCount == 2
@@ -571,7 +627,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       _metric(tr(context, 'upcomingActivitiesCount'), upcomingActivities),
                       _metric(tr(context, 'completedActivitiesCount'), completedActivities),
                       const Divider(),
-                      _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: const Text('More shared totals'),
+                        subtitle: const Text('Tasks, lists, notes and memories'),
+                        children: [
+                          _metric(tr(context, 'openSharedTasks'), taskSummary!.openShared),
                       _metric(tr(context, 'assignedToMe'), taskSummary!.assignedToMe),
                       _metric(tr(context, 'myPrivateTasks'), taskSummary!.myPrivate),
                       _metric(tr(context, 'completedSharedTasks'),
@@ -584,7 +645,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                       _metric(tr(context, 'memoriesCount'), activeMemories),
                       _metric(tr(context, 'activeGoalsCount'), activeGoals),
                       _metric(tr(context, 'achievedGoalsCount'), achievedGoals),
-                      _metric(tr(context, 'recentCheckinsCount'), recentCheckins),
+                          _metric(tr(context, 'recentCheckinsCount'), recentCheckins),
+                        ],
+                      ),
                     ],
                   ],
                 ),
@@ -601,7 +664,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen> {
                   title:Text(entry['activity']?.toString()??'Activity'),
                   subtitle:Text('${entry['author']??'Partner'}: ${entry['message']??''}',
                     maxLines:2,overflow:TextOverflow.ellipsis),
-                  onTap:widget.onOpenCoordinate,
+                  onTap:() {
+                    final id=entry['activity_id']?.toString();
+                    if(id==null||id.isEmpty) {
+                      widget.onOpenCoordinate?.call();
+                    } else {
+                      _openFocusActivity(id);
+                    }
+                  },
                 ),
               ),
               const SizedBox(height:12),

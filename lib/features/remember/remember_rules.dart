@@ -9,11 +9,12 @@ class RememberOccurrence {
 }
 
 class RememberDue {
-  const RememberDue(this.id, this.title, this.date, this.kind);
+  const RememberDue(this.id, this.title, this.date, this.kind, {this.activityId});
   final String id;
   final String title;
   final DateTime date;
   final String kind;
+  final String? activityId;
 }
 
 class RememberRules {
@@ -63,6 +64,7 @@ class RememberRules {
         item['title']?.toString() ?? '',
         date,
         item['type']?.toString() ?? 'todo',
+        activityId: item['activity_id']?.toString(),
       ));
     }
     result.sort((a, b) {

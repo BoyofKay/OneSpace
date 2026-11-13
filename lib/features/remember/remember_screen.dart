@@ -220,17 +220,19 @@ class _RememberScreenState extends State<RememberScreen> {
                   elevation: 0,
                   child: ListTile(
                     leading: Icon(
-                      due.kind == 'activity'
-                          ? Icons.hub_outlined
-                          : Icons.check_circle_outline,
+                      due.kind == 'reminder'
+                          ? Icons.notifications_outlined
+                          : due.kind == 'activity'
+                              ? Icons.hub_outlined
+                              : Icons.check_circle_outline,
                     ),
                     title: Text(due.title),
                     subtitle: Text(
                         '${_dueLabel(due)} · ${CalendarRules.sqlDate(due.date)}'),
                     onTap: () => _open(
-                      due.kind == 'activity'
-                          ? ActivityScreen(id: due.id)
-                          : const PlansScreen(),
+                      due.kind == 'todo'
+                          ? const PlansScreen()
+                          : ActivityScreen(id: due.activityId ?? due.id),
                     ),
                   ),
                 ),

@@ -50,6 +50,23 @@ void main() {
     expect(RememberRules.daysFromToday(dues.last.date, DateTime(2026, 11, 13)), 8);
   });
 
+  test('reminders retain their parent Activity for direct navigation', () {
+    final due=RememberRules.upcomingDues([
+      {
+        'id':'component-123',
+        'activity_id':'activity-456',
+        'title':'Email Gym B',
+        'type':'reminder',
+        'due_on':'2026-11-15',
+      },
+    ]).single;
+    expect(due.kind,'reminder');
+    expect(due.id,'component-123');
+    expect(due.activityId,'activity-456');
+    expect(RememberRules.daysFromToday(
+      due.date, DateTime(2026,11,13)),2);
+  });
+
   test('Malformed records do not disrupt Remember', () {
     expect(RememberRules.upcomingEvents([42, null, {}], DateTime(2026, 11, 13)),
         isEmpty);
