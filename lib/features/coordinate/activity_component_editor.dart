@@ -182,6 +182,10 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
               ),
               if (kind == 'reminder')
                 const Text('Saves a date; phone notifications are not enabled yet.'),
+            ] else if (kind == 'image') ...[
+              const Text('This photo remains private to authorized partners.'),
+              const SizedBox(height: 12),
+              input(details, 'Photo caption', max: 4000, lines: 3),
             ] else if (kind == 'tag') ...[
               const Text('Tags help describe and group related items.'),
             ] else if (kind == 'price') ...[
@@ -219,7 +223,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
               ]),
             ],
             if (kind != 'note' && kind != 'step' && kind != 'tag' &&
-                kind != 'option' && kind != 'reminder') ...[
+                kind != 'option' && kind != 'reminder' && kind != 'image') ...[
               const SizedBox(height: 12),
               input(details, 'Additional note (optional)', max: 4000, lines: 3),
             ],

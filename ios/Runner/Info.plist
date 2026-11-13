@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos to share privately in your OneSpace Activities.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Onespace</string>
 	<key>CFBundleExecutable</key>

@@ -11,6 +11,8 @@ import 'activity_decision_rules.dart';
 import 'activity_comparison_matrix.dart';
 import 'activity_comparison_sheet.dart';
 import 'activity_conversation_references.dart';
+import 'activity_image_service.dart';
+import 'activity_image_preview.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -374,6 +376,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final choices = <(String,IconData,String)>[
       ('option', Icons.compare_arrows, 'Compare an option'),
       ('link', Icons.link, 'Link'),
+      ('image', Icons.image_outlined, 'Photo / screenshot'),
       ('note', Icons.subject, 'Note'),
       ('step', Icons.check_circle_outline, 'Step'),
       ('price', Icons.payments_outlined, 'Price'),
@@ -407,7 +410,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
       )),
     );
     if (chosen == null || !mounted) return;
-    await openEditor(chosen, parent: under);
+    if (chosen == 'image') {
+      await run(() async {
+        await ActivityImageService(db).addPhoto(
+          activityId: widget.id,
+          parentComponentId: under,
+        );
+      });
+    } else {
+      await openEditor(chosen, parent: under);
+    }
   }
 
   Future<void> openEditor(String kind, {
@@ -726,6 +738,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     switch (kind) {
       case 'option': return Icons.compare_arrows;
       case 'link': return Icons.link;
+      case 'image': return Icons.image_outlined;
       case 'note': return Icons.subject;
       case 'step': return Icons.check_circle_outline;
       case 'price': return Icons.payments_outlined;
@@ -820,6 +833,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         height: 1.35,
                         fontWeight: kind == 'price' ? FontWeight.w600 : null,
                       )),
+                  ],
+                  if (kind == 'image' &&
+                      (payload['object_path']?.toString() ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    ActivityImagePreview(
+                      objectPath: payload['object_path'].toString(),
+                      label: item['label']?.toString() ?? 'Activity photo',
+                    ),
                   ],
                   if (note.isNotEmpty) ...[
                     const SizedBox(height: 4),
