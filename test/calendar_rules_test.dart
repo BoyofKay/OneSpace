@@ -2,6 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onespace/features/calendar/calendar_rules.dart';
 
 void main() {
+  test('Timed events use the phone-local date and hour',(){
+    final local=DateTime(2026,11,13,9,30);
+    expect(CalendarRules.eventLocalStart(local.toUtc().toIso8601String()),local);
+    expect(CalendarRules.eventLocalStart(null),isNull);
+    expect(CalendarRules.eventLocalStart('invalid'),isNull);
+  });
+
   test('An annual birthday recurs on the same calendar day', () {
     final birthday = DateTime(1990, 12, 14);
     final next = CalendarRules.nextOccurrence(

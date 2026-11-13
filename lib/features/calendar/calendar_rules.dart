@@ -5,6 +5,13 @@ class CalendarRules {
   static DateTime day(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
+  /// Convert timed events to the viewer's local clock.
+  /// All-day dates deliberately stay independent from time zones.
+  static DateTime? eventLocalStart(Object? timestamp){
+    if(timestamp==null)return null;
+    return DateTime.tryParse(timestamp.toString())?.toLocal();
+  }
+
   static bool isValid(int year, int month, int date) {
     if (year < 1900 || year > 2100 || month < 1 || month > 12 || date < 1) {
       return false;

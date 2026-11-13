@@ -69,9 +69,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
    Widget target;
    switch(hit.kind){
      case 'Activity':target=ActivityScreen(id:hit.id);break;
-     case 'Calendar':target=const CalendarScreen();break;
+     case 'Calendar':target=CalendarScreen(initialEventId:hit.id);break;
      case 'To-do':target=const PlansScreen();break;
-     case 'Note':target=const NotesScreen();break;
+     case 'Note':target=NotesScreen(initialNoteId:hit.id);break;
      default:target=const CoupleLettersScreen();
    }
    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
