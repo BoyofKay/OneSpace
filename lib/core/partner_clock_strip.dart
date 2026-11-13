@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'partner_time_zones.dart';
 import 'shared_weather.dart';
@@ -155,6 +156,19 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
             const SizedBox(height: 6),
             weatherLine(mine),
             if (partner != null) weatherLine(partner),
+            if (mine?['city_weather_shared'] == true ||
+                partner?['city_weather_shared'] == true)
+              Align(alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: () => unawaited(launchUrl(
+                    Uri.parse('https://open-meteo.com/'),
+                    mode: LaunchMode.externalApplication)),
+                  child: Text('Weather data by Open-Meteo.com',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      decoration: TextDecoration.underline,
+                    )),
+                )),
+
             if (!livingTogether && partner != null) ...[
               const SizedBox(height: 5),
               Text(hint, style: Theme.of(context).textTheme.bodySmall),
