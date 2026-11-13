@@ -79,6 +79,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   List<Map<String,dynamic>> recentDiscussions = const [];
   List<TodayAttentionItem> focusItems = const [];
   List<TodayCalendarEntry> nearEvents = const [];
+  bool recentExpanded=false;
   List<Map<String,dynamic>> milestoneCountdowns=const [];
   String relationshipMode = 'not_set';
   String? partnerLabel;
@@ -254,6 +255,33 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     ],
   );
 
+  Future<void> _loadComingUp(String id,int request) async{
+    try{
+      final raw=await client.rpc('onespace_coming_up',
+        params:{'p_today':CalendarRules.sqlDate(DateTime.now())})
+        .timeout(const Duration(seconds:12));
+      if(!mounted||request!=_requestVersion||spaceId!=id)return;
+      final results=<TodayCalendarEntry>[];
+      if(raw is List){
+        for(final item in raw){
+          if(item is! Map)continue;
+          final date=DateTime.tryParse(item['event_date']?.toString()??'');
+          if(date==null)continue;
+          results.add(TodayCalendarEntry(
+            title:item['title']?.toString()??'Event',
+            kind:item['kind']?.toString()??'event',
+            date:date,
+            source:item['source']?.toString()??'calendar',
+            activityId:item['activity_id']?.toString(),
+          ));
+        }
+      }
+      if(mounted&&request==_requestVersion)setState(()=>nearEvents=results);
+    }catch(_){
+      // Keep the initial snapshot calendar fallback if the optional agenda fails.
+    }
+  }
+
   /// First load membership; render the space as soon as we have its ID.
   /// Remaining independent groups load concurrently, so one failing optional
   /// query cannot hide the entire dashboard.
@@ -390,6 +418,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       if (spaceId != null && mounted) {
         unawaited(_syncDeviceContext());
         unawaited(_loadMilestones(spaceId!,request));
+        unawaited(_loadComingUp(spaceId!,request));
       }
     } on PostgrestException catch (error) {
       PerformanceTimings.instance.record('Home overview failed', watch.elapsed);
@@ -726,7 +755,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ),
             const SizedBox(height:16),
             TodayCalendarSection(entries:nearEvents,
-              onOpen:widget.onOpenCalendar ?? () {}),
+              onOpen:widget.onOpenCalendar ?? () {},
+              onOpenPlans:widget.onOpenPlans,
+              onOpenActivity:_openFocusActivity),
             const SizedBox(height:12),
             if(milestoneCountdowns.isNotEmpty)...[
               _countdownPanel(),
@@ -790,10 +821,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ExpansionTile(
               tilePadding:EdgeInsets.zero,
               initiallyExpanded:false,
+              onExpansionChanged:(value)=>setState(()=>recentExpanded=value),
               leading:const Icon(Icons.forum_outlined),
-              title:Text('Recent discussions ('+
-                recentDiscussions.length.toString()+')',
-                style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+              title:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+                Text('Recent discussions ('+recentDiscussions.length.toString()+')',
+                  style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+                if(!recentExpanded)Text(
+                  recentDiscussions.isEmpty?'No conversations yet':
+                  'Latest conversations from your Activities',
+                  style:Theme.of(context).textTheme.bodySmall),
+              ]),
               childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
               children:[
                 if(recentDiscussions.isEmpty)
