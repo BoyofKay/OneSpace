@@ -18,3 +18,5 @@ Only after automated validation should the release marker be updated once for a 
 Validation invocation: analyzer + automated Flutter tests, no APK.
 
 Validation pass 2: use the corrected nullable platform rendering.
+
+Validation pass 3: planned Shared Experiences in Today and deep-link destination; additive SQL 0062 deployed.
