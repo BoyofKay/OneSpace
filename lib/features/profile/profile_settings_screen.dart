@@ -34,6 +34,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   String? _error;
   String? _status;
   final _partnerLabel=TextEditingController();
+  final _labelEntry=TextEditingController();
+  List<String> _partnerLabels=[];
   TimeOfDay? _workStart,_workEnd,_bedTime,_wakeTime;
   Set<int> _workDays={7,1,2,3,4};
   bool _receiveAutomaticGestures=false;
@@ -48,6 +50,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   void dispose() {
     _name.dispose();
     _partnerLabel.dispose();
+    _labelEntry.dispose();
     super.dispose();
   }
 
@@ -55,11 +58,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final id = _client.auth.currentUser!.id;
       final profile =
-          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,work_start_local,work_end_local,sleep_start_local,sleep_end_local,work_days,receive_automatic_gestures').eq('id', id).single();
+          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,partner_labels,work_start_local,work_end_local,sleep_start_local,sleep_end_local,work_days,receive_automatic_gestures').eq('id', id).single();
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
         _partnerLabel.text=profile['partner_label']?.toString()??'';
+        _partnerLabels=[for(final item in (profile['partner_labels'] as List<dynamic>? ??const [])) item.toString()];
         _workStart=_parseTime(profile['work_start_local']);
         _workEnd=_parseTime(profile['work_end_local']);
         _bedTime=_parseTime(profile['sleep_start_local']);
@@ -180,6 +184,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         'display_name': name,
         'locale': _language,
         'partner_label':_partnerLabel.text.trim().isEmpty?null:_partnerLabel.text.trim(),
+        'partner_labels':_partnerLabels,
         'work_start_local':_formatTime(_workStart),
         'work_end_local':_formatTime(_workEnd),
         'sleep_start_local':_formatTime(_bedTime),
@@ -393,6 +398,34 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             border:OutlineInputBorder(),
           ),
         ),
+        Text('Personal names for your partner',
+          style:Theme.of(context).textTheme.titleSmall),
+        Text('OneSpace can vary these affectionate names when greeting you.',
+          style:Theme.of(context).textTheme.bodySmall),
+        Wrap(spacing:6,runSpacing:4,children:[
+          for(final label in _partnerLabels)
+            InputChip(label:Text(label),onDeleted:()=>setState(()=>
+              _partnerLabels.remove(label))),
+        ]),
+        Row(children:[
+          Expanded(child:TextField(
+            controller:_labelEntry,maxLength:60,
+            decoration:const InputDecoration(
+              hintText:'e.g. My sunshine',counterText:''))),
+          IconButton(
+            icon:const Icon(Icons.add_circle_outline),
+            tooltip:'Add a preferred name',
+            onPressed:(){
+              final value=_labelEntry.text.trim();
+              if(value.isEmpty||_partnerLabels.length>=15)return;
+              if(!_partnerLabels.any((v)=>v.toLowerCase()==value.toLowerCase())){
+                setState(()=>_partnerLabels.add(value));
+              }
+              _labelEntry.clear();
+            },
+          ),
+        ]),
+        const SizedBox(height:12),
         Text('Your daily schedule',
           style:Theme.of(context).textTheme.titleMedium),
         Text('Working days',style:Theme.of(context).textTheme.labelLarge),
