@@ -315,6 +315,62 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     ]),
   );
 
+  Widget _previewRow(String line,int index){
+    final heading=line.startsWith('# ');
+    final subheading=line.startsWith('## ');
+    final task=line.startsWith('- [ ] ')||line.startsWith('- [x] ');
+    final done=line.startsWith('- [x] ');
+    final content=heading?line.substring(2):
+      subheading?line.substring(3):task?line.substring(6):line;
+    final style=heading?Theme.of(context).textTheme.titleLarge:
+      subheading?Theme.of(context).textTheme.titleMedium:
+      Theme.of(context).textTheme.bodyMedium;
+    final spans=<TextSpan>[];
+    final matcher=RegExp(r'(\*\*[^*]+\*\*|\*[^*]+\*)');
+    var position=0;
+    for(final match in matcher.allMatches(content)){
+      if(match.start>position){
+        spans.add(TextSpan(text:content.substring(position,match.start)));
+      }
+      final raw=match.group(0)!;
+      if(raw.startsWith('**')){
+        spans.add(TextSpan(text:raw.substring(2,raw.length-2),
+          style:const TextStyle(fontWeight:FontWeight.bold)));
+      }else{
+        spans.add(TextSpan(text:raw.substring(1,raw.length-1),
+          style:const TextStyle(fontStyle:FontStyle.italic)));
+      }
+      position=match.end;
+    }
+    if(position<content.length){
+      spans.add(TextSpan(text:content.substring(position)));
+    }
+    final preview=Text.rich(TextSpan(style:style,children:spans));
+    if(!task){
+      return Padding(
+        padding:const EdgeInsets.symmetric(vertical:4),
+        child:preview);
+    }
+    return CheckboxListTile(
+      contentPadding:EdgeInsets.zero,
+      controlAffinity:ListTileControlAffinity.leading,
+      value:done,
+      onChanged:!_canEdit||_busy?null:(value){
+        final lines=_body.text.split('\n');
+        if(index>=lines.length){return;}
+        lines[index]=lines[index].replaceFirst(
+          RegExp(r'^- \[[ x]\] '),
+          value==true?'- [x] ':'- [ ] ');
+        setState(()=>_body.text=lines.join('\n'));
+      },
+      title:DefaultTextStyle.merge(
+        style:TextStyle(decoration:done?TextDecoration.lineThrough:null,
+          color:done?Theme.of(context).colorScheme.outline:null),
+        child:preview,
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_canEdit) return;
     final title = _title.text.trim();
