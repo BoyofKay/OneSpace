@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../core/responsive_field_pair.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'occasion_budget_rules.dart';
 import 'occasion_planning_insights.dart';
@@ -55,7 +54,7 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> browseOptions()async{
-  await showModalBottomSheet<void>(context:context,showDragHandle:true,
+  await showModalBottomSheet<bool>(context:context,showDragHandle:true,
    isScrollControlled:true,
    builder:(_)=>OccasionOptionLinker(plan:widget.plan));
  }
