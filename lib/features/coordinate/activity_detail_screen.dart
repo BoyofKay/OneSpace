@@ -25,6 +25,7 @@ class ActivityScreen extends StatefulWidget {
 class _ActivityScreenState extends State<ActivityScreen> {
   final db = Supabase.instance.client;
   final composer = TextEditingController();
+  final composerFocus = FocusNode();
   late final Stream<List<Map<String, dynamic>>> activity;
   late final Stream<List<Map<String, dynamic>>> components;
   late final Stream<List<Map<String, dynamic>>> comments;
@@ -63,6 +64,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   void dispose() {
     composer.dispose();
+    composerFocus.dispose();
     super.dispose();
   }
 
@@ -496,6 +498,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       replyingTo = null;
       replyPreview = null;
     });
+    composerFocus.requestFocus();
   }
 
   void startReply(Map<String, dynamic> message) {
@@ -505,66 +508,133 @@ class _ActivityScreenState extends State<ActivityScreen> {
       onComponent = null;
       onComponentTitle = null;
     });
+    composerFocus.requestFocus();
   }
 
-  Future<void> componentMenu(Map<String,dynamic> item,
-      List<Map<String,dynamic>> votes) async {
-    final mine = votes.where((v) => v['component_id'] == item['id'] &&
-        v['user_id'] == me).firstOrNull;
-    final current = mine?['opinion'] as num? ?? 0;
+  Future<void> componentMenu(
+    Map<String, dynamic> item,
+    List<Map<String, dynamic>> votes,
+  ) async {
+    final kind = item['kind']?.toString() ?? '';
+    final id = item['id'] as String;
+    final title = item['label']?.toString();
+    final payload = item['payload'] as Map? ?? const {};
+    final current = votes.where(
+      (vote) => vote['component_id'] == id && vote['user_id'] == me,
+    ).firstOrNull?['opinion'] as num? ?? 0;
+
     final action = await showModalBottomSheet<String>(
-      context: context, showDragHandle: true,
-      builder: (ctx) => SafeArea(child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.chat_bubble_outline),
-            title: const Text('Discuss this item'),
-            onTap: () => Navigator.pop(ctx, 'comment')),
-          if (item['kind'] == 'option')
-            ListTile(
-              leading: const Icon(Icons.fact_check_outlined),
-              title: const Text('Choose this option'),
-              onTap: () => Navigator.pop(ctx, 'choose')),
-          ListTile(
-            leading: const Icon(Icons.thumb_up_outlined),
-            title: const Text('Like'),
-            trailing: current == 1 ? const Icon(Icons.check) : null,
-            onTap: () => Navigator.pop(ctx, 'like')),
-          ListTile(
-            leading: const Icon(Icons.thumb_down_outlined),
-            title: const Text('Dislike'),
-            trailing: current == -1 ? const Icon(Icons.check) : null,
-            onTap: () => Navigator.pop(ctx, 'dislike')),
-          ListTile(
-            leading: const Icon(Icons.add_outlined),
-            title: const Text('Attach more details'),
-            onTap: () => Navigator.pop(ctx, 'child')),
-          ListTile(
-            leading: const Icon(Icons.edit_outlined),
-            title: const Text('Edit'),
-            onTap: () => Navigator.pop(ctx, 'edit')),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text('Edit history'),
-            onTap: () => Navigator.pop(ctx, 'history')),
-        ],
-      )),
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(ctx).height * 0.72,
+          ),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              if (kind == 'link')
+                ListTile(
+                  leading: const Icon(Icons.open_in_new),
+                  title: const Text('Open website'),
+                  onTap: () => Navigator.pop(ctx, 'open-link')),
+              if (kind == 'location')
+                ListTile(
+                  leading: const Icon(Icons.map_outlined),
+                  title: const Text('Open in Maps'),
+                  onTap: () => Navigator.pop(ctx, 'open-location')),
+              if (kind == 'step')
+                ListTile(
+                  leading: Icon(payload['status'] == 'done'
+                      ? Icons.restart_alt : Icons.check_circle_outline),
+                  title: Text(payload['status'] == 'done'
+                      ? 'Reopen step' : 'Mark step completed'),
+                  onTap: () => Navigator.pop(ctx, 'step')),
+              if (kind == 'option') ...[
+                ListTile(
+                  leading: const Icon(Icons.fact_check_outlined),
+                  title: const Text('Choose this option'),
+                  onTap: () => Navigator.pop(ctx, 'choose')),
+                ListTile(
+                  leading: const Icon(Icons.tune_outlined),
+                  title: const Text('Add a specification'),
+                  onTap: () => Navigator.pop(ctx, 'add-spec')),
+                ListTile(
+                  leading: const Icon(Icons.payments_outlined),
+                  title: const Text('Add or update a price observation'),
+                  onTap: () => Navigator.pop(ctx, 'add-price')),
+                ListTile(
+                  leading: const Icon(Icons.note_add_outlined),
+                  title: const Text('Add a note or response'),
+                  onTap: () => Navigator.pop(ctx, 'add-note')),
+                ListTile(
+                  leading: const Icon(Icons.link),
+                  title: const Text('Attach another source link'),
+                  onTap: () => Navigator.pop(ctx, 'add-link')),
+              ],
+              ListTile(
+                leading: const Icon(Icons.chat_bubble_outline),
+                title: const Text('Discuss this item'),
+                onTap: () => Navigator.pop(ctx, 'comment')),
+              if (kind != 'step') ...[
+                ListTile(
+                  leading: const Icon(Icons.thumb_up_outlined),
+                  title: const Text('Like'),
+                  trailing: current == 1 ? const Icon(Icons.check) : null,
+                  onTap: () => Navigator.pop(ctx, 'like')),
+                ListTile(
+                  leading: const Icon(Icons.thumb_down_outlined),
+                  title: const Text('Dislike'),
+                  trailing: current == -1 ? const Icon(Icons.check) : null,
+                  onTap: () => Navigator.pop(ctx, 'dislike')),
+              ],
+              ListTile(
+                leading: const Icon(Icons.add_outlined),
+                title: const Text('Attach another component'),
+                onTap: () => Navigator.pop(ctx, 'child')),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit'),
+                onTap: () => Navigator.pop(ctx, 'edit')),
+              ListTile(
+                leading: const Icon(Icons.history),
+                title: const Text('Edit history'),
+                onTap: () => Navigator.pop(ctx, 'history')),
+            ]),
+          ),
+        ),
+      ),
     );
     if (!mounted) return;
     switch (action) {
+      case 'open-link':
+        await openExternal(payload['value']?.toString() ?? '');
+      case 'open-location':
+        await openMap(payload['value']?.toString() ?? '');
+      case 'step':
+        await toggleStep(item);
       case 'choose':
-        await recordDecision('chosen', componentId: item['id'] as String);
-      case 'comment': focusOnComponent(item);
-      case 'like': await opinion(item, current == 1 ? 0 : 1);
-      case 'dislike': await opinion(item, current == -1 ? 0 : -1);
+        await recordDecision('chosen', componentId: id);
+      case 'comment':
+        focusOnComponent(item);
+      case 'like':
+        await opinion(item, current == 1 ? 0 : 1);
+      case 'dislike':
+        await opinion(item, current == -1 ? 0 : -1);
+      case 'add-spec':
+        await openEditor('spec', parent: id);
+      case 'add-price':
+        await openEditor('price', parent: id);
+      case 'add-note':
+        await openEditor('note', parent: id);
+      case 'add-link':
+        await openEditor('link', parent: id);
       case 'child':
-        await chooseAdd(
-          under: item['id'] as String,
-          underTitle: item['label']?.toString(),
-        );
-      case 'edit': await openEditor(item['kind'] as String, existing: item);
-      case 'history': await showComponentHistory(item);
+        await chooseAdd(under: id, underTitle: title);
+      case 'edit':
+        await openEditor(kind, existing: item);
+      case 'history':
+        await showComponentHistory(item);
     }
   }
 
@@ -1041,7 +1111,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ]),
         Row(children: [
           Expanded(child: TextField(
-            controller: composer, minLines: 1, maxLines: 3,
+            controller: composer, focusNode: composerFocus,
+            minLines: 1, maxLines: 3,
             maxLength: 5000,
             decoration: const InputDecoration(
               hintText: 'Message your partner…',
