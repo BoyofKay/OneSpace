@@ -113,7 +113,7 @@ class DeviceWeatherService {
     return SelectedCityWeather(
       current:weather,high:number('temperature_2m_max'),
       low:number('temperature_2m_min'),
-      rainPct:rain==null?null:rain.round().clamp(0,100).toInt(),
+      rainPct:rain?.round().clamp(0,100).toInt(),
     );
   }
 
@@ -147,7 +147,7 @@ class DeviceWeatherService {
     if(_refreshing)return false;
     final now=DateTime.now();
     if(_lastAttempt!=null &&
-       now.difference(_lastAttempt!)<const Duration(minutes:45)) return false;
+       now.difference(_lastAttempt!)<const Duration(minutes:45)) { return false; }
     _refreshing=true;
     _lastAttempt=now;
     try {
