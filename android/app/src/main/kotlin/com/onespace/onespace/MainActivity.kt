@@ -1,5 +1,6 @@
 package com.onespace.onespace
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -17,6 +18,33 @@ import java.io.ByteArrayOutputStream
 class MainActivity : FlutterFragmentActivity() {
     private val maxBytes = 10 * 1024 * 1024
     private var pendingDocument: MethodChannel.Result? = null
+    // External shares stay in memory only, until the signed-in UI collects them.
+    private var pendingShare: Map<String, String>? = null
+    private var shareChannel: MethodChannel? = null
+
+    private fun captureShare(incoming: Intent?) {
+        if (incoming?.action != Intent.ACTION_SEND ||
+            incoming.type != "text/plain") return
+        val sharedText = incoming.getStringExtra(Intent.EXTRA_TEXT)?.take(8000)?.trim()
+        if (sharedText.isNullOrEmpty()) return
+        pendingShare = mapOf(
+            "text" to sharedText,
+            "subject" to (incoming.getStringExtra(Intent.EXTRA_SUBJECT) ?: "").take(160)
+        )
+        shareChannel?.invokeMethod("shareAvailable", true)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        captureShare(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        captureShare(intent)
+    }
+
     private val pickDocument = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -56,6 +84,18 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        shareChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, "onespace/incoming_share"
+        )
+        shareChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "takePendingShare" -> {
+                    result.success(pendingShare)
+                    pendingShare = null
+                }
+                else -> result.notImplemented()
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/travel_documents")
             .setMethodCallHandler { call, result ->
                 if (call.method != "pickDocument") {
