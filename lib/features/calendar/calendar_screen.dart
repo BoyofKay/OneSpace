@@ -13,6 +13,10 @@ import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
 import 'calendar_event_editor.dart';
 import 'calendar_rules.dart';
+import 'holiday_calendar_service.dart';
+import 'holiday_sources_panel.dart';
+import '../occasions/occasions_screen.dart';
+import '../../theme/appearance_settings_screen.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
 /// calculated locally without moving birthdays across timezones.
@@ -40,6 +44,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<Map<String, dynamic>> _events = const [];
   List<Map<String, dynamic>> _tasks = const [];
   List<Map<String, dynamic>> _daysOff=const [];
+  List<Map<String,dynamic>> _occasions=const [];
+  List<HolidayDay> _holidays=const [];
+  final HolidayCalendarService _holidayService=HolidayCalendarService();
+  String? _holidayError;
+  int _extrasVersion=0;
   int _loadVersion = 0;
   String? _watchedSpace;
   RealtimeChannel? _changes;
@@ -69,6 +78,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void dispose() {
     _loadVersion++;
+    _extrasVersion++;
+    _holidayService.close();
     _reloadDebounce?.cancel();
     _stopWatching();
     super.dispose();
@@ -116,6 +127,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
         filter: bySpace,
         callback: (_) => _scheduleRefresh(),
       )
+      .onPostgresChanges(event:PostgresChangeEvent.all,
+        schema:'public',table:'occasion_plans',filter:bySpace,
+        callback:(_)=>_scheduleRefresh(),)
+      .onPostgresChanges(event:PostgresChangeEvent.all,
+        schema:'public',table:'space_holiday_sources',filter:bySpace,
+        callback:(_)=>_scheduleRefresh(),)
       .onPostgresChanges(
         event:PostgresChangeEvent.all,
         schema:'public',table:'personal_days_off',
@@ -144,6 +161,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           _events = const [];
           _tasks = const [];
           _daysOff=const [];
+          _occasions=const [];
+          _holidays=const [];
           _loading = false;
         });
         return;
@@ -185,6 +204,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _loading = false;
       });
       PerformanceTimings.instance.record('Calendar first data', stopwatch.elapsed);
+      unawaited(_loadExtras(id));
     } on PostgrestException catch (e) {
       if (mounted && version == _loadVersion) {
         setState(() { _error = e.message; _loading = false; });
@@ -197,6 +217,84 @@ class _CalendarScreenState extends State<CalendarScreen> {
         });
       }
     }
+  }
+
+  /// Optional overlays never block or replace the ordinary calendar.
+  Future<void> _loadExtras(String space)async{
+    final request=++_extrasVersion;
+    try{
+      final rows=await _client.from('occasion_plans').select(
+       'id,title,occasion_on,annual,kind,visibility,status,archived_at')
+       .eq('space_id',space).limit(300);
+      if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
+      setState(()=>_occasions=List<Map<String,dynamic>>.from(rows));
+    }catch(_){ /* Main calendar remains usable. */ }
+    try{
+      final sources=await _client.from('space_holiday_sources')
+       .select('country_code,enabled').eq('space_id',space);
+      if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
+      final active=sources.where((x)=>x['enabled']==true)
+        .map((x)=>x['country_code'].toString()).toSet();
+      if(active.isEmpty){
+        setState((){_holidays=[];_holidayError=null;});
+        return;
+      }
+      final years=<int>{_month.year};
+      if(_month.month==1)years.add(_month.year-1);
+      if(_month.month==12)years.add(_month.year+1);
+      final data=await Future.wait(years.map((y)=>_holidayService.forYear(y,active)));
+      if(!mounted||request!=_extrasVersion)return;
+      setState((){
+       _holidays=data.expand((x)=>x).toList();
+       _holidayError=null;
+      });
+    }catch(_){
+      if(mounted&&request==_extrasVersion)setState(
+       ()=>_holidayError='Regional holidays are unavailable. Personal events are unaffected.');
+    }
+  }
+  void _refreshExtras(){
+    final space=_spaceId;
+    if(space!=null)unawaited(_loadExtras(space));
+  }
+  List<HolidayDay> _holidaysOn(DateTime date){
+    final day=CalendarRules.sqlDate(date);
+    return _holidays.where((item)=>item.dayKey==day).toList();
+  }
+  List<Map<String,dynamic>> _occasionsOn(DateTime date){
+    return _occasions.where((row){
+      if(row['archived_at']!=null||row['status']=='cancelled')return false;
+      final origin=DateTime.tryParse((row['occasion_on']??'').toString());
+      return origin!=null&&CalendarRules.occursOn(
+       original:origin,recurrence:row['annual']==true?'yearly':'none',selected:date);
+    }).toList();
+  }
+  Widget _holidayTile(HolidayDay day)=>Card(elevation:0,child:ListTile(
+    leading:Icon(Icons.celebration_outlined,
+      color:Theme.of(context).colorScheme.tertiary),
+    title:Text(day.name),
+    subtitle:Text(HolidayCatalog.label(day.country)+' · Regional holiday · '+day.source),
+  ));
+  Widget _occasionTile(Map<String,dynamic> row)=>Card(elevation:0,child:ListTile(
+    leading:Icon(Icons.cake_outlined,color:Theme.of(context).colorScheme.primary),
+    title:Text(row['title'].toString()),
+    subtitle:Text('Personal occasion · '+
+     (row['visibility']=='private'?'Only me':'Both of us')+
+     (row['annual']==true?' · Annual':'')),
+    trailing:const Icon(Icons.chevron_right),
+    onTap:()async{
+      await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder:(_)=>OccasionDetail(id:row['id'].toString())));
+      if(mounted)_refreshExtras();
+    },
+  ));
+  Future<void> _createOccasion({String kind='birthday'})async{
+    final id=_spaceId;
+    if(id==null)return;
+    final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder:(_)=>OccasionEditor(
+        spaceId:id,initialDate:_selected,initialKind:kind)));
+    if(saved==true&&mounted)_refreshExtras();
   }
 
   Future<void> _loadCalendarNames(String id) async {
