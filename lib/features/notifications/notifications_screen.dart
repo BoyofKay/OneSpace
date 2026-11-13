@@ -77,7 +77,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      screen=NotesScreen(initialNoteId:item['object_id']?.toString());
    }else if(type=='letter'){
      screen=const CoupleLettersScreen();
-   }else if(type=='checkin'||type=='checkin_request'){
+   }else if(type=='checkin_request'){
+     screen=CheckinsScreen(initialRequestId:item['object_id']?.toString());
+   }else if(type=='checkin'){
      screen=const CheckinsScreen();
    }else if(type=='gesture'){
      await GestureNotificationDialog.show(context,

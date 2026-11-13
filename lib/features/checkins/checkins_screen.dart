@@ -12,7 +12,8 @@ import '../connection/connection_rules.dart';
 /// Each person may make one personal check-in per local calendar date. The
 /// partner can view shared entries, but only the author can edit their entry.
 class CheckinsScreen extends StatefulWidget {
-  const CheckinsScreen({super.key});
+  const CheckinsScreen({super.key,this.initialRequestId});
+  final String? initialRequestId;
   @override
   State<CheckinsScreen> createState()=>_CheckinsScreenState();
 }
@@ -26,6 +27,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   bool _loading=true;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
   String _filter='all';
+  bool _openedInitialRequest=false;
 
   @override
   void initState(){super.initState();_load();}
@@ -52,6 +54,26 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   }
 
 
+  Future<void> _openInitialRequest() async{
+    final requestId=widget.initialRequestId;
+    if(_openedInitialRequest||requestId==null||_space==null)return;
+    _openedInitialRequest=true;
+    try{
+      final rows=await _client.from('partner_checkin_requests')
+        .select('id,space_id,sender_id,recipient_id,note,requested_at,responded_at')
+        .eq('id',requestId).eq('space_id',_space!).limit(1);
+      if(!mounted||rows.isEmpty)return;
+      final row=rows.first;
+      if(row['recipient_id']==_client.auth.currentUser?.id &&
+        row['responded_at']==null){
+        await _respond(row);
+      }
+    }catch(_){
+      // The check-in log remains available if the request has been removed
+      // or cannot be opened; do not trap the user in an error dialog.
+    }
+  }
+
   Future<void> _load() async {
     if(mounted)setState(() { _loading=_space==null;_error=null;});
     try{
@@ -67,7 +89,10 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           .stream(primaryKey:['id']).eq('space_id',id)
           .order('requested_at',ascending:false);
       });
-      if (id != null) _watchGrants(id);
+      if (id != null){
+        _watchGrants(id);
+        unawaited(_openInitialRequest());
+      }
     }catch(_){
       if(mounted)setState((){_error=tr(context,'loadFailed');_loading=false;});
     }
