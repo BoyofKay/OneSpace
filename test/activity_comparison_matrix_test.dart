@@ -26,7 +26,7 @@ Map<String, dynamic> child(
   'label': label,
   'payload': {
     'value': value,
-    if (currency != null) 'currency': currency,
+    'currency': currency,
   },
 };
 
