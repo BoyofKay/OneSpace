@@ -241,21 +241,6 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    ]);
  }
 
- Future<void> _sendCustom(Map<String,dynamic> item) async {
-   if(busyKind!=null||spaceId==null||recipientId==null)return;
-   setState(()=>busyKind=item['id'].toString());
-   try{
-     await db.from('partner_gestures').insert({
-       'space_id':spaceId,'recipient_id':recipientId,
-       'kind':item['kind'],'message':item['message'],
-     });
-     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Your personal gesture was sent.')));
-   }catch(_){
-     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Could not send this gesture.')));
-   }finally{if(mounted)setState(()=>busyKind=null);}
- }
  Future<void> _createCustom([Map<String,dynamic>? original]) async {
    final name=TextEditingController(text:original?['title']?.toString()??''),
      body=TextEditingController(text:original?['message']?.toString()??'');
