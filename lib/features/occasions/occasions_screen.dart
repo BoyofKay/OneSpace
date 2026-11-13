@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
+import '../mentions/partner_mention_button.dart';
 import 'occasion_budget_workspace.dart';
 import '../../core/responsive_field_pair.dart';
 
@@ -296,6 +297,8 @@ class _OccasionEditorState extends State<OccasionEditor>{
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:5,
     decoration:const InputDecoration(labelText:'Gift ideas, plans or wishes',
      border:OutlineInputBorder())),
+   PartnerMentionButton(spaceId:widget.spaceId,controller:notes,
+    enabled:visibility=='shared'),
    if(widget.existing==null)SwitchListTile(
     contentPadding:EdgeInsets.zero,value:visibility=='private',
     title:const Text('Only me'),

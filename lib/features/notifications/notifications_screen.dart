@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../calendar/calendar_screen.dart';
+import '../plans/plans_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
@@ -102,6 +103,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    }else if(type=='calendar'){
      screen=CalendarScreen(initialEventId:
        (item['calendar_event_id']??item['object_id'])?.toString());
+   }else if(type=='task'){
+     screen=const PlansScreen();
    }else if(type=='note'){
      screen=NotesScreen(initialNoteId:item['object_id']?.toString());
    }else if(type=='occasion'){

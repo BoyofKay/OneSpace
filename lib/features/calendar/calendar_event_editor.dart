@@ -5,6 +5,7 @@ import '../../l10n/onespace_strings.dart';
 import '../../core/device_time_zone.dart';
 import '../sharing/object_permissions.dart';
 import 'calendar_rules.dart';
+import '../mentions/partner_mention_button.dart';
 
 /// Full page owns its controllers; avoids disposing text inputs during
 /// bottom-sheet exit animations (a prior source of Flutter red screens).
@@ -291,6 +292,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
               alignLabelWithHint: true,
             ),
           ),
+          PartnerMentionButton(spaceId:widget.spaceId,controller:_details,
+           enabled:_canEdit&&_visibility=='shared'),
           const SizedBox(height: 8),
           Text(tr(context, 'visibility')),
           Wrap(spacing: 8, children: ['shared','private'].map((visibility) =>

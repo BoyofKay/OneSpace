@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
+import '../mentions/partner_mention_button.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
 const experienceStates={'suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed'};
@@ -361,6 +362,7 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
     onChanged:(v)=>setState(()=>kind=v??kind)),
    TextField(controller:description,maxLength:5000,maxLines:4,
     decoration:const InputDecoration(labelText:'Why this one? Details or ideas')),
+   PartnerMentionButton(spaceId:widget.spaceId,controller:description),
    TextField(controller:platform,maxLength:100,
     decoration:const InputDecoration(labelText:'Platform (optional)')),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,

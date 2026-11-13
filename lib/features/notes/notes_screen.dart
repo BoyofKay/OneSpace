@@ -7,6 +7,7 @@ import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
 import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
+import '../mentions/partner_mention_button.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -601,6 +602,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 alignLabelWithHint: true,
               ),
             ),
+            PartnerMentionButton(spaceId:widget.spaceId,controller:_body,
+             enabled:_canEdit&&_visibility=='shared'),
             if(_noteMention!=null)Align(
               alignment:AlignmentDirectional.centerStart,
               child:ActionChip(

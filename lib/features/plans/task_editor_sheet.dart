@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/onespace_strings.dart';
 import 'task_date_rules.dart';
+import '../mentions/partner_mention_button.dart';
 
 enum TaskPriority { low, normal, high }
 enum TaskStatus { open, completed, cancelled }
@@ -197,6 +198,8 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                   border: const OutlineInputBorder(),
                 ),
               ),
+              PartnerMentionButton(spaceId:widget.members.keys.isEmpty?'':widget.currentUserId,
+               controller:_title,enabled:_visibility==TaskVisibility.shared),
               const SizedBox(height: 10),
               Text(tr(context, 'visibility'),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
