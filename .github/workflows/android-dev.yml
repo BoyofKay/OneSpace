@@ -27,6 +27,22 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      # Flutter's included Gradle plugin build may resolve Kotlin artifacts
+      # through pluginPortal alone. Maven Central hosts these POMs, so give
+      # every included Gradle build an explicit Maven Central fallback.
+      - name: Configure Gradle Maven Central fallback
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.gradle/init.d"
+          cat > "$HOME/.gradle/init.d/onespace-repositories.init.gradle" <<'GRADLE'
+          gradle.beforeSettings { settings ->
+            settings.pluginManagement.repositories {
+              mavenCentral()
+              google()
+              gradlePluginPortal()
+            }
+          }
+          GRADLE
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
