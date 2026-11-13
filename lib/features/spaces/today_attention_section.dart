@@ -18,11 +18,17 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
     final items = widget.items;
     final now = DateTime.now();
     return ExpansionTile(
+      tilePadding:EdgeInsets.zero,
       initiallyExpanded:false,
       onExpansionChanged:(v)=>setState(()=>expanded=v),
       leading:const Icon(Icons.notifications_active_outlined),
-      title:Text('Needs attention ('+items.length.toString()+')',
-        style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+      title:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Text('Needs attention ('+items.length.toString()+')',
+          style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+        if(!expanded)Text(items.isEmpty?'All clear right now':
+          'Overdue, urgent and items requiring action',
+          style:Theme.of(context).textTheme.bodySmall),
+      ]),
       childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
       children:[
         if(items.isEmpty) const ListTile(
@@ -62,14 +68,21 @@ class TodayCalendarSection extends StatefulWidget {
  @override State<TodayCalendarSection> createState()=>_TodayCalendarSectionState();
 }
 class _TodayCalendarSectionState extends State<TodayCalendarSection> {
+ bool expanded=false;
  @override Widget build(BuildContext context) {
    final entries=widget.entries;
    return ExpansionTile(
      tilePadding:EdgeInsets.zero,
      initiallyExpanded:false,
+     onExpansionChanged:(value)=>setState(()=>expanded=value),
      leading:const Icon(Icons.calendar_month_outlined),
-     title:Text('Coming up together ('+entries.length.toString()+')',
-       style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+     title:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+       Text('Coming up together ('+entries.length.toString()+')',
+         style:const TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+       if(!expanded)Text(entries.isEmpty?'Nothing scheduled for the coming week':
+         'Next 7 days · events, appointments and deadlines',
+         style:Theme.of(context).textTheme.bodySmall),
+     ]),
      childrenPadding:const EdgeInsets.fromLTRB(8,0,8,10),
      children:[
        if(entries.isEmpty)const ListTile(title:Text('Nothing scheduled in the next 7 days.')),
