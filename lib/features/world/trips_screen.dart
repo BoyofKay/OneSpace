@@ -87,11 +87,17 @@ class _TripsScreenState extends State<TripsScreen> {
    if(!openedDeepLink&&widget.initialTripId!=null){
     openedDeepLink=true;
     final match=trips.where((t)=>t['id']==widget.initialTripId).firstOrNull;
-    if(match!=null){
-     WidgetsBinding.instance.addPostFrameCallback((_){
-      if(mounted)open(match);
-     });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_){
+     if(!mounted)return;
+     if(match!=null){
+      open(match);
+     }else{
+      // A valid deep link may point past the first 200 list rows.
+      // The detail query remains protected by the trip's RLS policy.
+      Navigator.of(context).push<void>(MaterialPageRoute(
+       builder:(_)=>TripDetail(tripId:widget.initialTripId!)));
+     }
+    });
    }
   }catch(_){
    if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==user)
