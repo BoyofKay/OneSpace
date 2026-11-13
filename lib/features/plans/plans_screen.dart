@@ -268,6 +268,17 @@ class _PlansScreenState extends State<PlansScreen> {
               label: Text(tr(context, 'addTask')),
             ),
             const SizedBox(height: 16),
+            SegmentedButton<bool>(
+              segments:const [
+                ButtonSegment(value:false,label:Text('All to-dos')),
+                ButtonSegment(value:true,label:Text('Due today')),
+              ],
+              selected:{_todayOnly},
+              onSelectionChanged:(v)=>setState(()=>_todayOnly=v.first),
+            ),
+            if(_todayOnly) Text('Includes overdue open to-dos.',
+              style:Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height:12),
             const Text('Show'),
             Wrap(
               spacing: 8,
