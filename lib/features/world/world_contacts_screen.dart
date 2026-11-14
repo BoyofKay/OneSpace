@@ -7,6 +7,7 @@ import '../../core/current_space_cache.dart';
 import '../coordinate/activity_contact_view.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'saved_contact_editor.dart';
+import 'phone_contact_bridge.dart';
 import 'world_contact_entry.dart';
 
 /// Searchable, collapsible contact cards. A direct contact is never an Activity.
@@ -71,6 +72,37 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      MaterialPageRoute<bool>(builder:(_)=>SavedContactEditor(
        spaceId:id,existing:entry)));
    if(saved==true&&mounted)await load();
+ }
+ Future<void> importFromPhone()async{
+  final id=space;
+  if(id==null)return;
+  try{
+   final contact=await PhoneContactBridge.pickFromPhone();
+   if(contact==null||!mounted)return;
+   final saved=await Navigator.of(context).push<bool>(
+    MaterialPageRoute<bool>(builder:(_)=>SavedContactEditor(
+     spaceId:id,imported:contact)));
+   if(saved==true&&mounted)await load();
+  }on PlatformException catch(e){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content:Text(e.code=='CONTACT_PERMISSION_DENIED'?
+     'To import a contact, allow Contacts permission in Android Settings.':
+     'Could not import the selected contact.')));
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Contact import is unavailable on this device.')));
+  }
+ }
+ Future<void> saveToPhone(WorldContactEntry item)async{
+  try{
+   await PhoneContactBridge.saveToPhone(item.contact);
+  }on PlatformException catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Could not open your phone Contacts app.')));
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Saving to phone is unavailable on this device.')));
+  }
  }
  Future<void> openUri(Uri uri)async{
    try{
@@ -237,6 +269,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
              child:Text('From: '+item.activityTitle)),
            Wrap(spacing:8,children:[
              OutlinedButton.icon(
+               onPressed:deleted?null:()=>saveToPhone(item),
+               icon:const Icon(Icons.contact_phone_outlined),
+               label:const Text('Save to phone')),
+             OutlinedButton.icon(
                onPressed:()=>showHistory(item),
                icon:const Icon(Icons.history),
                label:const Text('History')),
@@ -272,6 +308,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
            onPressed:space==null?null:()=>edit(),
            icon:const Icon(Icons.person_add_alt_1_outlined),
            label:const Text('Remember someone')),
+         const SizedBox(height:8),
+         OutlinedButton.icon(onPressed:space==null?null:importFromPhone,
+          icon:const Icon(Icons.contacts_outlined),
+          label:const Text('Import from phone')),
          const SizedBox(height:12),
          TextField(controller:query,decoration:InputDecoration(
            prefixIcon:const Icon(Icons.search),
