@@ -185,3 +185,8 @@ Full Flutter committed dependency lock check, `flutter analyze` and all `flutter
 ## R33 corrected legacy visibility fallback — final source gate
 
 The initial full-suite CI found one compatibility failure in existing `widget_test.dart` (missing visibility expected shared). Restored original shared fallback while retaining null/malformed row crash isolation. Re-run all Flutter tests, analyzer and locked dependencies. Dual-account RLS read regression 0019 PASS. No database cleanup or APK until green.
+
+
+## R34 — Checklist expansion runtime isolation (source only)
+
+User confirms Release 409 crashes when expanding *any* checklist. New and old checklists share TaskChecklistPanel. Legacy target date not used by expansion; no DB deletion. R34 removes second realtime filter during expansion, applies exact cycle locally, wraps stream initialization and adds injected-stream widget tests that expand both new and legacy rows with target dates. Verify lockfile, full analyzer and all tests; never mark phone-tested until user confirms. No signed APK unless green.
