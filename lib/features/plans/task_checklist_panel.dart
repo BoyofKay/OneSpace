@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'task_recurrence_rules.dart';
+import 'checklist_schedule.dart';
 
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
  const TaskChecklistPanel({super.key,required this.taskId,
-  required this.recurrence,required this.canManage,required this.canComplete});
+  required this.recurrence,required this.rule,required this.canManage,required this.canComplete});
  final String taskId,recurrence;
+ final Map<String,dynamic> rule;
  final bool canManage,canComplete;
  @override State<TaskChecklistPanel> createState()=>_TaskChecklistPanelState();
 }
@@ -15,15 +17,28 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  final db=Supabase.instance.client;
  final input=TextEditingController();
  Stream<List<Map<String,dynamic>>>? itemsStream,checksStream;
- bool busy=false;
+ bool busy=false,contextLoaded=false,dayOff=false;
+ List<int> workDays=const [1,2,3,4,5];
  String? error;
+ String? contextDay;
  Timer? _dayBoundary;
- String get cycle=>TaskRecurrenceRules.cycle(widget.recurrence,DateTime.now());
- @override void initState(){super.initState();listen();_scheduleNextDay();}
+ String? get zone=>widget.rule['timezone']?.toString();
+ DateTime get localNow=>ChecklistSchedule.localNow(DateTime.now(),zone);
+ String get currentDay=>ChecklistSchedule.day(localNow);
+ String get cycle=>widget.rule.isEmpty?
+  TaskRecurrenceRules.cycle(widget.recurrence,localNow):
+  ChecklistSchedule.cycle(widget.recurrence,widget.rule,localNow);
+ bool get scheduled=>ChecklistSchedule.occurs(
+  widget.recurrence,widget.rule,localNow,
+  personalDayOff:dayOff,
+  usHoliday:ChecklistSchedule.usFederalHoliday(localNow),
+  workDays:workDays);
+ @override void initState(){super.initState();listen();_loadContext();_scheduleNextDay();}
  @override void didUpdateWidget(covariant TaskChecklistPanel old){
   super.didUpdateWidget(old);
-  if(old.taskId!=widget.taskId||old.recurrence!=widget.recurrence){
-   listen();_scheduleNextDay();
+  if(old.taskId!=widget.taskId||old.recurrence!=widget.recurrence||
+    old.rule.toString()!=widget.rule.toString()){
+   listen();_loadContext();_scheduleNextDay();
   }
  }
  void listen(){
@@ -32,14 +47,44 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
   checksStream=db.from('task_checklist_checks').stream(primaryKey:['id'])
    .eq('task_id',widget.taskId).eq('cycle_date',cycle).limit(500);
  }
+ Future<void> _loadContext()async{
+  final account=db.auth.currentUser?.id;
+  if(account==null)return;
+  final day=currentDay;
+  if(mounted)setState((){
+   contextLoaded=false;contextDay=day;dayOff=false;workDays=const [1,2,3,4,5];
+  });
+  try{
+   if(ChecklistSchedule.mode(widget.rule,widget.recurrence)=='workdays'){
+    final row=await db.from('profiles').select('work_days')
+     .eq('id',account).maybeSingle();
+    if(row?['work_days'] is List){
+     workDays=(row!['work_days'] as List).whereType<num>().map((x)=>x.toInt()).toList();
+    }
+   }
+   if(widget.rule['skip_personal_days_off']==true){
+    final rows=await db.from('personal_days_off').select('id')
+      .eq('user_id',account).eq('off_date',day).limit(1);
+    dayOff=rows.isNotEmpty;
+   }
+   if(mounted&&contextDay==day)setState(()=>contextLoaded=true);
+  }catch(_){
+   // A failed exception check must not silently permit an off-day routine.
+   if(mounted&&contextDay==day)setState((){
+    error='Cannot check days-off/work schedule right now. Retry when connected.';
+    contextLoaded=false;
+   });
+  }
+ }
  void _scheduleNextDay(){
   _dayBoundary?.cancel();
   if(widget.recurrence=='none')return;
   final now=DateTime.now();
-  final nextDay=DateTime(now.year,now.month,now.day+1);
-  _dayBoundary=Timer(nextDay.difference(now)+const Duration(seconds:1),(){
+  final next=ChecklistSchedule.nextLocalMidnight(now,zone);
+  _dayBoundary=Timer(next.difference(now)+const Duration(seconds:1),(){
    if(!mounted)return;
    setState(listen);
+   _loadContext();
    _scheduleNextDay();
   });
  }
@@ -64,7 +109,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  }
  Future<void> toggle(Map<String,dynamic> item,bool completed,
    Map<String,dynamic>? current)async{
-  if(busy||!widget.canComplete)return;
+  if(busy||!widget.canComplete||!contextLoaded||!scheduled)return;
   setState((){busy=true;error=null;});
   try{
    if(current==null){
@@ -74,7 +119,8 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
     }on PostgrestException catch(e){
      if(e.code!='23505')rethrow;
      final existing=await db.from('task_checklist_checks')
-      .select('id').eq('item_id',item['id']).eq('cycle_date',cycle).limit(1);
+      .select('id').eq('item_id',item['id']).eq('cycle_date',cycle)
+      .eq('user_id',db.auth.currentUser!.id).limit(1);
      if(existing.isNotEmpty)await db.from('task_checklist_checks')
       .update({'completed':completed}).eq('id',existing.first['id']);
     }
@@ -122,8 +168,12 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
         Expanded(child:Text(done.toString()+' of '+items.length.toString()+' items')),
         if(widget.recurrence!='none')Chip(
          avatar:const Icon(Icons.repeat,size:15),
-         label:Text(widget.recurrence)),
+         label:Text(ChecklistSchedule.mode(widget.rule,widget.recurrence).replaceAll('_',' '))),
        ]),
+       if(!contextLoaded)const LinearProgressIndicator(),
+       if(contextLoaded&&!scheduled)Text('Not scheduled today ('+currentDay+'). Subtasks remain available to edit.'),
+       if(contextLoaded&&scheduled&&widget.recurrence!='none')
+        Text('Current occurrence: '+currentDay),
        if(items.isNotEmpty)Text('Your progress · Shared checklists keep each partner\'s ticks separate',
         style:Theme.of(context).textTheme.bodySmall),
        if(items.isNotEmpty)LinearProgressIndicator(
@@ -133,7 +183,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
        for(final item in items)CheckboxListTile(
         dense:true,contentPadding:EdgeInsets.zero,
         value:checkMap[item['id'].toString()]?['completed']==true,
-        onChanged:!widget.canComplete||busy?null:
+        onChanged:!widget.canComplete||busy||!contextLoaded||!scheduled?null:
          (v)=>toggle(item,v==true,checkMap[item['id'].toString()]),
         title:Text(item['title'].toString(),
          style:TextStyle(decoration:
