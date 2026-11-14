@@ -15,7 +15,8 @@ import '../connection/connection_rules.dart';
 /// Real goals persisted in Supabase. Owner-only private goals can be granted
 /// read access, while shared goals are collaboratively editable.
 class GoalsScreen extends StatefulWidget {
-  const GoalsScreen({super.key});
+  const GoalsScreen({super.key,this.initialGoalId});
+  final String? initialGoalId;
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
 }
@@ -30,6 +31,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   bool _archived = false;
   String _filter = 'active';
   String _query = '';
+  bool _openedDeepLink=false;
 
   @override
   void initState() { super.initState(); _load(); }
@@ -65,7 +67,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
             .order('updated_at',ascending:false);
         _loading = false;
       });
-      if (space != null) _watchGrants(space);
+      if (space != null) {
+        _watchGrants(space);
+        if(widget.initialGoalId!=null&&!_openedDeepLink){
+         _openedDeepLink=true;
+         final rows=await _client.from('goals').select()
+          .eq('space_id',space).eq('id',widget.initialGoalId!).limit(1);
+         if(mounted&&rows.isNotEmpty){
+          WidgetsBinding.instance.addPostFrameCallback((_){
+           if(mounted)_edit(rows.first);
+          });
+         }
+        }
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
