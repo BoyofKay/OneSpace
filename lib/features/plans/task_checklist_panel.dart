@@ -30,7 +30,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
   itemsStream=db.from('task_checklist_items').stream(primaryKey:['id'])
    .eq('task_id',widget.taskId).order('created_at').limit(200);
   checksStream=db.from('task_checklist_checks').stream(primaryKey:['id'])
-   .eq('cycle_date',cycle).limit(500);
+   .eq('task_id',widget.taskId).eq('cycle_date',cycle).limit(500);
  }
  void _scheduleNextDay(){
   _dayBoundary?.cancel();
@@ -110,7 +110,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
      builder:(ctx,checkData){
       final checkMap=<String,Map<String,dynamic>>{
        for(final c in checkData.data??const <Map<String,dynamic>>[])
-        if(items.any((i)=>i['id']==c['item_id']))
+        if(c['user_id']==db.auth.currentUser?.id && items.any((i)=>i['id']==c['item_id']))
          c['item_id'].toString():c,
       };
       final done=items.where((i)=>
@@ -124,6 +124,8 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
          avatar:const Icon(Icons.repeat,size:15),
          label:Text(widget.recurrence)),
        ]),
+       if(items.isNotEmpty)Text('Your progress · Shared checklists keep each partner\'s ticks separate',
+        style:Theme.of(context).textTheme.bodySmall),
        if(items.isNotEmpty)LinearProgressIndicator(
         value:done/items.length,minHeight:5),
        if(checkData.hasError)Text('Checkmarks could not synchronize.',
