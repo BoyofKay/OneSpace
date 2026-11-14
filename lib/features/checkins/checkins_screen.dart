@@ -9,6 +9,7 @@ import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
 import '../connection/connection_rules.dart';
 import 'checkin_request_rules.dart';
+import 'checkin_acknowledgement_rules.dart';
 
 /// Each person may make one personal check-in per local calendar date. The
 /// partner can view shared entries, but only the author can edit their entry.
@@ -26,7 +27,10 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   Stream<List<Map<String,dynamic>>>? _requests;
   String? _error;
   bool _loading=true;
-  StreamSubscription<List<Map<String,dynamic>>>? _grants;
+  StreamSubscription<List<Map<String,dynamic>>>? _grants,_ackSubscription;
+  List<Map<String,dynamic>> _ackRows=[];
+  String? _ackWatchedSpace;
+  bool _ackBusy=false;
   String _filter='all',_requestFilter='all';
   bool _openedInitialRequest=false;
   Timer? _requestClock;
@@ -46,7 +50,26 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   void dispose() {
     _requestClock?.cancel();
     _grants?.cancel();
+    _ackSubscription?.cancel();
     super.dispose();
+  }
+
+  void _watchAcks(String spaceId){
+    if(_ackWatchedSpace==spaceId)return;
+    _ackSubscription?.cancel();
+    _ackWatchedSpace=spaceId;
+    // One RLS-scoped realtime stream for the whole history, not one
+    // subscription per expanded card. No extra notification transport.
+    _ackSubscription=_client.from('partner_checkin_acknowledgements')
+      .stream(primaryKey:['request_id'])
+      .order('updated_at',ascending:false).limit(500)
+      .listen((rows){
+        if(mounted&&_space==spaceId){
+          setState(()=>_ackRows=List<Map<String,dynamic>>.from(rows));
+        }
+      },onError:(Object error,StackTrace stack){
+        // Reply history remains readable even if this optional stream fails.
+      });
   }
 
   void _watchGrants(String id) {
@@ -103,9 +126,14 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           .stream(primaryKey:['id']).eq('space_id',id)
           .order('requested_at',ascending:false);
       });
-      if (id != null){
+      if(id!=null){
         _watchGrants(id);
+        _watchAcks(id);
         unawaited(_openInitialRequest());
+      }else{
+        _ackSubscription?.cancel();
+        _ackSubscription=null;_ackWatchedSpace=null;
+        if(mounted)setState(()=>_ackRows=[]);
       }
     }catch(_){
       if(mounted)setState((){_error=tr(context,'loadFailed');_loading=false;});
@@ -179,6 +207,40 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
     }catch(_){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content:Text('Could not send check-in. Please retry.')));
+    }
+  }
+
+  Future<void> _acknowledge(
+    Map<String,dynamic> request,String kind,
+  ) async{
+    final me=_client.auth.currentUser?.id;
+    if(_ackBusy||
+      !CheckinAcknowledgementRules.canAcknowledge(request,me)||
+      !CheckinAcknowledgementRules.labels.containsKey(kind))return;
+    final requestId=request['id'].toString();
+    final existing=CheckinAcknowledgementRules.forRequest(
+      _ackRows,request['id']);
+    if(existing?['kind']==kind)return;
+    setState(()=>_ackBusy=true);
+    try{
+      if(existing!=null){
+        await _client.from('partner_checkin_acknowledgements')
+          .update({'kind':kind}).eq('request_id',requestId);
+      }else{
+        try{
+          await _client.from('partner_checkin_acknowledgements')
+            .insert({'request_id':requestId,'kind':kind});
+        }on PostgrestException catch(e){
+          if(e.code!='23505')rethrow;
+          await _client.from('partner_checkin_acknowledgements')
+            .update({'kind':kind}).eq('request_id',requestId);
+        }
+      }
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Could not save your acknowledgment. Try again.')));
+    }finally{
+      if(mounted)setState(()=>_ackBusy=false);
     }
   }
 
@@ -271,6 +333,32 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
                 if((item['response_topic']?.toString()??'').isNotEmpty)
                   _detail('Something to talk about',
                     item['response_topic'].toString()),
+                if(item['responded_at']!=null&&
+                  CheckinAcknowledgementRules.canAcknowledge(item,me))...[
+                  const SizedBox(height:8),
+                  Text('Acknowledge their response (optional)',
+                   style:Theme.of(context).textTheme.labelMedium),
+                  const SizedBox(height:6),
+                  Wrap(spacing:7,runSpacing:5,children:[
+                   for(final entry in CheckinAcknowledgementRules.labels.entries)
+                    ChoiceChip(label:Text(entry.value),
+                     selected:CheckinAcknowledgementRules.forRequest(
+                       _ackRows,item['id'])?['kind']==entry.key,
+                     onSelected:_ackBusy?null:(_)=>_acknowledge(item,entry.key)),
+                  ]),
+                ],
+                if(item['responded_at']!=null&&item['recipient_id']==me&&
+                  CheckinAcknowledgementRules.forRequest(
+                   _ackRows,item['id'])!=null)
+                 Padding(padding:const EdgeInsets.only(top:8),
+                  child:Row(children:[
+                   const Icon(Icons.favorite_outline,size:19),
+                   const SizedBox(width:8),
+                   Expanded(child:Text('Your partner: '+
+                    (CheckinAcknowledgementRules.label(
+                      CheckinAcknowledgementRules.forRequest(
+                       _ackRows,item['id'])?['kind'])??'Acknowledged'))),
+                  ])),
                 if(CheckinRequestRules.canRespond(item,me,now))
                   Align(alignment:AlignmentDirectional.centerEnd,
                     child:FilledButton.icon(
