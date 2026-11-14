@@ -7,16 +7,33 @@ Widget expandedChecklist({
  required Stream<List<Map<String,dynamic>>> items,
  required Stream<List<Map<String,dynamic>>> checks,
  String title='My checklist',
-}) => MaterialApp(home:Scaffold(body:ListView(children:[
- ExpansionTile(key:const PageStorageKey<String>('todo-test'),
-  initiallyExpanded:true,title:Text(title),
-  children:[TaskChecklistPanel(
-   taskId:'parent',recurrence:'none',rule:const {},
-   canManage:true,canComplete:false,
-   testViewerId:'first-user',
-   testItemsStream:items,testChecksStream:checks,
-  )]),
-])));
+}) => MaterialApp(home:Scaffold(
+ body:_ChecklistExpansionHarness(items:items,checks:checks,title:title),
+));
+
+class _ChecklistExpansionHarness extends StatefulWidget{
+ const _ChecklistExpansionHarness({
+  required this.items,required this.checks,required this.title,
+ });
+ final Stream<List<Map<String,dynamic>>> items,checks;
+ final String title;
+ @override State<_ChecklistExpansionHarness> createState()=>
+  _ChecklistExpansionHarnessState();
+}
+class _ChecklistExpansionHarnessState extends State<_ChecklistExpansionHarness>{
+ bool expanded=false;
+ @override Widget build(BuildContext context)=>ListView(children:[
+  ExpansionTile(key:const PageStorageKey<String>('todo-test'),
+   title:Text(widget.title),
+   onExpansionChanged:(value)=>setState(()=>expanded=value),
+   children:[if(expanded)TaskChecklistPanel(
+    taskId:'parent',recurrence:'none',rule:const {},
+    canManage:true,canComplete:false,
+    testViewerId:'first-user',
+    testItemsStream:widget.items,testChecksStream:widget.checks,
+   )]),
+ ]);
+}
 
 Map<String,dynamic> item(String id,String title,{String? oldTarget}) =>
  <String,dynamic>{
@@ -31,6 +48,7 @@ void main(){
    items:Stream.value([item('a','Shop for groceries'),item('b','Plan dinner')]),
    checks:Stream.value(const <Map<String,dynamic>>[]),
   ));
+  await tester.tap(find.byType(ExpansionTile));
   await tester.pumpAndSettle();
   expect(find.text('Shop for groceries'),findsOneWidget);
   expect(find.text('Plan dinner'),findsOneWidget);
@@ -48,6 +66,7 @@ void main(){
    checks:Stream.value(const <Map<String,dynamic>>[]),
    title:'Old checklist',
   ));
+  await tester.tap(find.byType(ExpansionTile));
   await tester.pumpAndSettle();
   expect(find.text('Old migrated item'),findsOneWidget);
   expect(find.text('Old item without a date'),findsOneWidget);
@@ -67,6 +86,7 @@ void main(){
      'user_id':'first-user','cycle_date':'2026-11-14'},
    ]),
   ));
+  await tester.tap(find.byType(ExpansionTile));
   await tester.pumpAndSettle();
   expect(find.text('1 of 2 items'),findsOneWidget);
   expect(tester.takeException(),isNull);
@@ -79,6 +99,7 @@ void main(){
     items:Stream.value([item('a','Recoverable item')]),
     checks:controller.stream,
   ));
+  await tester.tap(find.byType(ExpansionTile));
   controller.addError(StateError('test transport disconnected'));
   await tester.pumpAndSettle();
   expect(find.text('Checkmarks could not synchronize.'),findsOneWidget);
