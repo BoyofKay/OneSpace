@@ -117,3 +117,7 @@ Restored missing Occasion estimated-arrival picker; previous analyzer found only
 - Four designed scrapbook templates, multi-page editor, partner invite/accept RLS, photo slot validation, camera/gallery, image tags manager, PNG Android MediaStore export.
 - Two new migrations (0091/0092) applied; rollback-only regression SQL 0014 passed private visibility, uninvited rejection, accepted contribution and foreign-photo blocking.
 - Run analyzer, full Flutter tests and Android test suite; do not publish signed preview before green.
+
+
+## R26 final analyzer retest
+Removed one unused photo-local warning and upgraded template gallery to actual responsive page previews. Verify source at this commit after all edits.
