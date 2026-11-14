@@ -11,6 +11,7 @@ import 'trip_item_editor.dart';
 import 'trip_rules.dart';
 import 'trip_documents_section.dart';
 import 'trip_flight_options_section.dart';
+import 'trip_preparation_section.dart';
 
 const tripStages=<String,String>{
  'planning':'Planning','booked':'Booked','traveling':'Traveling',
@@ -586,6 +587,8 @@ class _TripDetailState extends State<TripDetail>{
       Text('Estimated costs',style:Theme.of(context).textTheme.titleMedium),
       Text(TripRules.formatTotals(amounts)),
      ],
+     const Divider(height:30),
+     TripPreparationSection(tripId:widget.tripId),
      const Divider(height:30),
      TripDocumentsSection(tripId:widget.tripId,itineraryItems:items),
      const Divider(height:30),
