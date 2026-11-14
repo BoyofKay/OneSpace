@@ -11,6 +11,7 @@ import '../checkins/checkins_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
+import '../memories/scrapbook_studio_screen.dart';
 
 /// One stable realtime subscription per signed-in account, not per frame.
 class NotificationBell extends StatefulWidget {
@@ -104,6 +105,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    }else if(type=='calendar'){
      screen=CalendarScreen(initialEventId:
        (item['calendar_event_id']??item['object_id'])?.toString());
+   }else if(type=='scrapbook'){
+     screen=ScrapbookStudioScreen(
+      spaceId:item['space_id'].toString(),
+      memoryId:item['object_id'].toString());
    }else if(type=='reminder'){
      screen=RemindersScreen(initialReminderId:item['object_id']?.toString());
    }else if(type=='task'){
@@ -180,6 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                        GestureNotificationIcon(
                          gestureId:item['object_id'].toString()):
                        Icon(kind=='reminder'&&item['object_kind']=='reminder'?Icons.alarm_outlined:
+                       kind=='scrapbook_invite'?Icons.collections_bookmark_outlined:
                        kind=='mention'?Icons.alternate_email:
                        kind=='reply'?Icons.reply:
                        kind.startsWith('trip_')?Icons.flight_takeoff_outlined:
@@ -194,6 +200,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                          FontWeight.bold:FontWeight.normal)),
                      subtitle:Text(kind=='reminder'&&item['object_kind']=='reminder'?
                          'Open to complete, follow up, or snooze':
+                       kind=='scrapbook_invite'?'Open to accept and create scrapbook pages together':
                        kind=='mention'?'Your partner mentioned you':
                        kind=='reply'?'Your partner replied':
                        kind=='letter'?'New letter':
