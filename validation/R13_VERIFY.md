@@ -275,3 +275,8 @@ After R41 reminder mentions, add secure parallel `.ilike` search in Activity bod
 ## R42 final network cost and category guard verification
 
 Global search now skips all nonmatching source categories when a top-bar category is selected, and reruns on filter change. This avoids most remote queries while retaining category-specific title+body matches and RLS. New `global_search_section_guard_test.dart` verifies guard behavior and escaped LIKE wildcard safety. Run final full analyzer and unit/widget tests on this current source before next release; R40 signed 415 remains unchanged.
+
+
+## R43 — Six collection screens: top history, filtering and search
+
+Full Flutter analyzer and entire unit/widget test suite required on latest code after adding History/Filters in Trips, Occasions, People & Contacts, Shared Experiences, embedded Coordinate and Check-ins. Verify archived-only vs normal list behavior, contextual search and the existing R34 checklist crash regression, R37 speech, R40 audit/contrast and R42 mentions. Source-only QA: do not modify or supersede already queued signed R42 Release 416. See docs/R43_COLLECTION_HISTORY_FILTERS_SEARCH_QA.md.
