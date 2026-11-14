@@ -195,3 +195,8 @@ User confirms Release 409 crashes when expanding *any* checklist. New and old ch
 ## R34 exact tap-to-expand regression
 
 After initial source gate, add widget tests that start with collapsed ExpansionTile, tap to expand actual TaskChecklistPanel, and assert no Flutter runtime exception with legacy target dates, new lists, per-user cycle checks and transport failures. Run full analyzer + all Flutter tests on final source commit. No data destruction, no APK before green.
+
+
+## R34 final — in-app copyable stack diagnostics
+
+R34 verifies exact interactive expand/collapse tests of old/new list contents and new `OneSpaceErrorFallback` stack trace text, with full flutter analyze/tests on final source. R34 first validation (run 40) passed. No deletion of legacy target dates or checklist data. Once final verification passes, run one signed Android preview build.
