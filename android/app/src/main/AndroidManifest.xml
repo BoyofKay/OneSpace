@@ -2,6 +2,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Requested only when the user explicitly chooses Import from phone. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <application
         android:label="OneSpace"
         android:name="${applicationName}"
@@ -34,6 +36,16 @@
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+            <!-- Shared vCards are previewed as private OneSpace contact drafts. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/x-vcard" />
+                <data android:mimeType="text/vcard" />
+                <data android:mimeType="text/directory" />
+                <data android:mimeType="application/vcard" />
+                <data android:mimeType="application/x-vcard" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
