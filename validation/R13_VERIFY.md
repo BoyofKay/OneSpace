@@ -155,3 +155,8 @@ Source-only verification on current main. Flutter lockfile, full analyzer and te
 ## R30 — partner interest votes and mutual picks (source-only verification)
 
 Validate latest main source with committed Flutter lockfile, full `flutter analyze --no-fatal-infos` and `flutter test`. Scope includes the R30 live match filter/labels, partner preference view and update, deterministic suggestion priority and new unit tests. Supabase schema 0095 and rollback test 0016 already passed. No APK or release is authorized by this validation gate. Preserve both accounts, data, preview signature and Firebase delivery.
+
+
+## R31 — Daily Connection request lifecycle (verify only)
+
+Verify additive migration 0096 and rollback regression 0017 (server-side test already passed), plus Flutter dependency lock, full analyzer and all unit tests for the new pending/answered/expired filters, legacy records and expiry-safe reply UI. No APK in this verification-only gate. Keep both paired accounts, Firebase push and preexisting history unchanged.
