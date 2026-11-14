@@ -568,7 +568,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  final db=Supabase.instance.client;
  final comment=TextEditingController(),review=TextEditingController();
  Map<String,dynamic>? item;
- List<Map<String,dynamic>> comments=[],reviews=[],audit=[];
+ List<Map<String,dynamic>> comments=[],reviews=[],audit=[],interests=[];
  int? rating;
  bool loading=true,busy=false,showAudit=false;
  bool _reviewDraftDirty=false;
@@ -600,6 +600,9 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
     table:'shared_experience_reviews',filter:filter,
     callback:(_)=>_refreshSoon())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_experience_interests',filter:filter,
+    callback:(_)=>_refreshSoon())
    .subscribe();
  }
  void _refreshSoon(){
@@ -614,7 +617,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   final account=db.auth.currentUser?.id;
   if(account==null){
    if(mounted)setState((){
-    item=null;comments=[];reviews=[];audit=[];
+    item=null;comments=[];reviews=[];audit=[];interests=[];
     loading=false;error='Sign in to view this experience.';
    });
    return;
@@ -628,6 +631,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     db.from('shared_experience_reviews').select().eq('experience_id',widget.id),
     db.from('shared_experience_revisions').select().eq('experience_id',widget.id)
      .order('changed_at',ascending:false).limit(60),
+    db.from('shared_experience_interests')
+     .select('experience_id,user_id,choice').eq('experience_id',widget.id),
    ]);
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
    final myReview=v[1].where((a)=>a['user_id']==account).firstOrNull;
@@ -635,6 +640,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     item=r;comments=List<Map<String,dynamic>>.from(v[0]);
     reviews=List<Map<String,dynamic>>.from(v[1]);
     audit=List<Map<String,dynamic>>.from(v[2]);
+    interests=List<Map<String,dynamic>>.from(v[3]);
     if(!_reviewDraftDirty){
      rating=(myReview?['rating'] as num?)?.toInt();
      review.text=(myReview?['review']??'').toString();
@@ -662,6 +668,29 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    if(mounted)setState(()=>error='Could not save change.');
   }finally{if(mounted)setState(()=>busy=false);}
   return false;
+ }
+ Future<void> setInterest(String choice)async{
+  if(busy||db.auth.currentUser==null)return;
+  final me=db.auth.currentUser!.id;
+  if(ExperienceInterestRules.choiceForUser(interests,widget.id,me)==choice)return;
+  await mutate(()async{
+   final present=interests.any((row)=>row['user_id']==me);
+   if(present){
+    await db.from('shared_experience_interests')
+     .update({'choice':choice}).eq('experience_id',widget.id)
+     .eq('user_id',me);
+   }else{
+    try{
+     await db.from('shared_experience_interests').insert({
+      'experience_id':widget.id,'choice':choice});
+    }on PostgrestException catch(e){
+     if(e.code!='23505')rethrow;
+     await db.from('shared_experience_interests')
+      .update({'choice':choice}).eq('experience_id',widget.id)
+      .eq('user_id',me);
+    }
+   }
+  });
  }
  Future<void> saveReview()async{
   if(rating==null&&review.text.trim().isEmpty)return;
@@ -716,6 +745,10 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  }
  @override Widget build(BuildContext context){
   final r=item;
+  final myId=db.auth.currentUser?.id;
+  final myPick=ExperienceInterestRules.choiceForUser(interests,widget.id,myId);
+  final partnerPick=interests.where((x)=>x['user_id']!=myId)
+   .map((x)=>x['choice']?.toString()??'undecided').firstOrNull??'undecided';
   return Scaffold(appBar:AppBar(title:const Text('Our experience'),actions:[
    if(r!=null)IconButton(tooltip:'Edit',onPressed:edit,icon:const Icon(Icons.edit_outlined)),
    if(r!=null)IconButton(tooltip:'Archive or restore',onPressed:archive,
@@ -733,6 +766,25 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     if((r['platform']??'').toString().isNotEmpty)Text('Platform: '+r['platform'].toString()),
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
      onPressed:openLink,icon:const Icon(Icons.open_in_new),label:const Text('Open link')),
+    const Divider(height:28),
+    Text('Our picks',style:Theme.of(context).textTheme.titleLarge),
+    const SizedBox(height:6),
+    const Text('Each of you chooses independently. A mutual pick means you both selected Interested.'),
+    const SizedBox(height:8),
+    Wrap(spacing:8,runSpacing:6,children:[
+     for(final entry in ExperienceInterestRules.choices.entries)
+      ChoiceChip(label:Text(entry.value),selected:myPick==entry.key,
+       onSelected:busy?null:(_)=>setInterest(entry.key)),
+    ]),
+    const SizedBox(height:6),
+    Text('You: '+(ExperienceInterestRules.choices[myPick]??'Clear pick')+
+     ' · Partner: '+(ExperienceInterestRules.choices[partnerPick]??'No pick yet')),
+    if(ExperienceInterestRules.mutuallyInterested(interests,widget.id))
+     Padding(padding:const EdgeInsets.only(top:8),child:Row(children:[
+      Icon(Icons.favorite,color:Theme.of(context).colorScheme.primary,size:20),
+      const SizedBox(width:7),
+      const Expanded(child:Text('A mutual pick! You both want to enjoy this together.')),
+     ])),
     const Divider(height:28),
     Text('Our ratings and reviews',style:Theme.of(context).textTheme.titleLarge),
     for(final x in reviews)Card(elevation:0,child:ListTile(
