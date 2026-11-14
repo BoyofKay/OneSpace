@@ -7,15 +7,22 @@ import 'checklist_schedule.dart';
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
  const TaskChecklistPanel({super.key,required this.taskId,
-  required this.recurrence,required this.rule,required this.canManage,required this.canComplete});
+  required this.recurrence,required this.rule,required this.canManage,
+  required this.canComplete,this.testItemsStream,this.testChecksStream,
+  this.testViewerId});
  final String taskId,recurrence;
  final Map<String,dynamic> rule;
  final bool canManage,canComplete;
+ /// In-memory feeds for widget regression tests. Production always uses
+ /// the existing RLS-protected Supabase streams.
+ final Stream<List<Map<String,dynamic>>>? testItemsStream,testChecksStream;
+ final String? testViewerId;
  @override State<TaskChecklistPanel> createState()=>_TaskChecklistPanelState();
 }
 class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
- final db=Supabase.instance.client;
+ SupabaseClient get db=>Supabase.instance.client;
  final input=TextEditingController();
+ String? get viewerId=>widget.testViewerId??db.auth.currentUser?.id;
  Stream<List<Map<String,dynamic>>>? itemsStream,checksStream;
  bool busy=false,contextLoaded=false,dayOff=false;
  List<int> workDays=const [1,2,3,4,5];
@@ -37,17 +44,40 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  @override void didUpdateWidget(covariant TaskChecklistPanel old){
   super.didUpdateWidget(old);
   if(old.taskId!=widget.taskId||old.recurrence!=widget.recurrence||
-    old.rule.toString()!=widget.rule.toString()){
+    old.rule.toString()!=widget.rule.toString()||
+    old.testItemsStream!=widget.testItemsStream||
+    old.testChecksStream!=widget.testChecksStream){
    listen();_loadContext();_scheduleNextDay();
   }
  }
  void listen(){
-  itemsStream=db.from('task_checklist_items').stream(primaryKey:['id'])
-   .eq('task_id',widget.taskId).order('created_at').limit(200);
-  checksStream=db.from('task_checklist_checks').stream(primaryKey:['id'])
-   .eq('task_id',widget.taskId).eq('cycle_date',cycle).limit(500);
+  if(widget.testItemsStream!=null&&widget.testChecksStream!=null){
+   itemsStream=widget.testItemsStream;
+   checksStream=widget.testChecksStream;
+   return;
+  }
+  try{
+   itemsStream=db.from('task_checklist_items').stream(primaryKey:['id'])
+    .eq('task_id',widget.taskId).order('created_at').limit(200);
+   // Keep the server subscription scoped to the parent checklist.
+   // Apply the exact occurrence filter below when rendering. This also
+   // avoids relying on multi-filter realtime behavior at widget creation.
+   checksStream=db.from('task_checklist_checks').stream(primaryKey:['id'])
+    .eq('task_id',widget.taskId).limit(500);
+   error=null;
+  }catch(_){
+   // A stream construction problem must render an explanation, not crash
+   // the entire To-do screen during ExpansionTile.initState.
+   itemsStream=Stream.value(const <Map<String,dynamic>>[]);
+   checksStream=Stream.value(const <Map<String,dynamic>>[]);
+   error='Could not connect checklist details. Close and reopen to retry.';
+  }
  }
  Future<void> _loadContext()async{
+  if(widget.testItemsStream!=null&&widget.testChecksStream!=null){
+   if(mounted)setState(()=>contextLoaded=true);
+   return;
+  }
   final account=db.auth.currentUser?.id;
   if(account==null)return;
   final day=currentDay;
@@ -161,7 +191,8 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
      builder:(ctx,checkData){
       final checkMap=<String,Map<String,dynamic>>{
        for(final c in checkData.data??const <Map<String,dynamic>>[])
-        if(c['user_id']==db.auth.currentUser?.id &&
+        if(c['user_id']==viewerId &&
+         c['cycle_date']?.toString()==cycle &&
          c['item_id'] is String &&
          c['completed'] is bool &&
          items.any((i)=>i['id']==c['item_id']))
