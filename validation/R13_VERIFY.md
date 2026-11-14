@@ -111,3 +111,9 @@ Restored missing Occasion estimated-arrival picker; previous analyzer found only
 - Supabase 0087 device ownership RLS, private per-device outbox, service-role protected claim/ack.
 - Deployed Edge worker uses OAuth2 FCM HTTP v1 only after secure service credentials configured.
 - Rollback SQL 0012 PASSED. Validate all Dart tests and Flutter static analysis.
+
+
+## R26 Scrapbook Studio source verification
+- Four designed scrapbook templates, multi-page editor, partner invite/accept RLS, photo slot validation, camera/gallery, image tags manager, PNG Android MediaStore export.
+- Two new migrations (0091/0092) applied; rollback-only regression SQL 0014 passed private visibility, uninvited rejection, accepted contribution and foreign-photo blocking.
+- Run analyzer, full Flutter tests and Android test suite; do not publish signed preview before green.
