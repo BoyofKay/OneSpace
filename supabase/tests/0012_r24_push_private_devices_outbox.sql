@@ -43,6 +43,7 @@ begin;
   select delivery_id::text from public.claim_push_outbox(50)
   where notification_id=current_setting('qa.notification')::uuid limit 1),true);
  select public.complete_push_delivery(current_setting('qa.delivery')::uuid,'sent','');
+ reset role;
  do $qa$
  begin
  if not exists(select 1 from private.push_outbox
