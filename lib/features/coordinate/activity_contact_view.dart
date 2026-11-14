@@ -28,6 +28,26 @@ class ActivityContactView extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('Contact: ${contact.person}', style: style),
           ),
+        if (contact.company.isNotEmpty || contact.role.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(children:[
+              const Icon(Icons.business_outlined,size:17),
+              const SizedBox(width:5),
+              Expanded(child:Text([
+                if(contact.company.isNotEmpty)contact.company,
+                if(contact.role.isNotEmpty)contact.role,
+              ].join(' · '),style:style)),
+            ]),
+          ),
+        if (Uri.tryParse(contact.website) case final Uri website
+            when website.hasAuthority &&
+              (website.scheme=='https'||website.scheme=='http'))
+          TextButton.icon(
+            onPressed:()=>onEmail(website),
+            icon:const Icon(Icons.language,size:17),
+            label:Text(contact.website),
+          ),
         if (contact.workingHours.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 3),
