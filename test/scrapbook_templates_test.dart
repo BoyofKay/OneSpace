@@ -17,7 +17,7 @@ void main(){
  test('Scrapbook title validates empty and oversized values',(){
   expect(ScrapbookTemplates.validateTitle('  '),isNotNull);
   expect(ScrapbookTemplates.validateTitle('Our first chapter'),isNull);
-  expect(ScrapbookTemplates.validateTitle('x'*121),isNotNull);
+  expect(ScrapbookTemplates.validateTitle(List.filled(121,'x').join()),isNotNull);
  });
  test('Scrapbook dates use the same local calendar representation',(){
   expect(ScrapbookTemplates.compactDate(DateTime(2026,11,14)),'2026-11-14');
