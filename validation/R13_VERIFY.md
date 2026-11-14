@@ -90,3 +90,8 @@ Run Flutter analyze + tests after Android native contact integration, vCard inta
 - Occasion shopping options, delivery warnings, preference ratings, order statuses and proposed combination save.
 - Checklists selected weekdays, every N days/weeks, US federal holiday and personal day-off exceptions, optional IANA timezone.
 - Run Flutter analyze and full test suite before Android release.
+
+
+## R23 complete source compile gate
+- Dependency lockfile for flutter_quill 11.6.0 committed.
+- Check Note editor, Occasion combinations, recurrence schedule controls, timezone handling and tests; fail closed before APK.
