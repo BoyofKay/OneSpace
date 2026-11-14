@@ -215,3 +215,8 @@ Run full committed Flutter dependencies, analyzer and entire test suite (includi
 ## R36 — Thoughtful private love self-reminders (source-only verification)
 
 R36 adds a manual personal-only schedule choice in A Little Love and a reminder deep link back to the gestures tab. Migration 0100 deployed, rollback-only RLS test 0021 passed. Run locked dependencies, full analyzer and Flutter tests including `love_prompt_rules_test.dart`. No change to automated gestures config, FCM, privacy, pairing, or published Release 411 (already pinned). Do not build R36 APK unless green.
+
+
+## R36 final UX verification — explicit local hour labels
+
+Updated gesture self-reminder time suggestion chips to label 9 AM, 6 PM and 9 PM explicitly rather than imply actual work schedule. Run the entire Flutter analyzer/test suite on final current source and preserve source-only gate; signed R35 Release 411 remains pinned to prior version.
