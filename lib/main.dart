@@ -12,6 +12,9 @@ import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
 import 'features/share_in/share_intake_screen.dart';
 import 'features/share_in/share_intake_rules.dart';
+import 'features/world/phone_contact_bridge.dart';
+import 'features/world/saved_contact_editor.dart';
+import 'core/current_space_cache.dart';
 import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/coordinate/coordinate_screen.dart';
@@ -258,6 +261,14 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     if(_handlingIncomingShare||!mounted)return;
     _handlingIncomingShare=true;
     try{
+      // Incoming vCards always open a preview with a private default.
+      final sharedContact=await PhoneContactBridge.takeSharedVcard();
+      if(sharedContact!=null){
+        final space=await CurrentSpaceCache.instance.get();
+        if(!mounted)return;
+        if(space!=null)open(SavedContactEditor(spaceId:space,imported:sharedContact));
+        return;
+      }
       final message=await _incomingShares.invokeMapMethod<String,dynamic>(
        'takePendingShare');
       if(!mounted||message==null)return;
