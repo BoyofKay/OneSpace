@@ -13,7 +13,7 @@ import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
 import 'password_recovery_screen.dart';
 import 'remembered_accounts.dart';
-import 'saved_session_login.dart';
+import 'device_unlock.dart';
 import '../../core/first_name.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'session_lock_rules.dart';
@@ -208,10 +208,9 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // replacing it would dispose the widget awaiting the OS auth result.
     final Widget content;
     if (_locked) {
-      content = SavedSessionLogin(
-        email: auth.currentUser?.email ?? '',
-        onUnlocked: _unlockCurrentAccount,
-        onSwitchAccount: _switchAccount,
+      content = SignInScreen(
+        activeSessionEmail:auth.currentUser?.email ?? '',
+        onSessionUnlocked:_unlockCurrentAccount,
       );
     } else {
       content = Listener(
@@ -239,7 +238,12 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 }
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  const SignInScreen({super.key,this.activeSessionEmail,this.onSessionUnlocked});
+
+  /// The same sign-in page also unlocks an existing saved session.
+  /// A signed-out device cannot use biometrics as substitute server credentials.
+  final String? activeSessionEmail;
+  final VoidCallback? onSessionUnlocked;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -264,12 +268,16 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   void initState() {
     super.initState();
+    if(widget.activeSessionEmail!=null){
+      emailController.text=widget.activeSessionEmail!;
+    }
     _prefillLastEmail();
   }
 
   Future<void> _prefillLastEmail() async {
     try{
-      final email=await RememberedAccounts.lastUsedEmail();
+      final email=widget.activeSessionEmail?.trim().toLowerCase()??
+        await RememberedAccounts.lastUsedEmail();
       if(mounted&&email!=null&&emailController.text.isEmpty){
         emailController.text=email;
         final prefs=SharedPreferencesAsync();
@@ -324,6 +332,8 @@ class _SignInScreenState extends State<SignInScreen> {
         TextInput.finishAutofillContext(shouldSave: true);
         // Last successful account is always shown first on the next sign-in.
         await RememberedAccounts.remember(email);
+        if(mounted&&widget.onSessionUnlocked!=null&&
+          auth.currentSession!=null){widget.onSessionUnlocked!();}
       }
     } on AuthException catch (e) {
       if (mounted) setState(() => error = e.message);
@@ -332,6 +342,33 @@ class _SignInScreenState extends State<SignInScreen> {
     } finally {
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  Future<void> _deviceUnlock()async{
+    if(loading)return;
+    if(widget.onSessionUnlocked==null ||
+       Supabase.instance.client.auth.currentSession==null){
+      setState(()=>info='Sign in with your password first. After sign-in, '+
+       'you can unlock a saved session with your fingerprint or phone PIN.');
+      return;
+    }
+    setState((){loading=true;info=null;error=null;});
+    try{
+      if(!await DeviceUnlock.isAvailable()){
+        if(mounted)setState(()=>error=tr(context,'phoneUnlockUnavailable'));
+        return;
+      }
+      final granted=await DeviceUnlock.authenticate();
+      if(!mounted)return;
+      if(granted){
+        widget.onSessionUnlocked!();
+      }else{
+        setState(()=>info='Device verification was cancelled or did not succeed. '+
+         'You can use the password instead.');
+      }
+    }catch(_){
+      if(mounted)setState(()=>error='Device unlock unavailable. Use your password.');
+    }finally{if(mounted)setState(()=>loading=false);}
   }
 
   Future<void> _resendConfirmation() async {
@@ -391,6 +428,9 @@ class _SignInScreenState extends State<SignInScreen> {
                        ?'Welcome back, $_rememberedFirstName':tr(context,'welcome')),
                     style: const TextStyle(
                         fontSize: 23, fontWeight: FontWeight.w700)),
+                if(widget.onSessionUnlocked!=null)const Padding(
+                 padding:EdgeInsets.only(top:5,bottom:12),
+                 child:Text('Session locked. Use your phone PIN, fingerprint or password.')),
                 const SizedBox(height: 18),
                 AutofillGroup(
                   child: Form(
@@ -415,6 +455,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           key: const Key('loginEmail'),
                   onChanged:(_)=>setState((){}),
                           controller: emailController,
+                          readOnly:widget.activeSessionEmail!=null,
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [
                             AutofillHints.username, AutofillHints.email,
@@ -460,6 +501,21 @@ class _SignInScreenState extends State<SignInScreen> {
                                         ? tr(context, 'passwordTooShort') : null,
                               ),
                             ),
+                            if(!registering)...[
+                              const SizedBox(width:10),
+                              SizedBox(width:56,height:56,child:OutlinedButton(
+                                key:const Key('loginFingerprint'),
+                                tooltip:widget.onSessionUnlocked==null
+                                 ?'Sign in first to enable device unlock'
+                                 :'Fingerprint or phone PIN',
+                                style:OutlinedButton.styleFrom(
+                                 padding:EdgeInsets.zero,
+                                 shape:RoundedRectangleBorder(
+                                  borderRadius:BorderRadius.circular(12))),
+                                onPressed:loading?null:_deviceUnlock,
+                                child:const Icon(Icons.fingerprint,size:30),
+                              )),
+                            ],
                           ],
                         ),
                         if (registering)
@@ -503,7 +559,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     child: Text(tr(context, 'forgotPassword')),
                   ),
                 ],
-                TextButton(
+                if(widget.onSessionUnlocked==null)TextButton(
                   onPressed: loading ? null : () => setState(() {
                     registering = !registering;
                     awaitingConfirmation = false;
