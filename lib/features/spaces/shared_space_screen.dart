@@ -942,7 +942,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                 _exploreCard('Calendar',Icons.calendar_month_outlined,widget.onOpenCalendar,1),
                 _exploreCard('To-do and Checklists',Icons.checklist_outlined,widget.onOpenPlans,2),
                 _exploreCard('Notes',Icons.sticky_note_2_outlined,widget.onOpenNotes,3),
-                _exploreCard('Lists',Icons.shopping_basket_outlined,widget.onOpenLists,4),
                 _exploreCard('Letters',Icons.mark_email_unread_outlined,widget.onOpenLetters,5),
                 _exploreCard('Memories',Icons.auto_stories_outlined,widget.onOpenMemories,6),
                 _exploreCard('Check-ins',Icons.favorite_outline,widget.onOpenCheckins,7),
