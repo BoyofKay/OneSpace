@@ -1,49 +1,51 @@
-# R42 — Shared Reminder Mentions and Searchable Content
+# R43 — Consistent History, Filters and Local Search
 
 Require-Firebase-Config: true
 
-Previous published signed preview: 0.1.415.
-Build the next Android preview over the same package,
-com.onespace.onespace.preview. Preserve the existing Android signing
-certificate, Firebase configuration, paired accounts, checklist records,
-all private and shared data. Do not clear user data or reinstall fresh.
+Previous signed preview: 0.1.416 (R42 shared mentions and content search).
+Preserve the existing com.onespace.onespace.preview Android package,
+same signing certificate, Firebase config, biometrics, all account and
+partner pairing data, checklists, notes, memories and user documents.
+INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included R41 and R42
-- Shared reminders can @mention the partner from their details field.
-  The backend validates shared visibility, sender membership and the
-  partner display name. A private reminder never sends a mention.
-- Notification All/Unread filters moved to the top action bar.
-- Tapping a task mention or notification opens that exact checklist.
-- Global search now searches text in Activities, Calendar events,
-  Experiences, Notes, Goals, Memories and Reminders in addition to
-  existing title-only categories. Results are deduplicated.
-- A selected category avoids unrelated queries for performance.
-- All source searches remain protected by original table RLS and
-  individual request limits. No mirrored private search index.
-- Includes earlier R34 stable legacy/new checklist expansion, R35–36
-  reminders, R37 voice readout, R38–39 notes cross-links and R40 UX
-  consistency, audit who/what/when, and theme contrast safeguards.
+## New R43 scope
+- Top-right History and Filters for Trips, Occasions, People & Contacts
+  and Shared Experiences. Embedded Coordinate tab gets top-header
+  History/Filters without a nested AppBar.
+- Check-ins has top History for partner conversations plus top filters
+  for invitation status and journal visibility.
+- Search across trip origins/destinations/notes, occasion honorees/
+  planning notes, experience titles/platforms/descriptions, contact
+  fields, activity descriptions, check-in conversations and gratitude.
+- Shared, tested RecordCollectionSearchRules supports multiple search
+  words across visible metadata fields and isolates archived-only rows
+  from active collections without changing backend authorization.
+- Restoring an archived item continues to use existing record actions.
+  Edit/revision history remains distinct from archived History.
+- All R34 legacy/new checklist expansion, R37 voice, R38–39 Notes
+  links/backlinks, R40 audit/contrast, R41 shared mentions and R42
+  global full-content search are preserved.
 
-## Backend and source verification
-- Additive Supabase migration 0104 deployed, no user rows wiped.
-- Rollback-only two-account test 0025 PASS: authorized shared mention
-  creates one recipient notification; private one stays hidden;
-  unrelated edit does not create a second mention.
-- Full Flutter source verification run 57 SUCCESS on source commit
-  7fb2ea009aa002a3287409e33a0501242f7f8f73.
-- Signed Android pipeline must independently rerun analyzer and full
-  tests and compile Kotlin, validate package/certificate/Firebase,
-  and publish one verifiable preview APK.
-- Do not claim device acceptance before testing on both phones.
+## Verification
+- Additive database changes: NONE for R43.
+- Full Flutter analyzer, test suite and new search/history rule tests
+  SUCCESS, run 60 at source SHA 6f277888cf11e84846ebc40ba18cc3a56659a3cd.
+- Android signed pipeline must independently repeat source checks,
+  compile Kotlin, validate Firebase, package ID and signing cert, and
+  publish one verified signed APK.
+- R42 signed preview 416 is pinned to earlier source separately.
+- Check docs/R43_COLLECTION_HISTORY_FILTERS_SEARCH_QA.md before
+  claiming device acceptance.
 
-## Two-phone acceptance
-1. Install APK in place over 415, no uninstall/reset.
-2. Phone A creates shared reminder with @partner; B receives alert,
-   which opens exact reminder; private reminder stays private.
-3. B opens task notification and lands in correct checklist.
-4. Search an activity body, event details, note body, and reminder
-   details; category filtering returns only that section.
-5. Reconfirm working old and new checklists, R37 voice, gestures and FCM.
-6. Check top History/Filters and audited changes from 415.
+## Two-phone validation
+1. Update without data reset and test six upgraded screens.
+2. Find top History, Filters, local search; confirm active and
+   archived records stay separated and correct objects are restored.
+3. Check private notes, surprise occasions and check-ins never
+   appear for the other partner.
+4. Ensure exact task notification deep links, shared Reminder @mention
+   alerts, R34 checklist expansion and voice readout still function.
+5. Check themes including seasonal appearances, large font scaling and
+   dark backgrounds with real phone screens.
 
-Controlled R42 signed Android preview, November 14, 2026.
+Controlled R43 signed preview candidate, November 14, 2026.
