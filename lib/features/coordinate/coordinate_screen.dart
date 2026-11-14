@@ -195,10 +195,6 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
       (row['archived_at']!=null)==showArchived).toList();
     final view=showArchived?CoordinateActivityView.all:selected;
     final shown=CoordinateActivityFilters.visible(inView,view,search,now);
-    final counts={
-      for(final kind in CoordinateActivityView.values)
-        kind:CoordinateActivityFilters.count(inView,kind,now),
-    };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if(showArchived)Text(
        'Archived Activities · Open an item to restore it.',
@@ -219,6 +215,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           padding: const EdgeInsets.symmetric(vertical: 22),
           child: Text(
             search.isNotEmpty ? 'No matching Activities.' :
+            showArchived ? 'No archived Activities to restore.' :
             selected == CoordinateActivityView.active ?
               'Your shared space begins with an idea. Create an Activity above.' :
             selected == CoordinateActivityView.attention ?
