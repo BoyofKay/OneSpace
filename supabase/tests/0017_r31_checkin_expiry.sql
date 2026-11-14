@@ -43,6 +43,17 @@ begin
 end $qa$;
 
 select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
+-- The expired row remains in History but must never become an action
+-- item on Today, even while its notification history is retained.
+do $attention$
+begin
+ if exists (
+  select 1 from jsonb_array_elements(
+   public.onespace_my_attention(current_date)) as item
+  where item->>'source'='checkin'
+    and item->>'id'=current_setting('qa.expired')
+ ) then raise exception 'Expired check-in still appears in Needs Attention';end if;
+end $attention$;
 do $qa$
 declare blocked boolean:=false; modified integer;
 begin
