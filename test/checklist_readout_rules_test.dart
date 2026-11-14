@@ -29,7 +29,7 @@ void main(){
    contains('Item 1. Water.'));
  });
  test('truncates long or control character input',(){
-  final text=ChecklistReadoutRules.clean('   Take\\n  my   \\tbag   ');
+  final text=ChecklistReadoutRules.clean('   Take\n  my   \tbag   ');
   expect(text,'Take my bag');
   expect(ChecklistReadoutRules.clean('x'.padRight(400,'x')).length,240);
  });
