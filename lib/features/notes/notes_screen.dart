@@ -146,7 +146,7 @@ class _NotesScreenState extends State<NotesScreen> {
           const SizedBox(height: 6),
           Text(tr(context, 'notesSubtitle')),
           const SizedBox(height: 14),
-          if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+          if (_error != null) Text(_error!, style: TextStyle(color:Theme.of(context).colorScheme.error)),
           if (_loading)
             const Padding(padding: EdgeInsets.all(36),
               child: Center(child: CircularProgressIndicator()))
@@ -671,7 +671,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   : (value) => setState(() => _pinned = value),
             ),
             if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
+              Text(_error!, style: TextStyle(color:Theme.of(context).colorScheme.error)),
             const SizedBox(height: 12),
             if (_canEdit) FilledButton.icon(
               onPressed: _busy || _archived ? null : _save,
