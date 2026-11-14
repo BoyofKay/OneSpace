@@ -5,7 +5,7 @@ class ChecklistReadoutRules {
 
   static String clean(Object? raw) {
     final value=(raw??'').toString().replaceAll(
-      RegExp(r'[\\x00-\\x1f\\x7f]+'), ' ').replaceAll(RegExp(r'\\s+'),' ').trim();
+      RegExp(r'[\x00-\x1f\x7f]+'), ' ').replaceAll(RegExp(r'\s+'),' ').trim();
     return value.length>240?value.substring(0,240):value;
   }
 
