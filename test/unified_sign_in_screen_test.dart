@@ -21,8 +21,9 @@ void main(){
    await tester.pumpWidget(MaterialApp(home:SignInScreen(
     activeSessionEmail:'saved@example.com',onSessionUnlocked:(){})));
    await tester.pump();
-   final emailField=tester.widget<TextFormField>(find.byKey(const Key('loginEmail')));
-   expect(emailField.readOnly,isTrue);
+   final field=find.descendant(of:find.byKey(const Key('loginEmail')),
+    matching:find.byType(TextField));
+   expect(tester.widget<TextField>(field).readOnly,isTrue);
    expect(find.byKey(const Key('loginFingerprint')),findsOneWidget);
    expect(find.textContaining('Session locked.'),findsOneWidget);
    expect(tester.takeException(),isNull);
