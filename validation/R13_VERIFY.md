@@ -78,3 +78,8 @@ Run Flutter analyze + tests after Android native contact integration, vCard inta
 - Unified sign-in with biometric/PIN unlock for an existing valid session.
 - Reminder editor, per-recipient outcome/snooze, actionable notification deep links, global search.
 - Run analyzer and all Flutter widget tests after latest source and schema 0080–0082; do not build APK here.
+
+
+## R22 Analyzer repair pass
+- Fixed unsupported OutlinedButton tooltip property and unified auth widget test getter.
+- Recheck all Reminders and checklist navigation changes at this commit; fail closed before APK publishing.
