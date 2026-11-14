@@ -109,6 +109,13 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
    if(mounted)setState(()=>error='Could not save this item. Try again.');
   }finally{if(mounted)setState(()=>busy=false);}
  }
+ Future<void> pickArrival()async{
+  final now=DateTime.now();
+  final day=await showDatePicker(context:context,
+   initialDate:arrival??now.add(const Duration(days:7)),
+   firstDate:DateTime(now.year-2),lastDate:DateTime(now.year+10));
+  if(day!=null&&mounted)setState(()=>arrival=day);
+ }
  @override Widget build(BuildContext context){
   final theme=Theme.of(context);
   return SafeArea(child:Padding(
