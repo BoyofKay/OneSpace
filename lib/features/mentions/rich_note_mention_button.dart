@@ -56,7 +56,7 @@ class _RichNoteMentionButtonState extends State<RichNoteMentionButton>{
  }
  @override Widget build(BuildContext context)=>TextButton.icon(
   onPressed:widget.enabled&&partner!=null?insert:null,
-  icon:const Icon(Icons.alternate_email_outlined,size:18),
+  icon:const Icon(Icons.alternate_email,size:18),
   label:Text(partner==null?'Mention partner':'Mention '+partner!),
  );
 }
