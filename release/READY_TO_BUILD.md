@@ -1,29 +1,32 @@
-# R22 — First-class Reminders, single Sign-In, and connected checklist UX
+# R23 — Notes 2.0, Advanced Recurring Checklists & Occasion Shopping Lab
 
-Preview baseline: **0.1.399**. Upgrade over existing installation; do NOT uninstall, clear local storage, or recreate accounts. This is a controlled two-partner Android test preview.
+Previous verified preview: 0.1.400. Controlled Android test release.
+Upgrade over installed preview. **Never uninstall, clear app data, or reset existing accounts.**
 
-## Candidate scope
-- **Remember → Reminders:** personal/shared reminders, configurable recipient(s), due date/time, notes, linked checklist/Calendar/Occasion, archived history, Done and Needs Follow-up with outcome notes, Today/Tomorrow/Custom snooze, each partner's outcome and history.
-- Database migrations 0080–0083: RLS reminders/recipient states/action audit, privileged response RPC with explicit actor membership checks, every-five-minute in-app notification dispatcher, existing notification constraint compatibility, server-side linked-object privacy validation, and corrected Home/Remember counts excluding migrated standalone tasks.
-- New reminder deep links in the in-app Notifications center; global Search finds reminders. Stream watchers sync partner status/snooze changes while Reminders screen is open.
-- Auth: **one screen** for signed out or session locked; same email/password/fingerprint layout. Fingerprint/device PIN unlocks an already-valid saved session. True sign-out requires server authentication (including native OS password manager autofill when available), no stored substitute password.
-- To-do and Checklists: named checklists with nested items, clearer "Both of us" assignment; shared editing separated from per-person checkbox responsibility. Old checklist and its four migrated subtasks retained.
-- Permanently retired old standalone Lists Flutter source files and tests, after earlier R21 retirement of empty tables and Today link. Notes validation tests retained.
-- R21 camera-first Memories and Android contact import/export maintained.
+## Included
+- Genuine OneSpace Notes 2.0 WYSIWYG editing with pinned Flutter Quill 11.6.0, formatted headings/lists/bold/italic/links, plain search text plus structured Delta JSON, existing note image attachments, shared/private RLS and optimistic edit conflict protection. Previous plain text notes remain readable.
+- Occasion Planner now stores merchant, product URL, purchase price, expected delivery, retailer review rating, own preference score (1–5), order/shipping/return status, order number and optional tracking link.
+- Interactive Occasion gift-combination selection with estimated total, budget comparison and late-delivery warnings; save proposed combinations and revisit/edit individual items before buying. No invented exchange rates; separate-currency items excluded from total.
+- Advanced checklist schedules: weekday/weekend/selected weekdays/workdays, every N days/weeks, month days, configurable US federal holidays/personal days off/excluded dates, optional IANA timezone per checklist, per-person independent checked state per occurrence.
+- Database schema migrations 0084–0086 applied and verified. No existing user records reset.
+- Test suite extended for advanced recurrence; rollback-only SQL privacy regression passed for structured notes and private gift-combination selections.
+- Existing R22 Reminders and notification deep links, R21 Android Contacts and Memories retained.
 
-## SQL regression evidence
-- R22 privacy and actions regression test 0010 passed under rollback, including partner-only outcomes, follow-up history, snooze and idempotent cron re-dispatch.
-- Existing R21 checklist and Memory privacy tests passed before this iteration.
-- Existing accounts, device sign-in material, shared space, messages and live records remain untouched by synthetic tests.
+## Verification
+- Flutter dependency lock committed and checked; full Flutter analyze/test suite green before triggering this build (GitHub run 43605304275).
+- Publication only if exact commit passes Flutter analysis/tests again, Android Kotlin/Gradle compilation, correct signed preview certificate and unchanged package com.onespace.onespace.preview.
+- One APK from this release marker.
 
-## Known limits / future work
-- Every-five-minute backend scheduler delivers **in-app notifications**, not native background push. Firebase Cloud Messaging requires project configuration and device credential setup. The scheduled check can be up to five minutes after due plus delivery latency.
-- This release includes **one-time** reminders, not recurring Reminder schedules or self-love nudge logic.
-- Native OS biometric/PIN cancellation, Samsung Pass, two-device notifications and shared update UI need physical acceptance testing.
-- Advanced checklist recurrence weekdays/timezone/holiday exceptions, Flutter Quill Notes 2.0, Occasion shopping planner, Trip documents and Scrapbook Studio not yet implemented.
-- A valid session is never recreated from biometric verification alone after true sign-out.
+## Still outstanding (not claimed delivered)
+- Firebase Cloud Messaging, device push delivery and credential setup; reminders currently in-app.
+- Full template-driven collaborative Scrapbook Studio (current photo memory tagging and gallery continue).
+- Comprehensive Trips planning/search/offline encrypted itinerary/document experience.
+- Shared Experiences richer metadata, Games external invitation, AI productivity companion, voice/Siri commands and hands-free spoken checklist.
+- Thoughtful A Little Love sender-private suggestions replacing autonomous sending.
+- True native iOS contact share extension, real-device testing, server relocation (deferred), and additional deeper system hardening.
+- Automated order sync with Amazon/Walmart is NOT implemented; tracking is user-supplied only.
 
-## Publication gates
-One reproducible signed preview APK, gated on Flutter 3.50 dependency lock validation, analysis, all Dart tests, Android Gradle/Kotlin compilation, same preview signature, same package com.onespace.onespace.preview, and retained workflow artifact. Publish only if verification succeeds. Do not change production signing identity or reset any user data.
+## Device acceptance recommendations
+Test Notes 2.0 create/edit/read-only/shared/conflict, Occasions 3 competing gift options and proposed lists, purchase/returns, recurrence near weekend/holiday, partner checkmark separation, and biometric sign-in. All should preserve real records.
 
-Trigger: R22 integrated preview, November 14, 2026.
+Trigger: R23 signed Android test preview, 2026-11-14.
