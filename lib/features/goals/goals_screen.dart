@@ -140,7 +140,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       child: ListView(padding: const EdgeInsets.all(20), children: [
         Text(tr(context,'goalsSubtitle')),
         const SizedBox(height:14),
-        if (_error != null) Text(_error!,style:const TextStyle(color:Colors.red)),
+        if (_error != null) Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
         if (_loading)
           const Padding(padding:EdgeInsets.all(28),
             child:Center(child:CircularProgressIndicator()))
@@ -353,7 +353,7 @@ class _GoalEditorState extends State<GoalEditor> {
       if (_target!=null && _canEdit)
         TextButton(onPressed:()=>setState(()=>_target=null),
           child:Text(tr(context,'clearDate'))),
-      if(_error!=null)Text(_error!,style:const TextStyle(color:Colors.red)),
+      if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
       const SizedBox(height:18),
       if(_canEdit)FilledButton(
         onPressed:_saving?null:_save,
