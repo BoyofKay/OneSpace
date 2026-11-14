@@ -194,7 +194,29 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
     }
     final excluded=_excludedDates.text.split(',').map((x)=>x.trim())
        .where((x)=>x.isNotEmpty).toList();
-    if(excluded.any((x)=>!RegExp(r'^\\d{4}-\\d{2}-\\d{2}
+    if(excluded.any((x){
+      final parsed=DateTime.tryParse(x);
+      return x.length!=10||parsed==null||ChecklistSchedule.day(parsed)!=x;
+    })){
+      setState(()=>_error='Excluded dates must use YYYY-MM-DD.');return;
+    }
+    final zone=_timeZone.text.trim();
+    if(zone.isNotEmpty&&!ChecklistSchedule.validTimeZone(zone)){
+      setState(()=>_error='Enter a valid IANA timezone such as America/New_York.');
+      return;
+    }
+    final rule=<String,dynamic>{
+      if(_scheduleMode!='none')'mode':_scheduleMode,
+      'interval':interval,
+      'anchor':_rule['anchor']??ChecklistSchedule.day(DateTime.now()),
+      'weekdays':_weekdays.toList()..sort(),
+      'month_days':days.whereType<int>().toList(),
+      if(zone.isNotEmpty)'timezone':zone,
+      'skip_personal_days_off':_skipDaysOff,
+      'skip_us_holidays':_skipUsHolidays,
+      'exclude_dates':excluded,
+    };
+    setState((){_saving=true;_error=null;});
     try {
       await widget.onSave(TaskDraft(
         title: title,
