@@ -206,6 +206,7 @@ class OneSpaceApp extends StatelessWidget {
             localizationsDelegates:const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
+              FlutterQuillLocalizations.delegate,
             ],
             debugShowCheckedModeBanner:false,
             theme:OneSpaceTheme.build(
