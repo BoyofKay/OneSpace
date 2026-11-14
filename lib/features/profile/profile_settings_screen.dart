@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../notifications/push_registration_gate.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
@@ -552,7 +553,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
         const SizedBox(height: 14),
         OutlinedButton.icon(
-          onPressed: () => _client.auth.signOut(),
+          onPressed: () async {
+            await disableCurrentPushDevice();
+            await _client.auth.signOut();
+          },
           icon: const Icon(Icons.logout),
           label: Text(tr(context, 'signOut')),
         ),
