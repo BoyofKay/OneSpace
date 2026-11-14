@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import 'gesture_experience.dart';
 import 'gesture_pool_rules.dart';
+import 'love_prompt_rules.dart';
 
 /// Intentionally sent gestures. Messages are explicitly identified as presets;
 /// there is no automated impersonation or push-notification claim here.
@@ -130,7 +131,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  final db=Supabase.instance.client;
  String? spaceId,recipientId,recipientName;
  String? busyKind,error;
- String? lastSent;
+ String? lastSent,lastSentAt;
  bool loading=true;
  List<Map<String,dynamic>> custom=[];
  List<Map<String,dynamic>> overrides=[];
@@ -155,7 +156,18 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      final updated=await db.from('gesture_message_overrides')
        .select('kind,message_index,message,disabled')
        .eq('space_id',space).eq('owner_id',me);
+     String? latest;
+     try{
+       final recent=await db.from('partner_gestures').select('created_at')
+        .eq('space_id',space).eq('sender_id',me)
+        .order('created_at',ascending:false).limit(1);
+       if(recent.isNotEmpty)latest=recent.first['created_at']?.toString();
+     }catch(_){
+       // Sending gestures remains available even if history is offline.
+     }
+     if(!mounted)return;
      setState((){
+       lastSentAt=latest;
        spaceId=space;recipientId=other;
        recipientName=other==null?null:(names?[other]??'your partner');
        custom=templates;
@@ -363,6 +375,94 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        const SnackBar(content:Text('Could not delete gesture.')));
    }
  }
+ Future<void> _remindMyself()async{
+   if(spaceId==null||db.auth.currentUser==null)return;
+   var when=LovePromptRules.nextTime(DateTime.now(),9);
+   var category='any';
+   final agreed=await showModalBottomSheet<bool>(
+    context:context,isScrollControlled:true,showDragHandle:true,
+    builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>SafeArea(
+     child:Padding(padding:EdgeInsets.fromLTRB(
+      18,8,18,MediaQuery.viewInsetsOf(ctx).bottom+24),
+      child:Column(mainAxisSize:MainAxisSize.min,
+       crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Text('Remind myself to send love',
+         style:Theme.of(ctx).textTheme.titleLarge),
+        const SizedBox(height:6),
+        const Text('This reminder goes to you, not your partner. You decide whether and what to send.'),
+        const SizedBox(height:12),
+        Wrap(spacing:8,runSpacing:5,children:[
+         for(final slot in const {
+           'morning':'Morning','after_work':'After work',
+           'evening':'Evening'}.entries)
+          ActionChip(label:Text(slot.value),
+           onPressed:()=>update(()=>when=LovePromptRules.nextTime(
+            DateTime.now(),LovePromptRules.slots[slot.key]!))),
+        ]),
+        const SizedBox(height:9),
+        ListTile(contentPadding:EdgeInsets.zero,
+         leading:const Icon(Icons.alarm_outlined),
+         title:const Text('Remind me on'),
+         subtitle:Text(when.toLocal().toString().substring(0,16)),
+         trailing:const Icon(Icons.edit_calendar_outlined),
+         onTap:()async{
+          final now=DateTime.now();
+          final day=await showDatePicker(context:ctx,initialDate:when,
+           firstDate:DateTime(now.year,now.month,now.day),
+           lastDate:DateTime(2100));
+          if(day==null||!ctx.mounted)return;
+          final time=await showTimePicker(context:ctx,
+           initialTime:TimeOfDay(hour:when.hour,minute:when.minute));
+          if(time!=null)update(()=>when=DateTime(
+           day.year,day.month,day.day,time.hour,time.minute));
+         }),
+        DropdownButtonFormField<String>(
+         initialValue:category,
+         decoration:const InputDecoration(labelText:'Gesture to remember'),
+         items:[
+          const DropdownMenuItem(value:'any',child:Text('Anything thoughtful')),
+          for(final option in _options)DropdownMenuItem(
+           value:option.id,child:Text(option.title)),
+         ],
+         onChanged:(v)=>update(()=>category=v??'any')),
+        const SizedBox(height:12),
+        Row(mainAxisAlignment:MainAxisAlignment.end,children:[
+         TextButton(onPressed:()=>Navigator.pop(ctx,false),
+          child:const Text('Cancel')),
+         const SizedBox(width:8),
+         FilledButton.icon(
+          icon:const Icon(Icons.add_alarm_outlined),
+          onPressed:()=>Navigator.pop(ctx,true),
+          label:const Text('Save reminder')),
+        ]),
+       ])))));
+   if(agreed!=true||!mounted)return;
+   if(!when.isAfter(DateTime.now().add(const Duration(minutes:1)))){
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+     content:Text('Choose a future reminder time.')));
+    return;
+   }
+   try{
+    await db.from('reminders').insert({
+     'space_id':spaceId,
+     'title':category=='any'?'Send a little love':LovePromptRules.label(category),
+     'details':LovePromptRules.message(category),
+     'due_at':when.toUtc().toIso8601String(),
+     'visibility':'private','audience':'me',
+     'reminder_intent':'love_gesture','reminder_gesture_kind':category,
+    });
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+     content:Text('Personal reminder saved. You will choose when to send.')));
+   }on PostgrestException catch(e){
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+     content:Text(e.code=='23505'
+      ?'You already have a reminder for that gesture at this time.'
+      :'Unable to save reminder: '+e.message)));
+   }catch(_){
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+     content:Text('Unable to save the reminder. Try again.')));
+   }
+ }
  Future<void> _send(_GestureOption option) async {
    if(busyKind!=null||spaceId==null||recipientId==null){return;}
    final messages=pool(option);
@@ -384,7 +484,10 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        'kind':option.id,'message':message,
      });
      if(mounted){
-       setState(()=>lastSent=message);
+       setState((){
+        lastSent=message;
+        lastSentAt=DateTime.now().toUtc().toIso8601String();
+       });
        ScaffoldMessenger.of(context).showSnackBar(
          SnackBar(content:Text('Sent to '+(recipientName??'your partner'))),
        );
@@ -418,6 +521,16 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
            onPressed:_createCustom,
            icon:const Icon(Icons.add_reaction_outlined),
            label:const Text('Create my own gesture')),
+          const SizedBox(height:12),
+          OutlinedButton.icon(
+           onPressed:spaceId==null?null:_remindMyself,
+           icon:const Icon(Icons.alarm_add_outlined),
+           label:const Text('Remind me to send a little love')),
+          if(LovePromptRules.lastSentSummary(lastSentAt,DateTime.now())!=null)
+           Padding(padding:const EdgeInsets.only(top:6),
+            child:Text(LovePromptRules.lastSentSummary(
+             lastSentAt,DateTime.now())!,
+             style:Theme.of(context).textTheme.bodySmall)),
           const SizedBox(height:12),
          ],
          if(loading)const Center(child:CircularProgressIndicator()),
