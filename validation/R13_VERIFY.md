@@ -150,3 +150,8 @@ Trip airfare choices are competing alternatives, so their prices are compared pe
 ## R29 — Live Experiences realtime + conflict and media-category regression
 
 Source-only verification on current main. Flutter lockfile, full analyzer and tests for live experience UI; non-destructive shared planning status/date, stale-edit detection, document `docs/R29_SHARED_EXPERIENCES_REALTIME_QA.md`, no APK or production deployment during this gate. R25 device push remains untouched. Do not cancel previous successful verifications or reset the existing pair.
+
+
+## R30 — partner interest votes and mutual picks (source-only verification)
+
+Validate latest main source with committed Flutter lockfile, full `flutter analyze --no-fatal-infos` and `flutter test`. Scope includes the R30 live match filter/labels, partner preference view and update, deterministic suggestion priority and new unit tests. Supabase schema 0095 and rollback test 0016 already passed. No APK or release is authorized by this validation gate. Preserve both accounts, data, preview signature and Firebase delivery.
