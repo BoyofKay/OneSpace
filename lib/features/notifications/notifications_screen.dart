@@ -112,7 +112,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    }else if(type=='reminder'){
      screen=RemindersScreen(initialReminderId:item['object_id']?.toString());
    }else if(type=='task'){
-     screen=const PlansScreen();
+     screen=PlansScreen(focusTaskId:item['object_id']?.toString());
    }else if(type=='note'){
      screen=NotesScreen(initialNoteId:item['object_id']?.toString());
    }else if(type=='occasion'){
@@ -141,7 +141,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    if(userId==null)return const Scaffold(
      body:Center(child:Text('Sign in required')));
    return Scaffold(
-     appBar:AppBar(title:const Text('Notifications')),
+     appBar:AppBar(title:const Text('Notifications'),actions:[
+      PopupMenuButton<String>(
+       tooltip:'Notification filters',
+       icon:Icon(unreadOnly?Icons.filter_alt:Icons.filter_alt_outlined),
+       initialValue:unreadOnly?'unread':'all',
+       onSelected:(choice)=>setState(()=>unreadOnly=choice=='unread'),
+       itemBuilder:(_)=>const [
+        PopupMenuItem(value:'all',child:Text('All notifications')),
+        PopupMenuItem(value:'unread',child:Text('Unread only')),
+       ]),
+     ]),
      body:StreamBuilder<List<Map<String,dynamic>>>(
        stream:_feed(userId),
        builder:(context,snapshot){
@@ -159,10 +169,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
              child:Wrap(spacing:8,runSpacing:4,
               alignment:WrapAlignment.spaceBetween,
               crossAxisAlignment:WrapCrossAlignment.center,children:[
-               FilterChip(
-                 selected:unreadOnly,
-                 label:Text('Unread ($unread)'),
-                 onSelected:(v)=>setState(()=>unreadOnly=v)),
+               Text('Unread: $unread',
+                 style:Theme.of(context).textTheme.labelLarge),
                TextButton.icon(
                  onPressed:unread==0||saving?null:()=>_markAllRead(userId),
                  icon:const Icon(Icons.done_all),
