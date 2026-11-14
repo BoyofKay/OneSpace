@@ -10,6 +10,7 @@ import '../calendar/calendar_rules.dart';
 import 'trip_item_editor.dart';
 import 'trip_rules.dart';
 import 'trip_documents_section.dart';
+import 'trip_flight_options_section.dart';
 
 const tripStages=<String,String>{
  'planning':'Planning','booked':'Booked','traveling':'Traveling',
@@ -561,6 +562,8 @@ class _TripDetailState extends State<TripDetail>{
      if((t['notes']??'').toString().isNotEmpty)
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
        child:SelectableText(t['notes'].toString()))),
+     const Divider(height:26),
+     TripFlightOptionsSection(tripId:widget.tripId,trip:t),
      const Divider(height:26),
      Wrap(spacing:10,runSpacing:6,
       alignment:WrapAlignment.spaceBetween,crossAxisAlignment:WrapCrossAlignment.center,
