@@ -10,6 +10,8 @@ import '../connect/couple_letters_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
+import '../goals/goals_screen.dart';
+import '../memories/memories_screen.dart';
 import '../../core/current_space_cache.dart';
 import 'global_search_rules.dart';
 
@@ -26,6 +28,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
  bool busy=false;
  String? error;
  List<_Hit> hits=[];
+ String section='All';
  @override void dispose() {
    debounce?.cancel(); query.dispose(); version++; super.dispose();
  }
@@ -83,9 +86,15 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded(db.from('reminders').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('goals').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('title',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('memories').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('title',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
      ]);
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
-     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder'];
+     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Goal','Memory'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
@@ -113,7 +122,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Activity':target=ActivityScreen(id:hit.id);break;
      case 'Tag':target=ActivityScreen(id:hit.id);break;
      case 'Calendar':target=CalendarScreen(initialEventId:hit.id);break;
-     case 'To-do':target=const PlansScreen();break;
+     case 'To-do':target=PlansScreen(focusTaskId:hit.id);break;
      case 'Reminder':target=RemindersScreen(initialReminderId:hit.id);break;
      case 'Note':target=NotesScreen(initialNoteId:hit.id);break;
      case 'Trip':
@@ -121,12 +130,27 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Travel document':target=TripsScreen(initialTripId:hit.id);break;
      case 'Experience':target=SharedExperiencesScreen(initialExperienceId:hit.id);break;
      case 'Occasion':target=OccasionsScreen(initialPlanId:hit.id);break;
+     case 'Goal':target=GoalsScreen(initialGoalId:hit.id);break;
+     case 'Memory':target=MemoriesScreen(initialMemoryId:hit.id);break;
      default:target=const CoupleLettersScreen();
    }
    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
  }
  @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:const Text('Search our space')),
+   appBar:AppBar(title:const Text('Search our space'),actions:[
+    PopupMenuButton<String>(
+     tooltip:'Filter search results',
+     icon:const Icon(Icons.filter_alt_outlined),
+     initialValue:section,
+     onSelected:(v)=>setState(()=>section=v),
+     itemBuilder:(_)=>[
+      for(final category in [
+       'All','Activity','Calendar','To-do','Note','Letter','Tag',
+       'Trip','Experience','Trip item','Travel document','Occasion',
+       'Reminder','Goal','Memory',
+      ])PopupMenuItem(value:category,child:Text(category)),
+     ]),
+   ]),
    body:SafeArea(child:Center(child:ConstrainedBox(
     constraints:const BoxConstraints(maxWidth:860),child:Column(children:[
      Padding(padding:const EdgeInsets.all(15),child:TextField(
@@ -162,14 +186,18 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        ])),
      Expanded(child:ListView.builder(
        keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
-       itemCount:hits.length,itemBuilder:(context,index){
-       final hit=hits[index];
+       itemCount:hits.where((hit)=>section=='All'||hit.kind==section).length,
+       itemBuilder:(context,index){
+       final filtered=hits.where((hit)=>section=='All'||hit.kind==section).toList();
+       final hit=filtered[index];
        return ListTile(
          leading:Icon(hit.kind=='Activity'?Icons.hub_outlined:
            hit.kind=='Calendar'?Icons.event_outlined:
            hit.kind=='To-do'?Icons.checklist_outlined:
            hit.kind=='Reminder'?Icons.alarm_outlined:
            hit.kind=='Note'?Icons.note_outlined:
+           hit.kind=='Goal'?Icons.flag_outlined:
+           hit.kind=='Memory'?Icons.photo_library_outlined:
            hit.kind=='Tag'?Icons.sell_outlined:
            hit.kind=='Occasion'?Icons.card_giftcard_outlined:
            hit.kind=='Travel document'?Icons.attach_file:
