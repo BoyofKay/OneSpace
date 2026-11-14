@@ -5,6 +5,7 @@ import 'occasion_budget_rules.dart';
 import 'occasion_planning_insights.dart';
 import 'occasion_budget_item_editor.dart';
 import 'occasion_option_linker.dart';
+import 'occasion_combination_planner.dart';
 
 const budgetStages=<String,String>{
  'wish':'Wishlist','shortlisted':'Considering','planned':'Reserved',
@@ -22,6 +23,7 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
  final db=Supabase.instance.client;
  late Stream<List<Map<String,dynamic>>> stream;
  bool showArchived=false,busy=false;
+ int _proposalRefresh=0;
  final _itemsAnchor=GlobalKey();
  String? error;
  @override void initState(){super.initState();_attach();}
@@ -57,6 +59,13 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
   await showModalBottomSheet<bool>(context:context,showDragHandle:true,
    isScrollControlled:true,
    builder:(_)=>OccasionOptionLinker(plan:widget.plan));
+ }
+ Future<void> compareCombinations(List<Map<String,dynamic>> items)async{
+  final saved=await showModalBottomSheet<bool>(context:context,
+   isScrollControlled:true,showDragHandle:true,builder:(_)=>SizedBox(
+    height:MediaQuery.sizeOf(context).height*.88,
+    child:OccasionCombinationPlanner(plan:widget.plan,items:items)));
+  if(saved==true&&mounted)setState(()=>_proposalRefresh++);
  }
  void followInsight(String action){
   switch(action){
@@ -161,6 +170,13 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
       OutlinedButton.icon(onPressed:browseOptions,
        icon:const Icon(Icons.hub_outlined),label:const Text('From Activity')),
      ]),
+     OutlinedButton.icon(
+      onPressed:visible.isEmpty?null:()=>compareCombinations(visible),
+      icon:const Icon(Icons.compare_arrows_outlined),
+      label:const Text('Compare & save gift combinations')),
+     const SizedBox(height:12),
+     _SavedGiftProposals(key:ValueKey('proposals-$_proposalRefresh'),
+      plan:widget.plan),
      const SizedBox(height:12),
      Wrap(spacing:10,runSpacing:8,
       alignment:WrapAlignment.spaceBetween,children:[
@@ -199,6 +215,27 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
        ]),
        if(item['notes']!=null&&item['notes'].toString().isNotEmpty)
         Text(item['notes'].toString(),maxLines:3,overflow:TextOverflow.ellipsis),
+       if(item['merchant']!=null&&item['merchant'].toString().isNotEmpty)
+        Text('Retailer: '+item['merchant'].toString()),
+       if(item['estimated_delivery']!=null)
+        Text('Expected arrival: '+item['estimated_delivery'].toString()+
+         (DateTime.tryParse(item['estimated_delivery'].toString())?.isAfter(
+          DateTime.tryParse(widget.plan['occasion_on']?.toString()??'')??
+           DateTime(2100))==true?' · AFTER OCCASION':''),
+         style:TextStyle(color:DateTime.tryParse(
+          item['estimated_delivery'].toString())?.isAfter(
+           DateTime.tryParse(widget.plan['occasion_on']?.toString()??'')??
+            DateTime(2100))==true?colors.error:null)),
+       if(item['preference_score']!=null||item['product_rating']!=null)
+        Text([
+         if(item['preference_score']!=null)'My score: '+item['preference_score'].toString()+'/5',
+         if(item['product_rating']!=null)'Retailer rating: '+item['product_rating'].toString()+'/5',
+        ].join(' · ')),
+       if(item['order_status']!='not_ordered')Text('Order: '+
+        (item['order_status']??'not_ordered').toString().replaceAll('_',' ')+
+         ((item['order_number']??'').toString().isEmpty?'':' · #'+item['order_number'].toString())),
+       if(item['order_status']=='returned'||item['order_status']=='return_requested')
+        const Text('Return in progress: review alternatives from your saved options.'),
        Wrap(spacing:7,runSpacing:5,children:[
         if(item['unit_price']!=null)Chip(
          label:Text(item['currency'].toString()+' '+
@@ -274,5 +311,66 @@ class _BudgetHistory extends StatelessWidget{
       if(snapshot.data!.isEmpty)const Text('No planning changes yet.'),
      ]);
     })));
+ }
+}
+
+class _SavedGiftProposals extends StatelessWidget{
+ const _SavedGiftProposals({super.key,required this.plan});
+ final Map<String,dynamic> plan;
+ @override Widget build(BuildContext context){
+  final db=Supabase.instance.client;
+  return FutureBuilder<List<Map<String,dynamic>>>(
+   future:db.from('occasion_proposals')
+    .select('id,title,notes,status,created_at,occasion_proposal_items('
+      'item_id,occasion_budget_items(title,unit_price,quantity,currency,estimated_delivery,order_status))')
+    .eq('plan_id',plan['id'].toString())
+    .order('created_at',ascending:false).limit(30),
+   builder:(context,snapshot){
+    if(snapshot.hasError)return const Text('Saved proposal lists temporarily unavailable.');
+    if(!snapshot.hasData)return const LinearProgressIndicator();
+    final proposals=snapshot.data!;
+    if(proposals.isEmpty)return const Text('No saved combinations yet. Select options to compare and keep your favorites.');
+    final currency=(plan['currency']??'USD').toString();
+    final occasion=DateTime.tryParse(plan['occasion_on']?.toString()??'');
+    return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+     Text('Saved proposed lists',style:Theme.of(context).textTheme.titleMedium),
+     for(final proposal in proposals)Card(child:ExpansionTile(
+      title:Text(proposal['title'].toString()),
+      subtitle:Text('Status: '+proposal['status'].toString()),
+      childrenPadding:const EdgeInsets.fromLTRB(12,0,12,12),
+      children:[
+       if((proposal['notes']??'').toString().isNotEmpty)Text(proposal['notes'].toString()),
+       for(final link in (proposal['occasion_proposal_items'] as List? ??const []))
+        Builder(builder:(context){
+         final item=link['occasion_budget_items'];
+         if(item is! Map)return const SizedBox.shrink();
+         final cost=(item['unit_price'] as num?)?.toDouble();
+         final qty=(item['quantity'] as num?)?.toDouble()??1;
+         final late=occasion!=null&&
+          (DateTime.tryParse(item['estimated_delivery']?.toString()??'')?.isAfter(occasion)??false);
+         return ListTile(
+          dense:true,contentPadding:EdgeInsets.zero,
+          title:Text((item['title']??'Option').toString()),
+          subtitle:Text([
+           if(cost!=null)(item['currency']??currency).toString()+' '+(cost*qty).toStringAsFixed(2),
+           if(item['estimated_delivery']!=null)'Arrives: '+item['estimated_delivery'].toString(),
+           if(item['order_status']!='not_ordered')item['order_status'].toString().replaceAll('_',' '),
+           if(late)'Arrives after occasion',
+          ].join(' · '),style:TextStyle(color:late?Theme.of(context).colorScheme.error:null)));
+        }),
+       Wrap(spacing:8,children:[
+        for(final choice in const [('approved','Use this list'),('superseded','Replace list')])
+         if(proposal['status']!=choice.$1)
+          TextButton(onPressed:()async{
+           await db.from('occasion_proposals').update({
+            'status':choice.$1,'updated_at':DateTime.now().toUtc().toIso8601String()
+           }).eq('id',proposal['id']);
+           if(context.mounted)(context as Element).markNeedsBuild();
+          },child:Text(choice.$2)),
+       ]),
+      ],
+     )),
+    ]);
+   });
  }
 }
