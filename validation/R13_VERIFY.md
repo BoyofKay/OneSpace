@@ -205,3 +205,8 @@ R34 verifies exact interactive expand/collapse tests of old/new list contents an
 ## R34 reproduced actual checklist crash: PageStorage bool restored as scroll double
 
 Real tap-to-expand Flutter widget tests caught `_TypeError: type 'bool' is not a subtype of type 'double?'` in `ScrollPosition.restoreScrollOffset` within `EditableText` of the nested subtask TextField. Fix removes the ExpansionTile PageStorageKey and passes a ScrollController(keepScrollOffset:false) to the nested TextField. The regression test intentionally retains a PageStorageKey ancestor to prevent recurrence. Re-run full Flutter dependencies, analyzer and all tests before shipping. No database cleanup needed and no data changed.
+
+
+## R35 — Occasion preparation milestones connected to Reminders (source-only verification)
+
+Run full committed Flutter dependencies, analyzer and entire test suite (including `occasion_preparation_rules_test.dart`) against R35, and confirm cross-module deep links from reminder to the exact source object. Additive Supabase 0099 deployed; rollback-only two-account SQL 0020 PASS. Do not create automatic reminders, modify existing data, change Firebase config, or release an APK until source gate succeeds.
