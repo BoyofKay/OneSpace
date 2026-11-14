@@ -230,3 +230,8 @@ New Android TextToSpeech and iOS AVSpeechSynthesizer MethodChannel plus a read-o
 ## R37 final — Android 11 TTS discovery and speech regression correction
 
 Re-run analyzer and all widget/unit tests on current source after fixing literal whitespace test input and adding Android TTS_SERVICE manifest visibility (per Android 11+). Native Kotlin/iOS code must still be compiled by platform-specific release builders. Verify no unchecked legacy tasks are deleted, no new audio or storage permission added, and no change to R34 expand/collapse behavior.
+
+
+## R37 platform exception import correction
+
+First source run 47 found an analyzer-only missing `flutter/services.dart` import in ChecklistReadoutSheet. It is now explicitly imported, preserving existing error handling. Run final locked dependencies, analyzer, and complete Flutter test suite including new readout UI tests. This is the latest source gate for native APK build.
