@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import 'note_draft_rules.dart';
 import 'notes_library_rules.dart';
 import 'note_photos_panel.dart';
@@ -113,9 +114,27 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar:AppBar(title:const Text('Notes'),actions:[
-       IconButton(tooltip:_showArchived?'Hide archived':'Notes history',
-        icon:Icon(_showArchived?Icons.note_alt_outlined:Icons.history_outlined),
-        onPressed:()=>setState(()=>_showArchived=!_showArchived)),
+       RecordListTopActions(
+        showHistory:_showArchived,
+        onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
+        hasActiveFilters:_scope!='all',
+        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
+         mainAxisSize:MainAxisSize.min,children:[
+          const Text('Visibility'),
+          Wrap(spacing:8,children:[
+           for(final scope in ['all','shared','private'])
+            ChoiceChip(
+             label:Text(tr(ctx,scope)),selected:_scope==scope,
+             onSelected:(_){
+              setState(()=>_scope=scope);update((){});
+             }),
+          ]),
+          TextButton.icon(onPressed:(){
+           setState(()=>_scope='all');update((){});
+          },icon:const Icon(Icons.restart_alt),
+           label:const Text('Reset filters')),
+         ])),
+       ),
       ]),
       body:RefreshIndicator(
       onRefresh: _load,
@@ -157,13 +176,6 @@ class _NotesScreenState extends State<NotesScreen> {
                border:const OutlineInputBorder()),
             ),
             const SizedBox(height:10),
-            Wrap(spacing: 7, children: ['all','shared','private'].map((scope) =>
-              ChoiceChip(
-                selected: _scope == scope,
-                label: Text(tr(context, scope)),
-                onSelected: (_) => setState(() => _scope = scope),
-              )).toList()),
-
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: _stream,
               builder: (context, snapshot) {
