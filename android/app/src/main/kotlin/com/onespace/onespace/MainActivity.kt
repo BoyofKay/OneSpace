@@ -10,6 +10,8 @@ import androidx.core.content.ContextCompat
 import android.net.Uri
 import android.os.Bundle
 import android.os.Build
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +27,8 @@ import java.io.ByteArrayOutputStream
  */
 class MainActivity : FlutterFragmentActivity() {
     private val maxBytes = 10 * 1024 * 1024
+    private var checklistVoice: TextToSpeech? = null
+    private var checklistVoiceReady = false
     private var pendingDocument: MethodChannel.Result? = null
     private var pendingContact: MethodChannel.Result? = null
     private var pendingVcard: Map<String, String>? = null
@@ -232,6 +236,68 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Speech is explicit, local to this screen and stops on background.
+        // No listening or microphone access is involved in this channel.
+        checklistVoice = TextToSpeech(applicationContext) { status ->
+            checklistVoiceReady = status == TextToSpeech.SUCCESS
+        }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/checklist_speech")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "stop" -> {
+                        checklistVoice?.stop()
+                        result.success(null)
+                    }
+                    "speak" -> {
+                        val text = call.argument<String>("text").orEmpty().trim()
+                        val language = call.argument<String>("language") ?: "en"
+                        val rate = (call.argument<Double>("rate") ?: 1.0).coerceIn(0.7,1.4)
+                        val voice = checklistVoice
+                        if (!checklistVoiceReady || voice == null) {
+                            result.error("VOICE_UNAVAILABLE",
+                                "Text to speech is not ready or missing on this device.", null)
+                        } else if (text.isEmpty() || text.length > 60000) {
+                            result.error("INVALID_TEXT", "Checklist text is empty or too long.", null)
+                        } else {
+                            val locale = Locale.forLanguageTag(language)
+                            val supported = voice.isLanguageAvailable(locale)
+                            if (supported >= TextToSpeech.LANG_AVAILABLE) {
+                                voice.language = locale
+                            } else {
+                                voice.language = Locale.getDefault()
+                            }
+                            voice.setSpeechRate(rate.toFloat())
+                            // Android TTS has an utterance size limit. Break on
+                            // word boundaries, and queue rather than truncate.
+                            val chunks = mutableListOf<String>()
+                            val segment = StringBuilder()
+                            for (word in text.split(Regex("\\s+"))) {
+                                if (segment.length + word.length + 1 > 3000 &&
+                                    segment.isNotEmpty()) {
+                                    chunks.add(segment.toString())
+                                    segment.setLength(0)
+                                }
+                                if (segment.isNotEmpty()) segment.append(' ')
+                                segment.append(word)
+                            }
+                            if (segment.isNotEmpty()) chunks.add(segment.toString())
+                            var resultCode = TextToSpeech.SUCCESS
+                            chunks.forEachIndexed { index, chunk ->
+                                val queued = voice.speak(chunk,
+                                    if (index == 0) TextToSpeech.QUEUE_FLUSH
+                                    else TextToSpeech.QUEUE_ADD,
+                                    null, "onespace-checklist-${System.nanoTime()}-$index")
+                                if (queued == TextToSpeech.ERROR) resultCode = queued
+                            }
+                            if (resultCode == TextToSpeech.ERROR) {
+                                voice.stop()
+                                result.error("VOICE_UNAVAILABLE", "The speech engine failed.", null)
+                            } else result.success(null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         // Export a rendered scrapbook page into Android Photos using scoped
         // storage, then show the native Share sheet. No storage permission,
         // unrestricted file access or private photo URI is exposed.
@@ -365,5 +431,18 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 }
             }
+    }
+
+    override fun onPause() {
+        checklistVoice?.stop()
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        checklistVoice?.stop()
+        checklistVoice?.shutdown()
+        checklistVoice = null
+        checklistVoiceReady = false
+        super.onDestroy()
     }
 }
