@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_action_history_view.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -321,6 +322,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
                 style:Theme.of(context).textTheme.bodySmall),
               childrenPadding:const EdgeInsets.fromLTRB(15,0,15,14),
               children:[
+                Align(alignment:Alignment.centerRight,
+                 child:RecordActionHistoryButton(kind:'checkin_request',
+                  recordId:item['id'].toString())),
                 if((item['note']?.toString()??'').isNotEmpty)
                   _detail('The check-in message',item['note'].toString()),
                 if(item['response_mood']!=null)ListTile(
@@ -520,6 +524,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
                   onPressed:()=>_edit(entry)):null,
                 childrenPadding:const EdgeInsets.fromLTRB(15,2,15,15),
                 children:[
+                  Align(alignment:Alignment.centerRight,
+                   child:RecordActionHistoryButton(kind:'checkin',
+                    recordId:entry['id'].toString())),
                   if((entry['message']?.toString()??'').isNotEmpty)
                     _detail('What’s on my mind',
                       entry['message'].toString()),
