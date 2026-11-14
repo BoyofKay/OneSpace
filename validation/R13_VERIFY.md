@@ -58,3 +58,8 @@ Run verify-only against d5c9e6c01e8945d83417f1760e0e482160fb0705. Previous verif
 Source to verify: 00c62cd6e3a1903acf9652a29217cf809fa76fae
 
 The in-app 'Save a link or idea' option is removed while Android external Share -> OneSpace handling remains. Improvements: lazy checklist subscriptions, next-day cycle refreshing, enabling mention chooser when changed from private to shared, cached saved-login first name, contextual share intake heading, no dead external-platform buttons. Verify Flutter 3.50 deps/analyze/tests. DO NOT build an APK until verification passes and the separate release marker is updated.
+
+
+## R21 pre-release verification (2026-11-14)
+- Compile and test latest source after safe legacy task consolidation, independent partner checkmarks, narrower RLS policies, and camera-first searchable Memories.
+- Do not publish an APK until the test suite passes and release gate is explicitly updated.
