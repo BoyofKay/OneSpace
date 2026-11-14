@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
@@ -288,12 +289,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  @override Widget build(BuildContext context){
   final scheme=Theme.of(context).colorScheme;
   final filtered=rows.where((r)=>
-   (showArchived?r['archived_at']!=null:r['archived_at']==null)&&
+   RecordCollectionSearchRules.inHistory(r,showArchived)&&
    (kind=='all'||r['category']==kind)&&(status=='all'||r['status']==status)&&
    (!mutualOnly||ExperienceInterestRules.mutuallyInterested(interests,r['id']))&&
-   (r['title'].toString().toLowerCase().contains(search.toLowerCase())||
-    (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase())||
-    (r['description']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
+   RecordCollectionSearchRules.matches(r,search,
+    fields:const ['title','platform','description'])).toList();
   final candidates=ExperiencePickerRules.shortlist(rows,category:kind);
   final mutualCandidates=candidates.where((r)=>
    ExperienceInterestRules.mutuallyInterested(interests,r['id'])).toList();
