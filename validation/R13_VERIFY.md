@@ -200,3 +200,8 @@ After initial source gate, add widget tests that start with collapsed ExpansionT
 ## R34 final — in-app copyable stack diagnostics
 
 R34 verifies exact interactive expand/collapse tests of old/new list contents and new `OneSpaceErrorFallback` stack trace text, with full flutter analyze/tests on final source. R34 first validation (run 40) passed. No deletion of legacy target dates or checklist data. Once final verification passes, run one signed Android preview build.
+
+
+## R34 reproduced actual checklist crash: PageStorage bool restored as scroll double
+
+Real tap-to-expand Flutter widget tests caught `_TypeError: type 'bool' is not a subtype of type 'double?'` in `ScrollPosition.restoreScrollOffset` within `EditableText` of the nested subtask TextField. Fix removes the ExpansionTile PageStorageKey and passes a ScrollController(keepScrollOffset:false) to the nested TextField. The regression test intentionally retains a PageStorageKey ancestor to prevent recurrence. Re-run full Flutter dependencies, analyzer and all tests before shipping. No database cleanup needed and no data changed.
