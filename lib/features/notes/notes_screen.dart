@@ -7,6 +7,7 @@ import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
 import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
+import 'quill_note_editor_screen.dart';
 import '../mentions/partner_mention_button.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
@@ -99,7 +100,7 @@ class _NotesScreenState extends State<NotesScreen> {
     if (id == null) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => NoteEditorScreen(spaceId: id, existing: note),
+        builder: (_) => QuillNoteEditorScreen(spaceId: id, existing: note),
       ),
     );
   }
