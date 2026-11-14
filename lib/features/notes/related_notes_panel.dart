@@ -16,7 +16,7 @@ class RelatedNotesPanel extends StatefulWidget{
  @override State<RelatedNotesPanel> createState()=>_RelatedNotesPanelState();
 }
 class _RelatedNotesPanelState extends State<RelatedNotesPanel>{
- final db=Supabase.instance.client;
+ SupabaseClient get db=>Supabase.instance.client;
  late bool expanded;
  Future<List<Map<String,dynamic>>>? pending;
  @override void initState(){
