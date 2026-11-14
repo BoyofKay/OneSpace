@@ -7,6 +7,7 @@ import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
 import 'note_references_panel.dart';
 import '../../core/record_action_history_view.dart';
+import '../mentions/rich_note_mention_button.dart';
 import 'dart:async';
 
 /// OneSpace Notes 2.0: real rich-text editing, native selection/copy/paste,
@@ -142,9 +143,15 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
       decoration:const InputDecoration(labelText:'Note title',
        border:OutlineInputBorder())),
      const SizedBox(height:10),
-     if(isEditingAllowed)quill.QuillSimpleToolbar(
-      controller:editor,
-      config:const quill.QuillSimpleToolbarConfig()),
+     if(isEditingAllowed)...[
+      if(visibility=='shared')Align(
+       alignment:Alignment.centerLeft,
+       child:RichNoteMentionButton(
+        spaceId:widget.spaceId,controller:editor)),
+      quill.QuillSimpleToolbar(
+       controller:editor,
+       config:const quill.QuillSimpleToolbarConfig()),
+     ],
      const SizedBox(height:8),
      Container(
       padding:const EdgeInsets.all(12),
