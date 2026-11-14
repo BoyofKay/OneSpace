@@ -17,6 +17,7 @@ import 'device_unlock.dart';
 import '../../core/first_name.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'session_lock_rules.dart';
+import '../notifications/push_registration_gate.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
 /// OS-level unlock gate, while other remembered accounts require their own
@@ -211,7 +212,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) => _registerInteraction(),
         onPointerSignal: (_) => _registerInteraction(),
-        child: widget.signedIn,
+        child: PushRegistrationGate(child:widget.signedIn),
       );
     }
     return Stack(
