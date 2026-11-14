@@ -13,13 +13,24 @@ model conversion, but this demonstrates R33 did not solve the UI blocker.
 - Current visible checklist rows use `recurrence = 'none'` and normal
   recurrence JSON. Supabase RLS read tests for both members passed R33.
 - Both checklist data tables are in the Supabase realtime publication.
-- A device-side Flutter exception/stack trace is **not yet available**.
+- Widget tests reproduced the crash: Flutter's ScrollPosition.restoreScrollOffset
+  reads an ExpansionTile/PageStorage bool as double? when the nested
+  EditableText in the subtask input is created. This is a shared UI-state
+  key conflict, independent of database contents.
+- A physical-device stack trace is still unavailable; phone acceptance
+  remains required.
 - Avoid deleting legacy records or clearing application data without proof.
 
 ## Changes under test
 - Checklist expansion stream construction is surrounded by exception
   handling, so failure to initialize a realtime subscription cannot
   propagate out of the expansion callback.
+- Replaced the checklist ExpansionTile's PageStorageKey with ValueKey
+  (its expanded state is already retained in _expandedLists) and set the
+  nested TextField scroll controller to keepScrollOffset:false so it never
+  tries to read the ExpansionTile's stored bool as a scroll double.
+- The widget regression intentionally retains an old PageStorageKey parent
+  and verifies nested input rendering does not throw.
 - Subscription to checkmarks now uses one parent-task realtime filter,
   and the current recurrence cycle is selected from the stream in memory.
   This reduces cross-filter complexity in widget initialization. Existing
