@@ -206,12 +206,12 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
    final rows=List<Map<String,dynamic>>.from(snapshot.data??const []);
    final shown=rows.where((r)=>showArchived||r['archived_at']==null).toList();
    final selected=shown.where((r)=>picked.contains(r['id'].toString())).toList();
-   final totals=<String,double>{};
+   final priceRanges=<String,List<double>>{};
    for(final row in selected){
     final amount=(row['price'] as num?)?.toDouble();
     if(amount!=null){
      final currency=row['currency'].toString();
-     totals[currency]=(totals[currency]??0)+amount;
+     priceRanges.putIfAbsent(currency,()=>[]).add(amount);
     }
    }
    return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -280,11 +280,20 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
     )),
     if(selected.isNotEmpty)Card(child:Padding(padding:const EdgeInsets.all(12),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Selected combinations: '+selected.length.toString(),
+      Text('Compare '+selected.length.toString()+' possible flights',
        style:Theme.of(context).textTheme.titleMedium),
-      for(final entry in totals.entries)
-       Text(entry.key+' '+entry.value.toStringAsFixed(2)),
-      Text('Saved prices only · Different currencies are never converted or combined.'),
+      for(final row in selected)ListTile(
+       dense:true,contentPadding:EdgeInsets.zero,
+       title:Text(row['title'].toString()),
+       subtitle:Text([
+        if(row['price']!=null)row['currency'].toString()+' '+row['price'].toString(),
+        if(row['preference_score']!=null)'Preference '+row['preference_score'].toString()+'/5',
+        if(row['stops']!=null)row['stops'].toString()+' stops',
+       ].join(' · '))),
+      for(final entry in priceRanges.entries)Text(
+       entry.key+' price range: '+(entry.value.reduce((a,b)=>a<b?a:b)).toStringAsFixed(2)+
+       ' – '+(entry.value.reduce((a,b)=>a>b?a:b)).toStringAsFixed(2)),
+      const Text('These are competing options, not a combined purchase total. Prices are saved snapshots, not live quotes.'),
      ]))),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(busy)const LinearProgressIndicator(),
