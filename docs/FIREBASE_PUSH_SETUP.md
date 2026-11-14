@@ -1,5 +1,17 @@
 # OneSpace — Firebase Push Setup (Android preview)
 
+## Verified activation — November 14, 2026
+- Android Preview `0.1.403` contains the validated `google-services.json` configuration.
+- Both Android phones registered independently under their respective accounts.
+- `ONESPACE_FIREBASE_SERVICE_ACCOUNT_JSON` and `ONESPACE_PUSH_CRON_SECRET` are configured in Edge Function secrets.
+- Worker password is stored in Supabase Vault (`onespace_push_worker_secret`).
+- Supabase migration `0089` fixes the PostgREST service-role JWT claim compatibility; regression test `0013` passed.
+- Live authorized server invocation returned HTTP 200, with 1 notification accepted by Firebase and 0 retries.
+- Supabase migration `0090` enabled `onespace-fcm-push-delivery` every minute. **Do not run the setup schedule again.**
+- Physical Android lock-screen delivery remains an acceptance test; server acceptance alone is not proof of display on a handset.
+
+
+
 **Current product:** Supabase remains the authority for messages, reminders,
 privacy and accounts. Firebase delivers a generic lock-screen prompt only.
 Android preview application ID: **com.onespace.onespace.preview**.
