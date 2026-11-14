@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
 import '../plans/plans_screen.dart';
@@ -22,6 +23,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
  StreamSubscription<List<Map<String,dynamic>>>? _reminderSubscription,_recipientSubscription;
  Timer? _changeDebounce;
  bool loading=true,busy=false,showCompleted=false,showArchived=false;
+ String searchText='';
  List<Map<String,dynamic>> reminders=[];
  String get me=>db.auth.currentUser?.id??'';
 
@@ -321,9 +323,29 @@ class _RemindersScreenState extends State<RemindersScreen> {
  @override Widget build(BuildContext context){
   final visible=reminders.where((r)=>
    (showArchived||r['archived_at']==null)&&
-   (showCompleted||recipients(r).any((x)=>x['state']!='done'))).toList();
+   (showCompleted||recipients(r).any((x)=>x['state']!='done'))&&
+   (searchText.isEmpty||
+    (r['title']??'').toString().toLowerCase().contains(searchText)||
+    (r['details']??'').toString().toLowerCase().contains(searchText))
+   ).toList();
   return Scaffold(
    appBar:AppBar(title:const Text('Reminders'),actions:[
+    RecordListTopActions(
+      showHistory:showArchived,
+      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
+      hasActiveFilters:showCompleted,
+      filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
+       mainAxisSize:MainAxisSize.min,children:[
+        SwitchListTile(title:const Text('Include completed'),
+         value:showCompleted,onChanged:(v){
+          setState(()=>showCompleted=v);update((){});
+         }),
+        TextButton.icon(onPressed:(){
+         setState(()=>showCompleted=false);update((){});
+        },icon:const Icon(Icons.restart_alt),
+         label:const Text('Reset filters')),
+       ])),
+    ),
     IconButton(onPressed:()=>load(),tooltip:'Refresh reminders',
      icon:const Icon(Icons.refresh_outlined)),
    ]),
@@ -339,12 +361,14 @@ class _RemindersScreenState extends State<RemindersScreen> {
      const Text('Personal and shared reminders, with separate follow-up '
       'and snooze outcomes for each of you.'),
      const SizedBox(height:10),
-     Wrap(spacing:8,runSpacing:4,children:[
-      FilterChip(label:const Text('Include completed'),
-       selected:showCompleted,onSelected:(v)=>setState(()=>showCompleted=v)),
-      FilterChip(label:const Text('Show archived'),
-       selected:showArchived,onSelected:(v)=>setState(()=>showArchived=v)),
-     ]),
+     TextField(
+      onChanged:(v)=>setState(()=>searchText=v.trim().toLowerCase()),
+      decoration:const InputDecoration(
+       prefixIcon:Icon(Icons.search),
+       labelText:'Search reminders',
+       hintText:'Search reminder title and details',
+       border:OutlineInputBorder())),
+     const SizedBox(height:10),
      if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),
       child:Text(error!,style:TextStyle(
        color:Theme.of(context).colorScheme.error))),
