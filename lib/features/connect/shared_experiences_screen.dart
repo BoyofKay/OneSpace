@@ -542,42 +542,99 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  List<Map<String,dynamic>> comments=[],reviews=[],audit=[];
  int? rating;
  bool loading=true,busy=false,showAudit=false;
+ bool _reviewDraftDirty=false;
  String? error;
+ RealtimeChannel? _changes;
+ Timer? _refreshTimer;
+ int _loadVersion=0;
  @override void initState(){super.initState();load();}
- @override void dispose(){comment.dispose();review.dispose();super.dispose();}
+ @override void dispose(){
+  _loadVersion++;
+  _refreshTimer?.cancel();
+  if(_changes!=null)unawaited(db.removeChannel(_changes!));
+  comment.dispose();review.dispose();
+  super.dispose();
+ }
+ void _watchDetail(){
+  if(_changes!=null)return;
+  final experienceId=widget.id;
+  final filter=PostgresChangeFilter(type:PostgresChangeFilterType.eq,
+   column:'experience_id',value:experienceId);
+  _changes=db.channel('experience-detail-'+experienceId)
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_experiences',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'id',value:experienceId),
+    callback:(_)=>_refreshSoon())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_experience_comments',filter:filter,
+    callback:(_)=>_refreshSoon())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_experience_reviews',filter:filter,
+    callback:(_)=>_refreshSoon())
+   .subscribe();
+ }
+ void _refreshSoon(){
+  _refreshTimer?.cancel();
+  _refreshTimer=Timer(const Duration(milliseconds:550),(){
+   if(mounted)unawaited(load());
+  });
+ }
  String who(Object? id)=>id==db.auth.currentUser?.id?'You':'Partner';
  Future<void> load()async{
+  final request=++_loadVersion;
+  final account=db.auth.currentUser?.id;
+  if(account==null){
+   if(mounted)setState((){
+    item=null;comments=[];reviews=[];audit=[];
+    loading=false;error='Sign in to view this experience.';
+   });
+   return;
+  }
   try{
-   final r=await db.from('shared_experiences').select().eq('id',widget.id).single();
+   final r=await db.from('shared_experiences').select()
+    .eq('id',widget.id).single();
    final v=await Future.wait([
-    db.from('shared_experience_comments').select().eq('experience_id',widget.id).order('created_at'),
+    db.from('shared_experience_comments').select().eq('experience_id',widget.id)
+     .order('created_at'),
     db.from('shared_experience_reviews').select().eq('experience_id',widget.id),
     db.from('shared_experience_revisions').select().eq('experience_id',widget.id)
-      .order('changed_at',ascending:false).limit(60),
+     .order('changed_at',ascending:false).limit(60),
    ]);
-   if(!mounted)return;
-   final myReview=v[1].where((a)=>a['user_id']==db.auth.currentUser?.id).firstOrNull;
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
+   final myReview=v[1].where((a)=>a['user_id']==account).firstOrNull;
    setState((){
     item=r;comments=List<Map<String,dynamic>>.from(v[0]);
     reviews=List<Map<String,dynamic>>.from(v[1]);
     audit=List<Map<String,dynamic>>.from(v[2]);
-    rating=(myReview?['rating'] as num?)?.toInt();
-    review.text=(myReview?['review']??'').toString();
+    if(!_reviewDraftDirty){
+     rating=(myReview?['rating'] as num?)?.toInt();
+     review.text=(myReview?['review']??'').toString();
+    }
     loading=false;error=null;
    });
-  }catch(_){if(mounted)setState((){loading=false;error='Could not open experience.';});}
+   _watchDetail();
+  }catch(_){
+   if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==account)
+    setState((){loading=false;error='Could not refresh experience.';});
+  }
  }
- Future<void> mutate(Future<void> Function() action)async{
-  if(busy)return;
+ Future<bool> mutate(Future<void> Function() action)async{
+  if(busy)return false;
   setState((){busy=true;error=null;});
-  try{await action();await load();}
-  on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
-  catch(_){if(mounted)setState(()=>error='Could not save change.');}
-  finally{if(mounted)setState(()=>busy=false);}
+  try{
+   await action();
+   await load();
+   return true;
+  }on PostgrestException catch(e){
+   if(mounted)setState(()=>error=e.message);
+  }catch(_){
+   if(mounted)setState(()=>error='Could not save change.');
+  }finally{if(mounted)setState(()=>busy=false);}
+  return false;
  }
  Future<void> saveReview()async{
   if(rating==null&&review.text.trim().isEmpty)return;
-  await mutate(()async{
+  final saved=await mutate(()async{
    final me=db.auth.currentUser!.id;
    final values={'rating':rating,'review':review.text.trim()};
    final existing=await db.from('shared_experience_reviews')
@@ -597,6 +654,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
      .eq('experience_id',widget.id).eq('user_id',me);
    }
   });
+  if(saved)_reviewDraftDirty=false;
  }
  Future<void> send()async{
   final body=comment.text.trim();if(body.isEmpty)return;
@@ -614,9 +672,11 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  Future<void> archive()async{
   final r=item;if(r==null)return;
   await mutate(()async{
-   await db.from('shared_experiences').update({
+   final updated=await db.from('shared_experiences').update({
     'archived_at':r['archived_at']==null?DateTime.now().toUtc().toIso8601String():null
-   }).eq('id',widget.id);
+   }).eq('id',widget.id).eq('updated_at',r['updated_at']).select('id');
+   if(updated.isEmpty)throw StateError(
+    'Another edit was saved on the other phone. Refresh before trying again.');
   });
  }
  Future<void> openLink()async{
@@ -634,6 +694,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     padding:const EdgeInsets.all(16),children:[
     Text(r['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
     Text((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested')),
+    if(r['planned_on']!=null)Text('Planned together: '+r['planned_on'].toString()),
+    if(r['enjoyed_on']!=null)Text('Enjoyed on: '+r['enjoyed_on'].toString()),
     if((r['description']??'').toString().isNotEmpty)Text(r['description'].toString()),
     if((r['platform']??'').toString().isNotEmpty)Text('Platform: '+r['platform'].toString()),
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
@@ -646,11 +708,14 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     const Text('My rating'),
     Wrap(children:[
      for(var i=1;i<=5;i++)IconButton(tooltip:'Rate '+i.toString(),
-      onPressed:()=>setState(()=>rating=i),
+      onPressed:()=>setState((){rating=i;_reviewDraftDirty=true;}),
       icon:Icon((rating??0)>=i?Icons.star:Icons.star_border)),
-     TextButton(onPressed:()=>setState(()=>rating=null),child:const Text('Clear')),
+     TextButton(onPressed:()=>setState((){
+      rating=null;_reviewDraftDirty=true;
+     }),child:const Text('Clear')),
     ]),
     TextField(controller:review,maxLength:2000,maxLines:3,
+     onChanged:(_)=>_reviewDraftDirty=true,
      decoration:const InputDecoration(labelText:'My review')),
     Align(alignment:Alignment.centerRight,child:FilledButton(
      onPressed:busy?null:saveReview,child:const Text('Save my review'))),
