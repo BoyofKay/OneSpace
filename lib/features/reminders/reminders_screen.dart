@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
+import '../../core/record_action_history_view.dart';
 import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
 import '../plans/plans_screen.dart';
@@ -303,6 +304,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
       icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.unarchive_outlined),
       label:Text(r['archived_at']==null?'Archive':'Restore')),
     ]),
+    Align(alignment:Alignment.centerRight,
+     child:TextButton.icon(
+      onPressed:()=>showModalBottomSheet<void>(
+       context:context,showDragHandle:true,isScrollControlled:true,
+       builder:(_)=>FractionallySizedBox(heightFactor:.78,
+        child:RecordActionHistoryView(
+         kind:'reminder',recordId:r['id'].toString()))),
+      icon:const Icon(Icons.manage_history_outlined),
+      label:const Text('Record action history'))),
     if(history.isNotEmpty)ExpansionTile(
      title:Text('Outcome history · '+history.length.toString()),
      children:[for(final event in history)ListTile(
