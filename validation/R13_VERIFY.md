@@ -180,3 +180,8 @@ R32 analyzer found one test-only nullable-map inference in `checkin_acknowledgem
 ## R33 — Android To-do and Checklists crash blocker, source verification
 
 Full Flutter committed dependency lock check, `flutter analyze` and all `flutter test` including `checklist_list_loader_test.dart` after non-destructive task parsing hardening. Live backend task statistics checked and no old/new checklist rows deleted. Gate source changes only; do not release until green. Documentation `docs/R33_CHECKLIST_CRASH_BLOCKER_QA.md`. Existing push configuration, two users, signing certificate and shared/private data stay intact.
+
+
+## R33 corrected legacy visibility fallback — final source gate
+
+The initial full-suite CI found one compatibility failure in existing `widget_test.dart` (missing visibility expected shared). Restored original shared fallback while retaining null/malformed row crash isolation. Re-run all Flutter tests, analyzer and locked dependencies. Dual-account RLS read regression 0019 PASS. No database cleanup or APK until green.
