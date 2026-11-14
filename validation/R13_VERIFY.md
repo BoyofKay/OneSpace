@@ -141,3 +141,7 @@ Run Flutter analyze and tests for date persistence and deterministic day-based s
 - TripPreparationSection and PlansScreen focusTaskId deep link integrated.
 - RLS regression 0016 passed private trip denial, shared partner visibility and idempotence.
 - Re-verify full Flutter analysis and tests at this exact commit before R27 Android release.
+
+
+## R27 full source final gate
+Trip airfare choices are competing alternatives, so their prices are compared per currency rather than incorrectly summed. Verify final source before separate R27 signed preview.
