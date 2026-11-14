@@ -53,5 +53,30 @@ class MemoryPhotoService{
   }
   return saved;
  }
+ /// Upload one verified camera/gallery image and return its database ID,
+ /// so a scrapbook slot cannot accidentally use a partner's concurrent photo.
+ Future<String> addFileReturningId(String memoryId,XFile photo)async{
+  final user=db.auth.currentUser?.id;
+  if(user==null)throw StateError('Sign in to add a scrapbook photo.');
+  final bytes=await photo.readAsBytes();
+  ActivityImageRules.validate(bytes);
+  final mime=ActivityImageRules.mimeType(bytes)!;
+  final path=memoryId+'/'+user+'/'+const Uuid().v4()+'.'+
+   ActivityImageRules.extension(mime);
+  final storage=db.storage.from(bucket);
+  await storage.uploadBinary(path,bytes,
+   fileOptions:FileOptions(contentType:mime,upsert:false));
+  try{
+   final row=await db.from('memory_photos').insert({
+    'memory_id':memoryId,'caption':'','mime_type':mime,
+    'byte_size':bytes.length,'object_path':path,
+   }).select('id').single();
+   return row['id'].toString();
+  }catch(_){
+   try{await storage.remove([path]);}catch(_){}
+   rethrow;
+  }
+ }
+
  Future<String> signedUrl(String path)=>db.storage.from(bucket).createSignedUrl(path,120);
 }
