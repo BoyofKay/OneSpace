@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,12 +17,46 @@ class RemindersScreen extends StatefulWidget {
 }
 class _RemindersScreenState extends State<RemindersScreen> {
  final db=Supabase.instance.client;
- String? space,error;
+ String? space,error,_watchedSpace,_reminderFingerprint,_recipientFingerprint;
+ StreamSubscription<List<Map<String,dynamic>>>? _reminderSubscription,_recipientSubscription;
+ Timer? _changeDebounce;
  bool loading=true,busy=false,showCompleted=false,showArchived=false;
  List<Map<String,dynamic>> reminders=[];
  String get me=>db.auth.currentUser?.id??'';
 
  @override void initState(){super.initState();load();}
+ @override void dispose(){
+  _changeDebounce?.cancel();
+  _reminderSubscription?.cancel();
+  _recipientSubscription?.cancel();
+  super.dispose();
+ }
+ void _queueRefresh(){
+  _changeDebounce?.cancel();
+  _changeDebounce=Timer(const Duration(milliseconds:350),(){
+   if(mounted)load(quiet:true);
+  });
+ }
+ void _watchChanges(String id){
+  if(_watchedSpace==id)return;
+  _watchedSpace=id;
+  _reminderSubscription?.cancel();_recipientSubscription?.cancel();
+  _reminderFingerprint=null;_recipientFingerprint=null;
+  _reminderSubscription=db.from('reminders').stream(primaryKey:['id'])
+   .eq('space_id',id).limit(250).listen((rows){
+    final stamp=rows.map((r)=>r.toString()).join('|');
+    if(_reminderFingerprint!=null&&_reminderFingerprint!=stamp)_queueRefresh();
+    _reminderFingerprint=stamp;
+   },onError:(Object error,StackTrace stack){});
+  // RLS allows reading recipient state only for this user or a shared
+  // reminder. This also observes the partner's completion/snooze actions.
+  _recipientSubscription=db.from('reminder_recipients').stream(primaryKey:['id'])
+   .limit(500).listen((rows){
+    final stamp=rows.map((r)=>r.toString()).join('|');
+    if(_recipientFingerprint!=null&&_recipientFingerprint!=stamp)_queueRefresh();
+    _recipientFingerprint=stamp;
+   },onError:(Object error,StackTrace stack){});
+ }
  Future<void> load({bool quiet=false})async{
   if(!mounted)return;
   if(!quiet)setState((){loading=true;error=null;});
@@ -38,6 +73,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     'snoozed_until,acknowledged_at,outcome_note,updated_at),'
     'reminder_actions(actor_id,recipient_id,action,note,next_alert_at,recorded_at)')
      .eq('space_id',id).order('due_at',ascending:true).limit(250);
+   if(mounted)_watchChanges(id);
    if(mounted)setState((){
     space=id;reminders=List<Map<String,dynamic>>.from(data);
     loading=false;error=null;
