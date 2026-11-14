@@ -285,3 +285,8 @@ Full Flutter analyzer and entire unit/widget test suite required on latest code 
 ## R43 final — shared multiword search and archived-only visibility
 
 After six-screen top toolbar changes, introduced pure `RecordCollectionSearchRules` with multiword matching only against explicitly selected RLS-fetched metadata fields and separate archived-only selection. Reused in Trips, Occasions and Shared Experiences. Include `record_collection_search_rules_test.dart` in the full Flutter analyzer/widget/unit suite, and keep all prior checklist, voice, reminders, Notes, push, theme and privacy tests. R42 preview 416 remains pinned independently; do not publish R43 until CI green.
+
+
+## R43 follow-up: Coordinate analyzer clean-up
+
+Source run 58 found an unused local `counts` after moving Coordinate's inline chips into the top filter. Removed the unused local and clarified the empty archived state. Re-run locked Flutter analyzer and all unit/widget tests on final source including `record_collection_search_rules_test.dart`; do not ship a failing source.
