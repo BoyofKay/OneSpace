@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import 'trip_item_editor.dart';
@@ -121,15 +122,9 @@ class _TripsScreenState extends State<TripsScreen> {
  @override Widget build(BuildContext context){
   final now=CalendarRules.day(DateTime.now());
   final visible=trips.where((trip){
-   if((trip['archived_at']!=null)!=showArchived)return false;
-   final title=trip['title'].toString().toLowerCase();
-   final needle=query.trim().toLowerCase();
-   final searchable=[title,
-     (trip['destination']??'').toString().toLowerCase(),
-     (trip['origin']??'').toString().toLowerCase(),
-     (trip['notes']??'').toString().toLowerCase(),
-   ].join(' ');
-   if(needle.isNotEmpty&&!searchable.contains(needle))return false;
+   if(!RecordCollectionSearchRules.inHistory(trip,showArchived))return false;
+   if(!RecordCollectionSearchRules.matches(trip,query,
+    fields:const ['title','destination','origin','notes']))return false;
    if(showArchived||filter=='all')return true;
    final end=DateTime.tryParse((trip['end_on']??trip['start_on']??'').toString());
    final past=end!=null&&end.isBefore(now);
