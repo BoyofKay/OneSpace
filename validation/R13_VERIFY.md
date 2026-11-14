@@ -240,3 +240,8 @@ First source run 47 found an analyzer-only missing `flutter/services.dart` impor
 ## R38 — Notes rich-text cross-module references (source-only)
 
 Deploy additive SQL migrations 0101 and 0102 and run rollback-only two-partner RLS regression 0022. Existing note text, rich Delta, photo attachments, calendars, occasions, checklists and experiences are unchanged. Verify locked Flutter dependencies, analyzer, all unit/widget tests including `note_reference_rules_test.dart`. Links are read live through target RLS, private surprise cannot be linked in a shared note, and unlink deletes only the association. Signed APK gate only after source verification passes.
+
+
+## R38 final — Links + searchable Notes 2.0 on signed preview source
+
+After first R38 commit, added title/body search with pinned ordering and archived filters; added `notes_library_rules_test.dart`, and separately passed rollback-only SQL 0023 for private surprise occasions. Run committed dependency verification, Flutter analyze and full Flutter test suite on this *latest* source before releasing. No altered Firebase credentials, checklist records, note bodies, pairings or permissions. The next signed APK must include R38 cross-module references and Notes search, plus all previous R34–R37 fixes.
