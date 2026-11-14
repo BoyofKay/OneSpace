@@ -5,6 +5,7 @@ import 'task_recurrence_rules.dart';
 import 'checklist_schedule.dart';
 import 'checklist_readout_sheet.dart';
 import '../notes/related_notes_panel.dart';
+import '../../core/record_action_history_view.dart';
 
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
@@ -218,6 +219,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
         Icon(Icons.checklist_rounded,size:17,color:colors.primary),
         const SizedBox(width:5),
         Expanded(child:Text(done.toString()+' of '+items.length.toString()+' items')),
+        RecordActionHistoryButton(kind:'task',recordId:widget.taskId),
         IconButton(
          tooltip:'Listen to checklist',
          icon:const Icon(Icons.record_voice_over_outlined),
