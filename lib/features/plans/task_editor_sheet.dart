@@ -185,7 +185,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(existing==null?'Create to-do list':'Edit to-do list',
+              Text(existing==null?'Create checklist':'Edit checklist',
                 style: const TextStyle(
                   fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
@@ -255,7 +255,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                   spacing: 8,
                   children: <Widget>[
                     ChoiceChip(
-                      label: Text(tr(context, 'unassigned')),
+                      label: const Text('Both of us'),
                       selected: _assignedTo == null,
                       onSelected: _saving ? null : (_) =>
                           setState(() => _assignedTo = null),
