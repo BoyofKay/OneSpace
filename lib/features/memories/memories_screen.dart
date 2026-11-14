@@ -19,7 +19,8 @@ import 'memory_photo_layout_rules.dart';
 import 'scrapbook_studio_screen.dart';
 
 class MemoriesScreen extends StatefulWidget {
-  const MemoriesScreen({super.key});
+  const MemoriesScreen({super.key,this.initialMemoryId});
+  final String? initialMemoryId;
 
   @override
   State<MemoriesScreen> createState() => _MemoriesScreenState();
@@ -35,6 +36,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
   bool _loading = true;
   bool _archived = false;
+  bool _openedDeepLink=false;
   String _scope = 'all';
   String? _error;
 
@@ -88,6 +90,18 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             }
           },
         );
+      }
+      if(id!=null&&widget.initialMemoryId!=null&&!_openedDeepLink){
+       _openedDeepLink=true;
+       try{
+        final rows=await _client.from('memories').select()
+         .eq('space_id',id).eq('id',widget.initialMemoryId!).limit(1);
+        if(mounted&&rows.isNotEmpty){
+         WidgetsBinding.instance.addPostFrameCallback((_){
+          if(mounted)_edit(existing:rows.first);
+         });
+        }
+       }catch(_){}
       }
       PerformanceTimings.instance.record('Memories setup', timer.elapsed);
     } on PostgrestException catch (e) {
