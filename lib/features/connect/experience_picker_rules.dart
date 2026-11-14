@@ -63,6 +63,29 @@ class ExperiencePickerRules {
     return candidates[position];
   }
 
+  /// Use vocabulary that fits each collection, rather than saying
+  /// someone "watched" a book or a board game.
+  static String completionAction(String category) => switch (category) {
+    'movie' || 'show' => 'Mark watched',
+    'music' => 'Mark listened',
+    'book' => 'Mark read',
+    'game' => 'Mark played',
+    _ => 'Mark enjoyed',
+  };
+
+  static String completionState(String category) => switch (category) {
+    'movie' || 'show' => 'Watched',
+    'music' => 'Listened',
+    'book' => 'Read',
+    'game' => 'Played',
+    _ => 'Enjoyed',
+  };
+
+  static String dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
+
   static int count(
     Iterable<Map<String, dynamic>> experiences,
     String status,
