@@ -35,23 +35,35 @@ class SharedTask {
   final String recurrence;
   final Map<String,dynamic> rule;
 
-  factory SharedTask.fromMap(Map<String, dynamic> row) => SharedTask(
-    id: row['id'] as String,
-    title: row['title'] as String,
-    priority: TaskPriority.values.firstWhere(
-      (v) => v.name == row['priority'], orElse: () => TaskPriority.normal),
-    status: TaskStatus.values.firstWhere(
-      (v) => v.name == row['status'], orElse: () => TaskStatus.open),
-    visibility: TaskVisibility.values.firstWhere(
-      (v) => v.name == (row['visibility'] ?? 'shared'),
-      orElse: () => TaskVisibility.shared),
-    createdBy: row['created_by'] as String? ?? '',
-    assignedTo: row['assigned_to'] as String?,
-    targetDate: row['target_date'] as String?,
-    recurrence:(row['recurrence']??'none').toString(),
-    rule:row['recurrence_rule'] is Map?
-      Map<String,dynamic>.from(row['recurrence_rule'] as Map):const {},
-  );
+  /// Keep older and partially migrated checklist records renderable.
+  /// Supabase remains the authority for ownership and edit permission.
+  /// Only a missing/invalid ID is unrenderable (handled at list boundary).
+  factory SharedTask.fromMap(Map<String, dynamic> row) {
+    final rawRules = row['recurrence_rule'];
+    final rules = rawRules is Map
+      ? <String,dynamic>{
+         for (final entry in rawRules.entries)
+           if (entry.key is String) entry.key as String: entry.value,
+        }
+      : <String,dynamic>{};
+    final rawTitle = (row['title'] ?? '').toString().trim();
+    return SharedTask(
+      id: row['id'].toString(),
+      title: rawTitle.isEmpty ? 'Untitled checklist' : rawTitle,
+      priority: TaskPriority.values.firstWhere(
+        (v) => v.name == row['priority'], orElse: () => TaskPriority.normal),
+      status: TaskStatus.values.firstWhere(
+        (v) => v.name == row['status'], orElse: () => TaskStatus.open),
+      visibility: TaskVisibility.values.firstWhere(
+        (v) => v.name == row['visibility'],
+        orElse: () => TaskVisibility.private),
+      createdBy: (row['created_by'] ?? '').toString(),
+      assignedTo: row['assigned_to']?.toString(),
+      targetDate: row['target_date']?.toString(),
+      recurrence: (row['recurrence'] ?? 'none').toString(),
+      rule: rules,
+    );
+  }
 }
 
 /// Only the fields the user can edit. Privacy never changes after creation.
