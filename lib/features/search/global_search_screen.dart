@@ -48,7 +48,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
      final pattern=GlobalSearchRules.pattern(term);
      var failedCategories=0;
-     Future<dynamic> guarded(dynamic request) async {
+     Future<dynamic> guarded(String kind,dynamic request) async {
+       // A category filter avoids starting unrelated network searches.
+       if(!GlobalSearchRules.shouldSearchSection(section,kind)){
+        return <Map<String,dynamic>>[];
+       }
        try{
          return await Future<dynamic>.value(request)
            .timeout(const Duration(seconds:10));
@@ -58,61 +62,61 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        }
      }
      final groups=await Future.wait([
-       guarded(db.from('activities').select('id,title,updated_at').eq('space_id',id)
+       guarded('Activity',db.from('activities').select('id,title,updated_at').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('space_events').select('id,title,event_date').eq('space_id',id)
+       guarded('Calendar',db.from('space_events').select('id,title,event_date').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).order('event_date').limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('tasks').select('id,title,created_at').eq('space_id',id)
+       guarded('To-do',db.from('tasks').select('id,title,created_at').eq('space_id',id)
          .isFilter('migrated_to_list',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('notes').select('id,title,updated_at').eq('space_id',id)
+       guarded('Note',db.from('notes').select('id,title,updated_at').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('couple_letters').select('id,title,created_at').eq('space_id',id)
+       guarded('Letter',db.from('couple_letters').select('id,title,created_at').eq('space_id',id)
          .eq('status','sent').ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
+       guarded('Tag',db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
          .eq('kind','tag').eq('activities.space_id',id)
          .isFilter('archived_at',null).isFilter('activities.archived_at',null)
          .ilike('label',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('shared_trips').select('id,title').eq('space_id',id)
+       guarded('Trip',db.from('shared_trips').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('shared_experiences').select('id,title').eq('space_id',id)
+       guarded('Experience',db.from('shared_experiences').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('trip_items').select('id,trip_id,title')
+       guarded('Trip item',db.from('trip_items').select('id,trip_id,title')
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('trip_attachments').select('id,trip_id,title')
+       guarded('Travel document',db.from('trip_attachments').select('id,trip_id,title')
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('occasion_plans').select('id,title').eq('space_id',id)
+       guarded('Occasion',db.from('occasion_plans').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('reminders').select('id,title').eq('space_id',id)
+       guarded('Reminder',db.from('reminders').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('goals').select('id,title').eq('space_id',id)
+       guarded('Goal',db.from('goals').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // Content search uses independent parameterized PostgREST ilike calls,
        // never a string-built .or() filter that could alter query grammar.
-       guarded(db.from('activities').select('id,title').eq('space_id',id)
+       guarded('Activity',db.from('activities').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('space_events').select('id,title').eq('space_id',id)
+       guarded('Calendar',db.from('space_events').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('shared_experiences').select('id,title').eq('space_id',id)
+       guarded('Experience',db.from('shared_experiences').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('description',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('notes').select('id,title').eq('space_id',id)
+       guarded('Note',db.from('notes').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('goals').select('id,title').eq('space_id',id)
+       guarded('Goal',db.from('goals').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('description',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded(db.from('reminders').select('id,title').eq('space_id',id)
+       guarded('Reminder',db.from('reminders').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
      ]);
@@ -169,7 +173,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      tooltip:'Filter search results',
      icon:const Icon(Icons.filter_alt_outlined),
      initialValue:section,
-     onSelected:(v)=>setState(()=>section=v),
+     onSelected:(v){
+      setState(()=>section=v);
+      if(GlobalSearchRules.canSearch(query.text))search(query.text);
+     },
      itemBuilder:(_)=>[
       for(final category in [
        'All','Activity','Calendar','To-do','Note','Letter','Tag',
