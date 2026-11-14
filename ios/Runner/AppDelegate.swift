@@ -1,11 +1,13 @@
 import Flutter
 import UIKit
 import UniformTypeIdentifiers
+import AVFoundation
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, UIDocumentPickerDelegate {
   private var documentResult: FlutterResult?
   private let maximumDocumentSize = 10 * 1024 * 1024
+  private let checklistSpeech = AVSpeechSynthesizer()
 
   override func application(
     _ application: UIApplication,
@@ -27,6 +29,46 @@ import UniformTypeIdentifiers
       }
       self?.selectDocument(result: result)
     }
+
+    let speech = FlutterMethodChannel(
+      name: "onespace/checklist_speech",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    speech.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(FlutterError(code:"VOICE_UNAVAILABLE",message:"Speech service missing",details:nil))
+        return
+      }
+      switch call.method {
+      case "stop":
+        self.checklistSpeech.stopSpeaking(at: .immediate)
+        result(nil)
+      case "speak":
+        guard let arguments = call.arguments as? [String: Any],
+              let text = arguments["text"] as? String,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              text.count <= 60000 else {
+          result(FlutterError(code:"INVALID_TEXT",message:"Invalid checklist text",details:nil))
+          return
+        }
+        let language = arguments["language"] as? String ?? "en"
+        let speed = (arguments["rate"] as? Double ?? 1.0).clamped(to: 0.7...1.4)
+        self.checklistSpeech.stopSpeaking(at: .immediate)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: language) ??
+                          AVSpeechSynthesisVoice(language: Locale.current.language.languageCode?.identifier ?? "en")
+        utterance.rate = Float(AVSpeechUtteranceDefaultSpeechRate * Float(speed))
+        self.checklistSpeech.speak(utterance)
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  override func applicationWillResignActive(_ application: UIApplication) {
+    checklistSpeech.stopSpeaking(at: .immediate)
+    super.applicationWillResignActive(application)
   }
 
   private func selectDocument(result: @escaping FlutterResult) {
