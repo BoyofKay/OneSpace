@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
@@ -121,12 +122,9 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
  @override Widget build(BuildContext context){
   final today=DateTime.now();
   final shown=plans.where((p){
-   if((p['archived_at']!=null)!=archived)return false;
-   final term=query.trim().toLowerCase();
-   final text=[
-    p['title'],p['honoree_name'],p['notes'],p['kind'],
-   ].map((x)=>x?.toString().toLowerCase()??'').join(' ');
-   if(term.isNotEmpty&&!text.contains(term))return false;
+   if(!RecordCollectionSearchRules.inHistory(p,archived))return false;
+   if(!RecordCollectionSearchRules.matches(p,query,
+    fields:const ['title','honoree_name','notes','kind']))return false;
    if(filter=='all'||archived)return true;
    if(filter=='private')return p['visibility']=='private';
    if(filter=='shared')return p['visibility']=='shared';
