@@ -280,3 +280,8 @@ Global search now skips all nonmatching source categories when a top-bar categor
 ## R43 — Six collection screens: top history, filtering and search
 
 Full Flutter analyzer and entire unit/widget test suite required on latest code after adding History/Filters in Trips, Occasions, People & Contacts, Shared Experiences, embedded Coordinate and Check-ins. Verify archived-only vs normal list behavior, contextual search and the existing R34 checklist crash regression, R37 speech, R40 audit/contrast and R42 mentions. Source-only QA: do not modify or supersede already queued signed R42 Release 416. See docs/R43_COLLECTION_HISTORY_FILTERS_SEARCH_QA.md.
+
+
+## R43 final — shared multiword search and archived-only visibility
+
+After six-screen top toolbar changes, introduced pure `RecordCollectionSearchRules` with multiword matching only against explicitly selected RLS-fetched metadata fields and separate archived-only selection. Reused in Trips, Occasions and Shared Experiences. Include `record_collection_search_rules_test.dart` in the full Flutter analyzer/widget/unit suite, and keep all prior checklist, voice, reminders, Notes, push, theme and privacy tests. R42 preview 416 remains pinned independently; do not publish R43 until CI green.
