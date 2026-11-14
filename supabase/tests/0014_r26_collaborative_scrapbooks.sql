@@ -38,12 +38,12 @@ begin
 end $t$;
 select set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
 select public.invite_scrapbook_partner(current_setting('qa.scrap')::uuid);
+select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
 do $t$ begin
  if (select count(*) from public.space_notifications
   where kind='scrapbook_invite' and object_id=current_setting('qa.scrap')::uuid)<>1
- then raise exception 'Collaboration invitation notification missing';end if;
+ then raise exception 'Collaboration invitation notification missing for recipient';end if;
 end $t$;
-select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
 select public.respond_scrapbook_invite(current_setting('qa.scrap')::uuid,true);
 insert into public.scrapbook_pages(memory_id,page_order,template_key,title,story_text)
  values(current_setting('qa.scrap')::uuid,1,'milestone_story',
