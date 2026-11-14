@@ -23,6 +23,8 @@ class _ChecklistExpansionHarness extends StatefulWidget{
 class _ChecklistExpansionHarnessState extends State<_ChecklistExpansionHarness>{
  bool expanded=false;
  @override Widget build(BuildContext context)=>ListView(children:[
+  // Deliberately reproduce the old PageStorage ancestor. The nested
+  // text input must not interpret ExpansionTile's bool as a double offset.
   ExpansionTile(key:const PageStorageKey<String>('todo-test'),
    title:Text(widget.title),
    onExpansionChanged:(value)=>setState(()=>expanded=value),
