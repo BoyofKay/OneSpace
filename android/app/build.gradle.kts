@@ -4,6 +4,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Preview stays installable before Firebase registration. Once the Firebase
+// Android config is supplied by CI, compile Google Services resources.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.onespace.onespace"
     compileSdk = flutter.compileSdkVersion
