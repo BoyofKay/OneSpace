@@ -7,6 +7,7 @@ import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
 import '../notes/notes_screen.dart';
 import '../plans/plans_screen.dart';
+import '../reminders/reminders_screen.dart';
 import '../world/world_contacts_screen.dart';
 import '../occasions/occasions_screen.dart';
 
@@ -170,6 +171,12 @@ class _RememberScreenState extends State<RememberScreen> {
               subtitle: tr(context, 'rememberTodosSubtitle'),
               count: _count('todo_count'),
               destination: const PlansScreen(),
+            ),
+            _destination(
+              icon: Icons.alarm_outlined,
+              title: 'Reminders',
+              subtitle: 'Personal and shared alerts, snoozes and follow-up notes',
+              destination: const RemindersScreen(),
             ),
             _destination(
               icon: Icons.sticky_note_2_outlined,
