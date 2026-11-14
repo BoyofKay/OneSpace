@@ -25,8 +25,9 @@ values
  (current_setting('qa.space')::uuid,auth.uid(),'QA PRIVATE NOTE','secret draft','private'),
  (current_setting('qa.space')::uuid,auth.uid(),'QA SHARED NOTE','shared text','shared');
 
+select set_config('qa.private_task',(select id::text from public.tasks where title='QA CHECKLIST PRIVATE'),true);
 select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
-do $$
+do $
 declare denied boolean:=false;
 begin
  if (select count(*) from public.task_checklist_items where title='QA shared item')<>1
@@ -44,8 +45,7 @@ begin
  if not found then raise exception 'Partner cannot edit shared note'; end if;
  begin
   insert into public.task_checklist_items(task_id,title)
-   select id,'Unauthorized' from public.tasks where title='QA CHECKLIST PRIVATE';
-  if found then denied:=true; end if;
+   values(current_setting('qa.private_task')::uuid,'Unauthorized');
  exception when others then denied:=true;
  end;
  if not denied then raise exception 'Unexpected visibility of private checklist'; end if;
