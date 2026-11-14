@@ -17,15 +17,22 @@
 - Expired deep links do not automatically open a reply editor.
 - Existing personal Daily Check-in journal, private-sharing controls,
   reply notifications, and Firebase push configuration are unchanged.
+- Today → Needs Attention excludes expired, unanswered requests at the
+  SQL aggregation layer, even though those same records remain in
+  Daily Connection history and original notification history.
 - No auto nagging, default resending, or emotionally urgent inference.
 
 ## Database and regression
 - Additive migration `supabase/schema/0096_r31_gentle_checkin_expiry.sql`
   deployed to the existing OneSpace Supabase project.
+- `supabase/schema/0097_r31_exclude_expired_checkin_attention.sql`
+  updates the existing Today attention aggregator without changing its
+  privacy model or unrelated activity/task rules.
 - Rollback-only test `supabase/tests/0017_r31_checkin_expiry.sql` passed:
   new request seven-day deadline; server rejects a late reply;
   valid reply is accepted with a server timestamp; legacy no-deadline
-  request remains answerable; no test records persist.
+  request remains answerable; expired request is absent from Today →
+  Needs Attention; no test records persist.
 - Pure Dart rules and Flutter unit tests for status boundaries,
   personalized filters, legacy compatibility, timeline ordering, and hints.
 
