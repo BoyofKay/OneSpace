@@ -159,13 +159,14 @@ class _PlansScreenState extends State<PlansScreen> {
         onSave: (draft) async {
           final fields = draft.toEditableFields();
           if (existing == null) {
-            await _client.from('tasks').insert({
+            final created = await _client.from('tasks').insert({
               ...fields,
               'space_id': spaceId,
               'created_by': _me,
               'status': 'open',
               'visibility': draft.visibility.name,
-            });
+            }).select('id').single();
+            if (mounted) setState(() => _expandedLists.add(created['id'].toString()));
           } else {
             final rows = await _client.from('tasks')
               .update(fields)
@@ -407,6 +408,7 @@ class _PlansScreenState extends State<PlansScreen> {
         children: [
       ExpansionTile(
        key:PageStorageKey<String>('todo-'+task.id),
+       initiallyExpanded:_expandedLists.contains(task.id),
        onExpansionChanged:(expanded)=>setState((){
         if(expanded){_expandedLists.add(task.id);}else{_expandedLists.remove(task.id);}
        }),
@@ -436,8 +438,10 @@ class _PlansScreenState extends State<PlansScreen> {
          ]),
        childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
        children:[
-        TaskChecklistPanel(key:ValueKey(task.id),
-         taskId:task.id,recurrence:task.recurrence,canEdit:canEdit&&!cancelled),
+        if(_expandedLists.contains(task.id)) TaskChecklistPanel(
+         key:ValueKey(task.id),taskId:task.id,recurrence:task.recurrence,
+         canEdit:canEdit&&!cancelled&&
+          (task.assignedTo==null||task.assignedTo==_me)),
        ],
       ),
         if (canShare)
