@@ -69,3 +69,8 @@ its original screen, and unlinking it without deleting the original.
   authorized references pass both-device testing.
 - Links are not automatically extracted from note text. The user
   chooses the source explicitly, preserving intention and privacy.
+
+## Additional R38 notes library UX
+- Search Notes by title or plain text while preserving shared/private filters, pin order, and archive visibility.
+- Unit tests `notes_library_rules_test.dart` cover case-insensitive search, archive filtering and malformed timestamp resilience.
+- Rollback-only SQL test 0023 separately verifies a real private occasion remains inaccessible to shared notes and to the other partner.
