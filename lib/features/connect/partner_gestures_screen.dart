@@ -389,12 +389,12 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
         Text('Remind myself to send love',
          style:Theme.of(ctx).textTheme.titleLarge),
         const SizedBox(height:6),
-        const Text('This reminder goes to you, not your partner. You decide whether and what to send.'),
+        const Text('This reminder goes to you, not your partner. You decide whether and what to send. Suggested hours use your phone time; choose a custom time to fit your schedule.'),
         const SizedBox(height:12),
         Wrap(spacing:8,runSpacing:5,children:[
          for(final slot in const {
-           'morning':'Morning','after_work':'After work',
-           'evening':'Evening'}.entries)
+           'morning':'9 AM','after_work':'6 PM',
+           'evening':'9 PM'}.entries)
           ActionChip(label:Text(slot.value),
            onPressed:()=>update(()=>when=LovePromptRules.nextTime(
             DateTime.now(),LovePromptRules.slots[slot.key]!))),
