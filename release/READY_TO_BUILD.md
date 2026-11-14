@@ -1,44 +1,55 @@
-# R38 — Notes 2.0 Cross-Module References and Search
+# R40 — UX consistency foundation, actionable history and contrast
 
 Require-Firebase-Config: true
 
-Previous published preview: 0.1.413. Preserve the same
-com.onespace.onespace.preview Android package, stable preview signing
-certificate, two accounts, pairing, all notes, private surprises,
-original source objects and Firebase Android configuration.
-Only install over the existing APK; never uninstall or clear data.
+Previous published signed preview: 0.1.414. Update both existing Android
+phones IN PLACE. Preserve com.onespace.onespace.preview, exact signing
+certificate, Firebase registrations, both accounts, pairing, existing
+checklists, notes, private surprises, messages, files and push settings.
+NEVER uninstall or clear user data during upgrade.
 
-## New in this release
-- Notes rich editor can link accessible checklist, calendar event,
-  occasion/surprise, and shared experience records.
-- Links navigate to original items; their titles are fetched live under
-  original source-table RLS. Unlink never deletes the source.
-- Private note links stay private and cannot leak a private surprise
-  through a shared note. Private view-only recipients cannot edit links.
-- Duplicate links rejected; archived notes retain read-only references.
-- Notes list now supports title/body search while preserving pinning,
-  Shared/Private filters and archived history.
-- All existing R34 recovered checklist expansion, R35 occasion reminders,
-  R36 love self-reminders and R37 native checklist speech are included.
+## Features included
+- Common top History/Filters controls introduced in Goals, Memories,
+  Notes, Reminders. Existing top controls in other screens preserved.
+- Archived history is separately toggled at the top, filters are in
+  a top-right sheet, reset is available.
+- Local Goals title/description and Reminders title/details search.
+- Global search adds goals/memories, top category selector, accurate
+  direct goal, memory and task deep links, with existing RLS.
+- Action history button for notes, goals, memories, reminders, task
+  checklists, calendar events, occasions and experiences.
+- Backend R40 record_action_history append-only future-change events
+  use authenticated actor, changed field names and server timestamp.
+  No private bodies or media are copied to history.
+- Rich-text Quill note @partner insertion for editable shared notes;
+  existing authorized note mention triggers remain source of truth.
+- Semantic theme error colors in Notes, Memories and Goals.
+- All R34 checklist expansion, R35 occasion reminders, R36 private
+  love self-reminders, R37 native checklist speech, R38 notes linking
+  and R39 lazy backlinks must continue working.
 
-## Database verification complete
-- Additive 0101 note reference table plus RLS source validation DEPLOYED.
-- Additive 0102 view-only private link edit protection DEPLOYED.
-- SQL rollback regression 0022 PASS: dual account, shared/private
-  segregation, wrong target, duplicate, read and unlink.
-- SQL rollback regression 0023 PASS: real private occasion cannot be
-  linked into a shared note or exposed to the other partner.
-- No existing notes, objects, visibility, accounts or data reset.
+## Backend gates already passed
+- Additive 0103 deployed for eight core audit record kinds.
+- Dual-partner rollback-only SQL 0024 PASSED for create/edit/archive/
+  restore, authenticated actor and timestamps, changed fields and
+  isolation of private notes.
+- No existing note/task/occasion/memory/goal/reminder records wiped or
+  mutated by migration, only future action metadata is recorded.
 
-## Mandatory publication gates
-- Run Flutter locked dependencies, analyze, all unit/widget tests
-  including notes_library_rules_test and note_reference_rules_test.
-- Android native compilation; signed preview APK validation.
-- Verify same package/signing certificate and Firebase config.
-- Publish one verifiable GitHub Release asset, no hidden data migration.
-- QA docs/R38_NOTES_LINKED_REFERENCES_QA.md.
-- Do not claim actual phone acceptance until testing on both phones.
-- Halt publication if analyzer, tests, Kotlin, signing or verification fails.
+## Mandatory release validation
+- Use committed Flutter lockfile and full test suite, analyzer, all
+  new widget tests including RecordListTopActions and theme contrast
+  across palette x brightness x seasonal appearances.
+- Compile Kotlin Android, verify existing Firebase google-services.json,
+  unchanged application package and signing certificate.
+- Do not publish if any analyzer, test, compile, sign or verification
+  gate fails. One verifiable signed APK asset only.
+- Do NOT mark all screen UX consistency or two-phone device testing
+  complete; documented remaining work in
+  docs/R40_UX_CONSISTENCY_AUDIT.md.
+- Real-device QA: Top history and filters in Goals, Memories, Notes
+  and Reminders; private audit actions; Quill mentions; search deep
+  links; four palettes; checklist open/read; notifications and privacy.
 
-Controlled Android R38 preview candidate, 14 November 2026,
-source SHA 736bcc2d9cf134c7ad4cccdb0049fb56e2f53396.
+Controlled R40 candidate, November 14 2026.
+Source commit 6eefbd4a5c5a6208869eb0df97326af2cef403fd.
