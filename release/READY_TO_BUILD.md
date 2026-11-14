@@ -1,47 +1,43 @@
-# R30 — Shared Experiences, Trips and Partner Picks
+# R31 — Gentle Daily Connection and Today Check-in Lifecycle
 
 Require-Firebase-Config: true
 
-Release candidate from verified source commit
-`ca7d74595ee262d1b9f92370093f7ee49f2294a9`.
+Previous published Android preview: 0.1.407.
+Upgrade the existing installation on both phones. NEVER uninstall, clear
+app data, recreate accounts, reset pairing or overwrite stored records.
 
-Previously published Android preview: `0.1.406`.
-Install over the existing signed preview; never uninstall, clear storage,
-recreate the two user accounts, reset pairing or destroy partner content.
+## Included changes
+- Daily Connection displays check-in requests by To answer, Sent and History.
+- Clearly distinguish Awaiting response, Answered and Expired requests.
+- Seven-day expiration on newly sent check-in invitations, server-owned.
+- All legacy check-ins (NULL expiration) remain answerable as before.
+- Old conversations, responses, recipient privacy and original notices stay intact.
+- A pending request can only be answered once by its intended recipient;
+  server rejects expired answers, including forged client requests.
+- Deep-linked expired requests no longer open the reply editor.
+- Reply status labels update while on screen without repeated backend polling.
+- Today → Needs Attention no longer offers expired requests as actions.
+- Quiet, non-coercive copy. No automatic reminders, resends or extra pushes.
+- Existing two-way Firebase gestures and in-app notifications are untouched.
 
-## Included source changes since R26
-- R27: private/shared trip flight quote comparison, alternative itinerary
-  options with separate currencies and manual booking confirmation.
-- R27: trip-linked travel preparation templates in the existing unified
-  To-do and Checklists module, without creating another checklist subsystem.
-- R28: date-aware experience ideas and rotating suggestions.
-- R29: Shared Experiences realtime partner comments, reviews and schedules,
-  conflict-checked saves, timezone-neutral local planned/enjoyed dates and
-  category-aware completion buttons for books, movies, TV, games and music.
-- R30: Partner Picks. Independent Interested/Maybe/Not now/Clear selection
-  by each user; mutual matches, match filter, synchronized live choice panel,
-  and prioritization of shared-interest suggestions.
-- Existing R25 Firebase FCM delivery remains required. No FCM secret, signing
-  identity, package ID or push permissions are changed.
+## Backend and source verification
+- Migration 0096 deployed: nullable legacy-safe expires_at and new default.
+- Migration 0097 deployed: only actionable check-ins in Today attention RPC.
+- Rollback-only regression 0017 PASS: default deadline, expiry rejection,
+  double-answer protection, old request compatibility and Today filtering.
+- Corrected Flutter source analyzer and full tests: PASS on
+  commit 648709322fda643b0de4a2ca00bed7137374de2e.
+- Subsequent commits affect only test SQL and documentation, not Dart source.
+- Two-phone tests described in
+  docs/R31_DAILY_CONNECTION_CHECKIN_LIFECYCLE_QA.md.
 
-## Backend and security verification
-- Existing R27 additive migrations 0093 and 0094 deployed.
-- New R30 migration 0095 deployed with RLS and only individual choice update.
-- R30 rollback-only SQL regression 0016 passed two-partner access and blocked
-  forged edits, with no test data retained. The table is in realtime publication.
-- R29 Flutter source verification run 43613481415: SUCCESS.
-- R30 Flutter source verification run 43613936191: SUCCESS.
-- Documentation and two-phone cases: docs/R29_SHARED_EXPERIENCES_REALTIME_QA.md,
-  docs/R30_PARTNER_PICKS_ACCEPTANCE.md.
+## Mandatory release gates
+- Re-run exact committed Flutter dependencies, analyzer and all tests.
+- Compile Android in release mode with required Firebase Android config.
+- Verify unchanged com.onespace.onespace.preview application identifier.
+- Verify the trusted preview signing certificate, retain signed APK artifact.
+- Publish and verify exactly one new GitHub Release asset.
+- Do not claim phone-tested until both real Android accounts have passed
+  the Daily Connection, Today, Firebase and app-retention acceptance checks.
 
-## GitHub release gates
-- Exact committed lockfile, analyzer, all Flutter tests.
-- Release-mode Android compilation and Firebase config/package matching.
-- Keep `com.onespace.onespace.preview` and the existing trusted preview
-  signing certificate, so existing installations can be upgraded in place.
-- Publish and verify exactly one signed preview release artifact.
-- The new features are not marked physical-device-tested until each partner
-  verifies realtime collaboration, private/shared permissions, checklist and
-  trip workflows, and FCM pushes on their own phone.
-
-One controlled R30 build from already verified source, November 14, 2026.
+Controlled R31 candidate, November 14 2026.
