@@ -19,7 +19,7 @@ import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
-import 'features/lists/lists_screen.dart';
+
 import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/memories/memories_screen.dart';
@@ -324,7 +324,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         SharedSpaceScreen(
           refreshToken:refreshToken,
           onOpenPlans:()=>open(const PlansScreen()),
-          onOpenLists:()=>open(const ListsScreen()),
+          onOpenLists:()=>open(const PlansScreen()),
           onOpenNotes:()=>open(const NotesScreen()),
           onOpenCalendar:()=>open(const CalendarScreen()),
           onOpenMemories:()=>open(const MemoriesScreen()),
