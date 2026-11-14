@@ -8,7 +8,9 @@ select set_config('qa.a',user_id::text,true)
 select set_config('qa.b',user_id::text,true)
  from public.space_members where space_id=current_setting('qa.space')::uuid
  order by joined_at desc limit 1;
-set local role authenticated;
+-- Most legacy writes use authorized RPCs rather than direct table INSERT.
+-- Use the migration owner only for temporary fixture writes; all history
+-- SELECT assertions below run as authenticated under each user's JWT.
 select set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
 insert into public.shared_trips(space_id,created_by,title,visibility)
  values(current_setting('qa.space')::uuid,current_setting('qa.a')::uuid,
@@ -41,6 +43,7 @@ update public.saved_contacts set archived_at=null
  where id=current_setting('qa.contact')::uuid;
 update public.daily_checkins set gratitude='Updated only in private check-in'
  where id=current_setting('qa.checkin')::uuid;
+set local role authenticated;
 do $qa$
 declare kinds int; trip_actions int; contact_actions int;
 begin
