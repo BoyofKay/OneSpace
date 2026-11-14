@@ -22,6 +22,7 @@ class TaskChecklistPanel extends StatefulWidget{
 class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  SupabaseClient get db=>Supabase.instance.client;
  final input=TextEditingController();
+ final inputScroll=ScrollController(keepScrollOffset:false);
  String? get viewerId=>widget.testViewerId??db.auth.currentUser?.id;
  Stream<List<Map<String,dynamic>>>? itemsStream,checksStream;
  bool busy=false,contextLoaded=false,dayOff=false;
@@ -121,6 +122,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  @override void dispose(){
   _dayBoundary?.cancel();
   input.dispose();
+  inputScroll.dispose();
   super.dispose();
  }
  Future<void> add()async{
@@ -232,7 +234,8 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
          tooltip:'Remove item',icon:const Icon(Icons.close,size:18),
          onPressed:busy?null:()=>archive(item)):null),
        if(widget.canManage)Row(children:[
-        Expanded(child:TextField(controller:input,maxLength:240,
+        Expanded(child:TextField(controller:input,
+         scrollController:inputScroll,maxLength:240,
          onSubmitted:(_)=>add(),
          decoration:const InputDecoration(
           hintText:'Add subtask',counterText:'',
