@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
 import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
+import '../notes/related_notes_panel.dart';
 import '../mentions/partner_mention_button.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
@@ -773,6 +774,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
      onPressed:openLink,icon:const Icon(Icons.open_in_new),label:const Text('Open link')),
     const Divider(height:28),
+    RelatedNotesPanel(sourceKind:'experience',sourceId:widget.id),
+    const SizedBox(height:12),
     Text('Our picks',style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
     const Text('Each of you chooses independently. A mutual pick means you both selected Interested.'),
