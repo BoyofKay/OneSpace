@@ -14,6 +14,7 @@ import '../sharing/share_grant_watcher.dart';
 import 'memory_photo_gallery.dart';
 import 'memory_photo_service.dart';
 import 'memory_photo_layout_rules.dart';
+import 'scrapbook_studio_screen.dart';
 
 class MemoriesScreen extends StatefulWidget {
   const MemoriesScreen({super.key});
@@ -97,6 +98,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   Future<void> _edit({Map<String,dynamic>? existing,bool selfie=false}) async {
     final id = _spaceId;
     if (id == null) return;
+    if(existing?['memory_type']=='scrapbook'){
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
+         spaceId:id,memoryId:existing!['id'].toString())));
+      if(mounted)await _load();
+      return;
+    }
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(builder: (_) =>
         MemoryEditorScreen(spaceId: id, existing: existing,
@@ -210,6 +218,19 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             OutlinedButton.icon(onPressed:_capturing?null:_dailySelfie,
              icon:const Icon(Icons.photo_camera_outlined),
              label:Text(_capturing?'Saving photo…':'Daily selfie · Camera or Gallery')),
+            const SizedBox(height:8),
+            OutlinedButton.icon(
+              icon:const Icon(Icons.auto_stories_outlined),
+              label:const Text('Scrapbook Studio · Designed pages'),
+              onPressed:() async{
+                final current=_spaceId;
+                if(current==null)return;
+                await Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
+                   spaceId:current)));
+                if(mounted)await _load();
+              },
+            ),
             if(_capturing)const LinearProgressIndicator(),
             const SizedBox(height: 14),
             TextField(controller:_search,decoration:InputDecoration(
@@ -270,8 +291,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                     elevation: 0,
                     child: Column(children: [
                       ListTile(
-                        leading: Icon(memory['pinned'] == true
-                            ? Icons.push_pin : Icons.auto_stories_outlined),
+                        leading: Icon(memory['memory_type']=='scrapbook'
+                            ? Icons.collections_bookmark_outlined :
+                              (memory['pinned'] == true
+                            ? Icons.push_pin : Icons.auto_stories_outlined)),
                         title: Text(memory['title'] as String? ?? ''),
                         subtitle: Text([
                           date,
