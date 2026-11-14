@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../plans/plans_screen.dart';
+import '../reminders/reminders_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
@@ -103,6 +104,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    }else if(type=='calendar'){
      screen=CalendarScreen(initialEventId:
        (item['calendar_event_id']??item['object_id'])?.toString());
+   }else if(type=='reminder'){
+     screen=RemindersScreen(initialReminderId:item['object_id']?.toString());
    }else if(type=='task'){
      screen=const PlansScreen();
    }else if(type=='note'){
@@ -176,7 +179,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                      leading:kind=='gesture'&&item['object_id']!=null?
                        GestureNotificationIcon(
                          gestureId:item['object_id'].toString()):
-                       Icon(kind=='mention'?Icons.alternate_email:
+                       Icon(kind=='reminder'&&item['object_kind']=='reminder'?Icons.alarm_outlined:
+                       kind=='mention'?Icons.alternate_email:
                        kind=='reply'?Icons.reply:
                        kind.startsWith('trip_')?Icons.flight_takeoff_outlined:
                        kind=='occasion_shared'?Icons.card_giftcard_outlined:
@@ -188,7 +192,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                      title:Text(item['headline']?.toString()??'Update',
                        style:TextStyle(fontWeight:unreadItem?
                          FontWeight.bold:FontWeight.normal)),
-                     subtitle:Text(kind=='mention'?'Your partner mentioned you':
+                     subtitle:Text(kind=='reminder'&&item['object_kind']=='reminder'?
+                         'Open to complete, follow up, or snooze':
+                       kind=='mention'?'Your partner mentioned you':
                        kind=='reply'?'Your partner replied':
                        kind=='letter'?'New letter':
                        kind=='gesture'?
