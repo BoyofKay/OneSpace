@@ -27,7 +27,7 @@ values
 
 select set_config('qa.private_task',(select id::text from public.tasks where title='QA CHECKLIST PRIVATE'),true);
 select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
-do $
+do $audit$
 declare denied boolean:=false;
 begin
  if (select count(*) from public.task_checklist_items where title='QA shared item')<>1
@@ -49,7 +49,7 @@ begin
  exception when others then denied:=true;
  end;
  if not denied then raise exception 'Unexpected visibility of private checklist'; end if;
-end $$;
+end $audit$;
 select set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
 insert into public.task_checklist_checks(item_id,cycle_date,completed)
  select id,date '2026-11-14',true from public.task_checklist_items
