@@ -93,7 +93,7 @@ class _ChecklistReadoutSheetState extends State<ChecklistReadoutSheet>
     ]),
     Text(widget.listTitle,style:theme.textTheme.titleMedium),
     const SizedBox(height:6),
-    const Text('Uses the phone’s speech voice. No microphone, voice recording or automatic completion.'),
+    const Text('Uses your phone’s speech engine, which may require internet for some voices. No microphone, recording, or automatic completion.'),
     const SizedBox(height:10),
     SegmentedButton<bool>(
      segments:const [
