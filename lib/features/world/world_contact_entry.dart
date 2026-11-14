@@ -47,7 +47,8 @@ class WorldContactEntry{
    final q=text.trim().toLowerCase();
    if(q.isEmpty)return true;
    return [label,activityTitle,contact.person,contact.phone,
-     contact.email,contact.address,contact.workingHours,contact.note]
+     contact.email,contact.address,contact.workingHours,
+     contact.company,contact.role,contact.website,contact.note]
        .any((value)=>value.toLowerCase().contains(q));
  }
  static List<WorldContactEntry> filtered(
