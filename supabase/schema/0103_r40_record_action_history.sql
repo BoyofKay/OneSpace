@@ -65,12 +65,12 @@ begin
  if tg_op='INSERT' then
   action_name:='created';
   select coalesce(array_agg(key order by key),'{}'::text[]) into fields
-   from jsonb_object_keys(after) as key
+   from jsonb_object_keys(after) as k(key)
    where key not in ('updated_at','created_at','id','space_id','created_by');
  else
   before:=to_jsonb(old);
   select coalesce(array_agg(key order by key),'{}'::text[]) into fields
-   from jsonb_object_keys(after) as key
+   from jsonb_object_keys(after) as k(key)
    where (after->key) is distinct from (before->key)
     and key not in ('updated_at','created_at');
   if cardinality(fields)=0 then return new;end if;
