@@ -70,6 +70,32 @@ jobs:
           base64 --decode tools/dev-signing/onespace-preview.keystore.b64 > "$HOME/.android/debug.keystore"
           echo "7bb8494a49f9e6f91e8b81a2aa8f528868af050b8543cd4f016bfa1db135bac3  $HOME/.android/debug.keystore" | sha256sum -c -
           chmod 600 "$HOME/.android/debug.keystore"
+      # Firebase registration is optional during development. An actual
+      # Firebase Android app config enables native FCM resources at build time.
+      # Never echo the encoded file in logs or commit service credentials.
+      - name: Apply OneSpace Firebase Android configuration if provided
+        shell: bash
+        env:
+          ONESPACE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.ONESPACE_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$ONESPACE_GOOGLE_SERVICES_JSON_BASE64" ]; then
+            printf '%s' "$ONESPACE_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+            python3 - <<'PY'
+          import json
+          with open('android/app/google-services.json') as f:
+              payload=json.load(f)
+          clients=payload.get('client', [])
+          if not any(
+              entry.get('client_info', {}).get('android_client_info', {}).get('package_name')
+              == 'com.onespace.onespace.preview'
+              for entry in clients
+          ):
+              raise SystemExit('Firebase Android configuration does not match the OneSpace preview package')
+          print('OneSpace Firebase Android preview registration validated.')
+          PY
+          else
+            echo 'No Firebase Android config yet: build continues with in-app notifications only.'
+          fi
       - name: Build optimized installable preview APK
         run: flutter build apk --release --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }}
       - name: Verify signed APK uses OneSpace preview certificate
