@@ -94,6 +94,10 @@ jobs:
           print('OneSpace Firebase Android preview registration validated.')
           PY
           else
+            if grep -q '^# R25 — Configured Firebase Android Preview' release/READY_TO_BUILD.md; then
+              echo "::error::R25 configured Firebase release requires ONESPACE_GOOGLE_SERVICES_JSON_BASE64. Confirm its exact GitHub Actions repository secret name."
+              exit 1
+            fi
             echo 'No Firebase Android config yet: build continues with in-app notifications only.'
           fi
       - name: Build optimized installable preview APK
