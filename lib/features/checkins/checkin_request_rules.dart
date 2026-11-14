@@ -55,7 +55,7 @@ class CheckinRequestRules {
     if (deadline == null) return 'No response deadline';
     final remaining = deadline.toUtc().difference(now.toUtc());
     if (remaining.inHours < 24) return 'Less than a day remaining';
-    final days = (remaining.inHours / 24).ceil();
+    final days = (remaining.inMinutes / (24 * 60)).ceil();
     return '$days days remaining';
   }
 
