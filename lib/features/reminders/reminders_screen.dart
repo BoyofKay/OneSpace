@@ -10,6 +10,7 @@ import '../calendar/calendar_screen.dart';
 import '../plans/plans_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../connect/partner_gestures_screen.dart';
+import '../mentions/partner_mention_button.dart';
 
 /// R22: first-class shared and personal reminders. The database owns
 /// per-recipient state, privacy checks, delivery and immutable history.
@@ -516,6 +517,11 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
     TextField(controller:details,maxLength:4000,minLines:2,maxLines:5,
      decoration:const InputDecoration(labelText:'Details / instructions',
       border:OutlineInputBorder())),
+    if(visibility=='shared')Align(
+     alignment:Alignment.centerLeft,
+     child:PartnerMentionButton(
+      spaceId:widget.spaceId,controller:details,
+      enabled:!saving)),
     const SizedBox(height:14),
     OutlinedButton.icon(onPressed:saving?null:pickDue,
      icon:const Icon(Icons.event_outlined),
