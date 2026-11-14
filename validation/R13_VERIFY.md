@@ -260,3 +260,8 @@ Because RelatedNotesPanel is embedded inside TaskChecklistPanel, its Supabase cl
 ## R40 — Product-wide UX consistency controls and contrast regression
 
 Run all committed Flutter dependencies, analyzer, and test suite after R40 top-app-bar History/Filters for Goals/Memories/Notes/Reminders; global search inclusion and deep links; server-backed record_action_history views; Quill @ mention button; and 4-palette × all-seasons light/dark WCAG contrast tests. Additive SQL 0103 deployed with append-only action metadata, rollback-only dual-account SQL 0024 PASS. Do not mutate existing user records, pairing or Firebase configuration. If tests fail, fix before starting a signed release. Review docs/R40_UX_CONSISTENCY_AUDIT.md for honest gaps across other modules.
+
+
+## R41 — Reminder mentions and Notifications top filters
+
+R40 signed Release 415 source is pinned separately. For R41, validate `PartnerMentionButton` inside shared ReminderEditor details and top notification category filter; task and reminder notifications deep-link to exact items. Supabase 0104 reminder mention trigger deployed; rollback-only two-account SQL 0025 PASS (recipient read under recipient RLS, no private notification or repeated unrelated edit). Run locked Flutter dependencies, analyzer, full widget/unit tests. Do not ship R41 until green and preserve the R34 checklist, R37 voice, privacy and Firebase regression gates.
