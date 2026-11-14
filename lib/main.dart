@@ -335,7 +335,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         SharedSpaceScreen(
           refreshToken:refreshToken,
           onOpenPlans:()=>open(const PlansScreen()),
-          onOpenLists:()=>open(const PlansScreen()),
           onOpenNotes:()=>open(const NotesScreen()),
           onOpenCalendar:()=>open(const CalendarScreen()),
           onOpenMemories:()=>open(const MemoriesScreen()),
