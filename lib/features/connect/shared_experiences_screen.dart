@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
 import 'experience_picker_rules.dart';
+import 'experience_interest_rules.dart';
 import '../mentions/partner_mention_button.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
@@ -18,10 +19,10 @@ class SharedExperiencesScreen extends StatefulWidget {
 class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  final db=Supabase.instance.client;
  String? space,error;
- bool loading=true,showArchived=false,opened=false,busy=false;
+ bool loading=true,showArchived=false,opened=false,busy=false,mutualOnly=false;
  String kind='all',status='all',search='';
  int suggestionOffset=0;
- List<Map<String,dynamic>> rows=[];
+ List<Map<String,dynamic>> rows=[],interests=[];
  RealtimeChannel? _changes;
  Timer? _refreshTimer;
  String? _watchedSpace;
@@ -43,6 +44,8 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     table:'shared_experiences',filter:PostgresChangeFilter(
      type:PostgresChangeFilterType.eq,column:'space_id',value:spaceId),
     callback:(_)=>_scheduleRefresh())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_experience_interests',callback:(_)=>_scheduleRefresh())
    .subscribe();
  }
  void _scheduleRefresh(){
@@ -57,7 +60,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   if(account==null){
    if(_changes!=null)unawaited(db.removeChannel(_changes!));
    _changes=null;_watchedSpace=null;
-   if(mounted)setState((){space=null;rows=[];loading=false;error=null;});
+   if(mounted)setState((){space=null;rows=[];interests=[];loading=false;error=null;});
    return;
   }
   try{
@@ -66,13 +69,19 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    if(id==null){
     if(_changes!=null)unawaited(db.removeChannel(_changes!));
     _changes=null;_watchedSpace=null;
-    setState((){space=null;rows=[];loading=false;error=null;});
+    setState((){space=null;rows=[];interests=[];loading=false;error=null;});
     return;
    }
    final result=await db.from('shared_experiences').select().eq('space_id',id)
       .order('updated_at',ascending:false).limit(250);
+   final currentRows=List<Map<String,dynamic>>.from(result);
+   final ids=currentRows.map((x)=>x['id'].toString()).toList();
+   final currentInterests=ids.isEmpty?<Map<String,dynamic>>[]:
+    List<Map<String,dynamic>>.from(
+     await db.from('shared_experience_interests')
+      .select('experience_id,user_id,choice').inFilter('experience_id',ids));
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
-   setState((){space=id;rows=List<Map<String,dynamic>>.from(result);
+   setState((){space=id;rows=currentRows;interests=currentInterests;
     loading=false;error=null;});
    _watch(id);
    if(!opened&&widget.initialExperienceId!=null){
@@ -278,6 +287,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   final filtered=rows.where((r)=>
    (showArchived?r['archived_at']!=null:r['archived_at']==null)&&
    (kind=='all'||r['category']==kind)&&(status=='all'||r['status']==status)&&
+   (!mutualOnly||ExperienceInterestRules.mutuallyInterested(interests,r['id']))&&
    (r['title'].toString().toLowerCase().contains(search.toLowerCase())||
     (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
   final candidates=ExperiencePickerRules.shortlist(rows,category:kind);
@@ -298,6 +308,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          ]),
          SwitchListTile(title:const Text('Archived experiences'),
           value:showArchived,onChanged:(v){setState(()=>showArchived=v);refresh((){});}),
+         SwitchListTile(title:const Text('Only mutual picks'),
+          subtitle:const Text('Both partners marked Interested'),
+          value:mutualOnly,onChanged:(v){setState(()=>mutualOnly=v);refresh((){});}),
        ])))))) ,
     IconButton(tooltip:'Experience edit history',
      icon:const Icon(Icons.history_outlined),onPressed:openHistory),
@@ -313,6 +326,14 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     TextField(onChanged:(v)=>setState(()=>search=v),
      decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
       labelText:'Search by title or platform')),
+    const SizedBox(height:8),
+    Row(children:[
+     Expanded(child:Text('Mutual picks · '+
+      ExperienceInterestRules.mutualCount(rows,interests).toString(),
+      style:Theme.of(context).textTheme.bodyMedium)),
+     FilterChip(label:const Text('Show our matches'),selected:mutualOnly,
+      onSelected:(value)=>setState(()=>mutualOnly=value)),
+    ]),
     const SizedBox(height:15),
     if(suggestion!=null)Card(
      child:Padding(padding:const EdgeInsets.all(14),child:Column(
@@ -407,6 +428,14 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
           r['archived_at']==null?'Archive':'Restore')),
         ]),
        onTap:()=>open(r)),
+      if(ExperienceInterestRules.summary(interests,r['id'])!='No picks yet')
+       Padding(padding:const EdgeInsets.only(left:6,bottom:8),child:Row(children:[
+        Icon(ExperienceInterestRules.mutuallyInterested(interests,r['id'])?
+         Icons.favorite:Icons.favorite_border,size:17,color:scheme.primary),
+        const SizedBox(width:6),
+        Expanded(child:Text(ExperienceInterestRules.summary(interests,r['id']),
+         style:Theme.of(context).textTheme.labelMedium)),
+       ])),
       Wrap(spacing:8,runSpacing:6,children:[
        if((r['source_url']??'').toString().trim().isNotEmpty)
        OutlinedButton.icon(
