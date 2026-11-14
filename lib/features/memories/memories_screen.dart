@@ -160,7 +160,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   }
 
   bool _matchesSearch(Map<String,dynamic> memory){
-   final words=_search.text.toLowerCase().trim().split(RegExp(r'\\s+'))
+   final words=_search.text.toLowerCase().trim().split(RegExp(r'\s+'))
     .where((v)=>v.isNotEmpty).toList();
    if(words.isEmpty)return true;
    final id=memory['id'].toString();
@@ -170,7 +170,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       ...(p['people_tags'] as List? ??const []).map((v)=>v.toString()),
       ...(p['other_tags'] as List? ??const []).map((v)=>v.toString()),
     ]).join(' ');
-   final content='\${memory['title']??''} \${memory['body']??''} $tags'.toLowerCase();
+   final content=((memory['title']??'').toString()+' '+(memory['body']??'').toString()+' '+tags).toLowerCase();
    return words.every(content.contains);
   }
 
