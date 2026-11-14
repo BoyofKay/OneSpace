@@ -175,3 +175,8 @@ Run exact committed Flutter dependency lock verification, analyzer and all autom
 ## R32 analyzer correction — source-only verification
 
 R32 analyzer found one test-only nullable-map inference in `checkin_acknowledgement_rules_test.dart`. The test fixture now explicitly accepts dynamic nullable response fields. Re-run analyzer, committed dependency checks and full Flutter tests without touching release marker or building an APK.
+
+
+## R33 — Android To-do and Checklists crash blocker, source verification
+
+Full Flutter committed dependency lock check, `flutter analyze` and all `flutter test` including `checklist_list_loader_test.dart` after non-destructive task parsing hardening. Live backend task statistics checked and no old/new checklist rows deleted. Gate source changes only; do not release until green. Documentation `docs/R33_CHECKLIST_CRASH_BLOCKER_QA.md`. Existing push configuration, two users, signing certificate and shared/private data stay intact.
