@@ -250,3 +250,8 @@ After first R38 commit, added title/body search with pinned ordering and archive
 ## R39 — On-demand related-note backlinks (source only)
 
 Use existing R38 note_references permissions to show a related Notes panel from checklists, calendar event action sheets, occasion details and shared experiences. Lazy-load only when opened to protect R34 checklist performance, with no new migrations and no user data changes. Run exact committed Flutter dependencies, analyzer and full tests including `related_notes_rules_test.dart`. Do not trigger a new signed preview until R38 Release 414 publication is checked. Confirm two-way private visibility before shipping R39.
+
+
+## R39 final — guard previous checklist expansion widget tests
+
+Because RelatedNotesPanel is embedded inside TaskChecklistPanel, its Supabase client must remain a lazy getter while collapsed; otherwise isolated Flutter widget tests that inject streams would crash before backend initialization. Added `related_notes_panel_widget_test.dart` to enforce that no database client is initialized for a collapsed panel. Re-run Flutter analyzer and full test suite on this latest source after all R39 edits. No prior signed release marker changed.
