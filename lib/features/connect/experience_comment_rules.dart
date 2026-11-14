@@ -24,7 +24,7 @@ class ExperienceCommentRules {
   List<Map<String,dynamic>> rows,String? viewerId,{
   bool showMyRetracted=false,String query='',
  }){
-  final terms=query.trim().toLowerCase().split(RegExp(r'\\s+'))
+  final terms=query.trim().toLowerCase().split(RegExp(r'\s+'))
    .where((term)=>term.isNotEmpty).toList();
   return rows.where((row){
    final retracted=isRetracted(row);
