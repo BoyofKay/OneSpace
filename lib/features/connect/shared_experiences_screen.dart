@@ -104,15 +104,14 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   'game'=>Icons.sports_esports_outlined,
   _=>Icons.explore_outlined,
  };
- bool canWatch(Map<String,dynamic> row)=>
-  row['category']=='movie'||row['category']=='show';
+
  Future<void> markWatched(Map<String,dynamic> row)async{
   if(busy)return;
   setState(()=>busy=true);
   try{
    final changed=await updateSafely(row,{
     'status':'enjoyed',
-    'enjoyed_on':DateTime.now().toIso8601String().substring(0,10),
+    'enjoyed_on':ExperiencePickerRules.dateOnly(DateTime.now()),
    });
    if(changed&&mounted)await quickRate(row);
   }catch(_){
@@ -255,7 +254,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   setState(()=>busy=true);
   try{
    final updated=await updateSafely(row,{
-    'status':'planned','planned_on':day.toIso8601String().substring(0,10)});
+    'status':'planned','planned_on':ExperiencePickerRules.dateOnly(day)});
    if(updated&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
     content:Text('Saved your plan. Your partner can see it too.')));
   }catch(_){
@@ -391,7 +390,8 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         if(r['status']=='planned'&&r['planned_on']!=null)
          'Planned: '+r['planned_on'].toString(),
         if(r['status']=='enjoyed'&&r['enjoyed_on']!=null)
-         'Enjoyed: '+r['enjoyed_on'].toString(),
+         ExperiencePickerRules.completionState(r['category'].toString())+
+          ': '+r['enjoyed_on'].toString(),
        ].join(' · ')),
        trailing:PopupMenuButton<String>(
         tooltip:'Experience actions',
@@ -419,13 +419,14 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
        if(r['status']!='enjoyed')OutlinedButton.icon(
         onPressed:busy?null:()=>planSuggestion(r),
         icon:const Icon(Icons.event_outlined),label:const Text('Plan')),
-       if(canWatch(r))FilledButton.tonalIcon(
-        onPressed:busy||r['status']=='enjoyed'?null:()=>markWatched(r),
-        icon:Icon(r['status']=='enjoyed'?Icons.check_circle:Icons.visibility_outlined),
-        label:Text(r['status']=='enjoyed'?'Watched':'Mark watched')),
-       if(r['status']=='enjoyed'&&canWatch(r))
+       if(r['status']!='enjoyed')FilledButton.tonalIcon(
+        onPressed:busy?null:()=>markWatched(r),
+        icon:const Icon(Icons.check_circle_outline),
+        label:Text(ExperiencePickerRules.completionAction(
+         r['category'].toString()))),
+       if(r['status']=='enjoyed')
         OutlinedButton.icon(onPressed:()=>quickRate(r),
-         icon:const Icon(Icons.star_border),label:const Text('Rate')),
+         icon:const Icon(Icons.star_border),label:const Text('Rate & review')),
       ]),
      ]))),
    ])));
@@ -455,8 +456,7 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
   enjoyed=DateTime.tryParse((r['enjoyed_on']??'').toString());
  }
  @override void dispose(){title.dispose();description.dispose();platform.dispose();url.dispose();super.dispose();}
- String format(DateTime? d)=>d==null?'Not set':
-   d.year.toString().padLeft(4,'0')+'-'+d.month.toString().padLeft(2,'0')+'-'+d.day.toString().padLeft(2,'0');
+ String format(DateTime? d)=>d==null?'Not set':ExperiencePickerRules.dateOnly(d);
  Future<void> choose(bool plan)async{
   final date=await showDatePicker(context:context,firstDate:DateTime(2000),
     lastDate:DateTime(2100),initialDate:(plan?planned:enjoyed)??DateTime.now());
@@ -473,8 +473,8 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
    final values=<String,dynamic>{'title':title.text.trim(),'category':kind,
     'description':description.text.trim(),'platform':platform.text.trim(),
     'source_url':url.text.trim(),'status':status,
-    'planned_on':planned?.toIso8601String().substring(0,10),
-    'enjoyed_on':enjoyed?.toIso8601String().substring(0,10)};
+    'planned_on':planned==null?null:ExperiencePickerRules.dateOnly(planned!),
+    'enjoyed_on':enjoyed==null?null:ExperiencePickerRules.dateOnly(enjoyed!)};
    if(widget.original==null){
     await db.from('shared_experiences').insert({...values,'space_id':widget.spaceId});
    }else{
@@ -627,6 +627,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    return true;
   }on PostgrestException catch(e){
    if(mounted)setState(()=>error=e.message);
+  }on StateError catch(e){
+   if(mounted)setState(()=>error=e.message.toString());
   }catch(_){
    if(mounted)setState(()=>error='Could not save change.');
   }finally{if(mounted)setState(()=>busy=false);}
@@ -695,7 +697,9 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     Text(r['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
     Text((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested')),
     if(r['planned_on']!=null)Text('Planned together: '+r['planned_on'].toString()),
-    if(r['enjoyed_on']!=null)Text('Enjoyed on: '+r['enjoyed_on'].toString()),
+    if(r['enjoyed_on']!=null)Text(
+     ExperiencePickerRules.completionState(r['category'].toString())+
+     ' on: '+r['enjoyed_on'].toString()),
     if((r['description']??'').toString().isNotEmpty)Text(r['description'].toString()),
     if((r['platform']??'').toString().isNotEmpty)Text('Platform: '+r['platform'].toString()),
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
