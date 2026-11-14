@@ -145,3 +145,8 @@ Run Flutter analyze and tests for date persistence and deterministic day-based s
 
 ## R27 full source final gate
 Trip airfare choices are competing alternatives, so their prices are compared per currency rather than incorrectly summed. Verify final source before separate R27 signed preview.
+
+
+## R29 — Live Experiences realtime + conflict and media-category regression
+
+Source-only verification on current main. Flutter lockfile, full analyzer and tests for live experience UI; non-destructive shared planning status/date, stale-edit detection, document `docs/R29_SHARED_EXPERIENCES_REALTIME_QA.md`, no APK or production deployment during this gate. R25 device push remains untouched. Do not cancel previous successful verifications or reset the existing pair.
