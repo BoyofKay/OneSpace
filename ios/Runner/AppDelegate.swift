@@ -52,12 +52,12 @@ import AVFoundation
           return
         }
         let language = arguments["language"] as? String ?? "en"
-        let speed = (arguments["rate"] as? Double ?? 1.0).clamped(to: 0.7...1.4)
+        let speed = min(max(arguments["rate"] as? Double ?? 1.0, 0.7), 1.4)
         self.checklistSpeech.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: language) ??
-                          AVSpeechSynthesisVoice(language: Locale.current.language.languageCode?.identifier ?? "en")
-        utterance.rate = Float(AVSpeechUtteranceDefaultSpeechRate * Float(speed))
+                          AVSpeechSynthesisVoice(language: Locale.preferredLanguages.first ?? "en")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * Float(speed)
         self.checklistSpeech.speak(utterance)
         result(nil)
       default:
