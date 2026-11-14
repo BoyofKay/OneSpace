@@ -169,56 +169,41 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
      const SizedBox(height:8),
      Text('Your preference: ${preference==null?'Not rated':preference.toString()+'/5'}'),
      Wrap(spacing:3,children:[
-      for(var value=1;value<=5;value++)ChoiceChip(label:Text('     const SizedBox(height:10),
-     TextField(controller:notes,maxLength:2500,maxLines:3,
-      decoration:const InputDecoration(labelText:'Why this item? Notes, ideas, vendor details')),
-     const SizedBox(height:7),
-     Text('Wishlist items are free to explore. Reserved items reduce available budget. Purchased items use actual spending.',
-      style:theme.textTheme.bodySmall),
-     if(error!=null)Padding(padding:const EdgeInsets.only(top:9),
-      child:Text(error!,style:TextStyle(color:theme.colorScheme.error))),
-     const SizedBox(height:14),
-     FilledButton.icon(onPressed:busy?null:save,
-      icon:const Icon(Icons.save_outlined),
-      label:Text(busy?'Saving…':'Save item')),
-    ]),
-   ),
-  ));
- }
-}
-+'value'),
-       selected:preference==value,onSelected:(_)=>setState(
-        ()=>preference=preference==value?null:value)),
-     ]),
-     const SizedBox(height:8),
-     DropdownButtonFormField<double?>(
-      initialValue:rating,decoration:const InputDecoration(labelText:'Retailer rating (out of 5)'),
-      items:[const DropdownMenuItem<double?>(value:null,child:Text('Not rated')),
-       for(final n in [1.0,2.0,3.0,3.5,4.0,4.5,5.0])
-        DropdownMenuItem<double?>(value:n,child:Text(n.toString()))],
-      onChanged:(v)=>setState(()=>rating=v)),
-     const SizedBox(height:8),
-     DropdownButtonFormField<String>(
-      initialValue:orderStatus,decoration:const InputDecoration(labelText:'Order / delivery status'),
-      items:const [
-       DropdownMenuItem(value:'not_ordered',child:Text('Not ordered')),
-       DropdownMenuItem(value:'ordered',child:Text('Ordered')),
-       DropdownMenuItem(value:'shipped',child:Text('Shipped')),
-       DropdownMenuItem(value:'delivered',child:Text('Delivered')),
-       DropdownMenuItem(value:'return_requested',child:Text('Return requested')),
-       DropdownMenuItem(value:'returned',child:Text('Returned')),
-       DropdownMenuItem(value:'cancelled',child:Text('Cancelled order'))],
-      onChanged:(v)=>setState(()=>orderStatus=v??orderStatus)),
-     if(orderStatus!='not_ordered')...[
-      TextField(controller:orderNumber,maxLength:160,
-       decoration:const InputDecoration(labelText:'Order number (optional)')),
-      TextField(controller:trackingUrl,maxLength:1800,
-       decoration:const InputDecoration(labelText:'Carrier tracking link (optional)')),
-     ],
-     if(orderStatus=='return_requested'||orderStatus=='returned')
+      for(var value=1;value<=5;value++)ChoiceChip(
+        label:Text(value.toString()),selected:preference==value,
+        onSelected:(_)=>setState(()=>preference=preference==value?null:value)),
+      ]),
+      const SizedBox(height:8),
+      DropdownButtonFormField<double?>(
+       initialValue:rating,
+       decoration:const InputDecoration(labelText:'Retailer rating (out of 5)'),
+       items:[const DropdownMenuItem<double?>(value:null,child:Text('Not rated')),
+        for(final n in [1.0,2.0,3.0,3.5,4.0,4.5,5.0])
+         DropdownMenuItem<double?>(value:n,child:Text(n.toString()))],
+       onChanged:(v)=>setState(()=>rating=v)),
+      const SizedBox(height:8),
+      DropdownButtonFormField<String>(
+       initialValue:orderStatus,
+       decoration:const InputDecoration(labelText:'Order / delivery status'),
+       items:const [
+        DropdownMenuItem(value:'not_ordered',child:Text('Not ordered')),
+        DropdownMenuItem(value:'ordered',child:Text('Ordered')),
+        DropdownMenuItem(value:'shipped',child:Text('Shipped')),
+        DropdownMenuItem(value:'delivered',child:Text('Delivered')),
+        DropdownMenuItem(value:'return_requested',child:Text('Return requested')),
+        DropdownMenuItem(value:'returned',child:Text('Returned')),
+        DropdownMenuItem(value:'cancelled',child:Text('Cancelled order'))],
+       onChanged:(v)=>setState(()=>orderStatus=v??orderStatus)),
+      if(orderStatus!='not_ordered')...[
+       TextField(controller:orderNumber,maxLength:160,
+        decoration:const InputDecoration(labelText:'Order number (optional)')),
+       TextField(controller:trackingUrl,maxLength:1800,
+        decoration:const InputDecoration(labelText:'Carrier tracking link (optional)')),
+      ],
+      if(orderStatus=='return_requested'||orderStatus=='returned')
        TextField(controller:returnReason,maxLength:600,maxLines:2,
         decoration:const InputDecoration(labelText:'Return reason / alternatives needed')),
-     const SizedBox(height:10),
+      const SizedBox(height:10),
      TextField(controller:notes,maxLength:2500,maxLines:3,
       decoration:const InputDecoration(labelText:'Why this item? Notes, ideas, vendor details')),
      const SizedBox(height:7),
