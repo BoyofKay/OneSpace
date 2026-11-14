@@ -1,53 +1,47 @@
-# R26 — Collaborative Scrapbook Studio
+# R30 — Shared Experiences, Trips and Partner Picks
 
 Require-Firebase-Config: true
 
-Previous verified Android preview: 0.1.403. Upgrade safely over the
-existing signed installation. Do not uninstall, clear application storage,
-recreate partner accounts, or touch existing private data.
+Release candidate from verified source commit
+`ca7d74595ee262d1b9f92370093f7ee49f2294a9`.
 
-## This release includes
-- Memories → Scrapbook Studio with four visually designed template previews:
-  Love Letters, Our Adventures, Little Moments, Milestone Story.
-- Create shared or private scrapbooks as regular RLS-protected Memories.
-- Create up to 12 pages per scrapbook; each designed page has 2–3 photo slots,
-  subtitle, title, highlight quote and a larger personal story section.
-- Direct camera/gallery capture or reuse existing photos, with the same secure
-  memory photo bucket. People/place/other tags and captions are edited in
-  the linked Memory photo manager and remain searchable.
-- Invite partner to contribute to shared scrapbook; invitation is delivered
-  via existing OneSpace notification infrastructure and Firebase push.
-  Partner must accept to obtain page edit access.
-- Partner collaborative edits sync through Supabase realtime and use
-  updated_at version checks to protect simultaneous edits.
-- Each page can be exported as a high-resolution PNG to Android Pictures/OneSpace
-  and passed through the Android native Share sheet. No broad storage access.
-- Database migrations 0091/0092 and rollback-only RLS regression test 0014
-  passed: uninvited editor denied, invited editor accepted, private view
-  blocked, cross-memory photo rejection.
-- New Dart widget/template unit tests and validation of existing Memories
-  and Auth behavior.
-- Preserve all R25 Firebase Android and server-side background notification
-  configuration; REQUIRE its Android Google Services secret in every signed build.
+Previously published Android preview: `0.1.406`.
+Install over the existing signed preview; never uninstall, clear storage,
+recreate the two user accounts, reset pairing or destroy partner content.
 
-## Known limits / acceptance tests
-- PNG exports are one page at a time; not a stitched multi-page PDF or printed
-  booklet. Native Android export should be tested on a real phone.
-- Image loading and template layout on the two physical devices should be
-  validated before claiming production-grade scrapbook output.
-- An invitation to a shared scrapbook grants edit access only after acceptance;
-  the shared scrapbook itself is visible to both partners by design.
-- iOS native export is not included in this Android preview.
-- Firebase push has one-phone physical confirmation; two-phone push visibility
-  remains an open acceptance check.
+## Included source changes since R26
+- R27: private/shared trip flight quote comparison, alternative itinerary
+  options with separate currencies and manual booking confirmation.
+- R27: trip-linked travel preparation templates in the existing unified
+  To-do and Checklists module, without creating another checklist subsystem.
+- R28: date-aware experience ideas and rotating suggestions.
+- R29: Shared Experiences realtime partner comments, reviews and schedules,
+  conflict-checked saves, timezone-neutral local planned/enjoyed dates and
+  category-aware completion buttons for books, movies, TV, games and music.
+- R30: Partner Picks. Independent Interested/Maybe/Not now/Clear selection
+  by each user; mutual matches, match filter, synchronized live choice panel,
+  and prioritization of shared-interest suggestions.
+- Existing R25 Firebase FCM delivery remains required. No FCM secret, signing
+  identity, package ID or push permissions are changed.
 
-## Gates
-Full Flutter analysis and tests (including scrapbook templates), native Android
-release compilation, same app ID com.onespace.onespace.preview, unchanged
-preview signing certificate, validated Firebase Android registration and
-verified published APK artifact. Publish exactly one controlled preview.
+## Backend and security verification
+- Existing R27 additive migrations 0093 and 0094 deployed.
+- New R30 migration 0095 deployed with RLS and only individual choice update.
+- R30 rollback-only SQL regression 0016 passed two-partner access and blocked
+  forged edits, with no test data retained. The table is in realtime publication.
+- R29 Flutter source verification run 43613481415: SUCCESS.
+- R30 Flutter source verification run 43613936191: SUCCESS.
+- Documentation and two-phone cases: docs/R29_SHARED_EXPERIENCES_REALTIME_QA.md,
+  docs/R30_PARTNER_PICKS_ACCEPTANCE.md.
 
-Trigger R26, November 14, 2026.
+## GitHub release gates
+- Exact committed lockfile, analyzer, all Flutter tests.
+- Release-mode Android compilation and Firebase config/package matching.
+- Keep `com.onespace.onespace.preview` and the existing trusted preview
+  signing certificate, so existing installations can be upgraded in place.
+- Publish and verify exactly one signed preview release artifact.
+- The new features are not marked physical-device-tested until each partner
+  verifies realtime collaboration, private/shared permissions, checklist and
+  trip workflows, and FCM pushes on their own phone.
 
-## Release workflow repair
-Fixed YAML for required Firebase configuration, preserved the working Android signing and release jobs. Retry the exact verified R26 source.
+One controlled R30 build from already verified source, November 14, 2026.
