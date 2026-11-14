@@ -9,6 +9,8 @@ class GlobalSearchRules {
     ?trimmed.substring(0,maxQueryLength):trimmed;
  }
  static bool canSearch(String value)=>normalize(value).runes.length>=2;
+ static bool shouldSearchSection(String selected,String kind)=>
+  selected=='All'||selected==kind;
  static String pattern(String value){
   final term=normalize(value);
   return '%'+term.replaceAll('\\',r'\\')
