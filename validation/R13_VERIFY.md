@@ -133,3 +133,11 @@ Removed one unused photo-local warning and upgraded template gallery to actual r
 ## R28 — Shared experiences build safety gate
 
 Run Flutter analyze and tests for date persistence and deterministic day-based suggestions (no external recommender, no live API). This is source-only validation: do not trigger APK build or change accounts, memberships or stored content.
+
+
+## R27 Trips and linked checklists verification
+- 0094 generates idempotent travel-ready checklists inside existing Remember To-do and Checklists; no duplicate task module.
+- Four templates include travel essentials, leaving home, baby, pets, with independently tickable items.
+- TripPreparationSection and PlansScreen focusTaskId deep link integrated.
+- RLS regression 0016 passed private trip denial, shared partner visibility and idempotence.
+- Re-verify full Flutter analysis and tests at this exact commit before R27 Android release.
