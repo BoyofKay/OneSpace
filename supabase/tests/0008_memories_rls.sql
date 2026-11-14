@@ -8,10 +8,10 @@ select set_config('qa.b',user_id::text,true) from public.space_members
  where space_id=current_setting('qa.space')::uuid order by user_id desc limit 1;
 set local role authenticated;
 select set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
-insert into public.memories(space_id,created_by,title,body,memory_date,visibility)
+insert into public.memories(space_id,created_by,title,body,memory_date,visibility,memory_type,photo_layout)
 values
- (current_setting('qa.space')::uuid,auth.uid(),'QA PRIVATE MEMORY','Only me',date '2026-11-12','private'),
- (current_setting('qa.space')::uuid,auth.uid(),'QA SHARED MEMORY','Together',date '2026-11-12','shared');
+ (current_setting('qa.space')::uuid,auth.uid(),'QA PRIVATE MEMORY','Only me',date '2026-11-12','private','daily_selfie','polaroid'),
+ (current_setting('qa.space')::uuid,auth.uid(),'QA SHARED MEMORY','Together',date '2026-11-12','shared','collage','grid');
 select set_config('qa.private',(select id::text from public.memories where title='QA PRIVATE MEMORY'),true);
 select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
 do $$
