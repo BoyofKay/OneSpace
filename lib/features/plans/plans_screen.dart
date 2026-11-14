@@ -489,7 +489,8 @@ class _PlansScreenState extends State<PlansScreen> {
        childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
        children:[
         if(_expandedLists.contains(task.id)) TaskChecklistPanel(
-         key:ValueKey(task.id),taskId:task.id,recurrence:task.recurrence,
+         key:ValueKey(task.id),taskId:task.id,listTitle:task.title,
+         recurrence:task.recurrence,
          rule:task.rule,
          canManage:canEdit&&!cancelled,
          canComplete:canEdit&&!cancelled&&
