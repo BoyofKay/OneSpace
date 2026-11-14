@@ -60,7 +60,8 @@ class ChecklistSchedule {
   if(rule['skip_us_holidays']==true&&usHoliday)return false;
   final start=_anchor(rule,d);
   if(d.isBefore(start))return false;
-  final elapsed=d.difference(start).inDays;
+  final elapsed=DateTime.utc(d.year,d.month,d.day)
+   .difference(DateTime.utc(start.year,start.month,start.day)).inDays;
   final every=_interval(rule);
   switch(mode(rule,recurrence)){
    case 'none':return true;
@@ -76,7 +77,8 @@ class ChecklistSchedule {
    case 'every_n_weeks':
     final week=d.subtract(Duration(days:d.weekday-1));
     final anchorWeek=start.subtract(Duration(days:start.weekday-1));
-    final elapsedWeeks=week.difference(anchorWeek).inDays~/7;
+    final elapsedWeeks=DateTime.utc(week.year,week.month,week.day)
+      .difference(DateTime.utc(anchorWeek.year,anchorWeek.month,anchorWeek.day)).inDays~/7;
     return elapsedWeeks>=0&&elapsedWeeks%every==0&&
       (_days(rule['weekdays']).isEmpty?
        d.weekday==start.weekday:_days(rule['weekdays']).contains(d.weekday));
