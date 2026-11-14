@@ -220,3 +220,8 @@ R36 adds a manual personal-only schedule choice in A Little Love and a reminder 
 ## R36 final UX verification — explicit local hour labels
 
 Updated gesture self-reminder time suggestion chips to label 9 AM, 6 PM and 9 PM explicitly rather than imply actual work schedule. Run the entire Flutter analyzer/test suite on final current source and preserve source-only gate; signed R35 Release 411 remains pinned to prior version.
+
+
+## R37 — Hands-free checklist readout (source-only verification)
+
+New Android TextToSpeech and iOS AVSpeechSynthesizer MethodChannel plus a read-only Flutter checklist voice sheet. Test native bridge invocation through mock channel, active/unchecked item script privacy, lifecycle stop, and previous R34 checklist expansion tests. Run exact Flutter dependencies, analyzer and entire test suite before any APK. No Supabase schema changes or Firebase changes; voice never updates checkmarks. Real Android TTS and native Kotlin compilation must pass a separate signed preview build; iOS requires separate macOS compiler verification.
