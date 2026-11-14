@@ -183,12 +183,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _switchAccount() async {
-    // Signing out removes the *active* stored Supabase session. Recently used
-    // email addresses stay locally, and the next account must sign in itself.
-    await Supabase.instance.client.auth.signOut();
-  }
-
   @override
   void dispose() {
     _idleTimer?.cancel();
@@ -505,9 +499,6 @@ class _SignInScreenState extends State<SignInScreen> {
                               const SizedBox(width:10),
                               SizedBox(width:56,height:56,child:OutlinedButton(
                                 key:const Key('loginFingerprint'),
-                                tooltip:widget.onSessionUnlocked==null
-                                 ?'Sign in first to enable device unlock'
-                                 :'Fingerprint or phone PIN',
                                 style:OutlinedButton.styleFrom(
                                  padding:EdgeInsets.zero,
                                  shape:RoundedRectangleBorder(
