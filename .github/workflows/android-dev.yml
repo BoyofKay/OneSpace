@@ -94,7 +94,96 @@ jobs:
           print('OneSpace Firebase Android preview registration validated.')
           PY
           else
-            if grep -q '^# R25 — Configured Firebase Android Preview' release/READY_TO_BUILD.md; then
+            if grep -q '^# R25 — Configured Firebase Android Preview' release/READY_TO_BUILD.md || grep -q '^Require-Firebase-Config: true
+              echo "::error::OneSpace configured Firebase release requires ONESPACE_GOOGLE_SERVICES_JSON_BASE64. Confirm its exact GitHub Actions repository secret name."
+              exit 1
+            fi
+            echo 'No Firebase Android config yet: build continues with in-app notifications only.'
+          fi
+      - name: Build optimized installable preview APK
+        run: flutter build apk --release --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }}
+      - name: Verify signed APK uses OneSpace preview certificate
+        shell: bash
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs build/app/outputs/flutter-apk/app-release.apk | tee /tmp/onespace-signature.txt
+          # Fail closed if signing unexpectedly changes; existing previews need this exact key.
+          grep -qi "90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043" /tmp/onespace-signature.txt
+      - name: Verify preview package ID is unchanged
+        shell: bash
+        run: |
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$AAPT"
+          "$AAPT" dump badging build/app/outputs/flutter-apk/app-release.apk | tee /tmp/onespace-package.txt
+          grep -q "package: name='com.onespace.onespace.preview'" /tmp/onespace-package.txt
+      - name: Name downloadable APK
+        shell: bash
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "OneSpace-preview-0.1.${{ github.run_number }}.apk"
+      # Preserve the verified signed package even if GitHub Releases denies
+      # a write or has a temporary API failure. This is independently downloadable
+      # and can be republished without recompiling via rerunning only publish.
+      - name: Store verified APK as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneSpace-preview-0.1.${{ github.run_number }}
+          path: OneSpace-preview-0.1.${{ github.run_number }}.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified signed APK
+        uses: actions/download-artifact@v4
+        with:
+          name: OneSpace-preview-0.1.${{ github.run_number }}
+      - name: Publish signed APK to GitHub Releases when permitted
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.ONESPACE_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="preview-0.1.${{ github.run_number }}"
+          ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          test -s "$ASSET"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if gh release upload "$TAG" "$ASSET" --clobber; then
+              echo "published_release=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            if gh release create "$TAG" "$ASSET" \
+              --title "OneSpace Preview 0.1.${{ github.run_number }}" \
+              --notes "Signed Android test preview, not a public launch. Verify on both partners' devices." \
+              --prerelease --target "${{ github.sha }}"; then
+              echo "published_release=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "published_release=false" >> "$GITHUB_OUTPUT"
+          # An API 403 is an authorization issue, not a transient build error.
+          # The verified, signed APK remains downloadable in this run's Artifacts.
+          echo "::warning::GitHub Releases did not accept this token. The signed APK remains available from the build job's retained Artifacts. No retry loop is started."
+      - name: Confirm publicly listed release asset
+        if: steps.publish.outputs.published_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.ONESPACE_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          TAG="preview-0.1.${{ github.run_number }}"
+          ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fx "$ASSET"
+          gh release view "$TAG" --json url --jq '.url'
+ release/READY_TO_BUILD.md; then
               echo "::error::R25 configured Firebase release requires ONESPACE_GOOGLE_SERVICES_JSON_BASE64. Confirm its exact GitHub Actions repository secret name."
               exit 1
             fi
