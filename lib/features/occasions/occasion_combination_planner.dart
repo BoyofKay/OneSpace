@@ -59,7 +59,7 @@ class _CombinationState extends State<OccasionCombinationPlanner>{
     title:Text(item['title']?.toString()??'Option'),
     subtitle:Text([
      if((item['merchant']??'').toString().isNotEmpty)item['merchant'].toString(),
-     if(item['unit_price']!=null)currency+' '+cost(item).toStringAsFixed(2),
+     if(item['unit_price']!=null)(item['currency']??currency).toString()+' '+cost(item).toStringAsFixed(2),
      if(item['estimated_delivery']!=null)'Arrives '+item['estimated_delivery'].toString(),
      if(item['preference_score']!=null)'My score '+item['preference_score'].toString()+'/5',
     ].join(' · ')),
