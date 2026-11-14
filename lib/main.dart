@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
