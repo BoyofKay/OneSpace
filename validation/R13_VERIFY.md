@@ -160,3 +160,8 @@ Validate latest main source with committed Flutter lockfile, full `flutter analy
 ## R31 — Daily Connection request lifecycle (verify only)
 
 Verify additive migration 0096 and rollback regression 0017 (server-side test already passed), plus Flutter dependency lock, full analyzer and all unit tests for the new pending/answered/expired filters, legacy records and expiry-safe reply UI. No APK in this verification-only gate. Keep both paired accounts, Firebase push and preexisting history unchanged.
+
+
+## R31 final verification — expiry rounding and rollback regression refinements
+
+Run full Flutter dependency resolution, analyzer and tests on this latest source after correcting the remaining-day rounding calculation. R31 backend rollback test 0017 rerun and PASS with the second-reply zero-affected RLS check. Do not build an APK or change preview signing, Firebase secrets or user data during this verification step.
