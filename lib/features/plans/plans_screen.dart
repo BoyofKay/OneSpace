@@ -301,7 +301,7 @@ class _PlansScreenState extends State<PlansScreen> {
             FilledButton.icon(
               onPressed: _busy ? null : () => _taskEditor(),
               icon: const Icon(Icons.add),
-              label:const Text('Add to-do list'),
+              label:const Text('Create checklist'),
             ),
             const SizedBox(height: 16),
             StreamBuilder<List<Map<String, dynamic>>>(
@@ -331,6 +331,7 @@ class _PlansScreenState extends State<PlansScreen> {
                   );
                 }
                 final tasks = snapshot.data!
+                    .where((row) => row['migrated_to_list'] == null)
                     .map(SharedTask.fromMap)
                     .where(_isVisible)
                     .toList();
@@ -435,7 +436,7 @@ class _PlansScreenState extends State<PlansScreen> {
          ]),
        childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
        children:[
-        if(_expandedLists.contains(task.id))TaskChecklistPanel(key:ValueKey(task.id),
+        TaskChecklistPanel(key:ValueKey(task.id),
          taskId:task.id,recurrence:task.recurrence,canEdit:canEdit&&!cancelled),
        ],
       ),
