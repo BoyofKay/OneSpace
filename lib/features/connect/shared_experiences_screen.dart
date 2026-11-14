@@ -7,6 +7,7 @@ import '../../core/current_space_cache.dart';
 import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
 import '../notes/related_notes_panel.dart';
+import '../../core/record_action_history_view.dart';
 import '../mentions/partner_mention_button.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
@@ -757,6 +758,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   final partnerPick=interests.where((x)=>x['user_id']!=myId)
    .map((x)=>x['choice']?.toString()??'undecided').firstOrNull??'undecided';
   return Scaffold(appBar:AppBar(title:const Text('Our experience'),actions:[
+   if(r!=null)RecordActionHistoryButton(kind:'experience',recordId:widget.id),
    if(r!=null)IconButton(tooltip:'Edit',onPressed:edit,icon:const Icon(Icons.edit_outlined)),
    if(r!=null)IconButton(tooltip:'Archive or restore',onPressed:archive,
     icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined)),
