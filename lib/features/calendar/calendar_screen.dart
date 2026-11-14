@@ -17,6 +17,7 @@ import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
 import '../occasions/occasion_rules.dart';
 import '../notes/related_notes_panel.dart';
+import '../../core/record_action_history_view.dart';
 import '../../theme/appearance_settings_screen.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
@@ -667,8 +668,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 if(action=='email')_emailEvent(event);
                 if(action=='remind')_remindPartner(event);
                 if(action=='notes')_showRelatedNotes(event);
+                if(action=='history')showModalBottomSheet<void>(
+                 context:context,showDragHandle:true,isScrollControlled:true,
+                 builder:(_)=>FractionallySizedBox(heightFactor:.78,
+                  child:RecordActionHistoryView(
+                   kind:'event',recordId:event['id'].toString())));
               },
               itemBuilder:(_)=>[
+                const PopupMenuItem(value:'history',child:Row(children:[
+                  Icon(Icons.manage_history_outlined),SizedBox(width:10),
+                  Text('Record action history')])),
                 const PopupMenuItem(value:'notes',child:Row(children:[
                   Icon(Icons.sticky_note_2_outlined),SizedBox(width:10),
                   Text('Related notes')])),
