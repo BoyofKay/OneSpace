@@ -8,6 +8,7 @@ import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
+import 'experience_comment_rules.dart';
 import '../notes/related_notes_panel.dart';
 import '../../core/record_action_history_view.dart';
 import '../mentions/partner_mention_button.dart';
@@ -593,7 +594,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  Map<String,dynamic>? item;
  List<Map<String,dynamic>> comments=[],reviews=[],audit=[],interests=[];
  int? rating;
- bool loading=true,busy=false,showAudit=false;
+ bool loading=true,busy=false,showAudit=false,showMyRetracted=false;
+ String commentSearch='';
  bool _reviewDraftDirty=false;
  String? error;
  RealtimeChannel? _changes;
@@ -746,6 +748,60 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    comment.clear();
   });
  }
+ Future<void> editComment(Map<String,dynamic> row)async{
+  final me=db.auth.currentUser?.id;
+  if(!ExperienceCommentRules.canEdit(row,me))return;
+  final controller=TextEditingController(text:(row['body']??'').toString());
+  final next=await showDialog<String>(context:context,builder:(ctx)=>
+   AlertDialog(title:const Text('Edit your comment'),
+    content:TextField(controller:controller,maxLength:2000,maxLines:4,
+     autofocus:true,decoration:const InputDecoration(labelText:'Comment')),
+    actions:[
+     TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
+     FilledButton(onPressed:(){
+      final value=controller.text.trim();
+      if(value.isNotEmpty)Navigator.pop(ctx,value);
+     },child:const Text('Save')),
+    ]));
+  controller.dispose();
+  if(next==null||next==(row['body']??'').toString())return;
+  await mutate(()async{
+   final result=await db.from('shared_experience_comments')
+    .update({'body':next}).eq('id',row['id'])
+    .eq('created_by',me!)
+    .eq('updated_at',row['updated_at']).isFilter('archived_at',null)
+    .select('id');
+   if(result.isEmpty)throw StateError(
+    'This comment changed on the other phone. Refresh before editing.');
+  });
+ }
+ Future<void> changeCommentArchive(Map<String,dynamic> row)async{
+  final me=db.auth.currentUser?.id;
+  final retracted=ExperienceCommentRules.isRetracted(row);
+  if(retracted?
+    !ExperienceCommentRules.canRestore(row,me):
+    !ExperienceCommentRules.canRetract(row,me))return;
+  if(!retracted){
+   final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
+    AlertDialog(title:const Text('Retract this comment?'),
+     content:const Text('Your partner will no longer see it. You can restore it later.'),
+     actions:[
+      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Keep')),
+      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Retract')),
+     ]));
+   if(confirmed!=true)return;
+  }
+  await mutate(()async{
+   final q=db.from('shared_experience_comments').update({
+    'archived_at':retracted?null:DateTime.now().toUtc().toIso8601String()
+   }).eq('id',row['id']).eq('created_by',me!)
+    .eq('updated_at',row['updated_at']);
+   final changed=retracted?await q.not('archived_at','is',null).select('id'):
+    await q.isFilter('archived_at',null).select('id');
+   if(changed.isEmpty)throw StateError(
+    'This comment changed on the other phone. Refresh and try again.');
+  });
+ }
  Future<void> edit()async{
   final r=item;if(r==null)return;
   final ok=await Navigator.push<bool>(context,MaterialPageRoute(
@@ -832,17 +888,42 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
      onPressed:busy?null:saveReview,child:const Text('Save my review'))),
     const Divider(height:28),
     Text('Our conversation',style:Theme.of(context).textTheme.titleLarge),
-    for(final x in comments.where((c)=>c['archived_at']==null))
+    TextField(onChanged:(value)=>setState(()=>commentSearch=value),
+     decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
+      labelText:'Search conversation')),
+    SwitchListTile.adaptive(contentPadding:EdgeInsets.zero,
+     title:const Text('My retracted comments'),
+     subtitle:const Text('Only you can see and restore your retracted comments'),
+     value:showMyRetracted,onChanged:(v)=>setState(()=>showMyRetracted=v)),
+    for(final x in ExperienceCommentRules.visible(
+     comments,myId,showMyRetracted:showMyRetracted,query:commentSearch))
      Card(elevation:0,child:ListTile(
-      title:Text(who(x['created_by'])),subtitle:Text(x['body'].toString()),
-      trailing:x['created_by']==db.auth.currentUser?.id?
-       IconButton(tooltip:'Retract',icon:const Icon(Icons.delete_outline),
-        onPressed:busy?null:()=>mutate(()async{
-         await db.from('shared_experience_comments').update({
-          'archived_at':DateTime.now().toUtc().toIso8601String()}).eq('id',x['id']);
-        })):null)),
+      title:Text(who(x['created_by'])+
+       (ExperienceCommentRules.isRetracted(x)?' · Retracted':'')),
+      subtitle:Text(x['body'].toString()),
+      trailing:ExperienceCommentRules.isAuthor(x,myId)?
+       PopupMenuButton<String>(tooltip:'Comment actions',
+        onSelected:(action){
+         if(action=='edit')editComment(x);
+         if(action=='archive')changeCommentArchive(x);
+         if(action=='history')showModalBottomSheet<void>(
+          context:context,showDragHandle:true,isScrollControlled:true,
+          builder:(_)=>FractionallySizedBox(heightFactor:.78,
+           child:RecordActionHistoryView(kind:'experience_comment',
+            recordId:x['id'].toString())));
+        },
+        itemBuilder:(_)=>[
+         if(ExperienceCommentRules.canEdit(x,myId))
+          const PopupMenuItem(value:'edit',child:Text('Edit')),
+         PopupMenuItem(value:'archive',child:Text(
+          ExperienceCommentRules.isRetracted(x)?'Restore':'Retract')),
+         const PopupMenuItem(value:'history',
+          child:Text('Comment action history')),
+        ]):null)),
     TextField(controller:comment,maxLength:2000,maxLines:3,
      decoration:const InputDecoration(labelText:'Share your thoughts')),
+    if(r['space_id']!=null)PartnerMentionButton(
+     spaceId:r['space_id'].toString(),controller:comment),
     Align(alignment:Alignment.centerRight,child:FilledButton.icon(
      onPressed:busy?null:send,icon:const Icon(Icons.send_outlined),
      label:const Text('Send'))),
