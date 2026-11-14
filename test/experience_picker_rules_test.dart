@@ -62,4 +62,23 @@ void main() {
       item('c', 'C', status: 'enjoyed'),
     ], 'planned'), 1);
   });
+
+  test('completion actions reflect the media type', () {
+    expect(ExperiencePickerRules.completionAction('movie'), 'Mark watched');
+    expect(ExperiencePickerRules.completionAction('show'), 'Mark watched');
+    expect(ExperiencePickerRules.completionAction('music'), 'Mark listened');
+    expect(ExperiencePickerRules.completionAction('book'), 'Mark read');
+    expect(ExperiencePickerRules.completionAction('game'), 'Mark played');
+    expect(ExperiencePickerRules.completionAction('other'), 'Mark enjoyed');
+    expect(ExperiencePickerRules.completionAction('future-type'), 'Mark enjoyed');
+    expect(ExperiencePickerRules.completionState('book'), 'Read');
+    expect(ExperiencePickerRules.completionState('show'), 'Watched');
+  });
+
+  test('date-only formatting does not turn the chosen day into UTC', () {
+    expect(ExperiencePickerRules.dateOnly(DateTime(2026, 1, 2, 23, 59)),
+        '2026-01-02');
+    expect(ExperiencePickerRules.dateOnly(DateTime(2031, 12, 31)),
+        '2031-12-31');
+  });
 }
