@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import 'trip_item_editor.dart';
 import 'trip_rules.dart';
@@ -122,8 +123,13 @@ class _TripsScreenState extends State<TripsScreen> {
   final visible=trips.where((trip){
    if((trip['archived_at']!=null)!=showArchived)return false;
    final title=trip['title'].toString().toLowerCase();
-   final dest=(trip['destination']??'').toString().toLowerCase();
-   if(!title.contains(query.toLowerCase())&&!dest.contains(query.toLowerCase()))return false;
+   final needle=query.trim().toLowerCase();
+   final searchable=[title,
+     (trip['destination']??'').toString().toLowerCase(),
+     (trip['origin']??'').toString().toLowerCase(),
+     (trip['notes']??'').toString().toLowerCase(),
+   ].join(' ');
+   if(needle.isNotEmpty&&!searchable.contains(needle))return false;
    if(showArchived||filter=='all')return true;
    final end=DateTime.tryParse((trip['end_on']??trip['start_on']??'').toString());
    final past=end!=null&&end.isBefore(now);
@@ -131,8 +137,30 @@ class _TripsScreenState extends State<TripsScreen> {
    return !past&&trip['status']!='completed'&&trip['status']!='cancelled';
   }).toList();
   return Scaffold(
-   appBar:AppBar(title:const Text('Trips & journeys'),
-    actions:[IconButton(onPressed:load,tooltip:'Refresh trips',icon:const Icon(Icons.refresh))]),
+   appBar:AppBar(title:const Text('Trips & journeys'),actions:[
+    RecordListTopActions(
+     showHistory:showArchived,
+     onToggleHistory:()=>setState(()=>showArchived=!showArchived),
+     hasActiveFilters:filter!='upcoming',
+     filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
+      mainAxisSize:MainAxisSize.min,
+      crossAxisAlignment:CrossAxisAlignment.start,children:[
+       const Text('Trip status'),
+       Wrap(spacing:8,runSpacing:5,children:[
+        for(final pair in const {
+         'upcoming':'Upcoming','past':'Past','all':'All',
+        }.entries)ChoiceChip(
+         selected:filter==pair.key,label:Text(pair.value),
+         onSelected:(_){setState(()=>filter=pair.key);refresh((){});}),
+       ]),
+       TextButton.icon(onPressed:(){
+        setState(()=>filter='upcoming');refresh((){});
+       },icon:const Icon(Icons.restart_alt),label:const Text('Reset filters')),
+      ])),
+    ),
+    IconButton(onPressed:load,tooltip:'Refresh trips',
+     icon:const Icon(Icons.refresh)),
+   ]),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     icon:const Icon(Icons.add),label:const Text('Plan a trip'),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
@@ -147,13 +175,10 @@ class _TripsScreenState extends State<TripsScreen> {
      decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
       labelText:'Find a trip or destination',border:OutlineInputBorder())),
     const SizedBox(height:8),
-    Wrap(spacing:6,runSpacing:4,children:[
-     for(final pair in const {'upcoming':'Upcoming','past':'Past','all':'All'}.entries)
-      FilterChip(label:Text(pair.value),selected:filter==pair.key,
-       onSelected:(_)=>setState(()=>filter=pair.key)),
-     FilterChip(label:const Text('Archived'),selected:showArchived,
-      onSelected:(v)=>setState(()=>showArchived=v)),
-    ]),
+    if(showArchived)Padding(
+     padding:const EdgeInsets.only(bottom:8),
+     child:Text('Archived trip history · Restore a trip from its details.',
+      style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Padding(padding:EdgeInsets.all(24),child:Center(child:CircularProgressIndicator()))
     else if(space==null)const Text('Connect your shared space first.')
