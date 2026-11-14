@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
 import '../notes/related_notes_panel.dart';
@@ -291,7 +292,8 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    (kind=='all'||r['category']==kind)&&(status=='all'||r['status']==status)&&
    (!mutualOnly||ExperienceInterestRules.mutuallyInterested(interests,r['id']))&&
    (r['title'].toString().toLowerCase().contains(search.toLowerCase())||
-    (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
+    (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase())||
+    (r['description']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
   final candidates=ExperiencePickerRules.shortlist(rows,category:kind);
   final mutualCandidates=candidates.where((r)=>
    ExperienceInterestRules.mutuallyInterested(interests,r['id'])).toList();
@@ -300,24 +302,40 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    offset:suggestionOffset);
   return Scaffold(
    appBar:AppBar(title:const Text('Our experience'),actions:[
-    IconButton(tooltip:'Experience filters',icon:const Icon(Icons.tune_outlined),
-     onPressed:()=>showModalBottomSheet<void>(context:context,showDragHandle:true,
-      builder:(_)=>StatefulBuilder(builder:(ctx,refresh)=>SafeArea(
-       child:Padding(padding:const EdgeInsets.all(18),
-        child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
-         Text('Filter collection',style:Theme.of(ctx).textTheme.titleLarge),
-         const SizedBox(height:10),
-         Wrap(spacing:8,runSpacing:5,children:[
-          for(final e in <String,String>{'all':'All',...experienceStates}.entries)
-           ChoiceChip(label:Text(e.value),selected:status==e.key,
-            onSelected:(_){setState(()=>status=e.key);refresh((){});}),
-         ]),
-         SwitchListTile(title:const Text('Archived experiences'),
-          value:showArchived,onChanged:(v){setState(()=>showArchived=v);refresh((){});}),
-         SwitchListTile(title:const Text('Only mutual picks'),
-          subtitle:const Text('Both partners marked Interested'),
-          value:mutualOnly,onChanged:(v){setState(()=>mutualOnly=v);refresh((){});}),
-       ])))))) ,
+    RecordListTopActions(
+     showHistory:showArchived,
+     onToggleHistory:()=>setState(()=>showArchived=!showArchived),
+     hasActiveFilters:status!='all'||mutualOnly||kind!='all',
+     filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
+      mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,
+      children:[
+       const Text('Status'),
+       Wrap(spacing:8,runSpacing:5,children:[
+        for(final entry in <String,String>{'all':'All',...experienceStates}.entries)
+         ChoiceChip(label:Text(entry.value),selected:status==entry.key,
+          onSelected:(_){setState(()=>status=entry.key);refresh((){});}),
+       ]),
+       const SizedBox(height:10),
+       const Text('Category'),
+       Wrap(spacing:7,runSpacing:5,children:[
+        for(final entry in <String,String>{
+         'all':'All',...experienceTypes,
+        }.entries)ChoiceChip(
+         label:Text(entry.value),selected:kind==entry.key,
+         onSelected:(_){setState(()=>kind=entry.key);refresh((){});}),
+       ]),
+       SwitchListTile(contentPadding:EdgeInsets.zero,
+        title:const Text('Only mutual picks'),
+        subtitle:const Text('Both partners marked Interested'),
+        value:mutualOnly,
+        onChanged:(v){setState(()=>mutualOnly=v);refresh((){});}),
+       TextButton.icon(onPressed:(){
+        setState((){kind='all';status='all';mutualOnly=false;});
+        refresh((){});
+       },icon:const Icon(Icons.restart_alt),
+        label:const Text('Reset filters')),
+      ])),
+    ),
     IconButton(tooltip:'Experience edit history',
      icon:const Icon(Icons.history_outlined),onPressed:openHistory),
    ]),
@@ -331,15 +349,12 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     const SizedBox(height:8),
     TextField(onChanged:(v)=>setState(()=>search=v),
      decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
-      labelText:'Search by title or platform')),
+      labelText:'Search experiences',
+      hintText:'Title, platform or description')),
     const SizedBox(height:8),
-    Row(children:[
-     Expanded(child:Text('Mutual picks · '+
+    Text('Mutual picks · '+
       ExperienceInterestRules.mutualCount(rows,interests).toString(),
-      style:Theme.of(context).textTheme.bodyMedium)),
-     FilterChip(label:const Text('Show our matches'),selected:mutualOnly,
-      onSelected:(value)=>setState(()=>mutualOnly=value)),
-    ]),
+      style:Theme.of(context).textTheme.bodyMedium),
     const SizedBox(height:15),
     if(suggestion!=null)Card(
      child:Padding(padding:const EdgeInsets.all(14),child:Column(
