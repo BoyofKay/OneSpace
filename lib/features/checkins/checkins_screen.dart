@@ -8,6 +8,7 @@ import '../../l10n/onespace_strings.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
 import '../connection/connection_rules.dart';
+import 'checkin_request_rules.dart';
 
 /// Each person may make one personal check-in per local calendar date. The
 /// partner can view shared entries, but only the author can edit their entry.
@@ -26,14 +27,27 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   String? _error;
   bool _loading=true;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
-  String _filter='all';
+  String _filter='all',_requestFilter='all';
   bool _openedInitialRequest=false;
+  Timer? _requestClock;
 
   @override
-  void initState(){super.initState();_load();}
+  void initState(){
+    super.initState();
+    _load();
+    // Recalculate expiry while the screen stays open, without polling the
+    // backend or resending an existing request.
+    _requestClock=Timer.periodic(const Duration(minutes:1),(_){
+      if(mounted)setState((){});
+    });
+  }
 
   @override
-  void dispose() { _grants?.cancel(); super.dispose(); }
+  void dispose() {
+    _requestClock?.cancel();
+    _grants?.cancel();
+    super.dispose();
+  }
 
   void _watchGrants(String id) {
     _grants?.cancel();
@@ -60,12 +74,12 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
     _openedInitialRequest=true;
     try{
       final rows=await _client.from('partner_checkin_requests')
-        .select('id,space_id,sender_id,recipient_id,note,requested_at,responded_at')
+        .select('id,space_id,sender_id,recipient_id,note,requested_at,responded_at,expires_at')
         .eq('id',requestId).eq('space_id',_space!).limit(1);
       if(!mounted||rows.isEmpty)return;
       final row=rows.first;
-      if(row['recipient_id']==_client.auth.currentUser?.id &&
-        row['responded_at']==null){
+      if(CheckinRequestRules.canRespond(
+        row,_client.auth.currentUser?.id,DateTime.now())){
         await _respond(row);
       }
     }catch(_){
@@ -133,7 +147,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
             content:Column(mainAxisSize:MainAxisSize.min,
               crossAxisAlignment:CrossAxisAlignment.start,children:[
               const Text('A gentle invitation for your partner to share '
-                'how they feel. They choose when to respond.'),
+                'how they feel. They choose whether and when to respond. '
+                'New invitations stay open for seven days, then quietly '
+                'move to history without follow-up notifications.'),
               const SizedBox(height:12),
               TextField(controller:note,maxLength:500,maxLines:3,
                 decoration:const InputDecoration(
@@ -184,26 +200,60 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
     final me=_client.auth.currentUser?.id;
     return StreamBuilder<List<Map<String,dynamic>>>(
       stream:_requests,builder:(ctx,snapshot){
-        if(snapshot.hasError)return const Text('Could not load partner check-ins.');
-        if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
+        if(snapshot.hasError)return const Text(
+          'Could not load partner check-ins. Pull down to retry.');
+        if(!snapshot.hasData)return const Center(
+          child:CircularProgressIndicator());
         final rows=snapshot.data!;
         if(rows.isEmpty)return const Card(elevation:0,child:Padding(
           padding:EdgeInsets.all(14),
-          child:Text('No requests yet. You can check on each other anytime.')));
-        return Column(children:[
-          for(final item in rows.take(60))Card(
+          child:Text('No conversations yet. Check on each other anytime.')));
+        final now=DateTime.now();
+        final needs=CheckinRequestRules.count(rows,'to_answer',me,now);
+        final waiting=CheckinRequestRules.count(rows,'waiting',me,now);
+        final history=CheckinRequestRules.count(rows,'history',me,now);
+        final visible=CheckinRequestRules.filter(
+          rows,_requestFilter,me,now).take(60);
+        return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+          Padding(padding:const EdgeInsets.symmetric(vertical:8),
+            child:Text('A gentle way to connect. You choose when to reply.',
+              style:Theme.of(context).textTheme.bodySmall)),
+          Wrap(spacing:7,runSpacing:3,children:[
+            ChoiceChip(label:const Text('All'),
+             selected:_requestFilter=='all',
+             onSelected:(_)=>setState(()=>_requestFilter='all')),
+            ChoiceChip(label:Text('To answer · $needs'),
+             selected:_requestFilter=='to_answer',
+             onSelected:(_)=>setState(()=>_requestFilter='to_answer')),
+            ChoiceChip(label:Text('Sent · $waiting'),
+             selected:_requestFilter=='waiting',
+             onSelected:(_)=>setState(()=>_requestFilter='waiting')),
+            ChoiceChip(label:Text('History · $history'),
+             selected:_requestFilter=='history',
+             onSelected:(_)=>setState(()=>_requestFilter='history')),
+          ]),
+          const SizedBox(height:7),
+          if(visible.isEmpty)const Padding(
+           padding:EdgeInsets.symmetric(vertical:16),
+           child:Text('Nothing in this part of your check-in history.'))
+          else for(final item in visible)Card(
+            key:ValueKey('request-${item['id']}'),
             elevation:0,clipBehavior:Clip.antiAlias,
             child:ExpansionTile(
-              initiallyExpanded:item['recipient_id']==me&&
-                item['responded_at']==null,
-              leading:Icon(item['sender_id']==me?
+              initiallyExpanded:CheckinRequestRules.canRespond(item,me,now),
+              leading:Icon(item['responded_at']!=null?
+               Icons.mark_chat_read_outlined:
+               CheckinRequestRules.status(item,now)==CheckinRequestRules.expired?
+                Icons.history_toggle_off_outlined:
+               item['sender_id']==me?
                 Icons.send_outlined:Icons.mark_email_unread_outlined),
               title:Text(item['sender_id']==me?
                 'You checked on your partner':'Your partner checked on you',
                 style:Theme.of(context).textTheme.titleSmall),
               subtitle:Text(_dateTime(item['requested_at'])+
-                (item['responded_at']==null?' · Awaiting response':
-                ' · Responded'),
+                ' · '+CheckinRequestRules.label(item,now)+
+                (CheckinRequestRules.status(item,now)==CheckinRequestRules.pending?
+                 ' · '+CheckinRequestRules.expiryHint(item,now):''),
                 style:Theme.of(context).textTheme.bodySmall),
               childrenPadding:const EdgeInsets.fromLTRB(15,0,15,14),
               children:[
@@ -221,12 +271,17 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
                 if((item['response_topic']?.toString()??'').isNotEmpty)
                   _detail('Something to talk about',
                     item['response_topic'].toString()),
-                if(item['recipient_id']==me&&item['responded_at']==null)
+                if(CheckinRequestRules.canRespond(item,me,now))
                   Align(alignment:AlignmentDirectional.centerEnd,
                     child:FilledButton.icon(
                       onPressed:()=>_respond(item),
                       icon:const Icon(Icons.reply_outlined),
                       label:const Text('Respond to your love'))),
+                if(CheckinRequestRules.status(item,now)==
+                  CheckinRequestRules.expired)
+                  const Padding(padding:EdgeInsets.only(top:8),
+                   child:Text('This invitation has expired. Your history is '
+                    'preserved, and either partner can start a new check-in.')),
               ],
             ),
           ),
@@ -485,6 +540,10 @@ class _PartnerCheckinReplyScreenState extends State<PartnerCheckinReplyScreen> {
    });
    try{
      final db=Supabase.instance.client;
+     if(!CheckinRequestRules.canRespond(widget.request,
+        db.auth.currentUser?.id,DateTime.now())){
+       throw StateError('This invitation has already been answered or expired.');
+     }
      final rows=await db.from('partner_checkin_requests')
        .update({
          'response_mood':mood,
@@ -531,7 +590,8 @@ class _PartnerCheckinReplyScreenState extends State<PartnerCheckinReplyScreen> {
          labelText:'Something you need to talk about?',
          border:OutlineInputBorder())),
      const Text('Your response is shared only with your partner. '
-       'You can answer whenever you feel comfortable.'),
+       'You can choose when to answer while this invitation is open. '
+       'Nothing is sent until you press Send.'),
      if(error!=null)Text(error!,
        style:TextStyle(color:Theme.of(context).colorScheme.error)),
      const SizedBox(height:12),
