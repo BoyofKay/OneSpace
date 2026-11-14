@@ -63,3 +63,7 @@ The in-app 'Save a link or idea' option is removed while Android external Share 
 ## R21 pre-release verification (2026-11-14)
 - Compile and test latest source after safe legacy task consolidation, independent partner checkmarks, narrower RLS policies, and camera-first searchable Memories.
 - Do not publish an APK until the test suite passes and release gate is explicitly updated.
+
+
+## R21 Contacts and legacy Lists gate
+Run Flutter analyze + tests after Android native contact integration, vCard intake and retirement of empty legacy Lists backend.
