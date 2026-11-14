@@ -245,3 +245,8 @@ Deploy additive SQL migrations 0101 and 0102 and run rollback-only two-partner R
 ## R38 final — Links + searchable Notes 2.0 on signed preview source
 
 After first R38 commit, added title/body search with pinned ordering and archived filters; added `notes_library_rules_test.dart`, and separately passed rollback-only SQL 0023 for private surprise occasions. Run committed dependency verification, Flutter analyze and full Flutter test suite on this *latest* source before releasing. No altered Firebase credentials, checklist records, note bodies, pairings or permissions. The next signed APK must include R38 cross-module references and Notes search, plus all previous R34–R37 fixes.
+
+
+## R39 — On-demand related-note backlinks (source only)
+
+Use existing R38 note_references permissions to show a related Notes panel from checklists, calendar event action sheets, occasion details and shared experiences. Lazy-load only when opened to protect R34 checklist performance, with no new migrations and no user data changes. Run exact committed Flutter dependencies, analyzer and full tests including `related_notes_rules_test.dart`. Do not trigger a new signed preview until R38 Release 414 publication is checked. Confirm two-way private visibility before shipping R39.
