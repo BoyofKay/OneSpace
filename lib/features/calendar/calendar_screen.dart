@@ -16,6 +16,7 @@ import 'calendar_rules.dart';
 import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
 import '../occasions/occasion_rules.dart';
+import '../notes/related_notes_panel.dart';
 import '../../theme/appearance_settings_screen.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
@@ -600,6 +601,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  Future<void> _showRelatedNotes(Map<String,dynamic> event) async {
+    await showModalBottomSheet<void>(context:context,
+      showDragHandle:true,isScrollControlled:true,
+      builder:(_)=>FractionallySizedBox(heightFactor:.60,
+        child:SafeArea(child:SingleChildScrollView(
+          padding:const EdgeInsets.all(12),
+          child:RelatedNotesPanel(
+            sourceKind:'event',sourceId:event['id'].toString(),
+            initiallyExpanded:true)))));
+  }
+
   Widget _eventTile(Map<String, dynamic> event, {bool upcoming = false}) {
     final id = _client.auth.currentUser?.id ?? '';
     final visibility = event['visibility'] as String? ?? 'shared';
@@ -654,8 +666,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onSelected:(action){
                 if(action=='email')_emailEvent(event);
                 if(action=='remind')_remindPartner(event);
+                if(action=='notes')_showRelatedNotes(event);
               },
               itemBuilder:(_)=>[
+                const PopupMenuItem(value:'notes',child:Row(children:[
+                  Icon(Icons.sticky_note_2_outlined),SizedBox(width:10),
+                  Text('Related notes')])),
                 const PopupMenuItem(value:'email',child:Row(children:[
                   Icon(Icons.mail_outline),SizedBox(width:10),
                   Text('Share by email')])),
