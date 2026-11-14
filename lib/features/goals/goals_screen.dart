@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
@@ -27,6 +28,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
   bool _archived = false;
   String _filter = 'active';
+  String _query = '';
 
   @override
   void initState() { super.initState(); _load(); }
@@ -93,7 +95,31 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr(context,'goalsTitle'))),
+    appBar: AppBar(title: Text(tr(context,'goalsTitle')),actions:[
+      RecordListTopActions(
+        showHistory:_archived,
+        onToggleHistory:()=>setState(()=>_archived=!_archived),
+        hasActiveFilters:_filter!='active',
+        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
+         mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,
+         children:[
+          const Text('Status'),
+          Wrap(spacing:8,children:[
+           for(final status in ['active','paused','achieved','all'])
+            ChoiceChip(selected:_filter==status,
+             label:Text(tr(ctx,status)),
+             onSelected:(_){
+              setState(()=>_filter=status);
+              update((){});
+             }),
+          ]),
+          TextButton.icon(onPressed:(){
+           setState(()=>_filter='active');update((){});
+          },icon:const Icon(Icons.restart_alt),
+           label:const Text('Reset filters')),
+         ])),
+      ),
+    ]),
     body: RefreshIndicator(
       onRefresh:_load,
       child: ListView(padding: const EdgeInsets.all(20), children: [
@@ -111,15 +137,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
             icon:const Icon(Icons.flag_outlined),
             label:Text(tr(context,'newGoal'))),
           const SizedBox(height:12),
-          Wrap(spacing:8,children:['active','paused','achieved','all'].map((status)=>
-            ChoiceChip(
-              selected:_filter==status,
-              label:Text(tr(context,status)),
-              onSelected:(_)=>setState(()=>_filter=status))).toList()),
-          SwitchListTile(
-            contentPadding:EdgeInsets.zero,value:_archived,
-            title:Text(tr(context,'showArchived')),
-            onChanged:(v)=>setState(()=>_archived=v)),
+          TextField(
+           onChanged:(value)=>setState(()=>_query=value.trim().toLowerCase()),
+           decoration:const InputDecoration(
+            prefixIcon:Icon(Icons.search),labelText:'Search goals',
+            hintText:'Search goal titles and descriptions',
+            border:OutlineInputBorder())),
+          const SizedBox(height:10),
           StreamBuilder<List<Map<String,dynamic>>>(
             stream:_stream,
             builder:(context,snapshot) {
@@ -129,7 +153,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
               }
               final entries=snapshot.data!.where((g)=>
                 (_archived || g['archived_at']==null) &&
-                (_filter=='all' || g['status']==_filter)).toList();
+                (_filter=='all' || g['status']==_filter) &&
+                (_query.isEmpty ||
+                 (g['title']??'').toString().toLowerCase().contains(_query) ||
+                 (g['description']??'').toString().toLowerCase().contains(_query))
+                ).toList();
               if (entries.isEmpty) {
                 return Padding(
                   padding:const EdgeInsets.all(36),
