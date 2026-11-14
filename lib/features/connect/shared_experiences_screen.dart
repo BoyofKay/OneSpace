@@ -291,7 +291,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    (r['title'].toString().toLowerCase().contains(search.toLowerCase())||
     (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
   final candidates=ExperiencePickerRules.shortlist(rows,category:kind);
-  final suggestion=ExperiencePickerRules.pick(candidates,offset:suggestionOffset);
+  final mutualCandidates=candidates.where((r)=>
+   ExperienceInterestRules.mutuallyInterested(interests,r['id'])).toList();
+  final suggestion=ExperiencePickerRules.pick(
+   mutualCandidates.isNotEmpty?mutualCandidates:candidates,
+   offset:suggestionOffset);
   return Scaffold(
    appBar:AppBar(title:const Text('Our experience'),actions:[
     IconButton(tooltip:'Experience filters',icon:const Icon(Icons.tune_outlined),
@@ -345,7 +349,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          style:Theme.of(context).textTheme.titleMedium)),
        ]),
        const SizedBox(height:6),
-       Text('A suggestion from your own collection — no external tracking.'),
+       Text(mutualCandidates.isNotEmpty?
+        'Chosen from experiences you both like — no external tracking.':
+        'A suggestion from your own collection — no external tracking.'),
        const SizedBox(height:8),
        Text(suggestion['title'].toString(),
         style:Theme.of(context).textTheme.titleLarge),
