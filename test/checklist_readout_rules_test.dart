@@ -31,7 +31,7 @@ void main(){
  test('truncates long or control character input',(){
   final text=ChecklistReadoutRules.clean('   Take\\n  my   \\tbag   ');
   expect(text,'Take my bag');
-  expect(ChecklistReadoutRules.clean('x'*400).length,240);
+  expect(ChecklistReadoutRules.clean('x'.padRight(400,'x')).length,240);
  });
  test('caps long lists without downloading anything new',(){
   final items=List.generate(260,(i)=><String,dynamic>{
