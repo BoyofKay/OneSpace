@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_collection_search_rules.dart';
+import '../../core/record_action_history_view.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import 'trip_item_editor.dart';
@@ -558,6 +559,8 @@ class _TripDetailState extends State<TripDetail>{
   final amounts=TripRules.sumByCurrency(active);
   return Scaffold(
    appBar:AppBar(title:const Text('Trip details'),actions:[
+    if(t!=null)RecordActionHistoryButton(
+     kind:'trip',recordId:widget.tripId),
     IconButton(tooltip:'Refresh trip',icon:const Icon(Icons.refresh),onPressed:load),
     if(t!=null)IconButton(tooltip:'Edit trip',icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
     if(t!=null)IconButton(tooltip:t['archived_at']==null?'Archive trip':'Restore trip',
