@@ -103,3 +103,11 @@ Recompiled both editors after removing malformed duplicate fragments; verify Qui
 
 ## R23 single analyzer defect fixed
 Restored missing Occasion estimated-arrival picker; previous analyzer found only this remaining compile error. Run complete tests.
+
+
+## R24 Firebase Messaging transport compile gate
+- Firebase Core 5.1.0, Messaging 17.0.1 pinned with optional Android Google services build configuration.
+- Auth-unlocked token registration, OS notification permission, navigation to in-app feed, explicit sign-out unregister.
+- Supabase 0087 device ownership RLS, private per-device outbox, service-role protected claim/ack.
+- Deployed Edge worker uses OAuth2 FCM HTTP v1 only after secure service credentials configured.
+- Rollback SQL 0012 PASSED. Validate all Dart tests and Flutter static analysis.
