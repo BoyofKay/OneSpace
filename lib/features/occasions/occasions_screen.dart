@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
 import '../mentions/partner_mention_button.dart';
@@ -28,7 +29,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
  final db=Supabase.instance.client;
  String? space,error;
  bool loading=true,archived=false,opened=false;
- String filter='upcoming';
+ String filter='upcoming',query='';
  List<Map<String,dynamic>> plans=[];
  RealtimeChannel? _channel;
  Timer? _refresh;
@@ -121,6 +122,11 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
   final today=DateTime.now();
   final shown=plans.where((p){
    if((p['archived_at']!=null)!=archived)return false;
+   final term=query.trim().toLowerCase();
+   final text=[
+    p['title'],p['honoree_name'],p['notes'],p['kind'],
+   ].map((x)=>x?.toString().toLowerCase()??'').join(' ');
+   if(term.isNotEmpty&&!text.contains(term))return false;
    if(filter=='all'||archived)return true;
    if(filter=='private')return p['visibility']=='private';
    if(filter=='shared')return p['visibility']=='shared';
@@ -135,8 +141,31 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
    return next(a).compareTo(next(b));
   });
   return Scaffold(
-   appBar:AppBar(title:const Text('Occasions & surprises'),
-    actions:[IconButton(tooltip:'Refresh',onPressed:load,icon:const Icon(Icons.refresh))]),
+   appBar:AppBar(title:const Text('Occasions & surprises'),actions:[
+    RecordListTopActions(
+     showHistory:archived,
+     onToggleHistory:()=>setState(()=>archived=!archived),
+     hasActiveFilters:filter!='upcoming',
+     filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
+      mainAxisSize:MainAxisSize.min,
+      crossAxisAlignment:CrossAxisAlignment.start,children:[
+       const Text('Occasion view'),
+       Wrap(spacing:8,runSpacing:5,children:[
+        for(final entry in const {
+         'upcoming':'Upcoming','private':'Only me',
+         'shared':'Both of us','all':'All',
+        }.entries)ChoiceChip(
+         label:Text(entry.value),selected:filter==entry.key,
+         onSelected:(_){setState(()=>filter=entry.key);refresh((){});}),
+       ]),
+       TextButton.icon(onPressed:(){
+        setState(()=>filter='upcoming');refresh((){});
+       },icon:const Icon(Icons.restart_alt),label:const Text('Reset filters')),
+      ])),
+    ),
+    IconButton(tooltip:'Refresh',onPressed:load,
+     icon:const Icon(Icons.refresh)),
+   ]),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Plan an occasion')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
@@ -146,14 +175,17 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     const SizedBox(height:6),
     const Text('Remember the day, prepare surprises early, and start saving in time. Private plans stay private.'),
     const SizedBox(height:12),
-    Wrap(spacing:6,runSpacing:4,children:[
-     for(final e in const {'upcoming':'Upcoming','private':'Only me',
-      'shared':'Both of us','all':'All'}.entries)
-      FilterChip(label:Text(e.value),selected:filter==e.key,
-       onSelected:(_)=>setState(()=>filter=e.key)),
-     FilterChip(label:const Text('Archived'),selected:archived,
-      onSelected:(v)=>setState(()=>archived=v)),
-    ]),
+    TextField(
+     onChanged:(value)=>setState(()=>query=value),
+     decoration:const InputDecoration(
+      prefixIcon:Icon(Icons.search),
+      labelText:'Search occasions and surprises',
+      hintText:'Title, person, occasion type or notes',
+      border:OutlineInputBorder())),
+    const SizedBox(height:10),
+    if(archived)Padding(padding:const EdgeInsets.only(bottom:8),
+     child:Text('Archived occasion history · Open to restore.',
+      style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Center(child:Padding(padding:EdgeInsets.all(24),child:CircularProgressIndicator()))
     else if(space==null)const Text('Connect your shared space first.')
