@@ -33,7 +33,9 @@ insert into public.note_references(note_id,target_kind,target_id)
  values(current_setting('qa.shared_note')::uuid,'task',
   current_setting('qa.shared_task')::uuid),
  (current_setting('qa.private_note')::uuid,'task',
-  current_setting('qa.private_task')::uuid);
+  current_setting('qa.private_task')::uuid),
+ (current_setting('qa.private_note')::uuid,'task',
+  current_setting('qa.shared_task')::uuid);
 do $qa$
 declare denied boolean:=false;
 begin
