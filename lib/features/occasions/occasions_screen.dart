@@ -9,6 +9,7 @@ import '../mentions/partner_mention_button.dart';
 import 'occasion_budget_workspace.dart';
 import 'occasion_preparation_reminders.dart';
 import '../notes/related_notes_panel.dart';
+import '../../core/record_action_history_view.dart';
 import '../../core/responsive_field_pair.dart';
 
 const occasionKinds=<String,String>{
@@ -512,6 +513,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
    annual:p['annual']==true,today:DateTime.now());
   final total=OccasionRules.estimatedByCurrency(current);
   return Scaffold(appBar:AppBar(title:const Text('Occasion plan'),actions:[
+    if(p!=null)RecordActionHistoryButton(kind:'occasion',recordId:widget.id),
     if(p!=null)IconButton(tooltip:'Edit occasion',onPressed:editPlan,icon:const Icon(Icons.edit_outlined)),
     if(p!=null)IconButton(tooltip:p['archived_at']==null?'Archive':'Restore',
       onPressed:busy?null:setArchived,icon:Icon(p['archived_at']==null?
