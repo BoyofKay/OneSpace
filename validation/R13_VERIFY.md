@@ -210,3 +210,8 @@ Real tap-to-expand Flutter widget tests caught `_TypeError: type 'bool' is not a
 ## R35 — Occasion preparation milestones connected to Reminders (source-only verification)
 
 Run full committed Flutter dependencies, analyzer and entire test suite (including `occasion_preparation_rules_test.dart`) against R35, and confirm cross-module deep links from reminder to the exact source object. Additive Supabase 0099 deployed; rollback-only two-account SQL 0020 PASS. Do not create automatic reminders, modify existing data, change Firebase config, or release an APK until source gate succeeds.
+
+
+## R36 — Thoughtful private love self-reminders (source-only verification)
+
+R36 adds a manual personal-only schedule choice in A Little Love and a reminder deep link back to the gestures tab. Migration 0100 deployed, rollback-only RLS test 0021 passed. Run locked dependencies, full analyzer and Flutter tests including `love_prompt_rules_test.dart`. No change to automated gestures config, FCM, privacy, pairing, or published Release 411 (already pinned). Do not build R36 APK unless green.
