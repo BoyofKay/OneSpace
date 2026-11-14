@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import '../../core/performance_timings.dart';
 import '../../l10n/onespace_strings.dart';
 import '../calendar/calendar_rules.dart';
@@ -184,7 +185,29 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr(context, 'memories'))),
+    appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
+      RecordListTopActions(
+        showHistory:_archived,
+        onToggleHistory:()=>setState(()=>_archived=!_archived),
+        hasActiveFilters:_scope!='all',
+        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
+          mainAxisSize:MainAxisSize.min,
+          crossAxisAlignment:CrossAxisAlignment.start,children:[
+           const Text('Visibility'),
+           Wrap(spacing:8,children:[
+            for(final choice in ['all','shared','private'])
+             ChoiceChip(label:Text(tr(ctx,choice)),selected:_scope==choice,
+              onSelected:(_){
+               setState(()=>_scope=choice);update((){});
+              }),
+           ]),
+           TextButton.icon(onPressed:(){
+            setState(()=>_scope='all');update((){});
+           },icon:const Icon(Icons.restart_alt),
+            label:const Text('Reset filters')),
+          ])),
+      ),
+    ]),
     body: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -241,18 +264,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               tooltip:'Clear search',onPressed:_search.clear,
               icon:const Icon(Icons.clear)))),
             const SizedBox(height: 12),
-            Wrap(spacing: 8, children: ['all','shared','private'].map((value) =>
-              ChoiceChip(
-                label: Text(tr(context,value)),
-                selected: _scope == value,
-                onSelected: (_) => setState(() => _scope = value),
-              )).toList()),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _archived,
-              title: Text(tr(context,'showArchived')),
-              onChanged: (v) => setState(() => _archived = v),
-            ),
             StreamBuilder<List<Map<String,dynamic>>>(
               stream: _stream,
               builder: (context,snapshot) {
