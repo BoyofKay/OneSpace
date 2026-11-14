@@ -71,13 +71,13 @@ class _ChecklistReadoutSheetState extends State<ChecklistReadoutSheet>
  Future<void> move(int next)async{
   final lines=steps;
   if(lines.isEmpty)return;
-  setState(()=>at=next.clamp(0,lines.length-1));
+  setState(()=>at=next.clamp(0,lines.length-1).toInt());
   await speak('Item ${at+1}. ${lines[at]}.');
  }
  @override Widget build(BuildContext context){
   final stepsNow=steps;
   final theme=Theme.of(context);
-  final safeIndex=stepsNow.isEmpty?0:at.clamp(0,stepsNow.length-1);
+  final safeIndex=stepsNow.isEmpty?0:at.clamp(0,stepsNow.length-1).toInt();
   return SafeArea(child:Padding(
    padding:EdgeInsets.fromLTRB(16,8,16,
     MediaQuery.viewInsetsOf(context).bottom+20),
