@@ -48,3 +48,6 @@ preview signing certificate, validated Firebase Android registration and
 verified published APK artifact. Publish exactly one controlled preview.
 
 Trigger R26, November 14, 2026.
+
+## Release workflow repair
+Fixed YAML for required Firebase configuration, preserved the working Android signing and release jobs. Retry the exact verified R26 source.
