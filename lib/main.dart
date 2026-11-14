@@ -65,8 +65,8 @@ class OneSpaceErrorFallback extends StatelessWidget {
      if(details.library!=null)'Library: ${details.library}',
      if(details.context!=null)'Context: ${details.context}',
      if(details.stack!=null)
-       'Stack trace:\\n'+details.stack.toString().split('\\n').take(20).join('\\n'),
-   ].join('\\n');
+       'Stack trace:\n'+details.stack.toString().split('\n').take(20).join('\n'),
+   ].join('\n');
    final theme=Theme.of(context);
    return Material(
      color:theme.colorScheme.surface,
