@@ -95,3 +95,7 @@ Run Flutter analyze + tests after Android native contact integration, vCard inta
 ## R23 complete source compile gate
 - Dependency lockfile for flutter_quill 11.6.0 committed.
 - Check Note editor, Occasion combinations, recurrence schedule controls, timezone handling and tests; fail closed before APK.
+
+
+## R23 source reconstruction acceptance
+Recompiled both editors after removing malformed duplicate fragments; verify Quill 11.6.0, Occasion Planner, advanced checklist code, tests with pinned lockfile.
