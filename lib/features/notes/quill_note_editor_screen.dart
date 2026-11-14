@@ -6,6 +6,7 @@ import '../sharing/share_grant_watcher.dart';
 import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
 import 'note_references_panel.dart';
+import '../../core/record_action_history_view.dart';
 import 'dart:async';
 
 /// OneSpace Notes 2.0: real rich-text editing, native selection/copy/paste,
@@ -125,6 +126,8 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
   return Scaffold(
    appBar:AppBar(title:Text(editing?'Note 2.0 · Edit':'Note 2.0 · New'),
     actions:[
+     if(editing)RecordActionHistoryButton(
+       kind:'note',recordId:widget.existing!['id'].toString()),
      if(editing&&canEdit)IconButton(
       onPressed:busy?null:archive,
       tooltip:archived?'Restore note':'Archive note',
