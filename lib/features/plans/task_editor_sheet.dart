@@ -55,8 +55,8 @@ class SharedTask {
       status: TaskStatus.values.firstWhere(
         (v) => v.name == row['status'], orElse: () => TaskStatus.open),
       visibility: TaskVisibility.values.firstWhere(
-        (v) => v.name == row['visibility'],
-        orElse: () => TaskVisibility.private),
+        (v) => v.name == (row['visibility'] ?? 'shared'),
+        orElse: () => TaskVisibility.shared),
       createdBy: (row['created_by'] ?? '').toString(),
       assignedTo: row['assigned_to']?.toString(),
       targetDate: row['target_date']?.toString(),
