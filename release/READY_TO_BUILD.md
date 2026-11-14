@@ -1,32 +1,32 @@
-# R23 — Notes 2.0, Advanced Recurring Checklists & Occasion Shopping Lab
+# R24 — Firebase Cloud Messaging groundwork and secure push transport
 
-Previous verified preview: 0.1.400. Controlled Android test release.
-Upgrade over installed preview. **Never uninstall, clear app data, or reset existing accounts.**
+Previous signed preview 0.1.401. Upgrade IN PLACE; never uninstall or clear app data.
 
-## Included
-- Genuine OneSpace Notes 2.0 WYSIWYG editing with pinned Flutter Quill 11.6.0, formatted headings/lists/bold/italic/links, plain search text plus structured Delta JSON, existing note image attachments, shared/private RLS and optimistic edit conflict protection. Previous plain text notes remain readable.
-- Occasion Planner now stores merchant, product URL, purchase price, expected delivery, retailer review rating, own preference score (1–5), order/shipping/return status, order number and optional tracking link.
-- Interactive Occasion gift-combination selection with estimated total, budget comparison and late-delivery warnings; save proposed combinations and revisit/edit individual items before buying. No invented exchange rates; separate-currency items excluded from total.
-- Advanced checklist schedules: weekday/weekend/selected weekdays/workdays, every N days/weeks, month days, configurable US federal holidays/personal days off/excluded dates, optional IANA timezone per checklist, per-person independent checked state per occurrence.
-- Database schema migrations 0084–0086 applied and verified. No existing user records reset.
-- Test suite extended for advanced recurrence; rollback-only SQL privacy regression passed for structured notes and private gift-combination selections.
-- Existing R22 Reminders and notification deep links, R21 Android Contacts and Memories retained.
+## Included in this controlled Android preview
+- Firebase Core 5.1.0 and Firebase Messaging 17.0.1, committed lockfile.
+- Graceful Firebase initialization after a valid Supabase session has been unlocked; unconfigured Firebase must NOT block login or in-app alerts.
+- Android 13+ notifications permission request and device token/refresh registration as the authenticated user.
+- Native system alert taps navigate to the in-app OneSpace notification feed while unlocked.
+- Explicit sign-out deactivates the device's push registration before ending its Supabase session.
+- Native Google Services Gradle integration only for an Android Firebase configuration matching com.onespace.onespace.preview, delivered securely by GitHub Actions secret ONESPACE_GOOGLE_SERVICES_JSON_BASE64.
+- Supabase 0087–0088: private owner-only device registration, outbox idempotency, service-only claim/ack, retries, optional pg_net schedule transport.
+- Deployed Supabase Edge Function onespace-push-delivery: Google OAuth 2.0 signed JWT with FCM HTTP v1, authorization by ONESPACE_PUSH_CRON_SECRET, lock-screen-safe generic text, invalid-token retirement, transient retry.
+- SQL regression test 0012 PASSED under rollback; private devices/partner isolation, exactly-one enqueue and service-only acknowledgement.
+- Full Flutter analysis and tests green on R24 candidate, GitHub run 43607044157.
+- User setup instructions: docs/FIREBASE_PUSH_SETUP.md.
 
-## Verification
-- Flutter dependency lock committed and checked; full Flutter analyze/test suite green before triggering this build (GitHub run 43605304275).
-- Publication only if exact commit passes Flutter analysis/tests again, Android Kotlin/Gradle compilation, correct signed preview certificate and unchanged package com.onespace.onespace.preview.
-- One APK from this release marker.
+## IMPORTANT: Do not misrepresent live push
+The Firebase Android config and server-side service-account credentials have not been supplied by the user yet. This Android preview can install and use existing in-app notifications, but background Firebase pushes are NOT active until:
+  1. User registers com.onespace.onespace.preview with Firebase.
+  2. GitHub secret ONESPACE_GOOGLE_SERVICES_JSON_BASE64 is set and a new APK built with it.
+  3. Supabase Edge Function secrets ONESPACE_FIREBASE_SERVICE_ACCOUNT_JSON and ONESPACE_PUSH_CRON_SECRET are set.
+  4. Matching Vault secret and scheduled worker job are activated as documented.
+Do not package or publish private Firebase server keys.
 
-## Still outstanding (not claimed delivered)
-- Firebase Cloud Messaging, device push delivery and credential setup; reminders currently in-app.
-- Full template-driven collaborative Scrapbook Studio (current photo memory tagging and gallery continue).
-- Comprehensive Trips planning/search/offline encrypted itinerary/document experience.
-- Shared Experiences richer metadata, Games external invitation, AI productivity companion, voice/Siri commands and hands-free spoken checklist.
-- Thoughtful A Little Love sender-private suggestions replacing autonomous sending.
-- True native iOS contact share extension, real-device testing, server relocation (deferred), and additional deeper system hardening.
-- Automated order sync with Amazon/Walmart is NOT implemented; tracking is user-supplied only.
+## Release acceptance gates
+Pinned Flutter dependencies and lockfile unchanged, flutter analyze, flutter test, Gradle optimized APK build, unchanged Android preview signing key and com.onespace.onespace.preview package, retained workflow artifact and release asset. Publish one candidate only if green.
 
-## Device acceptance recommendations
-Test Notes 2.0 create/edit/read-only/shared/conflict, Occasions 3 competing gift options and proposed lists, purchase/returns, recurrence near weekend/holiday, partner checkmark separation, and biometric sign-in. All should preserve real records.
+## Still pending from the wider roadmap
+Collaborative scrapbook templates, offline Trips documents, enriched Shared Experiences, Games external invitation, a thoughtful private love-suggestion engine, AI assisted summaries and voice read-aloud commands, iOS extensions and iPhone push registration. Not included in R24.
 
-Trigger: R23 signed Android test preview, 2026-11-14.
+R24 integration marker, 2026-11-14.
