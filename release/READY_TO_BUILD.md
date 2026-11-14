@@ -1,53 +1,51 @@
-# R33 — To-do and Checklists Crash Recovery (R32 included)
+# R34 — Reproduced To-do and Checklists Expansion Crash Fix
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.408.
-Upgrade safely in place on both existing Android phones.
-Do NOT uninstall, clear app data, reset the relationship, sign out, delete
-old checklist records, regenerate signing keys or change Firebase config.
+Previous published preview: 0.1.409.
+Install over the existing app on both phones. Do not uninstall, clear
+storage, reset the paired space, delete any checklist data, or change
+the Firebase configuration, package ID or signing certificate.
 
-## What this build contains
-- R33: fault-isolated To-do and Checklists loading; legacy task metadata
-  handled without unchecked casts; migrated standalone tasks omitted from
-  standalone list views; invalid rows never crash every checklist.
-- R33: defensive rendering of checklist subitems and saved checkmarks.
-- R33: null-safe auth handling for checklist entry, with recovery UI and
-  no automatic account/session clearing.
-- R33: explicit handling of malformed older records while retaining
-  the existing task visibility fallback required by legacy tests.
-- R32: quiet, opt-in check-in reply acknowledgments with server-verified
-  sender-only permissions and realtime display. No new FCM event type.
-- All R27–R31 prior features and Firebase two-way love-gesture delivery.
+## Reproduced issue and remedy
+- User reports both older and newly created checklists fail on expanding.
+- Flutter tap-to-expand widget tests reproduced a _TypeError:
+  a bool saved by ExpansionTile under PageStorageKey was read by
+  nested EditableText/ScrollPosition as a double scroll offset.
+- Replaced the ExpansionTile PageStorageKey with ValueKey; existing
+  in-memory _expandedLists retains each list's expanded state.
+- Explicitly configured the nested subtask TextField to use a
+  ScrollController(keepScrollOffset:false), with correct disposal.
+- Simplified checklist checkmark realtime subscription to one task_id
+  filter, selecting current recurrence cycle per user in memory.
+- Added recoverable stream initialization handling and widget regression
+  tests that cover the collapsed-to-expanded tap transition, including
+  an Old checklist entry with legacy target date and the original
+  PageStorageKey ancestor collision.
 
-## Live backend evidence
-- R33 inspection: 8 tasks total, 4 migrated legacy tasks (hidden as
-  standalone), four visible list containers (including Old checklist),
-  21 subitems and 3 completion records. No malformed row detected.
-- Both partner accounts passed the RLS read regression:
-  supabase/tests/0019_r33_two_phone_checklists_read_only.sql.
-- NO TASK DATA OR CHECK HISTORY WAS DELETED.
-- R32 new acknowledgment schema 0098 deployed with RLS; rollback test
-  0018 passed and all test data rolled back.
+## No data destruction
+- Exactly one of four migrated legacy subtasks has legacy target_date.
+  This is not used in the expansion code and is not the crash cause.
+- Live database data and all four visible lists are retained.
+- Existing partner permissions, independent checkmark history,
+  pairing, biometric unlock, notifications and FCM delivery unchanged.
 
-## Verification gates already cleared
-- R32 source validation GitHub Actions run 37 passed after test-only
-  nullable fixture fix.
-- R33 source validation GitHub Actions run 39 passed on commit
-  523c24d6fbdee014b2b9dc25aeb64a43ea101a95.
-- The first R33 test run caught a legacy shared-visibility mismatch
-  which has been corrected and verified in the passing run 39.
+## Quality gates
+- GitHub verification run 40: SUCCESS, initial isolated expansion test.
+- GitHub run 41: failed exactly in new expansion tests with reproduced
+  bool/double scroll state issue; root cause now addressed.
+- This signed Android release must rerun Flutter locked dependencies,
+  analyzer and entire test suite including the reproducer. If any test
+  fails, compilation/publication is blocked by workflow dependency.
+- Verify unchanged signed preview ID com.onespace.onespace.preview and
+  existing certificate before publishing one APK asset.
+- Physical-device success is NOT claimed until the affected phone
+  expands Old checklist and all three other checklists without error.
 
-## Mandatory build and QA gates
-- Verify exact committed Flutter dependency lockfile, analyze and test.
-- Compile a signed Android APK with the required Firebase config.
-- Verify package com.onespace.onespace.preview and existing signing cert.
-- Publish one new signed GitHub Release asset; confirm it exists.
-- Device acceptance is NOT complete until the exact phone that crashes
-  opens To-do and Checklists and expands Old checklist plus three newer
-  lists, with no red error screen or forced closure.
-- If a crash survives this defensive build, obtain Android Logcat/
-  Flutter stack trace before making destructive database changes.
-- Preserve user accounts, pairing, all public/private tasks and history.
+## If any error persists
+OneSpace now includes a fuller Copy error details stack trace. Copy
+that error from the affected phone before making any database cleanup
+change. Never delete other users' current lists to test a guess.
 
-Controlled recovery preview, November 14 2026.
+Controlled Android preview source commit
+9fd2fc65e9f4ede52796fecbd4416faa8a9161e4, November 14 2026.
