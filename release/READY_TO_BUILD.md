@@ -1,47 +1,44 @@
-# R35 — Connected Occasion Preparation and Reminders
+# R36 — Thoughtful Personal Love Reminders
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.410 (phone-tested checklist expansion fix).
-Upgrade installed OneSpace on both Android phones without uninstalling,
-clearing data, resetting either account, changing the Firebase project,
-signing certificate or com.onespace.onespace.preview package ID.
+Previous preview release build: 0.1.411 (Occasion preparation).
+Keep the existing Android package com.onespace.onespace.preview,
+preview signing certificate, two accounts, pairing, Firebase config,
+biometric unlock and all user data. Never uninstall or clear storage.
 
-## Included R35 changes
-- Occasion preparation timeline is now actionable. Four optional
-  reminders: Save money, Research choices, Review ordering deadlines,
-  Final preparations. Uses the occasion's configured lead days.
-- Each person may explicitly create a reminder with a chosen local
-  date/time; never schedule an automatically overdue reminder.
-- Private by default, even when the parent occasion is shared. For
-  shared occasions, the creator can explicitly send to both partners.
-- An active occasion/year/phase reminder cannot be duplicated for the
-  same creator; a new year or different person is independent.
-- Existing reminders support completion, follow-up notes, snoozing,
-  normal server-driven due alerts and unchanged Firebase push.
-- Opening the Reminder's related item navigates directly to the original
-  Occasion, Calendar event or Checklist instead of a module landing page.
-- No new separate notification scheduler or permissions.
+## Included features
+- A Little Love offers a one-tap entry to create an optional, personal
+  reminder to send a thoughtful gesture. Nothing is sent automatically.
+- Suggest exact local 9 AM, 6 PM or 9 PM, with editable custom time.
+  No assumption about actual working hours or partner time zone.
+- Choose a gesture category or Any gesture, and show creator's own
+  last-sent history as a gentle optional reference.
+- Reminder uses existing backend/FCM due delivery to creator only.
+  Opening reminder leads to A Little Love; sender manually chooses and
+  sends a gesture in the normal way. Partner sees nothing until then.
+- Private only, audience me. Existing automatic-ritual configuration
+  remains unchanged while user considers replacement.
+- All previous R34 checklist recovery and R35 Occasion reminders remain
+  included unchanged.
 
-## Database and source gates
-- Migration 0099 deployed: nullable planning phase and occasion instance
-  date plus a creator/year/phase unique index; all old reminder records
-  untouched.
-- Rollback-only SQL two-account regression 0020: PASS; private occasions
-  cannot be exposed by shared reminders, private reminders remain private,
-  identical active phase duplicate fails, annual rollover allowed.
-- R35 Flutter verification GitHub Actions run 44: SUCCESS,
-  commit 3933978d86ea9a8de5a19df7105aeb3eb1a4f98f.
-- Acceptance matrix: docs/R35_OCCASION_PREPARATION_REMINDERS_QA.md.
+## Security and verification
+- Additive migration 0100 deployed to the same Supabase project, using
+  nullable intent fields and a private-only database constraint.
+- RLS rollback-only SQL test 0021 PASS: cannot expose personal prompt to
+  partner, cannot forge a shared audience and cannot insert exact duplicate.
+- R36 source verification run 45 PASS for logic, UI and full test suite.
+- Final copy-label verification run 46 checks final source; this signed
+  preview pipeline independently repeats locked dependencies, analyzer
+  and full Flutter test suite before building.
+- Two-phone acceptance: docs/R36_THOUGHTFUL_LOVE_SELF_REMINDERS_QA.md.
 
-## Mandatory signed release checks
-- Flutter locked dependencies, analyzer, entire Flutter test suite.
-- Android release APK compiled with required registered Firebase config.
-- Verify preview signing certificate and unchanged Android application ID.
-- Publish and verify exactly one GitHub release APK.
-- Device acceptance remains unconfirmed until both existing accounts
-  test reminder creation, private/shared privacy, duplicate prevention
-  and deep links.
-- Keep checklist crash R34 regression included and no database cleanup.
+## Signed release gates
+- Build only after full Flutter analyzer and test success.
+- Verify Firebase Android config and unchanged signing certificate.
+- Verify Android package ID and publish a single APK.
+- No physical-device acceptance is claimed until the two installed
+  phones test gesture reminder privacy and manual send flow.
 
-Controlled R35 preview candidate, November 14 2026.
+Controlled preview candidate November 14 2026,
+source commit f31344ae89a0c50a62869ac29e1805ad970fce5b.
