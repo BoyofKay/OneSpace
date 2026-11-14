@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
+import '../../core/record_action_history_view.dart';
 import '../coordinate/activity_contact_view.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'saved_contact_editor.dart';
@@ -277,7 +278,9 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
              OutlinedButton.icon(
                onPressed:()=>showHistory(item),
                icon:const Icon(Icons.history),
-               label:const Text('History')),
+               label:const Text('Edit history')),
+             if(item.direct)RecordActionHistoryButton(
+              kind:'contact',recordId:item.id),
              OutlinedButton.icon(
                onPressed:()=>removal(item,!deleted),
                icon:Icon(deleted?Icons.restore:Icons.delete_outline),
