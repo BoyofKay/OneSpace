@@ -151,13 +151,21 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
    builder:(ctx,itemsData){
     if(itemsData.hasError)return const Text('Checklist temporarily unavailable.');
     if(!itemsData.hasData)return const LinearProgressIndicator();
-    final items=itemsData.data!.where((i)=>i['archived_at']==null).toList();
+    // A single malformed legacy child should not crash every checklist.
+    final items=itemsData.data!.where((i)=>
+     i['archived_at']==null &&
+     i['id'] is String &&
+     i['title'] is String &&
+     (i['title'] as String).trim().isNotEmpty).toList();
     return StreamBuilder<List<Map<String,dynamic>>>(stream:checksStream,
      builder:(ctx,checkData){
       final checkMap=<String,Map<String,dynamic>>{
        for(final c in checkData.data??const <Map<String,dynamic>>[])
-        if(c['user_id']==db.auth.currentUser?.id && items.any((i)=>i['id']==c['item_id']))
-         c['item_id'].toString():c,
+        if(c['user_id']==db.auth.currentUser?.id &&
+         c['item_id'] is String &&
+         c['completed'] is bool &&
+         items.any((i)=>i['id']==c['item_id']))
+          c['item_id'].toString():c,
       };
       final done=items.where((i)=>
        checkMap[i['id'].toString()]?['completed']==true).length;
@@ -202,6 +210,9 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
          onPressed:busy?null:add,icon:const Icon(Icons.add_circle_outline)),
        ]),
        if(items.isEmpty)const Text('No subitems yet. Enter a subtask below, then tap +.'),
+       if(items.length<itemsData.data!.where((i)=>i['archived_at']==null).length)
+        Text('Some older subitems could not be displayed. They are still saved.',
+         style:TextStyle(color:colors.error)),
        if(error!=null)Text(error!,style:TextStyle(color:colors.error)),
       ]);
      });
