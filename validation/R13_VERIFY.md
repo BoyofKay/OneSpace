@@ -265,3 +265,8 @@ Run all committed Flutter dependencies, analyzer, and test suite after R40 top-a
 ## R41 — Reminder mentions and Notifications top filters
 
 R40 signed Release 415 source is pinned separately. For R41, validate `PartnerMentionButton` inside shared ReminderEditor details and top notification category filter; task and reminder notifications deep-link to exact items. Supabase 0104 reminder mention trigger deployed; rollback-only two-account SQL 0025 PASS (recipient read under recipient RLS, no private notification or repeated unrelated edit). Run locked Flutter dependencies, analyzer, full widget/unit tests. Do not ship R41 until green and preserve the R34 checklist, R37 voice, privacy and Firebase regression gates.
+
+
+## R42 — RLS-scoped global search inside text fields (source-only)
+
+After R41 reminder mentions, add secure parallel `.ilike` search in Activity body, Calendar details, Shared Experience description, Note body, Goal description, Memory body and Reminder details; merge/deduplicate by category and source ID, retain original RLS and avoid building raw PostgREST OR grammar from user input. Run all Flutter tests, analyzer and privacy regressions including R34 checklist expansion and R40 audit. These source changes are not in signed Release 415; ship only in a later APK after green.
