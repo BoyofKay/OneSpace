@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import '../coordinate/activity_contact_view.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'saved_contact_editor.dart';
@@ -21,6 +22,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  List<WorldContactEntry> contacts=const [];
  String? space,error;
  bool loading=true,showDeleted=false;
+ String sourceFilter='all';
  final expanded=<String>{};
  @override void initState(){
    super.initState();
@@ -287,12 +289,38 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  }
  @override Widget build(BuildContext context){
    final visible=WorldContactEntry.filtered(
-     contacts.where((e)=>e.isDeleted==showDeleted).toList(),query.text);
+     contacts.where((e)=>e.isDeleted==showDeleted &&
+      (sourceFilter=='all'||(sourceFilter=='direct'?e.direct:!e.direct)))
+      .toList(),query.text);
    return Scaffold(
      appBar:AppBar(title:const Text('People & contacts'),actions:[
+       RecordListTopActions(
+        showHistory:showDeleted,
+        onToggleHistory:()=>setState(()=>showDeleted=!showDeleted),
+        hasActiveFilters:sourceFilter!='all',
+        filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
+         mainAxisSize:MainAxisSize.min,
+         crossAxisAlignment:CrossAxisAlignment.start,children:[
+          const Text('Contact source'),
+          Wrap(spacing:8,runSpacing:6,children:[
+           for(final entry in const {
+            'all':'All contacts','direct':'Saved directly',
+            'activity':'From Activities',
+           }.entries)ChoiceChip(
+            label:Text(entry.value),selected:sourceFilter==entry.key,
+            onSelected:(_){
+             setState(()=>sourceFilter=entry.key);refresh((){});
+            }),
+          ]),
+          TextButton.icon(onPressed:(){
+           setState(()=>sourceFilter='all');refresh((){});
+          },icon:const Icon(Icons.restart_alt),
+           label:const Text('Reset filters')),
+         ])),
+       ),
        IconButton(
-         tooltip:'Contact edit history',icon:const Icon(Icons.history),
-         onPressed:()=>showHistory()),
+        tooltip:'Contact edit history',icon:const Icon(Icons.manage_history),
+        onPressed:()=>showHistory()),
      ]),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
@@ -321,16 +349,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
              icon:const Icon(Icons.clear),tooltip:'Clear',
              onPressed:query.clear))),
          const SizedBox(height:8),
-         Row(children:[
-           FilterChip(
-             selected:showDeleted,
-             label:const Text('Recently deleted'),
-             onSelected:(v)=>setState(()=>showDeleted=v)),
-           const SizedBox(width:8),
-           if(showDeleted)Text('Restore an item to keep it',
-             style:Theme.of(context).textTheme.labelSmall),
-         ]),
-         const SizedBox(height:8),
+         if(showDeleted)Padding(
+          padding:const EdgeInsets.only(bottom:8),
+          child:Text('Recently deleted contacts · Restore an item to keep it.',
+           style:Theme.of(context).textTheme.bodySmall)),
          if(loading)const Center(child:CircularProgressIndicator())
          else if(error!=null)Text(error!,
            style:TextStyle(color:Theme.of(context).colorScheme.error))
