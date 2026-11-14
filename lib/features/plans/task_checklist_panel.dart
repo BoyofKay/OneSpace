@@ -144,12 +144,12 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
         Expanded(child:TextField(controller:input,maxLength:240,
          onSubmitted:(_)=>add(),
          decoration:const InputDecoration(
-          hintText:'Add item',counterText:'',
+          hintText:'Add subtask',counterText:'',
           prefixIcon:Icon(Icons.add_task_outlined)))),
-        IconButton(tooltip:'Add checklist item',
+        IconButton(tooltip:'Add subtask',
          onPressed:busy?null:add,icon:const Icon(Icons.add_circle_outline)),
        ]),
-       if(items.isEmpty)const Text('Add the first checklist item.'),
+       if(items.isEmpty)const Text('No subitems yet. Enter a subtask below, then tap +.'),
        if(error!=null)Text(error!,style:TextStyle(color:colors.error)),
       ]);
      });
