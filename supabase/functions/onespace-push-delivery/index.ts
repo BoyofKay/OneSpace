@@ -40,7 +40,17 @@ async function dbRpc<T>(url:string,key:string,method:string,args:object):Promise
    "content-type":"application/json"},
   body:JSON.stringify(args),
  });
- if(!result.ok)throw new Error("Push database operation failed: "+method+" ("+result.status+")");
+ if(!result.ok){
+  // Return only a status and a sanitized PostgREST error code to the
+  // authenticated scheduler, never database messages or credentials.
+  let code="unknown";
+  try{
+   const payload=await result.json();
+   if(typeof payload?.code==="string" && /^[A-Za-z0-9_]{1,25}$/.test(payload.code))
+    code=payload.code;
+  }catch(_){}
+  throw new Error("Database RPC "+method+": HTTP "+result.status+" code "+code);
+ }
  return await result.json() as T;
 }
 type Delivery={delivery_id:string,registration_token:string,notification_id:string};
@@ -65,7 +75,8 @@ Deno.serve(async(req)=>{
  catch(_){return json(503,{error:"Firebase authorization unavailable"});}
  let batch:Delivery[];
  try{batch=await dbRpc<Delivery[]>(dbUrl,dbKey,"claim_push_outbox",{p_limit:25});}
- catch(_){return json(503,{error:"Push outbox unavailable"});}
+ catch(e){return json(503,{error:"Push outbox unavailable",
+  diagnostic:e instanceof Error?e.message:"Unknown RPC error"});}
  let sent=0,retried=0,invalid=0;
  for(const task of batch){
   let result:"sent"|"retry"|"invalid"="retry",reason="";
