@@ -440,6 +440,7 @@ class _PlansScreenState extends State<PlansScreen> {
        children:[
         if(_expandedLists.contains(task.id)) TaskChecklistPanel(
          key:ValueKey(task.id),taskId:task.id,recurrence:task.recurrence,
+         rule:task.rule,
          canManage:canEdit&&!cancelled,
          canComplete:canEdit&&!cancelled&&
           (task.assignedTo==null||task.assignedTo==_me)),
