@@ -8,6 +8,7 @@ import 'occasion_rules.dart';
 import '../mentions/partner_mention_button.dart';
 import 'occasion_budget_workspace.dart';
 import 'occasion_preparation_reminders.dart';
+import '../notes/related_notes_panel.dart';
 import '../../core/responsive_field_pair.dart';
 
 const occasionKinds=<String,String>{
@@ -543,6 +544,8 @@ class _OccasionDetailState extends State<OccasionDetail>{
      ],
      const SizedBox(height:14),
      OccasionPreparationReminders(plan:p),
+     const SizedBox(height:14),
+     RelatedNotesPanel(sourceKind:'occasion',sourceId:widget.id),
      const SizedBox(height:14),
      OccasionBudgetWorkspace(plan:p,onEditPlan:editPlan),
      const SizedBox(height:14),
