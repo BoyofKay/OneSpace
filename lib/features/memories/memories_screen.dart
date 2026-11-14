@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
@@ -11,6 +12,7 @@ import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
 import 'memory_photo_gallery.dart';
+import 'memory_photo_service.dart';
 import 'memory_photo_layout_rules.dart';
 
 class MemoriesScreen extends StatefulWidget {
@@ -22,6 +24,9 @@ class MemoriesScreen extends StatefulWidget {
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
   final _client = Supabase.instance.client;
+  final _search = TextEditingController();
+  List<Map<String,dynamic>> _photoMetadata = const [];
+  bool _capturing = false;
   String? _spaceId;
   Stream<List<Map<String, dynamic>>>? _stream;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
@@ -33,11 +38,16 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   @override
   void initState() {
     super.initState();
+    _search.addListener(_searchChanged);
     _load();
   }
 
+  void _searchChanged(){if(mounted)setState((){});}
+
   @override
   void dispose() {
+    _search.removeListener(_searchChanged);
+    _search.dispose();
     _grants?.cancel();
     super.dispose();
   }
@@ -57,10 +67,16 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       _grants?.cancel();
       setState(() {
         _spaceId = id;
+        if(id==null)_photoMetadata=const [];
         _stream = id == null ? null : _createStream(id);
         _loading = false;
       });
       if (id != null) {
+        try{
+          final photoRows=await _client.from('memory_photos')
+           .select('memory_id,people_tags,place_tag,other_tags').limit(500);
+          if(mounted)setState(()=>_photoMetadata=List<Map<String,dynamic>>.from(photoRows));
+        }catch(_){if(mounted)setState(()=>_photoMetadata=const []);}
         _grants = watchObjectShares(
           client: _client, spaceId: id, objectType: 'memory',
           onChanged: () {
@@ -87,6 +103,75 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
          initialType:selfie?'daily_selfie':null)),
     );
     if (mounted && changed == true) await _load();
+  }
+
+  /// Camera-first, single-step Daily selfie. The user chooses privacy before
+  /// a memory is created. Cancellation never creates an empty database row.
+  Future<void> _dailySelfie()async{
+    final space=_spaceId;
+    final user=_client.auth.currentUser?.id;
+    if(space==null||user==null||_capturing)return;
+    final choice=await showModalBottomSheet<String>(context:context,
+     showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
+      mainAxisSize:MainAxisSize.min,children:[
+       const ListTile(title:Text('Add a daily photo'),
+        subtitle:Text('Choose who can see it and where the photo comes from.')),
+       ListTile(leading:const Icon(Icons.photo_camera_outlined),
+        title:const Text('Take a shared selfie'),
+        onTap:()=>Navigator.pop(ctx,'shared_camera')),
+       ListTile(leading:const Icon(Icons.photo_library_outlined),
+        title:const Text('Choose a shared photo'),
+        onTap:()=>Navigator.pop(ctx,'shared_gallery')),
+       ListTile(leading:const Icon(Icons.lock_outline),
+        title:const Text('Take a private selfie'),
+        onTap:()=>Navigator.pop(ctx,'private_camera')),
+       ListTile(leading:const Icon(Icons.collections_outlined),
+        title:const Text('Choose a private photo'),
+        onTap:()=>Navigator.pop(ctx,'private_gallery')),
+      ])));
+    if(choice==null||!mounted)return;
+    setState(()=>_capturing=true);
+    String? createdId;
+    try{
+     final photo=await ImagePicker().pickImage(
+      source:choice.endsWith('camera')?ImageSource.camera:ImageSource.gallery,
+      imageQuality:82,maxWidth:1600,maxHeight:1600);
+     if(photo==null)return;
+     final today=CalendarRules.sqlDate(DateTime.now());
+     final newMemory=await _client.from('memories').insert({
+      'space_id':space,'created_by':user,
+      'title':'Daily selfie · $today','body':'',
+      'memory_date':today,'visibility':choice.startsWith('private')?'private':'shared',
+      'memory_type':'daily_selfie','photo_layout':'polaroid',
+     }).select().single();
+     createdId=newMemory['id'].toString();
+     await MemoryPhotoService(_client).addFiles(createdId,[photo]);
+     if(!mounted)return;
+     await _load();
+     if(mounted)await _edit(existing:newMemory);
+    }on PostgrestException catch(e){
+     if(mounted)setState(()=>_error='Selfie could not be saved: '+e.message+
+      (createdId==null?'':' · The memory was created and can be edited.'));
+    }catch(_){
+     if(mounted)setState(()=>_error=createdId==null?
+      'Unable to capture or save the daily photo.':
+      'Memory created, but the photo upload did not finish. Open it to retry.');
+    }finally{if(mounted)setState(()=>_capturing=false);}
+  }
+
+  bool _matchesSearch(Map<String,dynamic> memory){
+   final words=_search.text.toLowerCase().trim().split(RegExp(r'\\s+'))
+    .where((v)=>v.isNotEmpty).toList();
+   if(words.isEmpty)return true;
+   final id=memory['id'].toString();
+   final tags=_photoMetadata.where((p)=>p['memory_id'].toString()==id)
+    .expand((p)=>[
+      p['place_tag']?.toString()??'',
+      ...(p['people_tags'] as List? ??const []).map((v)=>v.toString()),
+      ...(p['other_tags'] as List? ??const []).map((v)=>v.toString()),
+    ]).join(' ');
+   final content='\${memory['title']??''} \${memory['body']??''} $tags'.toLowerCase();
+   return words.every(content.contains);
   }
 
   @override
@@ -122,10 +207,19 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               label: Text(tr(context, 'newMemory')),
             ),
             const SizedBox(height: 8),
-            OutlinedButton.icon(onPressed:()=>_edit(selfie:true),
+            OutlinedButton.icon(onPressed:_capturing?null:_dailySelfie,
              icon:const Icon(Icons.photo_camera_outlined),
-             label:const Text('Daily selfie')),
+             label:Text(_capturing?'Saving photo…':'Daily selfie · Camera or Gallery')),
+            if(_capturing)const LinearProgressIndicator(),
             const SizedBox(height: 14),
+            TextField(controller:_search,decoration:InputDecoration(
+             prefixIcon:const Icon(Icons.search),
+             hintText:'Search memories, people, places and photo tags',
+             border:const OutlineInputBorder(),
+             suffixIcon:_search.text.isEmpty?null:IconButton(
+              tooltip:'Clear search',onPressed:_search.clear,
+              icon:const Icon(Icons.clear)))),
+            const SizedBox(height: 12),
             Wrap(spacing: 8, children: ['all','shared','private'].map((value) =>
               ChoiceChip(
                 label: Text(tr(context,value)),
@@ -147,7 +241,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                 }
                 final shown = snapshot.data!.where((m) =>
                   (_archived || m['archived_at'] == null) &&
-                  (_scope == 'all' || m['visibility'] == _scope))
+                  (_scope == 'all' || m['visibility'] == _scope) &&
+                  _matchesSearch(m))
                   .toList()
                     ..sort((a,b) {
                       final pin = (b['pinned'] == true ? 1 : 0) -
@@ -446,6 +541,9 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
             onChanged: !_editable || _busy ? null
               : (value) => setState(() => _pinned = value),
           ),
+          if(_editing&&_visibility=='shared')const Padding(
+           padding:EdgeInsets.symmetric(vertical:6),
+           child:Text('This shared memory is collaborative: both partners can add photos, captions and tags.')),
           if(_editing&&!_archived)MemoryPhotoGallery(
            memoryId:widget.existing!['id'].toString(),
            editable:_editable,layout:_photoLayout),
