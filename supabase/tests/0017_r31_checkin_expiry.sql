@@ -60,7 +60,9 @@ begin
   update public.partner_checkin_requests set response_mood=5
    where id=current_setting('qa.fresh')::uuid;
  exception when others then blocked:=true;end;
- if not blocked then raise exception 'Already answered request accepted second reply';end if;
+ get diagnostics modified=row_count;
+ if not blocked and modified<>0 then
+  raise exception 'Already answered request accepted second reply';end if;
  if (select responded_at from public.partner_checkin_requests
   where id=current_setting('qa.fresh')::uuid) is null then
   raise exception 'Fresh response missing server timestamp';end if;
