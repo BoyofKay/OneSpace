@@ -234,7 +234,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           Text(tr(context, 'memoriesSubtitle')),
           const SizedBox(height: 12),
           if (_error != null) ...[
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            Text(_error!, style: TextStyle(color:Theme.of(context).colorScheme.error)),
             TextButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh),
@@ -603,7 +603,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
           if(!_editing)const Padding(padding:EdgeInsets.only(top:12),
            child:Text('Save this memory first, then reopen it to attach photos.')),
           if (_error != null) Text(_error!,
-            style: const TextStyle(color: Colors.red)),
+            style: TextStyle(color:Theme.of(context).colorScheme.error)),
           const SizedBox(height: 16),
           if (_editable && !_archived) FilledButton.icon(
             onPressed: _busy ? null : _save,
