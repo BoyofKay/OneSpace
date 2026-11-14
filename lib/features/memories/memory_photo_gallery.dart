@@ -71,6 +71,18 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   catch(_){if(mounted)setState(()=>error='Some photos could not be added. Check the gallery and retry.');}
   finally{if(mounted)setState(()=>busy=false);}
  }
+ Future<void> capture(int currentCount)async{
+  if(busy||!widget.editable)return;
+  setState((){busy=true;error=null;});
+  try{
+   final count=await service.addFromCamera(widget.memoryId,startOrder:currentCount);
+   if(count>0&&mounted)ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content:Text('Camera photo saved.')));
+  }on FormatException catch(e){if(mounted)setState(()=>error=e.message);}
+  on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
+  catch(_){if(mounted)setState(()=>error='Camera capture could not be saved.');}
+  finally{if(mounted)setState(()=>busy=false);}
+ }
  Future<void> change(Future<void> Function() work)async{
   if(busy||!widget.editable)return;
   setState((){busy=true;error=null;});
@@ -95,6 +107,43 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   if(ok!=true)return;
   await change(()async{
    await db.from('memory_photos').update({'caption':caption.trim()}).eq('id',p['id']);
+  });
+ }
+ Future<void> editTags(Map<String,dynamic> photo)async{
+  String people=(photo['people_tags'] as List? ?? const []).join(', ');
+  String place=(photo['place_tag']??'').toString();
+  String tags=(photo['other_tags'] as List? ?? const []).join(', ');
+  final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+   title:const Text('Photo details & searchable tags'),
+   content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+    TextFormField(initialValue:people,maxLength:1200,
+     decoration:const InputDecoration(labelText:'People in photo',
+      helperText:'Separate names with commas'),
+     onChanged:(v)=>people=v),
+    TextFormField(initialValue:place,maxLength:160,
+     decoration:const InputDecoration(labelText:'Where was this taken?'),
+     onChanged:(v)=>place=v),
+    TextFormField(initialValue:tags,maxLength:1200,
+     decoration:const InputDecoration(labelText:'Other tags',
+      helperText:'Places, events, themes — comma separated'),
+     onChanged:(v)=>tags=v),
+   ])),
+   actions:[
+    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save tags')),
+   ]));
+  if(save!=true)return;
+  List<String> parse(String value)=>value.split(',')
+    .map((v)=>v.trim()).where((v)=>v.isNotEmpty).toSet().toList();
+  final peopleList=parse(people),tagList=parse(tags);
+  if(peopleList.length>20||tagList.length>30){
+   if(mounted)setState(()=>error='Too many tags. Maximum 20 people and 30 other tags.');
+   return;
+  }
+  await change(()async{
+   await db.from('memory_photos').update({
+    'people_tags':peopleList,'place_tag':place.trim(),'other_tags':tagList,
+   }).eq('id',photo['id']);
   });
  }
  Future<void> toggleArchive(Map<String,dynamic> p)async{
@@ -187,9 +236,12 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
     const Divider(height:26),
     Row(children:[
      Expanded(child:Text('Photos & scrapbook',style:Theme.of(context).textTheme.titleLarge)),
+     if(widget.editable)IconButton(
+      onPressed:busy?null:()=>capture(rows.length),
+      icon:const Icon(Icons.photo_camera_outlined),tooltip:'Take photo'),
      if(widget.editable)TextButton.icon(onPressed:busy?null:()=>add(rows.length),
       icon:const Icon(Icons.add_photo_alternate_outlined),
-      label:const Text('Add photos')),
+      label:const Text('Gallery')),
     ]),
     const SizedBox(height:5),
     if(!snapshot.hasData)const Center(child:CircularProgressIndicator()),
@@ -204,13 +256,23 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
       leading:Icon(p['archived_at']==null?Icons.photo_outlined:Icons.archive_outlined),
       title:Text((p['caption']??'').toString().isEmpty?'Photo':'Photo · '+p['caption'].toString(),
        maxLines:2,overflow:TextOverflow.ellipsis),
-      subtitle:Text(p['created_by']==db.auth.currentUser?.id?'Added by you':'Added by partner'),
+      subtitle:Text([
+       p['created_by']==db.auth.currentUser?.id?'Added by you':'Added by partner',
+       if((p['people_tags'] as List? ??const []).isNotEmpty)
+        'People: '+(p['people_tags'] as List).join(', '),
+       if((p['place_tag']??'').toString().isNotEmpty)
+        'Place: '+p['place_tag'].toString(),
+       if((p['other_tags'] as List? ??const []).isNotEmpty)
+        'Tags: '+(p['other_tags'] as List).join(', '),
+      ].join(' · ')),
       trailing:widget.editable?PopupMenuButton<String>(
        tooltip:'Photo options',
        onSelected:(v){if(v=='caption'){editCaption(p);}
+        else if(v=='tags'){editTags(p);}
         else if(v=='archive'){toggleArchive(p);}},
        itemBuilder:(_)=>[
         const PopupMenuItem(value:'caption',child:Text('Edit caption')),
+        const PopupMenuItem(value:'tags',child:Text('People, place & tags')),
         PopupMenuItem(value:'archive',child:Text(p['archived_at']==null?'Remove':'Restore')),
        ]):null),
     if(busy)const LinearProgressIndicator(),
