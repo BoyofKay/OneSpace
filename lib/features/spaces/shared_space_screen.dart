@@ -30,7 +30,6 @@ class SharedSpaceScreen extends StatefulWidget {
   const SharedSpaceScreen({
     super.key,
     this.onOpenPlans,
-    this.onOpenLists,
     this.onOpenNotes,
     this.onOpenCalendar,
     this.onOpenMemories,
@@ -44,7 +43,6 @@ class SharedSpaceScreen extends StatefulWidget {
   });
 
   final VoidCallback? onOpenPlans;
-  final VoidCallback? onOpenLists;
   final VoidCallback? onOpenNotes;
   final VoidCallback? onOpenCalendar;
   final VoidCallback? onOpenMemories;
