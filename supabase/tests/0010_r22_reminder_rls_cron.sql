@@ -63,7 +63,7 @@ select set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
 set local role authenticated;
 do $check$
 begin
- if (select count(*) from public.space_notifications where kind='reminder_due'
+ if (select count(*) from public.space_notifications where kind='reminder'
  and object_id=current_setting('qa.shared')::uuid)<>1
  then raise exception 'Due reminder must dispatch once after snooze'; end if;
 end $check$;
@@ -73,7 +73,7 @@ select private.dispatch_due_reminders(now()+interval '3 days');
 set local role authenticated;
 do $check$
 begin
- if (select count(*) from public.space_notifications where kind='reminder_due'
+ if (select count(*) from public.space_notifications where kind='reminder'
  and object_id=current_setting('qa.shared')::uuid)<>1
  then raise exception 'Due reminder dispatched twice'; end if;
 end $check$;
