@@ -6,9 +6,9 @@ import 'task_recurrence_rules.dart';
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
  const TaskChecklistPanel({super.key,required this.taskId,
-  required this.recurrence,required this.canEdit});
+  required this.recurrence,required this.canManage,required this.canComplete});
  final String taskId,recurrence;
- final bool canEdit;
+ final bool canManage,canComplete;
  @override State<TaskChecklistPanel> createState()=>_TaskChecklistPanelState();
 }
 class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
@@ -50,7 +50,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  }
  Future<void> add()async{
   final title=input.text.trim();
-  if(title.isEmpty||busy||!widget.canEdit)return;
+  if(title.isEmpty||busy||!widget.canManage)return;
   setState((){busy=true;error=null;});
   try{
    await db.from('task_checklist_items').insert({
@@ -64,7 +64,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  }
  Future<void> toggle(Map<String,dynamic> item,bool completed,
    Map<String,dynamic>? current)async{
-  if(busy||!widget.canEdit)return;
+  if(busy||!widget.canComplete)return;
   setState((){busy=true;error=null;});
   try{
    if(current==null){
@@ -89,7 +89,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> archive(Map<String,dynamic> item)async{
-  if(busy||!widget.canEdit)return;
+  if(busy||!widget.canManage)return;
   setState(()=>busy=true);
   try{
    await db.from('task_checklist_items').update({
@@ -133,16 +133,16 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
        for(final item in items)CheckboxListTile(
         dense:true,contentPadding:EdgeInsets.zero,
         value:checkMap[item['id'].toString()]?['completed']==true,
-        onChanged:!widget.canEdit||busy?null:
+        onChanged:!widget.canComplete||busy?null:
          (v)=>toggle(item,v==true,checkMap[item['id'].toString()]),
         title:Text(item['title'].toString(),
          style:TextStyle(decoration:
           checkMap[item['id'].toString()]?['completed']==true?
            TextDecoration.lineThrough:null)),
-        secondary:widget.canEdit?IconButton(
+        secondary:widget.canManage?IconButton(
          tooltip:'Remove item',icon:const Icon(Icons.close,size:18),
          onPressed:busy?null:()=>archive(item)):null),
-       if(widget.canEdit)Row(children:[
+       if(widget.canManage)Row(children:[
         Expanded(child:TextField(controller:input,maxLength:240,
          onSubmitted:(_)=>add(),
          decoration:const InputDecoration(
