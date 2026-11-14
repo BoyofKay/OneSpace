@@ -190,3 +190,8 @@ The initial full-suite CI found one compatibility failure in existing `widget_te
 ## R34 — Checklist expansion runtime isolation (source only)
 
 User confirms Release 409 crashes when expanding *any* checklist. New and old checklists share TaskChecklistPanel. Legacy target date not used by expansion; no DB deletion. R34 removes second realtime filter during expansion, applies exact cycle locally, wraps stream initialization and adds injected-stream widget tests that expand both new and legacy rows with target dates. Verify lockfile, full analyzer and all tests; never mark phone-tested until user confirms. No signed APK unless green.
+
+
+## R34 exact tap-to-expand regression
+
+After initial source gate, add widget tests that start with collapsed ExpansionTile, tap to expand actual TaskChecklistPanel, and assert no Flutter runtime exception with legacy target dates, new lists, per-user cycle checks and transport failures. Run full analyzer + all Flutter tests on final source commit. No data destruction, no APK before green.
