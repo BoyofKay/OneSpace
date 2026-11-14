@@ -5,6 +5,7 @@ import '../sharing/object_permissions.dart';
 import '../sharing/share_grant_watcher.dart';
 import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
+import 'note_references_panel.dart';
 import 'dart:async';
 
 /// OneSpace Notes 2.0: real rich-text editing, native selection/copy/paste,
@@ -152,9 +153,18 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
         controller:editor,config:const quill.QuillEditorConfig())),
      ),
      const SizedBox(height:12),
-     if(editing)NotePhotosPanel(
-      noteId:widget.existing!['id'].toString(),canEdit:isEditingAllowed)
-     else const Text('Save this note before adding attached photos.'),
+     if(editing)...[
+      NotePhotosPanel(
+       noteId:widget.existing!['id'].toString(),canEdit:isEditingAllowed),
+      const SizedBox(height:12),
+      NoteReferencesPanel(
+       noteId:widget.existing!['id'].toString(),
+       spaceId:widget.spaceId,
+       noteVisibility:visibility,
+       canEdit:isEditingAllowed),
+     ]else const Text(
+      'Save this note before attaching photos or linking checklists, '
+      'calendar events, occasions and shared experiences.'),
      const SizedBox(height:10),
      if(!editing)...[
       const Text('Visibility'),
