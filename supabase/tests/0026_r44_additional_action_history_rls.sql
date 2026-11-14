@@ -68,9 +68,22 @@ begin
   'Updated only in private check-in'=any(changed_fields)) then
   raise exception 'Sensitive content leaked to audit log';end if;
 end $qa$;
+-- Check that a partner's reply records the *responding* actor, not
+-- the request sender. Temporary write remains transaction-local.
+reset role;
 select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
+update public.partner_checkin_requests
+ set responded_at=now(),response_mood=4,
+  response_message='R44 private response fixture'
+ where id=current_setting('qa.request')::uuid;
+set local role authenticated;
 do $qa$
 begin
+ if not exists(select 1 from public.record_action_history
+  where record_id=current_setting('qa.request')::uuid and
+  action='edited' and actor_id=current_setting('qa.b')::uuid
+  and 'response_mood'=any(changed_fields))then
+  raise exception 'Check-in response not attributed to responding partner';end if;
  if not exists(select 1 from public.record_action_history
   where record_id=current_setting('qa.trip')::uuid and action='created')then
    raise exception 'Shared trip history missing for partner';end if;
