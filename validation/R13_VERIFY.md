@@ -290,3 +290,8 @@ After six-screen top toolbar changes, introduced pure `RecordCollectionSearchRul
 ## R43 follow-up: Coordinate analyzer clean-up
 
 Source run 58 found an unused local `counts` after moving Coordinate's inline chips into the top filter. Removed the unused local and clarified the empty archived state. Re-run locked Flutter analyzer and all unit/widget tests on final source including `record_collection_search_rules_test.dart`; do not ship a failing source.
+
+
+## R44 — Additional action history and private check-in visibility
+
+Extend R40 who/what/when server history through SQL 0105 for Trips, Saved Contacts, Daily Check-ins and Partner Check-in Requests. The SQL rollback-only 0026 dual-partner check PASSED, including private vs shared source-record RLS and no copied private content. Run Flutter analyze and complete tests after adding the common history UI to Trip detail, direct contact cards, check-in journals and partner request cards. Do not publish unless green. Protect R34 checklist expansion, R37 speech, R40 contrast, R41 mentions, R42 search and R43 top filters. See docs/R44_EXPANDED_RECORD_ACTION_AUDIT_QA.md.
