@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
+import '../../core/record_action_history_view.dart';
 import '../../core/performance_timings.dart';
 import '../../l10n/onespace_strings.dart';
 import '../calendar/calendar_rules.dart';
@@ -508,7 +509,11 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr(context,_editing?'editMemory':'newMemory'))),
+    appBar: AppBar(title: Text(tr(context,_editing?'editMemory':'newMemory')),
+     actions:[
+      if(_editing)RecordActionHistoryButton(
+       kind:'memory',recordId:widget.existing!['id'].toString()),
+     ]),
     body: SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
