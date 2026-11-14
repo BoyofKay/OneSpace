@@ -2,12 +2,15 @@ package com.onespace.onespace
 
 import android.Manifest
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.activity.result.contract.ActivityResultContracts
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -229,6 +232,60 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Export a rendered scrapbook page into Android Photos using scoped
+        // storage, then show the native Share sheet. No storage permission,
+        // unrestricted file access or private photo URI is exposed.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/scrapbook_export")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "saveAndShare") {
+                    result.notImplemented()
+                } else {
+                    val png = call.argument<ByteArray>("bytes")
+                    val name = call.argument<String>("name") ?: "OneSpace-Scrapbook"
+                    if (png == null || png.isEmpty() || png.size > 15 * 1024 * 1024 ||
+                        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        result.error("EXPORT_UNAVAILABLE",
+                            "PNG is too large or this Android version does not support secure export.",
+                            null)
+                    } else {
+                        val safeName = name.replace(Regex("[^a-zA-Z0-9_-]"), "-")
+                            .take(55).ifBlank { "OneSpace-Scrapbook" }
+                        val fields = ContentValues().apply {
+                            put(MediaStore.Images.Media.DISPLAY_NAME,
+                                safeName + "-" + System.currentTimeMillis() + ".png")
+                            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/OneSpace")
+                            put(MediaStore.Images.Media.IS_PENDING, 1)
+                        }
+                        var savedUri: Uri? = null
+                        try {
+                            savedUri = contentResolver.insert(
+                                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, fields)
+                                ?: throw IllegalStateException("Could not create picture")
+                            contentResolver.openOutputStream(savedUri)?.use { output ->
+                                output.write(png)
+                            } ?: throw IllegalStateException("Could not save picture")
+                            val finished = ContentValues().apply {
+                                put(MediaStore.Images.Media.IS_PENDING, 0)
+                            }
+                            contentResolver.update(savedUri, finished, null, null)
+                            val share = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(Intent.EXTRA_STREAM, savedUri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            startActivity(Intent.createChooser(share, "Share scrapbook page"))
+                            result.success(true)
+                        } catch (e: Exception) {
+                            savedUri?.let { try {
+                                contentResolver.delete(it, null, null)
+                            } catch (_: Exception) { } }
+                            result.error("EXPORT_FAILED",
+                                e.message ?: "Unable to save scrapbook PNG", null)
+                        }
+                    }
+                }
+            }
         shareChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, "onespace/incoming_share"
         )
