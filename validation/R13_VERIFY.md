@@ -165,3 +165,8 @@ Verify additive migration 0096 and rollback regression 0017 (server-side test al
 ## R31 final verification — expiry rounding and rollback regression refinements
 
 Run full Flutter dependency resolution, analyzer and tests on this latest source after correcting the remaining-day rounding calculation. R31 backend rollback test 0017 rerun and PASS with the second-reply zero-affected RLS check. Do not build an APK or change preview signing, Firebase secrets or user data during this verification step.
+
+
+## R32 — Optional Check-in Acknowledgments (source only)
+
+Run exact committed Flutter dependency lock verification, analyzer and all automated tests on R32 source including `checkin_acknowledgement_rules_test.dart`. Supabase schema 0098 and rollback-only RLS regression 0018 already passed. No APK, no Firebase changes and no release marker update as part of this validation; R31 APK 408 was independently triggered from its earlier immutable commit.
