@@ -92,9 +92,33 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded(db.from('memories').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
+       // Content search uses independent parameterized PostgREST ilike calls,
+       // never a string-built .or() filter that could alter query grammar.
+       guarded(db.from('activities').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('body',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('space_events').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('details',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('shared_experiences').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('description',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('notes').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('body',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('goals').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('description',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('memories').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('body',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded(db.from('reminders').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('details',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
      ]);
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
-     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Goal','Memory'];
+     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Goal','Memory',
+      'Activity','Calendar','Experience','Note','Goal','Memory','Reminder'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
@@ -105,7 +129,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        }
      }
      setState((){
-       hits=output.where((hit)=>hit.id.isNotEmpty&&hit.title.isNotEmpty).toList();
+       final seen=<String>{};
+       hits=output.where((hit)=>
+        hit.id.isNotEmpty&&hit.title.isNotEmpty&&
+        seen.add('${hit.kind}:${hit.id}')).toList();
        busy=false;
        error=failedCategories==0?null:
         'Some sections are temporarily unavailable. Showing the results we found.';
