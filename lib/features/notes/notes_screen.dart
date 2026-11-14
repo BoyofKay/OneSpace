@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
 import 'note_draft_rules.dart';
+import 'notes_library_rules.dart';
 import 'note_photos_panel.dart';
 import 'quill_note_editor_screen.dart';
 import '../mentions/partner_mention_button.dart';
@@ -32,6 +33,8 @@ class _NotesScreenState extends State<NotesScreen> {
   String _scope = 'all';
   String? _error;
   bool _deepLinkOpened=false;
+  final _search=TextEditingController();
+  String _query='';
 
   @override
   void initState() {
@@ -42,6 +45,7 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   void dispose() {
     _shareWatcher?.cancel();
+    _search.dispose();
     super.dispose();
   }
 
@@ -136,6 +140,23 @@ class _NotesScreenState extends State<NotesScreen> {
               label: Text(tr(context, 'newNote')),
             ),
             const SizedBox(height: 14),
+            TextField(
+              controller:_search,
+              onChanged:(value)=>setState(()=>_query=value),
+              decoration:InputDecoration(
+               labelText:'Search your notes',
+               hintText:'Search titles and note text',
+               prefixIcon:const Icon(Icons.search),
+               suffixIcon:_query.isEmpty?null:IconButton(
+                tooltip:'Clear search',
+                icon:const Icon(Icons.clear),
+                onPressed:(){
+                  _search.clear();
+                  setState(()=>_query='');
+                }),
+               border:const OutlineInputBorder()),
+            ),
+            const SizedBox(height:10),
             Wrap(spacing: 7, children: ['all','shared','private'].map((scope) =>
               ChoiceChip(
                 selected: _scope == scope,
@@ -150,17 +171,9 @@ class _NotesScreenState extends State<NotesScreen> {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final shown = snapshot.data!.where((note) =>
-                  (_showArchived || note['archived_at'] == null) &&
-                  (_scope == 'all' || note['visibility'] == _scope))
-                  .toList()
-                    ..sort((a,b) {
-                      final pinned = (b['pinned'] == true ? 1 : 0) -
-                          (a['pinned'] == true ? 1 : 0);
-                      if (pinned != 0) return pinned;
-                      return (b['updated_at'] as String)
-                          .compareTo(a['updated_at'] as String);
-                    });
+                final shown = NotesLibraryRules.visible(
+                  snapshot.data!,scope:_scope,
+                  showArchived:_showArchived,query:_query);
                 if (shown.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.all(44),
