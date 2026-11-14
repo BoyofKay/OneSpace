@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
+import 'experience_picker_rules.dart';
 import '../mentions/partner_mention_button.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
@@ -17,6 +18,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  String? space,error;
  bool loading=true,showArchived=false,opened=false,busy=false;
  String kind='all',status='all',search='';
+ int suggestionOffset=0;
  List<Map<String,dynamic>> rows=[];
  @override void initState(){super.initState();load();}
  Future<void> load()async{
@@ -174,6 +176,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     const SnackBar(content:Text('Experience history is unavailable.')));
   }
  }
+ Future<void> planSuggestion(Map<String,dynamic> row)async{
+  final result=await Navigator.of(context).push<bool>(MaterialPageRoute(
+   builder:(_)=>ExperienceEditor(spaceId:space!,original:row)));
+  if(result==true&&mounted)await load();
+ }
  Future<void> edit([Map<String,dynamic>? row])async{
   if(space==null)return;
   final result=await Navigator.of(context).push<bool>(MaterialPageRoute(
@@ -192,6 +199,8 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    (kind=='all'||r['category']==kind)&&(status=='all'||r['status']==status)&&
    (r['title'].toString().toLowerCase().contains(search.toLowerCase())||
     (r['platform']??'').toString().toLowerCase().contains(search.toLowerCase()))).toList();
+  final candidates=ExperiencePickerRules.shortlist(rows,category:kind);
+  final suggestion=ExperiencePickerRules.pick(candidates,offset:suggestionOffset);
   return Scaffold(
    appBar:AppBar(title:const Text('Our experience'),actions:[
     IconButton(tooltip:'Experience filters',icon:const Icon(Icons.tune_outlined),
@@ -223,6 +232,36 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     TextField(onChanged:(v)=>setState(()=>search=v),
      decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
       labelText:'Search by title or platform')),
+    const SizedBox(height:15),
+    if(suggestion!=null)Card(
+     child:Padding(padding:const EdgeInsets.all(14),child:Column(
+      crossAxisAlignment:CrossAxisAlignment.start,children:[
+       Row(children:[
+        Icon(Icons.auto_awesome_outlined,color:scheme.primary),
+        const SizedBox(width:8),
+        Expanded(child:Text('What shall we do together?',
+         style:Theme.of(context).textTheme.titleMedium)),
+       ]),
+       const SizedBox(height:6),
+       Text('A suggestion from your own collection — no external tracking.'),
+       const SizedBox(height:8),
+       Text(suggestion['title'].toString(),
+        style:Theme.of(context).textTheme.titleLarge),
+       Text(ExperiencePickerRules.count(rows,'planned').toString()+
+        ' planned · '+ExperiencePickerRules.count(rows,'suggested').toString()+
+        ' suggested'),
+       const SizedBox(height:8),
+       Wrap(spacing:8,runSpacing:5,children:[
+        OutlinedButton.icon(onPressed:()=>setState(()=>suggestionOffset++),
+         icon:const Icon(Icons.shuffle),label:const Text('Another idea')),
+        FilledButton.tonalIcon(
+         onPressed:()=>planSuggestion(suggestion),
+         icon:const Icon(Icons.event_available_outlined),
+         label:const Text('Plan together')),
+        TextButton(onPressed:()=>open(suggestion),
+         child:const Text('View discussion')),
+       ]),
+      ]))),
     const SizedBox(height:15),
     LayoutBuilder(builder:(ctx,size)=>GridView.count(
      shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),
@@ -342,7 +381,9 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
   try{
    final values=<String,dynamic>{'title':title.text.trim(),'category':kind,
     'description':description.text.trim(),'platform':platform.text.trim(),
-    'source_url':url.text.trim(),'status':status};
+    'source_url':url.text.trim(),'status':status,
+    'planned_on':planned?.toIso8601String().substring(0,10),
+    'enjoyed_on':enjoyed?.toIso8601String().substring(0,10)};
    if(widget.original==null){
     await db.from('shared_experiences').insert({...values,'space_id':widget.spaceId});
    }else{
@@ -364,6 +405,24 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
    TextField(controller:description,maxLength:5000,maxLines:4,
     decoration:const InputDecoration(labelText:'Why this one? Details or ideas')),
    PartnerMentionButton(spaceId:widget.spaceId,controller:description),
+   const SizedBox(height:10),
+   DropdownButtonFormField<String>(initialValue:status,
+    decoration:const InputDecoration(labelText:'Progress'),
+    items:[for(final e in experienceStates.entries)
+     DropdownMenuItem(value:e.key,child:Text(e.value))],
+    onChanged:(v)=>setState(()=>status=v??status)),
+   ListTile(leading:const Icon(Icons.event_outlined),
+    title:const Text('Plan a date together'),subtitle:Text(format(planned)),
+    trailing:IconButton(tooltip:'Clear planned date',
+     onPressed:planned==null?null:()=>setState(()=>planned=null),
+     icon:const Icon(Icons.close)),
+    onTap:()=>choose(true)),
+   ListTile(leading:const Icon(Icons.check_circle_outline),
+    title:const Text('Date enjoyed'),subtitle:Text(format(enjoyed)),
+    trailing:IconButton(tooltip:'Clear enjoyed date',
+     onPressed:enjoyed==null?null:()=>setState(()=>enjoyed=null),
+     icon:const Icon(Icons.close)),
+    onTap:()=>choose(false)),
    TextField(controller:platform,maxLength:100,
     decoration:const InputDecoration(labelText:'Platform (optional)')),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
