@@ -1,44 +1,44 @@
-# R37 — Listen to Checklists (native voice readout)
+# R38 — Notes 2.0 Cross-Module References and Search
 
 Require-Firebase-Config: true
 
-Previous signed preview pipeline: 0.1.412.
-Preserve the exact existing package com.onespace.onespace.preview,
-trusted signing key, Firebase Android config, pairing, biometrics and
-all private/shared checklist data. Install only as an in-place update.
+Previous published preview: 0.1.413. Preserve the same
+com.onespace.onespace.preview Android package, stable preview signing
+certificate, two accounts, pairing, all notes, private surprises,
+original source objects and Firebase Android configuration.
+Only install over the existing APK; never uninstall or clear data.
 
-## Scope
-- Expanded checklist now contains Listen to checklist.
-- Read remaining unchecked or all active subitems, read an individual
-  step, previous/next/repeat and adjustable speech speed.
-- Uses only the signed-in partner's authorized checklist and their own
-  current-cycle completion flags. No data writes, automatic completion,
-  remote recording or microphone permission.
-- Native Android TextToSpeech service, including Android 11+ TTS_SERVICE
-  manifest visibility. Native Kotlin splits long scripts into small
-  queued utterances and stops when application backgrounds/destroys.
-- Native iOS AVSpeechSynthesizer integration for future iPhone trial;
-  iOS compile and device QA remain separate from Android APK gate.
-- Speech can use online TTS services if the installed phone voice
-  engine requires it; no OneSpace backend voice upload is performed.
-- Existing checklist ExpansionTile remains on safe ValueKey and nested
-  TextField scroll offset remains disabled (R34 crash prevention).
-- All R35 occasion prep and R36 personal love reminder features remain
-  included, with no database changes for R37.
+## New in this release
+- Notes rich editor can link accessible checklist, calendar event,
+  occasion/surprise, and shared experience records.
+- Links navigate to original items; their titles are fetched live under
+  original source-table RLS. Unlink never deletes the source.
+- Private note links stay private and cannot leak a private surprise
+  through a shared note. Private view-only recipients cannot edit links.
+- Duplicate links rejected; archived notes retain read-only references.
+- Notes list now supports title/body search while preserving pinning,
+  Shared/Private filters and archived history.
+- All existing R34 recovered checklist expansion, R35 occasion reminders,
+  R36 love self-reminders and R37 native checklist speech are included.
 
-## Evidence and mandatory gates
-- R37 source last commit 9b40a553ac47ea044548a586f04c886009623b57.
-- Source verification GitHub Actions run 49 checks corrected imports and
-  test fixture; APK must independently rerun the entire locked Flutter
-  dependency analyzer/test gate and refuse to publish if tests fail.
-- Android Gradle Kotlin compilation is required and must succeed before
-  the APK is signed, uploaded and released.
-- No new Supabase migration, FCM secrets, service accounts, or user data
-  manipulation. Keep release marker isolated from R36/411/412 commits.
-- Check docs/R37_VOICE_CHECKLIST_READOUT_QA.md for full two-device
-  acceptance and privacy scenarios.
-- A passing CI is not a phone-tested claim. Android TTS availability,
-  audio quality, lifecycle stop and checklist expand/read actions must
-  be verified on the existing phones.
+## Database verification complete
+- Additive 0101 note reference table plus RLS source validation DEPLOYED.
+- Additive 0102 view-only private link edit protection DEPLOYED.
+- SQL rollback regression 0022 PASS: dual account, shared/private
+  segregation, wrong target, duplicate, read and unlink.
+- SQL rollback regression 0023 PASS: real private occasion cannot be
+  linked into a shared note or exposed to the other partner.
+- No existing notes, objects, visibility, accounts or data reset.
 
-November 14 2026; controlled signed candidate R37.
+## Mandatory publication gates
+- Run Flutter locked dependencies, analyze, all unit/widget tests
+  including notes_library_rules_test and note_reference_rules_test.
+- Android native compilation; signed preview APK validation.
+- Verify same package/signing certificate and Firebase config.
+- Publish one verifiable GitHub Release asset, no hidden data migration.
+- QA docs/R38_NOTES_LINKED_REFERENCES_QA.md.
+- Do not claim actual phone acceptance until testing on both phones.
+- Halt publication if analyzer, tests, Kotlin, signing or verification fails.
+
+Controlled Android R38 preview candidate, 14 November 2026,
+source SHA 736bcc2d9cf134c7ad4cccdb0049fb56e2f53396.
