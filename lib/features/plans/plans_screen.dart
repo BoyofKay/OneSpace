@@ -454,7 +454,10 @@ class _PlansScreenState extends State<PlansScreen> {
       child: Column(
         children: [
       ExpansionTile(
-       key:PageStorageKey<String>('todo-'+task.id),
+       // Do not use PageStorageKey here: ExpansionTile persists a bool,
+       // while a nested EditableText scrollable expects a double offset.
+       // The in-memory _expandedLists already tracks expansion state.
+       key:ValueKey<String>('todo-'+task.id),
        initiallyExpanded:_expandedLists.contains(task.id),
        onExpansionChanged:(expanded)=>setState((){
         if(expanded){_expandedLists.add(task.id);}else{_expandedLists.remove(task.id);}
