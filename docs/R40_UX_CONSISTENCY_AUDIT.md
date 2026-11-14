@@ -106,3 +106,8 @@ screen and field has been fully standardized or phone-tested.
 ## Palette contrast clean-up
 - Removed hard-coded `Colors.red` error text from Goals, Memories and Notes in favor of `Theme.of(context).colorScheme.error`.
 - Automated 4-palette × 2-mode × seasonal scheme regression remains required; physical composited-image contrast remains separate QA.
+
+## Subsequent R41–R42 source work (separate from signed R40)
+- R41: shared Reminders now have a real @partner insertion and server notification trigger 0104; SQL 0025 recipient-side RLS test PASSED. Notifications All/Unread moved to top-right, and task notifications navigate to the exact checklist.
+- R42: Global Search additionally queries text content in Activities, Calendar details, Notes body, Goals description, Memories body, Reminders details and Shared Experience description. Results are deduplicated by type and record ID, queried only through source table RLS, without copying private data into a search index. This still does not include every nested component or archived record.
+- Both require Flutter analyzer, tests, signed APK and two-device acceptance before feature completion claims.
