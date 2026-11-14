@@ -83,3 +83,10 @@ Run Flutter analyze + tests after Android native contact integration, vCard inta
 ## R22 Analyzer repair pass
 - Fixed unsupported OutlinedButton tooltip property and unified auth widget test getter.
 - Recheck all Reminders and checklist navigation changes at this commit; fail closed before APK publishing.
+
+
+## R23 feature integration gate — 2026-11-14
+- Notes 2.0 Flutter Quill 11.6.0, lockfile pinned, rich Delta storage, existing privacy and optimistic version checks.
+- Occasion shopping options, delivery warnings, preference ratings, order statuses and proposed combination save.
+- Checklists selected weekdays, every N days/weeks, US federal holiday and personal day-off exceptions, optional IANA timezone.
+- Run Flutter analyze and full test suite before Android release.
