@@ -7,6 +7,9 @@ class ActivityContact {
     this.email = '',
     this.address = '',
     this.workingHours = '',
+    this.company = '',
+    this.role = '',
+    this.website = '',
     this.note = '',
   });
 
@@ -15,6 +18,9 @@ class ActivityContact {
   final String email;
   final String address;
   final String workingHours;
+  final String company;
+  final String role;
+  final String website;
   final String note;
 
   static String _s(Object? value) => value?.toString().trim() ?? '';
@@ -26,11 +32,14 @@ class ActivityContact {
         email: _s(payload['email']),
         address: _s(payload['address']),
         workingHours: _s(payload['working_hours']),
+        company: _s(payload['company']),
+        role: _s(payload['role']),
+        website: _s(payload['website']),
         note: _s(payload['note']),
       );
 
   bool get hasDetails => [
-    person, phone, email, address, workingHours, note,
+    person, phone, email, address, workingHours, company, role, website, note,
   ].any((value) => value.isNotEmpty);
 
   /// Only a number that can be handed to a system dialer is accepted.
@@ -49,7 +58,8 @@ class ActivityContact {
     if (!hasDetails) return 'Add at least one contact detail.';
     if (person.length > 180 || phone.length > 80 ||
         email.length > 254 || address.length > 1000 ||
-        workingHours.length > 800 || note.length > 3000) {
+        workingHours.length > 800 || company.length > 180 ||
+        role.length > 180 || website.length > 500 || note.length > 3000) {
       return 'One of the contact fields is too long.';
     }
     if (!validPhone) return 'Enter a valid telephone number (include country code when needed).';
@@ -76,6 +86,8 @@ class ActivityContact {
         'email': email.trim(),
         'address': address.trim(),
         'working_hours': workingHours.trim(),
+        'company':company.trim(),'role':role.trim(),
+        'website':website.trim(),
         'note': note.trim(),
       };
 
@@ -86,5 +98,8 @@ class ActivityContact {
     if (email.isNotEmpty) email,
     if (address.isNotEmpty) address,
     if (workingHours.isNotEmpty) 'Hours: $workingHours',
+    if (company.isNotEmpty) 'Company: $company',
+    if (role.isNotEmpty) 'Role: $role',
+    if (website.isNotEmpty) 'Website: $website',
   ].join('\n');
 }
