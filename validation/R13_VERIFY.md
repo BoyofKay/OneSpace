@@ -235,3 +235,8 @@ Re-run analyzer and all widget/unit tests on current source after fixing literal
 ## R37 platform exception import correction
 
 First source run 47 found an analyzer-only missing `flutter/services.dart` import in ChecklistReadoutSheet. It is now explicitly imported, preserving existing error handling. Run final locked dependencies, analyzer, and complete Flutter test suite including new readout UI tests. This is the latest source gate for native APK build.
+
+
+## R38 — Notes rich-text cross-module references (source-only)
+
+Deploy additive SQL migrations 0101 and 0102 and run rollback-only two-partner RLS regression 0022. Existing note text, rich Delta, photo attachments, calendars, occasions, checklists and experiences are unchanged. Verify locked Flutter dependencies, analyzer, all unit/widget tests including `note_reference_rules_test.dart`. Links are read live through target RLS, private surprise cannot be linked in a shared note, and unlink deletes only the association. Signed APK gate only after source verification passes.
