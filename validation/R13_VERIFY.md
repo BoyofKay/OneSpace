@@ -255,3 +255,8 @@ Use existing R38 note_references permissions to show a related Notes panel from 
 ## R39 final — guard previous checklist expansion widget tests
 
 Because RelatedNotesPanel is embedded inside TaskChecklistPanel, its Supabase client must remain a lazy getter while collapsed; otherwise isolated Flutter widget tests that inject streams would crash before backend initialization. Added `related_notes_panel_widget_test.dart` to enforce that no database client is initialized for a collapsed panel. Re-run Flutter analyzer and full test suite on this latest source after all R39 edits. No prior signed release marker changed.
+
+
+## R40 — Product-wide UX consistency controls and contrast regression
+
+Run all committed Flutter dependencies, analyzer, and test suite after R40 top-app-bar History/Filters for Goals/Memories/Notes/Reminders; global search inclusion and deep links; server-backed record_action_history views; Quill @ mention button; and 4-palette × all-seasons light/dark WCAG contrast tests. Additive SQL 0103 deployed with append-only action metadata, rollback-only dual-account SQL 0024 PASS. Do not mutate existing user records, pairing or Firebase configuration. If tests fail, fix before starting a signed release. Review docs/R40_UX_CONSISTENCY_AUDIT.md for honest gaps across other modules.
