@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -20,23 +22,79 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  String kind='all',status='all',search='';
  int suggestionOffset=0;
  List<Map<String,dynamic>> rows=[];
+ RealtimeChannel? _changes;
+ Timer? _refreshTimer;
+ String? _watchedSpace;
+ int _loadVersion=0;
  @override void initState(){super.initState();load();}
+ @override void dispose(){
+  _loadVersion++;
+  _refreshTimer?.cancel();
+  if(_changes!=null)unawaited(db.removeChannel(_changes!));
+  super.dispose();
+ }
+ void _watch(String spaceId){
+  if(_watchedSpace==spaceId)return;
+  final old=_changes;
+  if(old!=null)unawaited(db.removeChannel(old));
+  _watchedSpace=spaceId;
+  _changes=db.channel('experience-list-'+spaceId)
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'shared_experiences',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'space_id',value:spaceId),
+    callback:(_)=>_scheduleRefresh())
+   .subscribe();
+ }
+ void _scheduleRefresh(){
+  _refreshTimer?.cancel();
+  _refreshTimer=Timer(const Duration(milliseconds:650),(){
+   if(mounted)unawaited(load());
+  });
+ }
  Future<void> load()async{
+  final request=++_loadVersion;
+  final account=db.auth.currentUser?.id;
+  if(account==null){
+   if(_changes!=null)unawaited(db.removeChannel(_changes!));
+   _changes=null;_watchedSpace=null;
+   if(mounted)setState((){space=null;rows=[];loading=false;error=null;});
+   return;
+  }
   try{
    final id=await CurrentSpaceCache.instance.get();
-   if(id==null){if(mounted)setState(()=>loading=false);return;}
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
+   if(id==null){
+    if(_changes!=null)unawaited(db.removeChannel(_changes!));
+    _changes=null;_watchedSpace=null;
+    setState((){space=null;rows=[];loading=false;error=null;});
+    return;
+   }
    final result=await db.from('shared_experiences').select().eq('space_id',id)
       .order('updated_at',ascending:false).limit(250);
-   if(!mounted)return;
-   setState((){space=id;rows=List<Map<String,dynamic>>.from(result);loading=false;error=null;});
+   if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
+   setState((){space=id;rows=List<Map<String,dynamic>>.from(result);
+    loading=false;error=null;});
+   _watch(id);
    if(!opened&&widget.initialExperienceId!=null){
     opened=true;
     final found=rows.where((x)=>x['id']==widget.initialExperienceId).firstOrNull;
-    if(found!=null)WidgetsBinding.instance.addPostFrameCallback((_){
-      if(mounted)open(found);
+    WidgetsBinding.instance.addPostFrameCallback((_){
+     if(!mounted)return;
+     if(found!=null){
+      open(found);
+     }else{
+      // An authorized notification can reference an older experience
+      // beyond the initial list page. Its detail query is RLS-protected.
+      Navigator.of(context).push<void>(MaterialPageRoute(
+       builder:(_)=>ExperienceDetail(id:widget.initialExperienceId!)));
+     }
     });
    }
-  }catch(_){if(mounted)setState((){error='Unable to load experiences.';loading=false;});}
+  }catch(_){
+   if(mounted&&request==_loadVersion&&db.auth.currentUser?.id==account)
+    setState((){error='Unable to load experiences. Pull down to retry.';
+     loading=false;});
+  }
  }
  IconData typeIcon(String c)=>switch(c){
   'movie'=>Icons.movie_creation_outlined,
@@ -52,12 +110,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   if(busy)return;
   setState(()=>busy=true);
   try{
-   await db.from('shared_experiences').update({
+   final changed=await updateSafely(row,{
     'status':'enjoyed',
     'enjoyed_on':DateTime.now().toIso8601String().substring(0,10),
-   }).eq('id',row['id']);
-   await load();
-   if(mounted)await quickRate(row);
+   });
+   if(changed&&mounted)await quickRate(row);
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(content:Text('Could not mark as watched.')));
@@ -138,10 +195,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    if(yes!=true)return;
   }
   try{
-   await db.from('shared_experiences').update({
+   await updateSafely(row,{
     'archived_at':archived?null:DateTime.now().toUtc().toIso8601String()
-   }).eq('id',row['id']);
-   await load();
+   });
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(content:Text('Could not change archive status.')));
@@ -176,10 +232,36 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     const SnackBar(content:Text('Experience history is unavailable.')));
   }
  }
+ Future<bool> updateSafely(
+  Map<String,dynamic> row,Map<String,dynamic> values)async{
+  final updated=await db.from('shared_experiences').update(values)
+   .eq('id',row['id']).eq('updated_at',row['updated_at'])
+   .select('id');
+  if(updated.isEmpty){
+   await load();
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    content:Text('Your partner changed this experience. Refreshed the latest version.')));
+   return false;
+  }
+  await load();
+  return true;
+ }
  Future<void> planSuggestion(Map<String,dynamic> row)async{
-  final result=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>ExperienceEditor(spaceId:space!,original:row)));
-  if(result==true&&mounted)await load();
+  if(busy||space==null)return;
+  final initial=DateTime.tryParse((row['planned_on']??'').toString())??DateTime.now();
+  final day=await showDatePicker(context:context,initialDate:initial,
+   firstDate:DateTime(2000),lastDate:DateTime(2100));
+  if(day==null||!mounted)return;
+  setState(()=>busy=true);
+  try{
+   final updated=await updateSafely(row,{
+    'status':'planned','planned_on':day.toIso8601String().substring(0,10)});
+   if(updated&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    content:Text('Saved your plan. Your partner can see it too.')));
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    content:Text('Unable to save this plan. Try again.')));
+  }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> edit([Map<String,dynamic>? row])async{
   if(space==null)return;
@@ -302,9 +384,15 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
        leading:Icon(typeIcon(r['category'].toString()),color:scheme.primary,size:29),
        title:Text(r['title'].toString(),
         style:Theme.of(context).textTheme.titleMedium),
-       subtitle:Text((r['platform']??'').toString().isEmpty?
-        (experienceTypes[r['category']]??'Other'):
-        (experienceTypes[r['category']]??'Other')+' · '+r['platform'].toString()),
+       subtitle:Text([
+        experienceTypes[r['category']]??'Other',
+        experienceStates[r['status']]??'Suggested',
+        if((r['platform']??'').toString().trim().isNotEmpty)r['platform'].toString(),
+        if(r['status']=='planned'&&r['planned_on']!=null)
+         'Planned: '+r['planned_on'].toString(),
+        if(r['status']=='enjoyed'&&r['enjoyed_on']!=null)
+         'Enjoyed: '+r['enjoyed_on'].toString(),
+       ].join(' · ')),
        trailing:PopupMenuButton<String>(
         tooltip:'Experience actions',
         onSelected:(choice){
@@ -328,6 +416,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          Icons.open_in_new),
         label:Text(r['category']=='music'?'Play':
          r['category']=='movie'||r['category']=='show'?'Watch':'Open')),
+       if(r['status']!='enjoyed')OutlinedButton.icon(
+        onPressed:busy?null:()=>planSuggestion(r),
+        icon:const Icon(Icons.event_outlined),label:const Text('Plan')),
        if(canWatch(r))FilledButton.tonalIcon(
         onPressed:busy||r['status']=='enjoyed'?null:()=>markWatched(r),
         icon:Icon(r['status']=='enjoyed'?Icons.check_circle:Icons.visibility_outlined),
@@ -387,7 +478,13 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
    if(widget.original==null){
     await db.from('shared_experiences').insert({...values,'space_id':widget.spaceId});
    }else{
-    await db.from('shared_experiences').update(values).eq('id',widget.original!['id']);
+    final changed=await db.from('shared_experiences').update(values)
+     .eq('id',widget.original!['id'])
+     .eq('updated_at',widget.original!['updated_at']).select('id');
+    if(changed.isEmpty){
+     if(mounted)setState(()=>error='This experience was changed on the other phone. Go back and reopen it before editing.');
+     return;
+    }
    }
    if(mounted)Navigator.pop(context,true);
   }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
