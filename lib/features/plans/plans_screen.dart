@@ -8,6 +8,7 @@ import '../../core/current_space_cache.dart';
 import '../../core/performance_timings.dart';
 import 'task_editor_sheet.dart';
 import 'task_checklist_panel.dart';
+import 'checklist_list_loader.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -40,7 +41,7 @@ class _PlansScreenState extends State<PlansScreen> {
   bool _busy = false;
   String? _error;
 
-  String get _me => _client.auth.currentUser!.id;
+  String get _me => _client.auth.currentUser?.id ?? '';
 
   @override
   void initState() {
@@ -81,8 +82,18 @@ class _PlansScreenState extends State<PlansScreen> {
       _error = null;
     });
     try {
+      final userId=_client.auth.currentUser?.id;
+      if(userId==null){
+        if(mounted)setState((){
+          _spaceId=null;
+          _tasksStream=null;
+          _memberNames=const {};
+          _error='Sign in again to load your checklists.';
+        });
+        return;
+      }
       final id = await CurrentSpaceCache.instance.get();
-      if (!mounted) return;
+      if (!mounted || _client.auth.currentUser?.id!=userId) return;
       if (id == null) {
         setState(() {
           _spaceId = null;
@@ -298,6 +309,11 @@ class _PlansScreenState extends State<PlansScreen> {
               padding: EdgeInsets.all(40),
               child: Center(child: CircularProgressIndicator()),
             )
+          else if (_me.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Your session is unavailable. Sign in to open checklists.'),
+            )
           else if (_spaceId == null)
             _emptySpace()
           else ...[
@@ -333,18 +349,47 @@ class _PlansScreenState extends State<PlansScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
-                final tasks = snapshot.data!
-                    .where((row) => row['migrated_to_list'] == null)
-                    .map(SharedTask.fromMap)
-                    .where(_isVisible)
-                    .toList();
-                if (tasks.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(44),
-                    child: Center(child: Text('No tasks in this view.')),
-                  );
+                final parsed=ChecklistListLoader.fromRows(snapshot.data!);
+                final visible=<SharedTask>[];
+                var viewFailures=parsed.skippedRows;
+                for(final task in parsed.items){
+                  try{
+                    if(_isVisible(task))visible.add(task);
+                  }catch(_){
+                    viewFailures++;
+                  }
                 }
-                return Column(children: tasks.map(_taskTile).toList());
+                final tiles=<Widget>[];
+                for(final task in visible){
+                  try{
+                    tiles.add(_taskTile(task));
+                  }catch(_){
+                    viewFailures++;
+                    // Never allow a single old checklist to crash the screen.
+                  }
+                }
+                return Column(children:[
+                  if(viewFailures>0)Card(
+                    child:Padding(
+                      padding:const EdgeInsets.all(12),
+                      child:Column(children:[
+                        const Text('Some older checklists could not be displayed. '
+                          'Your saved data has not been deleted.'),
+                        TextButton.icon(
+                          onPressed:_loadSpace,
+                          icon:const Icon(Icons.refresh),
+                          label:const Text('Retry checklists'),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  if(tiles.isEmpty)
+                    const Padding(
+                      padding:EdgeInsets.all(44),
+                      child:Center(child:Text('No checklists in this view.')),
+                    )
+                  else ...tiles,
+                ]);
               },
             ),
           ],
