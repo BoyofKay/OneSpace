@@ -128,3 +128,8 @@ Removed one unused photo-local warning and upgraded template gallery to actual r
 - Rollback SQL privacy regression 0015 PASS.
 - TripDetail links a manual comparison board to existing itinerary; booking conversion requires explicit user confirmation and does not purchase flight.
 - Verify complete Flutter analyzer and tests. This is source-only until the separate R27 release marker.
+
+
+## R28 — Shared experiences build safety gate
+
+Run Flutter analyze and tests for date persistence and deterministic day-based suggestions (no external recommender, no live API). This is source-only validation: do not trigger APK build or change accounts, memberships or stored content.
