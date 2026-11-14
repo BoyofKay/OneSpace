@@ -7,6 +7,7 @@ import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
 import '../plans/plans_screen.dart';
 import '../occasions/occasions_screen.dart';
+import '../connect/partner_gestures_screen.dart';
 
 /// R22: first-class shared and personal reminders. The database owns
 /// per-recipient state, privacy checks, delivery and immutable history.
@@ -68,7 +69,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
    }
    final data=await db.from('reminders').select(
     'id,title,details,due_at,created_by,visibility,audience,'
-    'source_kind,source_id,archived_at,updated_at,'
+    'source_kind,source_id,reminder_intent,reminder_gesture_kind,archived_at,updated_at,'
     'reminder_recipients(recipient_id,state,next_alert_at,'
     'snoozed_until,acknowledged_at,outcome_note,updated_at),'
     'reminder_actions(actor_id,recipient_id,action,note,next_alert_at,recorded_at)')
@@ -215,6 +216,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> linked(Map<String,dynamic> r)async{
+  if(r['reminder_intent']=='love_gesture'){
+   if(mounted)await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(builder:(_)=>const PartnerGesturesScreen()));
+   return;
+  }
   final kind=r['source_kind']?.toString();
   final id=r['source_id']?.toString();
   if(kind==null||id==null||!mounted)return;
@@ -244,6 +250,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
    subtitle:Text([
     when(r['due_at']),
     shared?'Shared':'Only me',
+    if(r['reminder_intent']=='love_gesture')'Choose when to send',
     if(overdue)'Overdue',
     if(r['archived_at']!=null)'Archived',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
@@ -270,9 +277,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
        x['outcome_note'].toString(),
      ].join('\n')),
     ),
-    if(r['source_kind']!=null)Align(alignment:Alignment.centerLeft,
-     child:TextButton.icon(onPressed:()=>linked(r),
-      icon:const Icon(Icons.link),label:const Text('Open related item'))),
+    if(r['source_kind']!=null||r['reminder_intent']=='love_gesture')
+     Align(alignment:Alignment.centerLeft,
+      child:TextButton.icon(onPressed:()=>linked(r),
+       icon:const Icon(Icons.link),
+       label:Text(r['reminder_intent']=='love_gesture'
+        ?'Open A little love':'Open related item'))),
     if(own!=null&&r['archived_at']==null)Wrap(
      spacing:7,runSpacing:3,children:[
       OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'done'),
