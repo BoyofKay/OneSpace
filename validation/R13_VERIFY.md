@@ -121,3 +121,10 @@ Restored missing Occasion estimated-arrival picker; previous analyzer found only
 
 ## R26 final analyzer retest
 Removed one unused photo-local warning and upgraded template gallery to actual responsive page previews. Verify source at this commit after all edits.
+
+
+## R27 Trips research source gate (not a published APK)
+- Added RLS trip_flight_options schema 0093 (candidate airfare, provider links, flexibility, stops, baggage, scores, booking state).
+- Rollback SQL privacy regression 0015 PASS.
+- TripDetail links a manual comparison board to existing itinerary; booking conversion requires explicit user confirmation and does not purchase flight.
+- Verify complete Flutter analyzer and tests. This is source-only until the separate R27 release marker.
