@@ -3,14 +3,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'task_recurrence_rules.dart';
 import 'checklist_schedule.dart';
+import 'checklist_readout_sheet.dart';
 
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
  const TaskChecklistPanel({super.key,required this.taskId,
   required this.recurrence,required this.rule,required this.canManage,
   required this.canComplete,this.testItemsStream,this.testChecksStream,
-  this.testViewerId});
- final String taskId,recurrence;
+  this.testViewerId,this.listTitle='Checklist'});
+ final String taskId,recurrence,listTitle;
  final Map<String,dynamic> rule;
  final bool canManage,canComplete;
  /// In-memory feeds for widget regression tests. Production always uses
@@ -125,6 +126,15 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
   inputScroll.dispose();
   super.dispose();
  }
+ Future<void> readAloud(List<Map<String,dynamic>> items,
+   Map<String,Map<String,dynamic>> myChecks)async{
+  // A reading view is never allowed to alter completion status.
+  await showModalBottomSheet<void>(context:context,isScrollControlled:true,
+   showDragHandle:true,builder:(_)=>FractionallySizedBox(
+    heightFactor:.85,
+    child:ChecklistReadoutSheet(
+     listTitle:widget.listTitle,items:items,ownChecks:myChecks)));
+ }
  Future<void> add()async{
   final title=input.text.trim();
   if(title.isEmpty||busy||!widget.canManage)return;
@@ -207,6 +217,11 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
         Icon(Icons.checklist_rounded,size:17,color:colors.primary),
         const SizedBox(width:5),
         Expanded(child:Text(done.toString()+' of '+items.length.toString()+' items')),
+        IconButton(
+         tooltip:'Listen to checklist',
+         icon:const Icon(Icons.record_voice_over_outlined),
+         onPressed:items.isEmpty?null:()=>readAloud(items,checkMap),
+        ),
         if(widget.recurrence!='none')Chip(
          avatar:const Icon(Icons.repeat,size:15),
          label:Text(ChecklistSchedule.mode(widget.rule,widget.recurrence).replaceAll('_',' '))),
