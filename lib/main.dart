@@ -57,7 +57,16 @@ class OneSpaceErrorFallback extends StatelessWidget {
  const OneSpaceErrorFallback({super.key,required this.details});
  final FlutterErrorDetails details;
  @override Widget build(BuildContext context){
-   final text=details.exceptionAsString();
+   // Include the first stack frames so a phone-only crash can be diagnosed
+   // without deleting shared data or requiring Android developer tools.
+   final text=[
+     'OneSpace Flutter error',
+     details.exceptionAsString(),
+     if(details.library!=null)'Library: ${details.library}',
+     if(details.context!=null)'Context: ${details.context}',
+     if(details.stack!=null)
+       'Stack trace:\\n'+details.stack.toString().split('\\n').take(20).join('\\n'),
+   ].join('\\n');
    final theme=Theme.of(context);
    return Material(
      color:theme.colorScheme.surface,
