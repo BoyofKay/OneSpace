@@ -14,7 +14,6 @@ end $$;
 drop trigger if exists checklist_check_parent on public.task_checklist_checks;
 create trigger checklist_check_parent before insert on public.task_checklist_checks
  for each row execute function private.checklist_check_parent();
-drop index if exists public.task_checklist_checks_item_id_cycle_date_key;
 alter table public.task_checklist_checks drop constraint if exists task_checklist_checks_item_id_cycle_date_key;
 alter table public.task_checklist_checks add constraint task_checklist_checks_item_cycle_person
  unique(item_id,cycle_date,user_id);
