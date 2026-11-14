@@ -216,11 +216,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
  }
  Future<void> linked(Map<String,dynamic> r)async{
   final kind=r['source_kind']?.toString();
-  if(kind==null||!mounted)return;
+  final id=r['source_id']?.toString();
+  if(kind==null||id==null||!mounted)return;
   final Widget screen;
-  if(kind=='task')screen=const PlansScreen();
-  else if(kind=='calendar')screen=const CalendarScreen();
-  else if(kind=='occasion')screen=const OccasionsScreen();
+  if(kind=='task')screen=PlansScreen(focusTaskId:id);
+  else if(kind=='calendar')screen=CalendarScreen(initialEventId:id);
+  else if(kind=='occasion')screen=OccasionDetail(id:id);
   else return;
   await Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder:(_)=>screen));
