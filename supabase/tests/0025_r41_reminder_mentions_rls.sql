@@ -25,29 +25,39 @@ insert into public.reminders(space_id,title,details,due_at,
  (current_setting('qa.space')::uuid,'R41 private no mention',
  'Please review @'||current_setting('qa.partner_name'),now()+interval '2 days',
  'private','me');
-do $qa$
-declare mention_id uuid;secret_id uuid;cnt int;
-begin
- select id into mention_id from public.reminders where title='R41 mention QA' limit 1;
- select id into secret_id from public.reminders where title='R41 private no mention' limit 1;
- select count(*) into cnt from public.space_notifications
-  where object_kind='reminder' and kind='mention' and object_id=mention_id
-   and recipient_id=current_setting('qa.b')::uuid and
-   actor_id=current_setting('qa.a')::uuid;
- if cnt<>1 then raise exception 'Shared mention notification missing';end if;
- if exists(select 1 from public.space_notifications
-  where object_id=secret_id and kind='mention')then
-   raise exception 'Private reminder accidentally pinged partner';end if;
- update public.reminders set details='No mention here' where id=mention_id;
- select count(*) into cnt from public.space_notifications where
-  object_id=mention_id and kind='mention';
- if cnt<>1 then raise exception 'Unrelated edit duplicated notification';end if;
-end $qa$;
+-- Notifications are recipient-visible only. The sender cannot SELECT
+-- the recipient's notification under production RLS.
+select set_config('qa.reminder',(select id::text from public.reminders
+ where title='R41 mention QA' limit 1),true);
+select set_config('qa.private',(select id::text from public.reminders
+ where title='R41 private no mention' limit 1),true);
 select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
-do $qa$ begin
+do $qa$
+declare cnt int;
+begin
+ select count(*) into cnt from public.space_notifications
+  where object_kind='reminder' and kind='mention'
+   and object_id=current_setting('qa.reminder')::uuid
+   and recipient_id=current_setting('qa.b')::uuid
+   and actor_id=current_setting('qa.a')::uuid;
+ if cnt<>1 then raise exception 'Shared mention notification missing, found %',cnt;end if;
+ if exists(select 1 from public.space_notifications
+  where object_id=current_setting('qa.private')::uuid and kind='mention')then
+   raise exception 'Private reminder accidentally pinged partner';end if;
  if exists(select 1 from public.reminders
- where title='R41 private no mention')then
- raise exception 'Partner sees private reminder';end if;
+  where title='R41 private no mention')then
+   raise exception 'Partner sees private reminder';end if;
+end $qa$;
+select set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
+update public.reminders set details='No mention here'
+ where id=current_setting('qa.reminder')::uuid;
+select set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
+do $qa$
+declare cnt int;
+begin
+ select count(*) into cnt from public.space_notifications
+ where object_id=current_setting('qa.reminder')::uuid and kind='mention';
+ if cnt<>1 then raise exception 'Unrelated edit duplicated notification';end if;
 end $qa$;
 select 'PASS: R41 shared authorized @partner triggers one alert; private remains invisible' result;
 rollback;
