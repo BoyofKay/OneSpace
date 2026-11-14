@@ -12,7 +12,6 @@ class ScrapbookPageCanvas extends StatelessWidget {
  String text(String key)=>(page[key]??'').toString();
  Widget photo(int number,Color accent,{double rotation=0}){
   final id=page['photo_'+number.toString()+'_id']?.toString();
-  final row=id==null?null:photos[id];
   final url=id==null?null:signedUrls[id];
   return Padding(padding:const EdgeInsets.all(5),
    child:Transform.rotate(angle:rotation,child:Container(
