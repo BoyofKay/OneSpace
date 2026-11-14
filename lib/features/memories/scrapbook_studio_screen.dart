@@ -308,7 +308,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
    signedTimes[entry.key]=DateTime.now();
    MemoryPhotoService(db).signedUrl(entry.value).then((url){
     if(mounted)setState(()=>signed[entry.key]=url);
-   }).catchError((Object _) {
+   },onError:(Object e,StackTrace stack){
     signedTimes.remove(entry.key);
    });
   }
@@ -359,9 +359,13 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
    for(final d in ScrapbookTemplates.designs)Card(
     child:InkWell(onTap:busy?null:()=>_create(d),
      child:Padding(padding:const EdgeInsets.all(16),child:Row(children:[
-      Container(width:72,height:90,
-       decoration:BoxDecoration(color:d.paper,borderRadius:BorderRadius.circular(8)),
-       child:Icon(d.icon,size:38,color:d.accent)),
+      SizedBox(width:116,height:152,child:ClipRRect(
+       borderRadius:BorderRadius.circular(7),
+       child:FittedBox(fit:BoxFit.contain,
+        child:SizedBox(width:340,height:447,child:ScrapbookPageCanvas(
+         page:{'template_key':d.key,'title':d.name,
+          'subtitle':d.subtitle,'story_text':'A beautiful page for the moments we share.'},
+         photos:const {},signedUrls:const {}))))),
       const SizedBox(width:16),
       Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Text(d.name,style:Theme.of(context).textTheme.titleMedium),
