@@ -72,3 +72,9 @@ Run Flutter analyze + tests after Android native contact integration, vCard inta
 ## R22 First-class Reminders verification — 2026-11-14
 - Includes new RLS reminders, independent recipient states/history, due cron notifications, Today/Remember reminders link and optional parent links.
 - No push token or Firebase project is added yet. Compile/test with pinned Flutter dependencies; do not produce APK from source-only commits.
+
+
+## R22 final source verification gate
+- Unified sign-in with biometric/PIN unlock for an existing valid session.
+- Reminder editor, per-recipient outcome/snooze, actionable notification deep links, global search.
+- Run analyzer and all Flutter widget tests after latest source and schema 0080–0082; do not build APK here.
