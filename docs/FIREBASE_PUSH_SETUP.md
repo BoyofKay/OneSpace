@@ -41,28 +41,35 @@ real JSON is provided. Supply it using a private GitHub Actions secret.
    Edge Functions → Secrets. Add `ONESPACE_FIREBASE_SERVICE_ACCOUNT_JSON`
    with the complete JSON file, represented as a single-line JSON string.
    Do NOT upload the key to GitHub, a chat, or your Android phone.
-3. Choose a long random worker secret in your password manager.
-   Add `ONESPACE_PUSH_CRON_SECRET` to Supabase Edge Functions Secrets
-   with that random value.
-4. Do not configure Firebase credentials in the Android APK or in Dart
-   definitions. They stay server-only. The deployed `onespace-push-delivery`
-   Edge Function uses Firebase HTTP v1 and OAuth2.
+3. The project's `onespace_push_worker_secret` has already been generated
+   directly inside Supabase Vault using 256 bits of cryptographic randomness.
+   Do **not** create another random string or call `vault.create_secret` again.
+4. In the Supabase **SQL Editor**, run:
+   ```sql
+   select decrypted_secret
+   from vault.decrypted_secrets
+   where name = 'onespace_push_worker_secret';
+   ```
+   Copy the returned secret **only inside your browser**; do not paste it into
+   ChatGPT, a GitHub commit, or an Android config file.
+5. Go to Supabase → Edge Functions → Secrets. Add a new secret:
+   Name: `ONESPACE_PUSH_CRON_SECRET`; Value: the exact clipboard contents.
+   Save it and clear the clipboard.
+6. The Firebase Admin SDK private-key JSON must remain separately stored in
+   `ONESPACE_FIREBASE_SERVICE_ACCOUNT_JSON`. Never include it in a query,
+   cron command, or Android build.
 
 ## Part D — Activate the scheduled worker, only after C is complete
-Supabase SQL Editor: execute the following **with YOUR randomly generated
-worker secret** (matching the value in Edge Function Secrets above).
-The query stores the secret in Supabase Vault. Do not expose that value to
-app users or commit it to GitHub.
+The connected Supabase administrator can activate the following cron job after
+the Edge secret is confirmed. The cron command references Vault at execution
+time, **never** embeds the decrypted worker secret in GitHub or SQL source.
 
 ```sql
-select vault.create_secret('PASTE_YOUR_RANDOM_WORKER_SECRET',
-                           'onespace_push_worker_secret');
-
-select cron.schedule('onespace-fcm-push-delivery', '* * * * *', $$
+select cron.schedule('onespace-fcm-push-delivery', '* * * * *', $cron$
   select net.http_post(
     url := 'https://ugwrpeduzyzrujkizqfo.supabase.co/functions/v1/onespace-push-delivery',
     headers := jsonb_build_object(
-      'Content-Type','application/json',
+      'Content-Type', 'application/json',
       'x-onespace-push-secret',
       (select decrypted_secret from vault.decrypted_secrets
        where name='onespace_push_worker_secret' limit 1)
@@ -70,13 +77,12 @@ select cron.schedule('onespace-fcm-push-delivery', '* * * * *', $$
     body := '{}'::jsonb,
     timeout_milliseconds := 15000
   );
-$$);
+$cron$);
 ```
 
-Do not re-run the `create_secret` operation repeatedly; use Vault's update
-facilities to rotate the value and update the Edge Functions Secret together.
-The schedule is one minute; reminder generation is currently five-minute cron,
-so delivery time is best-effort, not exact-to-the-second.
+**Do not activate the job until the Edge Function secret is set.** Once enabled,
+the worker polls about once per minute. Recurring reminder generation currently
+runs every five minutes, so delivery is best-effort, not exact-to-the-second.
 
 ## Part E — Two-phone acceptance
 1. Install the newest signed preview over the previous one. DO NOT uninstall
