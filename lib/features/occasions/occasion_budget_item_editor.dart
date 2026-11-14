@@ -18,7 +18,11 @@ class OccasionBudgetItemEditor extends StatefulWidget{
 }
 class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
  final db=Supabase.instance.client;
- late final TextEditingController title,qty,price,paid,currency,notes,url;
+ late final TextEditingController title,qty,price,paid,currency,notes,url,merchant,orderNumber,trackingUrl,returnReason;
+ DateTime? arrival;
+ double? rating;
+ int? preference;
+ String orderStatus='not_ordered';
  late String status;
  bool busy=false;
  String? error;
@@ -33,11 +37,19 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
    text:(p['currency']??widget.plan['currency']??'USD').toString());
   notes=TextEditingController(text:(p['notes']??'').toString());
   url=TextEditingController(text:(p['source_url']??'').toString());
+  merchant=TextEditingController(text:(p['merchant']??'').toString());
+  orderNumber=TextEditingController(text:(p['order_number']??'').toString());
+  trackingUrl=TextEditingController(text:(p['tracking_url']??'').toString());
+  returnReason=TextEditingController(text:(p['return_reason']??'').toString());
+  arrival=DateTime.tryParse(p['estimated_delivery']?.toString()??'');
+  rating=(p['product_rating'] as num?)?.toDouble();
+  preference=(p['preference_score'] as num?)?.toInt();
+  orderStatus=(p['order_status']??'not_ordered').toString();
   status=widget.markPurchase?'purchased':
     (p['status']??widget.initialStatus).toString();
  }
  @override void dispose(){
-  for(final c in [title,qty,price,paid,currency,notes,url]){c.dispose();}
+  for(final c in [title,qty,price,paid,currency,notes,url,merchant,orderNumber,trackingUrl,returnReason]){c.dispose();}
   super.dispose();
  }
  Future<void> save()async{
@@ -66,6 +78,9 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
   if(!OccasionBudgetRules.isHttpUrl(url.text)){
    setState(()=>error='Enter a valid product URL (http/https).');return;
   }
+  if(!OccasionBudgetRules.isHttpUrl(trackingUrl.text)){
+   setState(()=>error='Enter a valid carrier tracking URL or leave it blank.');return;
+  }
   setState((){busy=true;error=null;});
   try{
    final values=<String,dynamic>{
@@ -73,6 +88,12 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
     'unit_price':estimated,'actual_unit_price':actual,
     'currency':code,'status':status,'source_url':url.text.trim(),
     'notes':notes.text.trim(),
+    'merchant':merchant.text.trim(),
+    'estimated_delivery':arrival==null?null:'${arrival!.year.toString().padLeft(4,'0')}-${arrival!.month.toString().padLeft(2,'0')}-${arrival!.day.toString().padLeft(2,'0')}',
+    'product_rating':rating,'preference_score':preference,
+    'order_status':orderStatus,'order_number':orderNumber.text.trim(),
+    'tracking_url':trackingUrl.text.trim(),
+    'return_reason':returnReason.text.trim(),
    };
    if(widget.existing==null){
     await db.from('occasion_budget_items').insert({
@@ -131,6 +152,72 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
      const SizedBox(height:10),
      TextField(controller:url,maxLength:1800,
       decoration:const InputDecoration(labelText:'Product link (optional)')),
+     TextField(controller:merchant,maxLength:140,
+      decoration:const InputDecoration(labelText:'Retailer / merchant (e.g. Amazon, Walmart)')),
+     const SizedBox(height:8),
+     OutlinedButton.icon(onPressed:busy?null:pickArrival,
+      icon:const Icon(Icons.local_shipping_outlined),
+      label:Text(arrival==null?'Estimated delivery date (optional)':
+       'Estimated delivery: ${arrival!.year}-${arrival!.month.toString().padLeft(2,'0')}-${arrival!.day.toString().padLeft(2,'0')}')),
+     if(arrival!=null)TextButton(onPressed:()=>setState(()=>arrival=null),
+      child:const Text('Clear estimated delivery')),
+     if(arrival!=null&&widget.plan['occasion_on']!=null&&
+       arrival!.isAfter(DateTime.tryParse(widget.plan['occasion_on'].toString())??
+        DateTime(2100)))
+       const Text('Delivery is after the occasion date!',
+        style:TextStyle(color:Colors.red)),
+     const SizedBox(height:8),
+     Text('Your preference: ${preference==null?'Not rated':preference.toString()+'/5'}'),
+     Wrap(spacing:3,children:[
+      for(var value=1;value<=5;value++)ChoiceChip(label:Text('     const SizedBox(height:10),
+     TextField(controller:notes,maxLength:2500,maxLines:3,
+      decoration:const InputDecoration(labelText:'Why this item? Notes, ideas, vendor details')),
+     const SizedBox(height:7),
+     Text('Wishlist items are free to explore. Reserved items reduce available budget. Purchased items use actual spending.',
+      style:theme.textTheme.bodySmall),
+     if(error!=null)Padding(padding:const EdgeInsets.only(top:9),
+      child:Text(error!,style:TextStyle(color:theme.colorScheme.error))),
+     const SizedBox(height:14),
+     FilledButton.icon(onPressed:busy?null:save,
+      icon:const Icon(Icons.save_outlined),
+      label:Text(busy?'Saving…':'Save item')),
+    ]),
+   ),
+  ));
+ }
+}
++'value'),
+       selected:preference==value,onSelected:(_)=>setState(
+        ()=>preference=preference==value?null:value)),
+     ]),
+     const SizedBox(height:8),
+     DropdownButtonFormField<double?>(
+      initialValue:rating,decoration:const InputDecoration(labelText:'Retailer rating (out of 5)'),
+      items:[const DropdownMenuItem<double?>(value:null,child:Text('Not rated')),
+       for(final n in [1.0,2.0,3.0,3.5,4.0,4.5,5.0])
+        DropdownMenuItem<double?>(value:n,child:Text(n.toString()))],
+      onChanged:(v)=>setState(()=>rating=v)),
+     const SizedBox(height:8),
+     DropdownButtonFormField<String>(
+      initialValue:orderStatus,decoration:const InputDecoration(labelText:'Order / delivery status'),
+      items:const [
+       DropdownMenuItem(value:'not_ordered',child:Text('Not ordered')),
+       DropdownMenuItem(value:'ordered',child:Text('Ordered')),
+       DropdownMenuItem(value:'shipped',child:Text('Shipped')),
+       DropdownMenuItem(value:'delivered',child:Text('Delivered')),
+       DropdownMenuItem(value:'return_requested',child:Text('Return requested')),
+       DropdownMenuItem(value:'returned',child:Text('Returned')),
+       DropdownMenuItem(value:'cancelled',child:Text('Cancelled order'))],
+      onChanged:(v)=>setState(()=>orderStatus=v??orderStatus)),
+     if(orderStatus!='not_ordered')...[
+      TextField(controller:orderNumber,maxLength:160,
+       decoration:const InputDecoration(labelText:'Order number (optional)')),
+      TextField(controller:trackingUrl,maxLength:1800,
+       decoration:const InputDecoration(labelText:'Carrier tracking link (optional)')),
+     ],
+     if(orderStatus=='return_requested'||orderStatus=='returned')
+       TextField(controller:returnReason,maxLength:600,maxLines:2,
+        decoration:const InputDecoration(labelText:'Return reason / alternatives needed')),
      const SizedBox(height:10),
      TextField(controller:notes,maxLength:2500,maxLines:3,
       decoration:const InputDecoration(labelText:'Why this item? Notes, ideas, vendor details')),
