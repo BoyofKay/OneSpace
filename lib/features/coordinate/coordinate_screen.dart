@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/record_list_top_actions.dart';
 import 'activity_detail_screen.dart';
 import 'coordinate_activity_filters.dart';
 
@@ -24,6 +25,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   String? error;
   bool loading = true;
   CoordinateActivityView selected = CoordinateActivityView.active;
+  bool showArchived=false;
   String search = '';
 
   @override
@@ -189,26 +191,18 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
 
   Widget activityOverview(List<Map<String,dynamic>> all) {
     final now = DateTime.now();
-    final shown = CoordinateActivityFilters.visible(all, selected, search, now);
-    final counts = {
-      for (final view in CoordinateActivityView.values)
-        view: CoordinateActivityFilters.count(all, view, now),
+    final inView=all.where((row)=>
+      (row['archived_at']!=null)==showArchived).toList();
+    final view=showArchived?CoordinateActivityView.all:selected;
+    final shown=CoordinateActivityFilters.visible(inView,view,search,now);
+    final counts={
+      for(final kind in CoordinateActivityView.values)
+        kind:CoordinateActivityFilters.count(inView,kind,now),
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-          for (final view in CoordinateActivityView.values)
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 7),
-              child: ChoiceChip(
-                label: Text('${label(view)} ${counts[view] ?? 0}'),
-                selected: selected == view,
-                onSelected: (_) => setState(() => selected = view),
-              ),
-            ),
-        ]),
-      ),
+      if(showArchived)Text(
+       'Archived Activities · Open an item to restore it.',
+       style:Theme.of(context).textTheme.bodySmall),
       const SizedBox(height: 10),
       TextField(
         decoration: const InputDecoration(
@@ -246,7 +240,33 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Coordinate', style: Theme.of(context).textTheme.headlineMedium),
+        Row(children:[
+         Expanded(child:Text('Coordinate',
+          style:Theme.of(context).textTheme.headlineMedium)),
+         RecordListTopActions(
+          showHistory:showArchived,
+          onToggleHistory:()=>setState(()=>showArchived=!showArchived),
+          hasActiveFilters:selected!=CoordinateActivityView.active,
+          filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
+           mainAxisSize:MainAxisSize.min,
+           crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Text('Activity view'),
+            Wrap(spacing:8,runSpacing:5,children:[
+             for(final value in CoordinateActivityView.values)
+              ChoiceChip(label:Text(label(value)),
+               selected:selected==value,
+               onSelected:(_){
+                setState(()=>selected=value);refresh((){});
+               }),
+            ]),
+            TextButton.icon(onPressed:(){
+             setState(()=>selected=CoordinateActivityView.active);
+             refresh((){});
+            },icon:const Icon(Icons.restart_alt),
+             label:const Text('Reset filters')),
+           ])),
+         ),
+        ]),
         const SizedBox(height: 3),
         const Text('Ideas become plans, comparisons, decisions and memories.'),
         const SizedBox(height: 12),
