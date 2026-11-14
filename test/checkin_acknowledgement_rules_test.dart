@@ -3,7 +3,7 @@ import 'package:onespace/features/checkins/checkin_acknowledgement_rules.dart';
 
 void main(){
  test('only the sender can acknowledge an answered request',(){
-  final row={'id':'r','sender_id':'a','recipient_id':'b',
+  final row=<String,dynamic>{'id':'r','sender_id':'a','recipient_id':'b',
    'responded_at':'2026-11-14T09:00:00Z'};
   expect(CheckinAcknowledgementRules.canAcknowledge(row,'a'),true);
   expect(CheckinAcknowledgementRules.canAcknowledge(row,'b'),false);
