@@ -270,3 +270,8 @@ R40 signed Release 415 source is pinned separately. For R41, validate `PartnerMe
 ## R42 — RLS-scoped global search inside text fields (source-only)
 
 After R41 reminder mentions, add secure parallel `.ilike` search in Activity body, Calendar details, Shared Experience description, Note body, Goal description, Memory body and Reminder details; merge/deduplicate by category and source ID, retain original RLS and avoid building raw PostgREST OR grammar from user input. Run all Flutter tests, analyzer and privacy regressions including R34 checklist expansion and R40 audit. These source changes are not in signed Release 415; ship only in a later APK after green.
+
+
+## R42 final network cost and category guard verification
+
+Global search now skips all nonmatching source categories when a top-bar category is selected, and reruns on filter change. This avoids most remote queries while retaining category-specific title+body matches and RLS. New `global_search_section_guard_test.dart` verifies guard behavior and escaped LIKE wildcard safety. Run final full analyzer and unit/widget tests on this current source before next release; R40 signed 415 remains unchanged.
