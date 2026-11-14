@@ -99,3 +99,7 @@ Run Flutter analyze + tests after Android native contact integration, vCard inta
 
 ## R23 source reconstruction acceptance
 Recompiled both editors after removing malformed duplicate fragments; verify Quill 11.6.0, Occasion Planner, advanced checklist code, tests with pinned lockfile.
+
+
+## R23 single analyzer defect fixed
+Restored missing Occasion estimated-arrival picker; previous analyzer found only this remaining compile error. Run complete tests.
