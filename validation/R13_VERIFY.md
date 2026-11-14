@@ -67,3 +67,8 @@ The in-app 'Save a link or idea' option is removed while Android external Share 
 
 ## R21 Contacts and legacy Lists gate
 Run Flutter analyze + tests after Android native contact integration, vCard intake and retirement of empty legacy Lists backend.
+
+
+## R22 First-class Reminders verification — 2026-11-14
+- Includes new RLS reminders, independent recipient states/history, due cron notifications, Today/Remember reminders link and optional parent links.
+- No push token or Firebase project is added yet. Compile/test with pinned Flutter dependencies; do not produce APK from source-only commits.
