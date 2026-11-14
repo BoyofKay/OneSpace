@@ -32,6 +32,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   String? _ackWatchedSpace;
   bool _ackBusy=false;
   String _filter='all',_requestFilter='all';
+  String _journalSearch='',_conversationSearch='';
   bool _openedInitialRequest=false;
   Timer? _requestClock;
 
@@ -274,26 +275,27 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
         final needs=CheckinRequestRules.count(rows,'to_answer',me,now);
         final waiting=CheckinRequestRules.count(rows,'waiting',me,now);
         final history=CheckinRequestRules.count(rows,'history',me,now);
+        final term=_conversationSearch.trim().toLowerCase();
         final visible=CheckinRequestRules.filter(
-          rows,_requestFilter,me,now).take(60);
+          rows,_requestFilter,me,now).where((row)=>
+           term.isEmpty||[
+            row['note'],row['response_message'],row['response_topic'],
+            row['requested_at'],row['response_mood'],
+           ].map((x)=>x?.toString().toLowerCase()??'')
+            .join(' ').contains(term)).take(60);
         return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
           Padding(padding:const EdgeInsets.symmetric(vertical:8),
             child:Text('A gentle way to connect. You choose when to reply.',
               style:Theme.of(context).textTheme.bodySmall)),
-          Wrap(spacing:7,runSpacing:3,children:[
-            ChoiceChip(label:const Text('All'),
-             selected:_requestFilter=='all',
-             onSelected:(_)=>setState(()=>_requestFilter='all')),
-            ChoiceChip(label:Text('To answer · $needs'),
-             selected:_requestFilter=='to_answer',
-             onSelected:(_)=>setState(()=>_requestFilter='to_answer')),
-            ChoiceChip(label:Text('Sent · $waiting'),
-             selected:_requestFilter=='waiting',
-             onSelected:(_)=>setState(()=>_requestFilter='waiting')),
-            ChoiceChip(label:Text('History · $history'),
-             selected:_requestFilter=='history',
-             onSelected:(_)=>setState(()=>_requestFilter='history')),
-          ]),
+          Text('To answer: $needs · Sent: $waiting · History: $history',
+           style:Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height:8),
+          TextField(
+           onChanged:(value)=>setState(()=>_conversationSearch=value),
+           decoration:const InputDecoration(
+            prefixIcon:Icon(Icons.search),
+            labelText:'Search check-in conversations',
+            hintText:'Messages, topics and responses')),
           const SizedBox(height:7),
           if(visible.isEmpty)const Padding(
            padding:EdgeInsets.symmetric(vertical:16),
@@ -380,7 +382,57 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
 
   @override
   Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:Text(tr(context,'checkinTitle'))),
+    appBar:AppBar(title:Text(tr(context,'checkinTitle')),actions:[
+     IconButton(
+      tooltip:'Show check-in conversation history',
+      icon:Icon(_requestFilter=='history'?
+       Icons.history_toggle_off_outlined:Icons.history_outlined),
+      onPressed:()=>setState(()=>_requestFilter=
+       _requestFilter=='history'?'all':'history')),
+     IconButton(
+      tooltip:'Check-in filters',
+      icon:Icon(_requestFilter!='all'||_filter!='all'?
+       Icons.filter_alt:Icons.filter_alt_outlined),
+      onPressed:()=>showModalBottomSheet<void>(
+       context:context,showDragHandle:true,isScrollControlled:true,
+       builder:(_)=>SafeArea(child:Padding(
+        padding:const EdgeInsets.fromLTRB(16,10,16,24),
+        child:StatefulBuilder(builder:(ctx,refresh)=>Column(
+         mainAxisSize:MainAxisSize.min,
+         crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text('Filters',style:Theme.of(ctx).textTheme.titleLarge),
+          const SizedBox(height:12),
+          const Text('Check-in conversations'),
+          Wrap(spacing:8,runSpacing:5,children:[
+           for(final value in const ['all','to_answer','waiting','history'])
+            ChoiceChip(label:Text(switch(value){
+             'to_answer'=>'To answer','waiting'=>'Sent',
+             'history'=>'History',_=>'All',
+            }),selected:_requestFilter==value,
+             onSelected:(_){
+              setState(()=>_requestFilter=value);refresh((){});
+             }),
+          ]),
+          const SizedBox(height:12),
+          const Text('Feelings journal visibility'),
+          Wrap(spacing:8,runSpacing:5,children:[
+           for(final value in const ['all','shared','private'])
+            ChoiceChip(label:Text(tr(ctx,value)),selected:_filter==value,
+             onSelected:(_){
+              setState(()=>_filter=value);refresh((){});
+             }),
+          ]),
+          TextButton.icon(
+           onPressed:(){
+            setState((){
+             _filter='all';_requestFilter='all';
+            });
+            refresh((){});
+           },icon:const Icon(Icons.restart_alt),
+           label:const Text('Reset filters')),
+         ])))),
+      )),
+    ]),
     body:RefreshIndicator(onRefresh:_load,child:ListView(
       padding:const EdgeInsets.all(20),children:[
       Text(tr(context,'checkinSubtitle')),
@@ -415,17 +467,26 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
         Text('Our feelings journal',
           style:Theme.of(context).textTheme.titleMedium),
         const SizedBox(height:12),
-        Wrap(spacing:8,children:['all','shared','private'].map((v)=>ChoiceChip(
-          label:Text(tr(context,v)),selected:_filter==v,
-          onSelected:(_)=>setState(()=>_filter=v))).toList()),
+        TextField(
+         onChanged:(value)=>setState(()=>_journalSearch=value),
+         decoration:const InputDecoration(
+          prefixIcon:Icon(Icons.search),
+          labelText:'Search feelings journal',
+          hintText:'Check-in dates, messages or gratitude')),
+        const SizedBox(height:10),
         StreamBuilder<List<Map<String,dynamic>>>(
           stream:_stream,builder:(context,snapshot){
           if(snapshot.hasError) { return Text(tr(context,'loadFailed')); }
           if(!snapshot.hasData) {
             return const Center(child:CircularProgressIndicator());
           }
+          final term=_journalSearch.trim().toLowerCase();
           final entries=snapshot.data!.where((x)=>
-            _filter=='all'||x['visibility']==_filter).toList();
+            (_filter=='all'||x['visibility']==_filter)&&
+            (term.isEmpty||[
+             x['checkin_date'],x['message'],x['gratitude'],
+            ].map((v)=>v?.toString().toLowerCase()??'')
+             .join(' ').contains(term))).toList();
           if(entries.isEmpty) {
             return Padding(
               padding:const EdgeInsets.all(36),
