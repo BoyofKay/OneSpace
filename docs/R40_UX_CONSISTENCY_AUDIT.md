@@ -102,3 +102,7 @@ screen and field has been fully standardized or phone-tested.
   cannot notify.
 - Confirm checkout of R34 checklist expansion, R37 speech, R35–R36
   reminders, R38 Notes and R39 backlinks, and FCM gestures.
+
+## Palette contrast clean-up
+- Removed hard-coded `Colors.red` error text from Goals, Memories and Notes in favor of `Theme.of(context).colorScheme.error`.
+- Automated 4-palette × 2-mode × seasonal scheme regression remains required; physical composited-image contrast remains separate QA.
