@@ -1,44 +1,44 @@
-# R36 — Thoughtful Personal Love Reminders
+# R37 — Listen to Checklists (native voice readout)
 
 Require-Firebase-Config: true
 
-Previous preview release build: 0.1.411 (Occasion preparation).
-Keep the existing Android package com.onespace.onespace.preview,
-preview signing certificate, two accounts, pairing, Firebase config,
-biometric unlock and all user data. Never uninstall or clear storage.
+Previous signed preview pipeline: 0.1.412.
+Preserve the exact existing package com.onespace.onespace.preview,
+trusted signing key, Firebase Android config, pairing, biometrics and
+all private/shared checklist data. Install only as an in-place update.
 
-## Included features
-- A Little Love offers a one-tap entry to create an optional, personal
-  reminder to send a thoughtful gesture. Nothing is sent automatically.
-- Suggest exact local 9 AM, 6 PM or 9 PM, with editable custom time.
-  No assumption about actual working hours or partner time zone.
-- Choose a gesture category or Any gesture, and show creator's own
-  last-sent history as a gentle optional reference.
-- Reminder uses existing backend/FCM due delivery to creator only.
-  Opening reminder leads to A Little Love; sender manually chooses and
-  sends a gesture in the normal way. Partner sees nothing until then.
-- Private only, audience me. Existing automatic-ritual configuration
-  remains unchanged while user considers replacement.
-- All previous R34 checklist recovery and R35 Occasion reminders remain
-  included unchanged.
+## Scope
+- Expanded checklist now contains Listen to checklist.
+- Read remaining unchecked or all active subitems, read an individual
+  step, previous/next/repeat and adjustable speech speed.
+- Uses only the signed-in partner's authorized checklist and their own
+  current-cycle completion flags. No data writes, automatic completion,
+  remote recording or microphone permission.
+- Native Android TextToSpeech service, including Android 11+ TTS_SERVICE
+  manifest visibility. Native Kotlin splits long scripts into small
+  queued utterances and stops when application backgrounds/destroys.
+- Native iOS AVSpeechSynthesizer integration for future iPhone trial;
+  iOS compile and device QA remain separate from Android APK gate.
+- Speech can use online TTS services if the installed phone voice
+  engine requires it; no OneSpace backend voice upload is performed.
+- Existing checklist ExpansionTile remains on safe ValueKey and nested
+  TextField scroll offset remains disabled (R34 crash prevention).
+- All R35 occasion prep and R36 personal love reminder features remain
+  included, with no database changes for R37.
 
-## Security and verification
-- Additive migration 0100 deployed to the same Supabase project, using
-  nullable intent fields and a private-only database constraint.
-- RLS rollback-only SQL test 0021 PASS: cannot expose personal prompt to
-  partner, cannot forge a shared audience and cannot insert exact duplicate.
-- R36 source verification run 45 PASS for logic, UI and full test suite.
-- Final copy-label verification run 46 checks final source; this signed
-  preview pipeline independently repeats locked dependencies, analyzer
-  and full Flutter test suite before building.
-- Two-phone acceptance: docs/R36_THOUGHTFUL_LOVE_SELF_REMINDERS_QA.md.
+## Evidence and mandatory gates
+- R37 source last commit 9b40a553ac47ea044548a586f04c886009623b57.
+- Source verification GitHub Actions run 49 checks corrected imports and
+  test fixture; APK must independently rerun the entire locked Flutter
+  dependency analyzer/test gate and refuse to publish if tests fail.
+- Android Gradle Kotlin compilation is required and must succeed before
+  the APK is signed, uploaded and released.
+- No new Supabase migration, FCM secrets, service accounts, or user data
+  manipulation. Keep release marker isolated from R36/411/412 commits.
+- Check docs/R37_VOICE_CHECKLIST_READOUT_QA.md for full two-device
+  acceptance and privacy scenarios.
+- A passing CI is not a phone-tested claim. Android TTS availability,
+  audio quality, lifecycle stop and checklist expand/read actions must
+  be verified on the existing phones.
 
-## Signed release gates
-- Build only after full Flutter analyzer and test success.
-- Verify Firebase Android config and unchanged signing certificate.
-- Verify Android package ID and publish a single APK.
-- No physical-device acceptance is claimed until the two installed
-  phones test gesture reminder privacy and manual send flow.
-
-Controlled preview candidate November 14 2026,
-source commit f31344ae89a0c50a62869ac29e1805ad970fce5b.
+November 14 2026; controlled signed candidate R37.
