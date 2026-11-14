@@ -17,8 +17,9 @@ export 'task_editor_sheet.dart'
 /// RLS determines which tasks are visible. Filtering in the UI is convenience,
 /// not a privacy boundary: private rows are excluded by the database itself.
 class PlansScreen extends StatefulWidget {
-  const PlansScreen({super.key, this.onOpenSpace});
+  const PlansScreen({super.key, this.onOpenSpace, this.focusTaskId});
   final VoidCallback? onOpenSpace;
+  final String? focusTaskId;
 
   @override
   State<PlansScreen> createState() => _PlansScreenState();
@@ -44,6 +45,7 @@ class _PlansScreenState extends State<PlansScreen> {
   @override
   void initState() {
     super.initState();
+    if(widget.focusTaskId!=null)_expandedLists.add(widget.focusTaskId!);
     _loadSpace();
   }
 
