@@ -225,3 +225,8 @@ Updated gesture self-reminder time suggestion chips to label 9 AM, 6 PM and 9 PM
 ## R37 — Hands-free checklist readout (source-only verification)
 
 New Android TextToSpeech and iOS AVSpeechSynthesizer MethodChannel plus a read-only Flutter checklist voice sheet. Test native bridge invocation through mock channel, active/unchecked item script privacy, lifecycle stop, and previous R34 checklist expansion tests. Run exact Flutter dependencies, analyzer and entire test suite before any APK. No Supabase schema changes or Firebase changes; voice never updates checkmarks. Real Android TTS and native Kotlin compilation must pass a separate signed preview build; iOS requires separate macOS compiler verification.
+
+
+## R37 final — Android 11 TTS discovery and speech regression correction
+
+Re-run analyzer and all widget/unit tests on current source after fixing literal whitespace test input and adding Android TTS_SERVICE manifest visibility (per Android 11+). Native Kotlin/iOS code must still be compiled by platform-specific release builders. Verify no unchecked legacy tasks are deleted, no new audio or storage permission added, and no change to R34 expand/collapse behavior.
