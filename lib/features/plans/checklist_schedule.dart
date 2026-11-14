@@ -7,6 +7,28 @@ import 'package:timezone/timezone.dart' as tz;
 class ChecklistSchedule {
  const ChecklistSchedule._();
  static bool _zoneReady=false;
+ static bool validTimeZone(String input){
+  try{
+   if(!_zoneReady){tzdb.initializeTimeZones();_zoneReady=true;}
+   tz.getLocation(input);
+   return true;
+  }catch(_){return false;}
+ }
+ static DateTime nextLocalMidnight(DateTime now,String? zone){
+  if(zone==null||zone.isEmpty){
+   final local=now.toLocal();
+   return DateTime(local.year,local.month,local.day+1);
+  }
+  try{
+   if(!_zoneReady){tzdb.initializeTimeZones();_zoneReady=true;}
+   final location=tz.getLocation(zone);
+   final local=tz.TZDateTime.from(now.toUtc(),location);
+   return tz.TZDateTime(location,local.year,local.month,local.day+1).toLocal();
+  }catch(_){
+   final local=now.toLocal();
+   return DateTime(local.year,local.month,local.day+1);
+  }
+ }
  static DateTime localNow(DateTime instant,String? timezone){
   if(timezone==null||timezone.isEmpty)return instant.toLocal();
   try{
