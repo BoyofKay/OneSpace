@@ -1,26 +1,29 @@
-# R21 — OneSpace Core Trust and Connections Android Test Preview
+# R22 — First-class Reminders, single Sign-In, and connected checklist UX
 
-Baseline install: R20 preview-0.1.398. **Upgrade in place: never uninstall, clear app data or re-create user accounts.**
-Release type: controlled two-partner Android preview, NOT production.
+Preview baseline: **0.1.399**. Upgrade over existing installation; do NOT uninstall, clear local storage, or recreate accounts. This is a controlled two-partner Android test preview.
 
-## Included in this candidate
-- R21 migration 0077: safely moved the four old standalone tasks under one shared **Old checklist** as subitems, preserving original rows and statuses for recovery. New list UI hides archived/migrated parent task records.
-- Checklist flow: create a named checklist, expand and add subitems, per-person completion state for shared lists (separate checkmarks per cycle), narrow task-scoped realtime queries, and assigned-partner completion restrictions. Recurrence advanced settings are NOT part of this preview.
-- R21 migration 0078: task-scoped per-person check history with RLS update restrictions; searchable people/place/other tags on Memory photos.
-- Memories: fixed R16 insert column privileges; camera-first Daily Selfie or gallery, explicit shared/private selection, photo tags, text/tag search, in-memory photo gallery camera capture. Existing shared memories remain editable by both partners.
-- Android Contacts: explicit native contact picker, controlled permission prompt only on import, company/role/website, duplicate-detection preview with private default, Android Save to Contacts, Android vCard external-share intake. iOS Contacts extension remains unimplemented.
-- R21 migration 0079: retired unused old Lists/shopping tables and template RPC after verifying they contained zero records. Today Explore legacy Lists tile removed; existing home-snapshot count keys retained as zero for old preview compatibility.
-- Safe SQL privacy regressions for shared/private checklists, partner checkboxes, and memory insertion passed and rolled back.
+## Candidate scope
+- **Remember → Reminders:** personal/shared reminders, configurable recipient(s), due date/time, notes, linked checklist/Calendar/Occasion, archived history, Done and Needs Follow-up with outcome notes, Today/Tomorrow/Custom snooze, each partner's outcome and history.
+- Database migrations 0080–0083: RLS reminders/recipient states/action audit, privileged response RPC with explicit actor membership checks, every-five-minute in-app notification dispatcher, existing notification constraint compatibility, server-side linked-object privacy validation, and corrected Home/Remember counts excluding migrated standalone tasks.
+- New reminder deep links in the in-app Notifications center; global Search finds reminders. Stream watchers sync partner status/snooze changes while Reminders screen is open.
+- Auth: **one screen** for signed out or session locked; same email/password/fingerprint layout. Fingerprint/device PIN unlocks an already-valid saved session. True sign-out requires server authentication (including native OS password manager autofill when available), no stored substitute password.
+- To-do and Checklists: named checklists with nested items, clearer "Both of us" assignment; shared editing separated from per-person checkbox responsibility. Old checklist and its four migrated subtasks retained.
+- Permanently retired old standalone Lists Flutter source files and tests, after earlier R21 retirement of empty tables and Today link. Notes validation tests retained.
+- R21 camera-first Memories and Android contact import/export maintained.
 
-## Not claimed complete
-- Real-device tests of Android Contacts provider permissions, NFC/URI-specific vCards, camera permissions and 2-account biometric flow.
-- Flutter Quill Notes 2.0, dedicated reminders, push notifications, unified sign-in, next generation scrapbook composer, advanced recurrent schedule and occasions.
-- Supabase leaked-password protection (separate Auth setting) and RLS audit of public.record_activity_decision remain open.
-- The existing R20 APK still has an outdated Lists UI until upgraded.
+## SQL regression evidence
+- R22 privacy and actions regression test 0010 passed under rollback, including partner-only outcomes, follow-up history, snooze and idempotent cron re-dispatch.
+- Existing R21 checklist and Memory privacy tests passed before this iteration.
+- Existing accounts, device sign-in material, shared space, messages and live records remain untouched by synthetic tests.
 
-## Publication gate
-Trigger one signed reproducible optimized test preview APK only after committed-lockfile dependency validation, Flutter 3.50 analysis/tests, Android native Kotlin/Gradle build, fixed preview signing identity and package ID verification. Preserve the package id com.onespace.onespace.preview. Publish the verified artifact to GitHub Releases and retain the workflow artifact. A failing build must not be published.
+## Known limits / future work
+- Every-five-minute backend scheduler delivers **in-app notifications**, not native background push. Firebase Cloud Messaging requires project configuration and device credential setup. The scheduled check can be up to five minutes after due plus delivery latency.
+- This release includes **one-time** reminders, not recurring Reminder schedules or self-love nudge logic.
+- Native OS biometric/PIN cancellation, Samsung Pass, two-device notifications and shared update UI need physical acceptance testing.
+- Advanced checklist recurrence weekdays/timezone/holiday exceptions, Flutter Quill Notes 2.0, Occasion shopping planner, Trip documents and Scrapbook Studio not yet implemented.
+- A valid session is never recreated from biometric verification alone after true sign-out.
 
-Safety: do not delete pairings, users, saved documents, trips, check-ins, or live memories. Do not perform a server region migration. Test upgrades in place on both Android phones.
+## Publication gates
+One reproducible signed preview APK, gated on Flutter 3.50 dependency lock validation, analysis, all Dart tests, Android Gradle/Kotlin compilation, same preview signature, same package com.onespace.onespace.preview, and retained workflow artifact. Publish only if verification succeeds. Do not change production signing identity or reset any user data.
 
-Trigger: R21 controlled Android preview after SQL and Flutter checks, November 14, 2026.
+Trigger: R22 integrated preview, November 14, 2026.
