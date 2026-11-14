@@ -10,10 +10,23 @@ class MemoryPhotoService{
  static const bucket='onespace-memory-photos';
 
  Future<int> addFromGallery(String memoryId,{int startOrder=0})async{
+  final chosen=await picker.pickMultiImage(
+   imageQuality:82,maxWidth:1600,maxHeight:1600);
+  return addFiles(memoryId,chosen,startOrder:startOrder);
+ }
+
+ Future<int> addFromCamera(String memoryId,{int startOrder=0})async{
+  final photo=await picker.pickImage(source:ImageSource.camera,
+   imageQuality:82,maxWidth:1600,maxHeight:1600);
+  if(photo==null)return 0;
+  return addFiles(memoryId,[photo],startOrder:startOrder);
+ }
+
+ /// Also used for a camera-first Daily selfie. Never stores the source URI.
+ Future<int> addFiles(String memoryId,List<XFile> chosen,
+  {int startOrder=0})async{
   final user=db.auth.currentUser?.id;
   if(user==null)throw StateError('Sign in before adding photos.');
-  final chosen=await picker.pickMultiImage(
-    imageQuality:82,maxWidth:1600,maxHeight:1600);
   if(chosen.isEmpty)return 0;
   var saved=0;
   for(final photo in chosen){
