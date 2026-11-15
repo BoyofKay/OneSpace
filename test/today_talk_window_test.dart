@@ -18,6 +18,13 @@ void main() {
     expect(window.start, DateTime.utc(2026, 11, 20, 11));
     expect(window.end, DateTime.utc(2026, 11, 20, 13));
     expect(talkWindowLabel(window, now, 'Asia/Riyadh'),
+        'Next good time to talk: tomorrow 2:00 PM – 4:00 PM');
+  });
+
+  test('days further out are named', () {
+    final now = DateTime.utc(2026, 11, 18, 20); // Wed 23:00 Riyadh
+    final window = nextTalkWindow(ahmed, kandice, now)!;
+    expect(talkWindowLabel(window, now, 'Asia/Riyadh'),
         'Next good time to talk: Fri, Nov 20 2:00 PM – 4:00 PM');
   });
 
