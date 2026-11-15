@@ -224,8 +224,8 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      text:old?['message']?.toString()??option.messages[index]);
    var disabled=old?['disabled']==true;
    try{
-     final accepted=await showDialog<bool>(context:context,builder:(ctx)=>
-       StatefulBuilder(builder:(ctx,update)=>AlertDialog(
+     final accepted=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(fullscreenDialog:true,builder:(ctx)=>
+       StatefulBuilder(builder:(ctx,update)=>EditorPage(
          title:Text('Edit '+option.title),
          content:Column(mainAxisSize:MainAxisSize.min,children:[
            TextField(controller:message,maxLength:240,maxLines:4,
@@ -239,7 +239,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
            FilledButton(onPressed:()=>Navigator.pop(ctx,true),
              child:const Text('Save')),
          ],
-       )));
+       ))));
      if(accepted!=true||spaceId==null)return;
      final me=db.auth.currentUser!.id;
      await db.from('gesture_message_overrides').upsert({

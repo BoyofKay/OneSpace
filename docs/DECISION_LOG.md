@@ -64,6 +64,7 @@ Companion documents in this folder:
 | D38 | 15 Nov 2026 | One ⋮ menu (ItemMenu) on list items, always ordered: status actions → Edit/Open → Remove/Restore (soft, confirmed) → Change log. Inline "history" buttons removed from cards. |
 | D39 | 15 Nov 2026 | Daily connection has two tabs (Daily check-in / Feelings journal), each with its own FAB opening a page; cards lead with who + mood in words and colour, and the message. Shared experiences: the suggestion is a dismissible pop-up at most once per 30 minutes; each collection opens its own page. Daily selfie opens a Selfie studio (front camera, polaroid, caption, who can see, week strip). |
 | D40 | 15 Nov 2026 | Share-in for photos and PDFs (Android, ≤10 MB): saved to Items to sort with the file attached (private bucket onespace-share-in; readable only when the item is visible to you), or a photo straight to Memories. Activity purposes pre-add starter steps. Letters: plain load (the realtime stream failed because the table was not in the publication; fixed both). |
+| D41 | 15 Nov 2026 | R56 finishes the consistency rules: the ⋮ menu now also on Calendar events (Create from this, Linked items, Share by email, Remind partner sit between Edit and Remove), Activities (list and detail: Mark completed / Cancel / Reopen first) and Contact cards (Save to phone, Edit history). Remaining editor pop-ups became pages (Edit activity and every Activity text prompt, day off, flight option, travel document, gesture edit); one-field quick inputs (photo caption, rating, comment) stay as small dialogs on purpose. Search fields read "Search <screen>". Every floating button has its own hero tag. |
 
 ## C. Won't do (for now)
 - No relationship health/compatibility/mood scores, no streaks.
@@ -87,4 +88,5 @@ Companion documents in this folder:
 | R53 | Links: Create from this, Linked items strip | Built 15 Nov 2026 (docs/R53_R54_QA.md) |
 | R54 | Polish: Activities change log, On this day, Showing line, search coverage, status look | Built 15 Nov 2026 |
 | R55 | Consistency pass: filter panel, FABs, editor pages, renames, Daily connection tabs, experiences pop-up/collections, selfie studio, ⋮ menu, photo/PDF share-in, purpose steps, Letters fix | Built 15 Nov 2026 (docs/R55_QA.md) |
+| R56 | ⋮ menu everywhere, last editor pop-ups to pages, search labels, FAB hero tags | Built 15 Nov 2026 (docs/R56_QA.md) |
 | Later | Search coverage (contacts, checklist items, chat), Calendar session, Trips offline documents, smart love reminders, occasion timing rule (salary month), full Arabic (incl. R49–R55 screens — waiting per Ahmed), settings consolidation, iOS (waiting), AI level 2, voice, account deletion/export | |

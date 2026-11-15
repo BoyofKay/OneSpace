@@ -149,7 +149,7 @@ class _TripsScreenState extends State<TripsScreen> {
       onApply:(v)=>setState((){filter=v['when']!;}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;filter='upcoming';}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(
+   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-trips',
     icon:const Icon(Icons.add),label:const Text('Add trip'),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
@@ -161,11 +161,11 @@ class _TripsScreenState extends State<TripsScreen> {
     const SizedBox(height:15),
     TextField(onChanged:(v)=>setState(()=>query=v),
      decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
-      labelText:'Find a trip or destination',border:OutlineInputBorder())),
+      labelText:'Search trips',hintText:'Trips or destinations',border:OutlineInputBorder())),
     const SizedBox(height:8),
     if(showArchived)Padding(
      padding:const EdgeInsets.only(bottom:8),
-     child:Text('Removed trips · Open one to restore it.',
+     child:Text('Removed trips · Use ⋮ › Restore to bring one back.',
       style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Padding(padding:EdgeInsets.all(24),child:Center(child:CircularProgressIndicator()))

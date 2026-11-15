@@ -409,7 +409,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       onApply:(v)=>setState((){showCompleted=v['show']=='all';}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(
+   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-reminders',
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
     label:const Text('Add reminder')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
@@ -426,7 +426,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       decoration:const InputDecoration(
        prefixIcon:Icon(Icons.search),
        labelText:'Search reminders',
-       hintText:'Search reminder title and details',
+       hintText:'Titles and details',
        border:OutlineInputBorder())),
      const SizedBox(height:10),
      if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),

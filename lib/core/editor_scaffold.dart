@@ -162,3 +162,116 @@ class _AddFabMenuState extends State<AddFabMenu> {
       ]);
   }
 }
+
+/// One text field on a [FormPage].
+class FormFieldSpec {
+  const FormFieldSpec(this.label, {this.initial = '', this.required = false,
+    this.maxLength = 500, this.lines = 1, this.hint, this.keyboard});
+  final String label, initial;
+  final bool required;
+  final int maxLength, lines;
+  final String? hint;
+  final TextInputType? keyboard;
+}
+
+/// R56: a small full-page form for edits that used to be pop-ups.
+/// Returns the trimmed values in field order, or null on Cancel/back.
+Future<List<String>?> showFormPage(BuildContext context, {required String title,
+    required List<FormFieldSpec> fields, String saveLabel = 'Save', String? intro,
+    bool isNew = false}) =>
+  Navigator.of(context).push<List<String>>(MaterialPageRoute<List<String>>(
+    builder: (_) => _FormPage(title: title, fields: fields, saveLabel: saveLabel,
+      intro: intro, isNew: isNew)));
+
+class _FormPage extends StatefulWidget {
+  const _FormPage({required this.title, required this.fields, required this.saveLabel,
+    this.intro, this.isNew = false});
+  final String title, saveLabel;
+  final String? intro;
+  final bool isNew;
+  final List<FormFieldSpec> fields;
+  @override
+  State<_FormPage> createState() => _FormPageState();
+}
+
+class _FormPageState extends State<_FormPage> {
+  late final controllers = [for (final f in widget.fields) TextEditingController(text: f.initial)];
+
+  @override
+  void dispose() {
+    for (final c in controllers) { c.dispose(); }
+    super.dispose();
+  }
+
+  bool get _changed {
+    for (var i = 0; i < controllers.length; i++) {
+      if (controllers[i].text != widget.fields[i].initial) return true;
+    }
+    return false;
+  }
+
+  bool get _complete {
+    for (var i = 0; i < controllers.length; i++) {
+      if (widget.fields[i].required && controllers[i].text.trim().isEmpty) return false;
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) => EditorScaffold(
+    title: widget.title,
+    isNew: widget.isNew,
+    isChanged: () => _changed,
+    isComplete: () => _complete,
+    listenTo: controllers,
+    saveLabel: widget.saveLabel,
+    missingHint: widget.fields.any((f) => f.required) ? 'Fill in the fields marked *' : null,
+    onSave: () => Navigator.pop(context, [for (final c in controllers) c.text.trim()]),
+    body: ListView(padding: const EdgeInsets.all(18), children: [
+      if (widget.intro != null) Padding(padding: const EdgeInsets.only(bottom: 14),
+        child: Text(widget.intro!, style: Theme.of(context).textTheme.bodyMedium)),
+      for (var i = 0; i < widget.fields.length; i++) Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: TextField(
+          controller: controllers[i],
+          autofocus: i == 0,
+          maxLength: widget.fields[i].maxLength,
+          minLines: widget.fields[i].lines,
+          maxLines: widget.fields[i].lines == 1 ? 1 : widget.fields[i].lines + 6,
+          keyboardType: widget.fields[i].keyboard,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: widget.fields[i].required ? requiredLabel(widget.fields[i].label)
+                : widget.fields[i].label,
+            hintText: widget.fields[i].hint,
+            alignLabelWithHint: widget.fields[i].lines > 1,
+            border: const OutlineInputBorder()))),
+    ]));
+}
+
+/// R56: a page drop-in for an old AlertDialog editor (same title/content/
+/// actions), so the form logic is unchanged but it opens as a subpage with
+/// its buttons pinned at the bottom.
+class EditorPage extends StatelessWidget {
+  const EditorPage({super.key, required this.title, required this.content,
+    this.actions = const []});
+  final Widget title;
+  final Widget content;
+  final List<Widget> actions;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: title),
+    body: SafeArea(child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 24), child: content)),
+    bottomNavigationBar: SafeArea(child: Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant))),
+      child: Row(children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 12),
+          Expanded(child: actions[i]),
+        ],
+      ]))),
+  );
+}

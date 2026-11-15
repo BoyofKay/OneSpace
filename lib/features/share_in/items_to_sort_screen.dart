@@ -90,6 +90,14 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
     if (mounted) await _load();
   }
 
+  String query = '';
+  bool _matches(Map<String, dynamic> item) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return [item['title'], item['note'], item['link'], item['file_name']]
+        .map((v) => v?.toString().toLowerCase() ?? '').join(' ').contains(q);
+  }
+
   String _age(Object? raw) {
     final at = DateTime.tryParse(raw?.toString() ?? '')?.toLocal();
     if (at == null) return '';
@@ -107,11 +115,16 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
           onToggleHistory: () { setState(() => showRemoved = !showRemoved); _load(); },
           historyKinds: const ['sort_item'], historyTitle: 'Items to sort'),
       ]),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _add, icon: const Icon(Icons.add), label: const Text('Add')),
+      floatingActionButton: FloatingActionButton.extended(heroTag: 'add-sort-item',
+        onPressed: _add, icon: const Icon(Icons.add), label: const Text('Add item')),
       body: RefreshIndicator(onRefresh: _load, child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
         children: [
+          TextField(
+            onChanged: (v) => setState(() => query = v),
+            decoration: const InputDecoration(prefixIcon: Icon(Icons.search),
+              labelText: 'Search items to sort', border: OutlineInputBorder())),
+          const SizedBox(height: 10),
           if (showRemoved) FilterShowingLine(labels: const ['Removed'],
             onClear: () { setState(() => showRemoved = false); _load(); }),
           if (loading) const Padding(padding: EdgeInsets.all(32),
@@ -124,7 +137,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
                 : 'Nothing to sort. Share a link, a note or a product from any app '
                   'and choose "Save to Items to sort".',
               textAlign: TextAlign.center, style: theme.textTheme.bodyMedium))
-          else for (final item in items) Card(
+          else for (final item in items.where(_matches)) Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLow,
             child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 4, 8), child: Column(

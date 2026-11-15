@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -110,8 +111,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    var title=TripDocumentRules.safeTitle(chosen.filename);
    var kind=chosen.mime=='application/pdf'?'itinerary':'photo';
    var location='whole_trip';
-   final accepted=await showDialog<bool>(context:context,
-     builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
+   final accepted=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(fullscreenDialog:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>EditorPage(
       title:const Text('Attach travel document'),
       content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
        Text(chosen.filename,style:Theme.of(ctx).textTheme.bodySmall),
@@ -141,7 +141,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
        TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
        FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Upload')),
       ],
-     )));
+     ))));
     if(accepted!=true)return;
     if(title.trim().isEmpty){
      if(mounted)setState(()=>error='Document title cannot be empty.');
@@ -170,8 +170,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
   if(location!='whole_trip'&&!widget.itineraryItems.any((e)=>e['id']==location)){
    location='whole_trip';
   }
-  final accepted=await showDialog<bool>(context:context,
-    builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
+  final accepted=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(fullscreenDialog:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>EditorPage(
      title:const Text('Edit document'),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       TextFormField(initialValue:title,maxLength:160,onChanged:(v)=>title=v,
@@ -195,7 +194,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
       FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save')),
      ],
-    )));
+    ))));
    if(accepted!=true||title.trim().isEmpty)return;
    await change(()async{
     await db.from('trip_attachments').update({

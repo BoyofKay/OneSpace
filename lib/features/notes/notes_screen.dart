@@ -150,7 +150,7 @@ class _NotesScreenState extends State<NotesScreen> {
               onChanged:(value)=>setState(()=>_query=value),
               decoration:InputDecoration(
                labelText:'Search notes',
-               hintText:'Search titles and note text',
+               hintText:'Titles and note text',
                prefixIcon:const Icon(Icons.search),
                suffixIcon:_query.isEmpty?null:IconButton(
                 tooltip:'Clear search',
