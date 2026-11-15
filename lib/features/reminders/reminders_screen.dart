@@ -426,7 +426,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       decoration:const InputDecoration(
        prefixIcon:Icon(Icons.search),
        labelText:'Search reminders',
-       hintText:'Search reminder title and details',
+       hintText:'Titles and details',
        border:OutlineInputBorder())),
      const SizedBox(height:10),
      if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),

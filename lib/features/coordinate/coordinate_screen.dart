@@ -158,7 +158,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         decoration: const InputDecoration(
           isDense: true,
           prefixIcon: Icon(Icons.search),
-          hintText: 'Search Activities…',
+          labelText: 'Search activities',
           border: OutlineInputBorder(),
         ),
         onChanged: (text) => setState(() => search = text),

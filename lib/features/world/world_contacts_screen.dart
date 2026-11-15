@@ -317,7 +317,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
          const SizedBox(height:12),
          TextField(controller:query,decoration:InputDecoration(
            prefixIcon:const Icon(Icons.search),
-           hintText:'Search names, phones, places or notes',
+           labelText:'Search contact cards',hintText:'Names, phones, places or notes',
            border:const OutlineInputBorder(),
            suffixIcon:query.text.isEmpty?null:IconButton(
              icon:const Icon(Icons.clear),tooltip:'Clear',

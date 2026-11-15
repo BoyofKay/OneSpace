@@ -206,7 +206,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             const SizedBox(height: 14),
             TextField(controller:_search,decoration:InputDecoration(
              prefixIcon:const Icon(Icons.search),
-             hintText:'Search memories, people, places and photo tags',
+             labelText:'Search memories',hintText:'People, places and photo tags',
              border:const OutlineInputBorder(),
              suffixIcon:_search.text.isEmpty?null:IconButton(
               tooltip:'Clear search',onPressed:_search.clear,
