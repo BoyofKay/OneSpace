@@ -1,4 +1,5 @@
 import '../../core/form_kit.dart';
+import '../../core/repeat_control.dart';
 import '../../core/item_menu.dart';
 import '../../core/status_look.dart';
 import '../../core/editor_scaffold.dart';
@@ -543,75 +544,10 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   }
   setState(()=>repeat=repeat.copyWith(extraTimes:[...repeat.extraTimes,value]..sort()));
  }
- Future<void> pickUntil()async{
-  final picked=await showDatePicker(context:context,
-   initialDate:repeat.until??due.add(const Duration(days:30)),
-   firstDate:due,lastDate:DateTime(2100));
-  if(picked==null||!mounted)return;
-  setState(()=>repeat=repeat.copyWith(until:picked));
- }
- Widget repeatSection(){
-  final interval=repeat.interval;
-  final unit=repeat.preset=='daily'?'day':repeat.preset=='weekly'?'week':
-   repeat.preset=='monthly'?'month':'year';
-  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   ChoiceRow<String>(label:tt('Repeat'),
-    options:{for(final p in ReminderRepeat.presets)p:switch(p){
-     'none'=>'Once','daily'=>'Daily','weekdays'=>'Weekdays',
-     'weekly'=>'Weekly','monthly'=>'Monthly',_=>'Yearly'}},
-    selected:repeat.preset,
-    onSelected:(v){if(!saving)setState((){
-     repeat=repeat.copyWith(preset:v??'none',interval:1,
-      weekdays:v=='weekly'?{due.weekday}:null);
-    });}),
-   if(repeat.repeats&&repeat.preset!='weekdays')Row(children:[
-    Text(tt('Every')),
-    IconButton(onPressed:interval>1?()=>setState(()=>
-      repeat=repeat.copyWith(interval:interval-1)):null,
-     icon:const Icon(Icons.remove_circle_outline),tooltip:tt('Less often')),
-    Text(tt(interval.toString()),style:const TextStyle(fontWeight:FontWeight.bold)),
-    IconButton(onPressed:interval<99?()=>setState(()=>
-      repeat=repeat.copyWith(interval:interval+1)):null,
-     icon:const Icon(Icons.add_circle_outline),tooltip:tt('More apart')),
-    Text(tt(interval==1?unit:unit+'s')),
-   ]),
-   if(repeat.preset=='weekly')Wrap(spacing:6,children:[
-    for(var d=1;d<=7;d++)FilterChip(
-     label:Text(tt(ReminderRepeat.dayShort[d-1])),
-     selected:repeat.weekdays.contains(d),
-     onSelected:(on)=>setState((){
-      final next={...repeat.weekdays};
-      if(on){next.add(d);}else if(next.length>1){next.remove(d);}
-      repeat=repeat.copyWith(weekdays:next);
-     })),
-   ]),
-   if(repeat.repeats)...[
-    const SizedBox(height:8),
-    Text(tt('Times of day')),
-    Wrap(spacing:6,runSpacing:4,children:[
-     Chip(label:Text(tt(ReminderRepeat.clock(ReminderRepeat.hhmm(due.hour,due.minute))))),
-     for(final t in repeat.extraTimes)InputChip(
-      label:Text(tt(ReminderRepeat.clock(t))),
-      onDeleted:()=>setState(()=>repeat=repeat.copyWith(
-       extraTimes:repeat.extraTimes.where((x)=>x!=t).toList()))),
-     ActionChip(avatar:const Icon(Icons.add,size:18),
-      label:Text(tt('Add another time')),onPressed:saving?null:addTime),
-    ]),
-    const SizedBox(height:6),
-    Wrap(crossAxisAlignment:WrapCrossAlignment.center,spacing:8,children:[
-     Text(tt('Ends')),
-     ChoiceChip(label:Text(tt('Never')),selected:repeat.until==null,
-      onSelected:(_)=>setState(()=>repeat=repeat.copyWith(clearUntil:true))),
-     ChoiceChip(label:Text(tt(repeat.until==null?'On a date':
-       'On '+CalendarRules.sqlDate(repeat.until!))),
-      selected:repeat.until!=null,onSelected:(_)=>pickUntil()),
-    ]),
-    const SizedBox(height:4),
-    Text(tt('Times follow this phone’s time zone (')+myZone+'), even when the clocks change.',
-     style:Theme.of(context).textTheme.bodySmall),
-   ],
-  ]);
- }
+ Widget repeatSection()=>RepeatControl(value:repeat,start:due,enabled:!saving,
+  showTimes:true,onAddTime:addTime,
+  footnote:tt('Times follow this phone’s time zone (')+myZone+'), even when the clocks change.',
+  onChanged:(r)=>setState(()=>repeat=r));
  @override void dispose(){title.dispose();details.dispose();super.dispose();}
  Future<void> loadLinks()async{
   try{

@@ -130,6 +130,7 @@ class TodayAttentionItem {
         original:original,
         recurrence:rawEvent['recurrence']?.toString() ?? 'none',
         today:now,
+        rule: rawEvent['repeat_rule'],
       );
       if (next == null ||
           CalendarRules.calendarDaysUntil(CalendarRules.day(now),next) >

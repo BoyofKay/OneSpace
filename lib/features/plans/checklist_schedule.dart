@@ -57,7 +57,11 @@ class ChecklistSchedule {
   final dates=(rule['exclude_dates'] as List? ??const []).map((x)=>x.toString());
   if(dates.contains(day(d)))return false;
   if(rule['skip_personal_days_off']==true&&personalDayOff)return false;
-  if(rule['skip_us_holidays']==true&&usHoliday)return false;
+  // R66: "Skip public holidays" uses the country of the person the list
+  // belongs to (usHoliday carries that answer; older lists said US only).
+  if((rule['skip_us_holidays']==true||rule['skip_public_holidays']==true)&&usHoliday)return false;
+  final until=DateTime.tryParse(rule['until']?.toString()??'');
+  if(until!=null&&d.isAfter(DateTime(until.year,until.month,until.day)))return false;
   final start=_anchor(rule,d);
   if(d.isBefore(start))return false;
   final elapsed=DateTime.utc(d.year,d.month,d.day)
@@ -105,6 +109,14 @@ class ChecklistSchedule {
    case 'daily':return day(d);
    default:return '2000-01-01';
   }
+ }
+ /// R66: holiday country from a profile time zone (Saudi, Egypt, US).
+ static String? countryForTimeZone(String? zone){
+  if(zone==null||zone.isEmpty)return null;
+  if(zone=='Asia/Riyadh')return 'SA';
+  if(zone=='Africa/Cairo')return 'EG';
+  if(zone.startsWith('America/')||zone.startsWith('US/')||zone=='Pacific/Honolulu')return 'US';
+  return null;
  }
  static bool usFederalHoliday(DateTime d){
   // Observed New Year / Christmas / Independence / Juneteenth / Veterans.

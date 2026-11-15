@@ -35,6 +35,7 @@ class RememberRules {
         original: source,
         recurrence: item['recurrence']?.toString() ?? 'none',
         today: today,
+        rule: item['repeat_rule'],
       );
       if (next == null ||
           CalendarRules.calendarDaysUntil(today, next) > horizonDays) {

@@ -9,6 +9,9 @@ import '../sharing/object_permissions.dart';
 import 'calendar_rules.dart';
 import '../mentions/partner_mention_button.dart';
 import 'package:onespace/l10n/phrases.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/repeat_control.dart';
+import '../reminders/reminder_repeat_rules.dart';
 
 /// Full page owns its controllers; avoids disposing text inputs during
 /// bottom-sheet exit animations (a prior source of Flutter red screens).
@@ -40,14 +43,18 @@ class CalendarEventEditor extends StatefulWidget {
 
 class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChangeTracker<CalendarEventEditor> {
  /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[_title.text,_details.text,_date.toIso8601String(),_kind,_recurrence,_visibility,_forUser,_allDay,_start.hour,_start.minute,_end.hour,_end.minute].join('|');
+ @override String get signature=>[_title.text,_details.text,_location.text,_date.toIso8601String(),_repeat.preset,_repeat.interval,(_repeat.weekdays.toList()..sort()).join(','),_repeat.until,_remind,_visibility,_forUser,_allDay,_start.hour,_start.minute,_end.hour,_end.minute].join('|');
 
   final _client = Supabase.instance.client;
   late final TextEditingController _title;
   late final TextEditingController _details;
+  late final TextEditingController _location;
   late DateTime _date;
   late String _kind;
-  late String _recurrence;
+  /// R66: same Repeat control as reminders.
+  late ReminderRepeat _repeat;
+  /// R66: "Remind us before" — none · morning · 1h · 1d · 1w.
+  String _remind = 'none';
   late String _visibility;
   bool _saving = false;
   String? _forUser;
@@ -75,7 +82,10 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     _date = DateTime.tryParse(existing?['event_date'] as String? ?? '') ??
         widget.initialDate ?? DateTime.now();
     _kind = existing?['kind'] as String? ?? 'event';
-    _recurrence = existing?['recurrence'] as String? ?? 'none';
+    _location = TextEditingController(text: existing?['location']?.toString() ?? '');
+    _repeat = existing?['repeat_rule'] is Map
+      ? ReminderRepeat.fromRule(existing!['repeat_rule'])
+      : existing?['recurrence'] == 'yearly' ? const ReminderRepeat(preset: 'yearly') : const ReminderRepeat();
     _visibility = existing?['visibility'] as String? ?? 'shared';
     _forUser=existing?['for_user_id']?.toString();
     final initialStart=DateTime.tryParse(existing?['starts_at']?.toString()??'')?.toLocal();
@@ -98,6 +108,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
   void dispose() {
     _title.dispose();
     _details.dispose();
+    _location.dispose();
     super.dispose();
   }
 
@@ -135,7 +146,10 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         'details': details,
         'event_date': CalendarRules.sqlDate(_date),
         'kind': _kind,
-        'recurrence': _recurrence,
+        'location': _location.text.trim().isEmpty ? null : _location.text.trim(),
+        // Plain "every year" keeps the old marker so countdowns stay simple.
+        'recurrence': _repeat.preset == 'yearly' && _repeat.interval == 1 && _repeat.until == null ? 'yearly' : 'none',
+        'repeat_rule': _eventRule(),
       };
       fields['for_user_id']=_forUser;
       if(_allDay){
@@ -157,6 +171,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
           'created_by': _client.auth.currentUser!.id,
           'visibility': _visibility,
         }).select('id').single();
+        await _createReminder(created['id'].toString(), title);
         await widget.onCreated?.call(created['id'].toString());
       } else {
         final rows = await _client.from('space_events')
@@ -165,6 +180,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
           .eq('space_id', widget.spaceId)
           .select('id');
         if (rows.isEmpty) throw StateError('Event is no longer editable');
+        await _createReminder(widget.existing!['id'] as String, title);
       }
       if (mounted) Navigator.of(context).pop(true);
     } on PostgrestException catch (e) {
@@ -176,13 +192,47 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     }
   }
 
+  Map<String, dynamic>? _eventRule() {
+    if (!_repeat.repeats) return null;
+    if (_repeat.preset == 'yearly' && _repeat.interval == 1 && _repeat.until == null) return null;
+    final rule = _repeat.toRule(start: _date, timeZone: 'UTC')!;
+    rule.remove('times'); rule.remove('tz');
+    return rule;
+  }
+
+  /// R66: one tap to remind the people it belongs to, linked to the event
+  /// (the reminder stops if the event is removed).
+  Future<void> _createReminder(String eventId, String title) async {
+    if (_remind == 'none') return;
+    final base = _allDay
+      ? DateTime(_date.year, _date.month, _date.day, 9)
+      : DateTime(_date.year, _date.month, _date.day, _start.hour, _start.minute);
+    final due = switch (_remind) {
+      '1h' => base.subtract(const Duration(hours: 1)),
+      '1d' => base.subtract(const Duration(days: 1)),
+      '1w' => base.subtract(const Duration(days: 7)),
+      _ => base,
+    };
+    if (!due.isAfter(DateTime.now())) return;
+    final me = _client.auth.currentUser!.id;
+    final audience = _visibility == 'private' || _forUser == me ? 'me' : _forUser == null ? 'both' : 'partner';
+    try {
+      await _client.from('reminders').insert({
+        'space_id': widget.spaceId, 'title': title.length > 160 ? title.substring(0, 160) : title,
+        'details': _location.text.trim(), 'due_at': due.toUtc().toIso8601String(),
+        'visibility': _visibility, 'audience': audience,
+        'source_kind': 'calendar', 'source_id': eventId,
+      });
+    } catch (_) {/* The event is saved; the reminder can be added from Reminders. */}
+  }
+
   String _timeLabel(TimeOfDay t) => MaterialLocalizations.of(context).formatTimeOfDay(t);
 
   @override
   Widget build(BuildContext context) => EditorScaffold(
    title: _editing ? tt('Edit event') : tt('Add event'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_canEdit && !_archived && _title.text.trim().isNotEmpty,
-   listenTo:[_title,_details],saving:_saving,onSave:_save,
+   listenTo:[_title,_details,_location],saving:_saving,onSave:_save,
    meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(
      people:_peopleMeta, showDate:false, enabled:_canEdit && !_saving,
      value:MetaValues(shared:_visibility=='shared',belongsTo:_forUser),
@@ -216,10 +266,6 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               border: OutlineInputBorder(),
             ),
           ),
-          ChoiceRow<String>(label: tt('Type'), options: {'event': tr(context, 'event'), 'occasion': tr(context, 'occasion')},
-            icons: const {'event': Icons.event_outlined, 'occasion': Icons.celebration_outlined},
-            selected: _kind,
-            onSelected: (v) { if (_canEdit && !_saving && v != null) setState(() => _kind = v); }),
           FormSection(tt('When')),
           DateField(label: tt('Date'), required: true, value: _date, first: DateTime(1900), last: DateTime(2100, 12, 31),
             onChanged: (v) { if (v != null && _canEdit && !_saving) setState(() => _date = v); }),
@@ -234,10 +280,30 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
             ],
           ]),
           const SizedBox(height: 14),
-          ChoiceRow<String>(label: tt('Repeat'), options: const {'none': 'Once', 'yearly': 'Every year'},
-            icons: const {'none': Icons.looks_one_outlined, 'yearly': Icons.event_repeat},
-            selected: _recurrence,
-            onSelected: (v) { if (_canEdit && !_saving && v != null) setState(() => _recurrence = v); }),
+          RepeatControl(value: _repeat, start: _date, enabled: _canEdit && !_saving,
+            onChanged: (r) => setState(() => _repeat = r)),
+          const SizedBox(height: 6),
+          ChoiceRow<String>(label: tt('Remind us before'),
+            options: _allDay
+              ? const {'none': 'No reminder', 'morning': 'That morning', '1d': 'A day before', '1w': 'A week before'}
+              : const {'none': 'No reminder', '1h': 'An hour before', '1d': 'A day before', '1w': 'A week before'},
+            selected: _remind,
+            onSelected: (v) { if (_canEdit && !_saving) setState(() => _remind = v ?? 'none'); }),
+          FormSection(tt('Where')),
+          TextField(
+            controller: _location,
+            readOnly: !_canEdit,
+            maxLength: 300,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: tt('Location'),
+              hintText: tt('Address or place name'),
+              prefixIcon: const Icon(Icons.place_outlined),
+              suffixIcon: _location.text.trim().isEmpty ? null : IconButton(
+                tooltip: tt('Open in Maps'), icon: const Icon(Icons.map_outlined),
+                onPressed: () => launchUrl(Uri.https('www.google.com', '/maps/search/',
+                  {'api': '1', 'query': _location.text.trim()}), mode: LaunchMode.externalApplication)),
+              border: const OutlineInputBorder())),
           FormSection(tt('More details')),
           TextField(
             controller: _details,
