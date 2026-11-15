@@ -1,4 +1,5 @@
 import 'features/share_in/shared_file_screen.dart';
+import 'features/settings/account_data_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
@@ -261,12 +262,39 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_){
       if(mounted)_takeIncomingShare();
+      if(mounted)_checkPendingDeletion();
     });
   }
 
   @override void dispose(){
     _incomingShares.setMethodCallHandler(null);
     super.dispose();
+  }
+
+  /// R59: signing in during the 7-day grace period offers to keep the account.
+  Future<void> _checkPendingDeletion() async{
+    try{
+      final db=Supabase.instance.client;
+      final me=db.auth.currentUser?.id;
+      if(me==null)return;
+      final row=await db.from('account_deletion_requests').select().eq('user_id',me).maybeSingle();
+      if(!mounted||!AccountDataRules.pending(row))return;
+      final due=DateTime.tryParse(row!['purge_after']?.toString()??'')?.toLocal();
+      final keep=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+        icon:const Icon(Icons.person_remove_outlined),
+        title:const Text('Your account is scheduled for deletion'),
+        content:Text(due==null?'Do you want to keep it?':
+          'It will be deleted on ${MaterialLocalizations.of(ctx).formatFullDate(due)}. Do you want to keep it?'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Not now')),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Keep my account')),
+        ]));
+      if(keep==true){
+        await db.rpc('cancel_account_deletion');
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:Text('Deletion cancelled. Welcome back.')));
+      }
+    }catch(_){/* never block the app on this check */}
   }
 
   Future<void> _takeIncomingShare() async{
