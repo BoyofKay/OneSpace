@@ -38,7 +38,7 @@ class NoteFormatBar extends StatelessWidget {
   }
 
   void _clear() {
-    for (final a in [quill.Attribute.bold, quill.Attribute.italic, quill.Attribute.underline,
+    for (final a in <quill.Attribute<dynamic>>[quill.Attribute.bold, quill.Attribute.italic, quill.Attribute.underline,
         quill.Attribute.strikeThrough, quill.Attribute.color, quill.Attribute.background,
         quill.Attribute.link]) {
       controller.formatSelection(quill.Attribute.clone(a, null));
