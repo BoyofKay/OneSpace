@@ -19,6 +19,7 @@ import '../connect/partner_gestures_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
+import '../reminders/reminders_screen.dart';
 import '../../core/performance_timings.dart';
 import '../../theme/appearance_settings_screen.dart';
 import '../../core/current_space_cache.dart';
@@ -278,6 +279,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             experienceId:item['source']=='experience'?item['id']?.toString():null,
             tripId:item['trip_id']?.toString(),
             occasionId:item['occasion_id']?.toString(),
+            reminderId:item['source']=='reminder'?item['id']?.toString():null,
           ));
         }
       }
@@ -285,6 +287,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     }catch(_){
       // Keep the initial snapshot calendar fallback if the optional agenda fails.
     }
+  }
+
+  Future<void> _openReminder(String id)async{
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+      builder:(_)=>RemindersScreen(initialReminderId:id)));
+    if(mounted)unawaited(_load());
   }
 
   Future<void> _loadActionableFocus(String space,int request)async{
@@ -807,6 +815,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               onOpen:_openAttentionActivity,
               onOpenPlans:widget.onOpenPlans,
               onOpenCheckins:widget.onOpenCheckins,
+              onOpenReminder:_openReminder,
               onSnooze:_snoozeFocus,
             ),
             const SizedBox(height:16),
@@ -819,7 +828,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               onOpenTrip:(id)=>Navigator.of(context).push<void>(
                 MaterialPageRoute<void>(builder:(_)=>TripsScreen(initialTripId:id))),
               onOpenOccasion:(id)=>Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder:(_)=>OccasionsScreen(initialPlanId:id)))),
+                MaterialPageRoute<void>(builder:(_)=>OccasionsScreen(initialPlanId:id))),
+              onOpenReminder:_openReminder),
             const SizedBox(height:12),
             if(milestoneCountdowns.isNotEmpty)...[
               _countdownPanel(),

@@ -59,8 +59,8 @@ Companion documents in this folder:
 
 | Iteration | Theme | Status |
 |---|---|---|
-| R46 | Baseline hygiene: retire automatic gestures, remove Goals, tagline, stale copy, migration history repair | Done (PR #2) |
-| R47 | Reminders for real life: repeat, quiet hours, Urgent, stop when source closes, reminders on Today | In progress |
+| R46 | Baseline hygiene: retire automatic gestures, remove Goals, tagline, stale copy, migration history repair | Merged 15 Nov 2026 (PR #2) |
+| R47 | Reminders for real life: repeat, quiet hours, Urgent, stop when source closes, reminders on Today | Built 15 Nov 2026; first APK with R46+R47 (see R47 notes) |
 | R48 | Notifications 2.0: content push, deep links, every chat message and changes notify, batching | Next |
 | R49 | Today 2.0: saved copy, one server call, five-section layout, hero model, catch-up, all shortcuts | |
 | R50 | Global patterns: filter panel, history page with chips, ⋮ menu, status model, icon dictionary, editor headers | |

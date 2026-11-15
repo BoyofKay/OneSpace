@@ -32,7 +32,7 @@ class TodayAttentionItem {
     for(final row in raw){
       if(row is! Map)continue;
       final source=row['source']?.toString()??'';
-      if(!const ['activity','task','checkin'].contains(source))continue;
+      if(!const ['activity','task','checkin','reminder'].contains(source))continue;
       final id=row['id']?.toString()??'';
       if(id.isEmpty)continue;
       final key=source+':'+id;
@@ -160,6 +160,7 @@ class TodayCalendarEntry {
     this.experienceId,
     this.tripId,
     this.occasionId,
+    this.reminderId,
   });
   final String title;
   final DateTime date;
@@ -169,4 +170,5 @@ class TodayCalendarEntry {
   final String? experienceId;
   final String? tripId;
   final String? occasionId;
+  final String? reminderId;
 }
