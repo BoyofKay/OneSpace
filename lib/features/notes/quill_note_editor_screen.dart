@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
@@ -7,7 +8,6 @@ import '../sharing/share_grant_watcher.dart';
 import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
 import 'note_references_panel.dart';
-import '../../core/record_action_history_view.dart';
 import '../mentions/rich_note_mention_button.dart';
 import 'dart:async';
 
@@ -128,24 +128,18 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
  }
  @override Widget build(BuildContext context){
   final isEditingAllowed=canEdit&&!archived;
-  return EditorScaffold(title:editing?'Edit note':'Add new note',
+  return EditorScaffold(title:editing?'Edit note':'Add note',
    isNew:!editing,isChanged:()=>changed,isComplete:()=>isEditingAllowed&&title.text.trim().isNotEmpty,
    listenTo:[title,editor],saving:busy,onSave:save,
-   actions:[
-     if(editing)RecordActionHistoryButton(
-       kind:'note',recordId:widget.existing!['id'].toString()),
-     if(editing&&canEdit)IconButton(
-      onPressed:busy?null:archive,
-      tooltip:archived?'Restore note':'Remove note',
-      icon:Icon(archived?Icons.unarchive_outlined:Icons.archive_outlined)),
-    ],
+   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+     enabled:!editing&&!busy,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
    body:SafeArea(child:ListView(
     padding:const EdgeInsets.fromLTRB(16,14,16,36),children:[
      if(!isEditingAllowed)const Text('Read-only note',
       style:TextStyle(fontWeight:FontWeight.bold)),
-     TextField(controller:title,maxLength:120,
-      readOnly:!isEditingAllowed,
-      decoration:const InputDecoration(labelText:'Note title *',
+     TextField(controller:title,maxLength:120,autofocus:!editing,
+      readOnly:!isEditingAllowed,textCapitalization:TextCapitalization.sentences,
+      decoration:const InputDecoration(labelText:'Title *',
        border:OutlineInputBorder())),
      const SizedBox(height:10),
      if(isEditingAllowed)...[
@@ -177,22 +171,12 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
        spaceId:widget.spaceId,
        noteVisibility:visibility,
        canEdit:isEditingAllowed),
-     ]else const Text(
-      'Save this note before attaching photos or linking checklists, '
-      'calendar events, occasions and shared experiences.'),
+     ]else Text('Save the note first, then add photos and links.',
+      style:Theme.of(context).textTheme.bodySmall),
      const SizedBox(height:10),
-     if(!editing)...[
-      const Text('Visibility'),
-      Wrap(spacing:8,children:[
-       for(final mode in ['shared','private'])
-        ChoiceChip(label:Text(mode=='shared'?'Shared with partner':'Only me'),
-         selected:visibility==mode,
-         onSelected:(_)=>setState(()=>visibility=mode)),
-      ]),
-     ],
-     SwitchListTile(contentPadding:EdgeInsets.zero,
-      title:const Text('Pin to top'),value:pinned,
-      onChanged:isEditingAllowed?(v)=>setState(()=>pinned=v):null),
+     Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Pin to the top',
+      icon:Icons.push_pin_outlined,value:pinned,
+      onChanged:isEditingAllowed?(v)=>setState(()=>pinned=v):null)),
      if(error!=null)Padding(padding:const EdgeInsets.all(8),
       child:Text(error!,style:TextStyle(
        color:Theme.of(context).colorScheme.error))),

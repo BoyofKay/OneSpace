@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:math';
 
@@ -228,10 +229,12 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        StatefulBuilder(builder:(ctx,update)=>EditorPage(
          title:Text('Edit '+option.title),
          content:Column(mainAxisSize:MainAxisSize.min,children:[
-           TextField(controller:message,maxLength:240,maxLines:4,
-             decoration:const InputDecoration(labelText:'Message')),
-           SwitchListTile(title:const Text('Hide from random pool'),
-             value:disabled,onChanged:(v)=>update(()=>disabled=v)),
+           TextField(controller:message,maxLength:240,minLines:3,maxLines:6,
+             decoration:const InputDecoration(labelText:'Message',alignLabelWithHint:true,
+              border:OutlineInputBorder())),
+           const SizedBox(height:6),
+           Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Don’t pick this one at random',
+             icon:Icons.visibility_off_outlined,value:disabled,onChanged:(v)=>update(()=>disabled=v))),
          ]),
          actions:[
            TextButton(onPressed:()=>Navigator.pop(ctx,false),
@@ -489,16 +492,22 @@ class _GestureEditorPageState extends State<GestureEditorPage> with FormChangeTr
   onSave:()=>Navigator.pop(context,<String,String?>{
    'title':name.text.trim(),'message':body.text.trim(),'kind':kind}),
   body:ListView(padding:const EdgeInsets.all(18),children:[
-   TextField(controller:name,maxLength:60,
-    decoration:const InputDecoration(labelText:'Gesture name *',border:OutlineInputBorder())),
+   TextField(controller:name,maxLength:60,autofocus:widget.original==null,
+    textCapitalization:TextCapitalization.sentences,
+    decoration:const InputDecoration(labelText:'Gesture name *',hintText:'Morning coffee wish',
+     border:OutlineInputBorder())),
    const SizedBox(height:8),
    TextField(controller:body,maxLength:240,minLines:3,maxLines:6,
-    decoration:const InputDecoration(labelText:'Your message *',border:OutlineInputBorder())),
+    textCapitalization:TextCapitalization.sentences,
+    decoration:const InputDecoration(labelText:'Your message *',alignLabelWithHint:true,
+     hintText:'What your partner will read',border:OutlineInputBorder())),
    const SizedBox(height:8),
-   DropdownButtonFormField<String>(
-    initialValue:widget.options.containsKey(kind)?kind:widget.options.keys.first,
-    decoration:const InputDecoration(labelText:'Theme',border:OutlineInputBorder()),
-    items:[for(final o in widget.options.entries)DropdownMenuItem(value:o.key,child:Text(o.value))],
-    onChanged:(v)=>setState(()=>kind=v??kind)),
+   widget.options.length<=6
+    ?ChoiceRow<String>(label:'Theme',options:widget.options,
+      selected:widget.options.containsKey(kind)?kind:widget.options.keys.first,
+      onSelected:(v){if(v!=null)setState(()=>kind=v);})
+    :ChoicePickerField<String>(label:'Theme',icon:Icons.palette_outlined,options:widget.options,
+      selected:widget.options.containsKey(kind)?kind:widget.options.keys.first,
+      onSelected:(v){if(v!=null)setState(()=>kind=v);}),
   ]));
 }

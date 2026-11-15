@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -126,19 +127,13 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
     }
   }
 
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(context: context,
-        initialDate: dueOn ?? now, firstDate: DateTime(now.year - 1),
-        lastDate: DateTime(now.year + 5));
-    if (picked != null && mounted) setState(() => dueOn = picked);
-  }
-
   @override Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return EditorScaffold(title:'Start activity',
    isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,
    listenTo:[title,details],saving:saving,onSave:_save,
+   meta:MetaStrip(value:MetaValues(shared:shared,date:dueOn),showBelongs:false,dateLabel:'Due date',
+    enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;})),
    body: SafeArea(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
@@ -151,20 +146,8 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
             decoration: const InputDecoration(
               hintText: 'What is this about? *', border: InputBorder.none,
               counterText: '')),
-          Wrap(spacing: 8, runSpacing: 4, children: [
-            FilterChip(
-              avatar: Icon(shared ? Icons.people_outline : Icons.lock_outline, size: 18),
-              label: Text(shared ? 'Shared' : 'Only me'),
-              selected: !shared,
-              onSelected: (_) => setState(() => shared = !shared)),
-            InputChip(
-              avatar: const Icon(Icons.event_outlined, size: 18),
-              label: Text(dueOn == null ? 'Add date' : CalendarRules.sqlDate(dueOn!)),
-              onPressed: _pickDate,
-              onDeleted: dueOn == null ? null : () => setState(() => dueOn = null)),
-          ]),
           const SizedBox(height: 18),
-          Text('Start from a purpose', style: theme.textTheme.titleSmall),
+          Text('What is it for?', style: theme.textTheme.labelLarge),
           const SizedBox(height: 6),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final p in ActivityPurpose.values) ChoiceChip(
