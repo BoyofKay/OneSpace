@@ -7,6 +7,10 @@ import 'package:material_ui/material_ui.dart';
 /// text-to-speech engine both run on the device; OneSpace never records or
 /// uploads audio — only the recognized words reach the app.
 class Voice {
+  /// R64 (Ahmed): voice is hidden until it is mature. Flip to true to bring
+  /// back the mic in the top bar and the "Voice command" icon shortcut.
+  static const enabled = false;
+
   Voice._();
   static const _speech = MethodChannel('onespace/checklist_speech');
   static const _voice = MethodChannel('onespace/voice');

@@ -20,6 +20,8 @@ import ContactsUI
 
   static weak var shared: AppDelegate?
   static let voiceShortcutType = "com.onespace.onespace.VOICE"
+  /// R64: voice is hidden until it is mature (matches Voice.enabled in Dart).
+  static let voiceEnabled = false
 
   private var documentResult: FlutterResult?
   private let maximumDocumentSize = 10 * 1024 * 1024
@@ -46,7 +48,7 @@ import ContactsUI
     AppDelegate.shared = self
     checklistSpeech.delegate = self
     let title = Locale.preferredLanguages.first?.hasPrefix("ar") == true ? "أمر صوتي" : "Voice command"
-    application.shortcutItems = [UIApplicationShortcutItem(
+    application.shortcutItems = !AppDelegate.voiceEnabled ? [] : [UIApplicationShortcutItem(
       type: AppDelegate.voiceShortcutType, localizedTitle: title, localizedSubtitle: nil,
       icon: UIApplicationShortcutIcon(systemImageName: "mic.fill"), userInfo: nil)]
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

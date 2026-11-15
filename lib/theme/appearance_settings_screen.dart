@@ -6,21 +6,43 @@ import 'package:onespace/l10n/phrases.dart';
 
 class AppearanceSettingsScreen extends StatelessWidget{
  const AppearanceSettingsScreen({super.key});
- static String paletteLabel(BuildContext context,OneSpacePalette p)=>tr(context,switch(p){
-  OneSpacePalette.midnightBlue=>'themeMidnightBlue',
-  OneSpacePalette.monochrome=>'themeMonochrome',
-  OneSpacePalette.cleanLight=>'themeCleanLight',
-  OneSpacePalette.softRose=>'themeSoftRose',
- });
- static String seasonLabel(BuildContext context,SeasonChoice s)=>tr(context,switch(s){
-  SeasonChoice.off=>'themeOff',SeasonChoice.automatic=>'themeAutomatic',
-  SeasonChoice.valentines=>'themeValentine',SeasonChoice.spring=>'themeSpring',
-  SeasonChoice.halloween=>'themeHalloween',SeasonChoice.winter=>'themeWinter',
-  SeasonChoice.eid=>'themeEid',SeasonChoice.birthday=>'themeBirthday',
-  SeasonChoice.anniversary=>'themeAnniversary',
-  SeasonChoice.thanksgiving=>'themeThanksgiving',
-  SeasonChoice.christmas=>'themeChristmas',SeasonChoice.newYear=>'themeNewYear',
- });
+ static String paletteLabel(BuildContext context,OneSpacePalette p){
+  final key=switch(p){
+   OneSpacePalette.midnightBlue=>'themeMidnightBlue',
+   OneSpacePalette.monochrome=>'themeMonochrome',
+   OneSpacePalette.cleanLight=>'themeCleanLight',
+   OneSpacePalette.softRose=>'themeSoftRose',
+   _=>null,
+  };
+  return key==null?tt(OneSpaceAppearance.paletteName(p)):tr(context,key);
+ }
+ static String seasonLabel(BuildContext context,SeasonChoice s){
+  final key=switch(s){
+   SeasonChoice.off=>'themeOff',SeasonChoice.automatic=>'themeAutomatic',
+   SeasonChoice.valentines=>'themeValentine',SeasonChoice.spring=>'themeSpring',
+   SeasonChoice.halloween=>'themeHalloween',SeasonChoice.winter=>'themeWinter',
+   SeasonChoice.eid=>'themeEid',SeasonChoice.birthday=>'themeBirthday',
+   SeasonChoice.anniversary=>'themeAnniversary',
+   SeasonChoice.thanksgiving=>'themeThanksgiving',
+   SeasonChoice.christmas=>'themeChristmas',SeasonChoice.newYear=>'themeNewYear',
+   _=>null,
+  };
+  return key==null?tt(OneSpaceAppearance.seasonName(s)):tr(context,key);
+ }
+ static IconData seasonIcon(SeasonChoice s)=>switch(s){
+  SeasonChoice.off=>Icons.block,SeasonChoice.automatic=>Icons.event_repeat,
+  SeasonChoice.valentines=>Icons.favorite_outline,SeasonChoice.spring=>Icons.local_florist_outlined,
+  SeasonChoice.halloween=>Icons.nights_stay_outlined,SeasonChoice.winter=>Icons.ac_unit,
+  SeasonChoice.eid=>Icons.mosque_outlined,SeasonChoice.birthday=>Icons.cake_outlined,
+  SeasonChoice.anniversary=>Icons.favorite,SeasonChoice.thanksgiving=>Icons.eco_outlined,
+  SeasonChoice.christmas=>Icons.park_outlined,SeasonChoice.newYear=>Icons.celebration_outlined,
+  SeasonChoice.ramadan=>Icons.dark_mode_outlined,SeasonChoice.nationalDay=>Icons.flag_outlined,
+ };
+ static IconData backgroundIcon(BackgroundStyle b)=>switch(b){
+  BackgroundStyle.calm=>Icons.blur_circular,BackgroundStyle.hearts=>Icons.favorite_border,
+  BackgroundStyle.stars=>Icons.auto_awesome_outlined,BackgroundStyle.waves=>Icons.waves,
+  BackgroundStyle.pattern=>Icons.star_border_purple500_outlined,BackgroundStyle.plain=>Icons.crop_square,
+ };
  @override Widget build(BuildContext context){
   final state=OneSpaceAppearance.instance;
   return Scaffold(
@@ -86,15 +108,27 @@ class AppearanceSettingsScreen extends StatelessWidget{
      const SizedBox(height:6),
      Text(tr(context,'themeSeasonHint')),
      const SizedBox(height:10),
-     DropdownButtonFormField<SeasonChoice>(
-      initialValue:state.season,
-      decoration:InputDecoration(prefixIcon:const Icon(Icons.auto_awesome_outlined),
-       labelText:tr(context,'themeSeasonLabel')),
-      items:[for(final choice in SeasonChoice.values)
-       DropdownMenuItem(value:choice,child:Text(tt(seasonLabel(context,choice))))],
-      onChanged:(value){if(value!=null)state.setSeason(value);}),
+     Wrap(spacing:8,runSpacing:8,children:[
+      for(final choice in SeasonChoice.values)ChoiceChip(
+       avatar:Icon(seasonIcon(choice),size:18),showCheckmark:false,
+       label:Text(seasonLabel(context,choice)),
+       selected:state.season==choice,
+       onSelected:(_)=>state.setSeason(choice)),
+     ]),
      const SizedBox(height:14),
      const SeasonalThemePreview(),
+     const SizedBox(height:24),
+     Text(tt('Background'),style:theme.textTheme.titleLarge),
+     const SizedBox(height:6),
+     Text(tt('A gentle pattern behind every screen. Seasonal decorations replace it while they are on.')),
+     const SizedBox(height:10),
+     Wrap(spacing:8,runSpacing:8,children:[
+      for(final b in BackgroundStyle.values)ChoiceChip(
+       avatar:Icon(backgroundIcon(b),size:18),showCheckmark:false,
+       label:Text(tt(OneSpaceAppearance.backgroundName(b))),
+       selected:state.background==b,
+       onSelected:(_)=>state.setBackground(b)),
+     ]),
      const SizedBox(height:20),
      Text(tr(context,'themeComfort'),style:theme.textTheme.titleMedium),
      const SizedBox(height:8),
@@ -128,6 +162,8 @@ class SeasonalThemePreview extends StatelessWidget{
      SeasonChoice.thanksgiving=>(Icons.local_florist_outlined,'A grateful season','Celebrate what matters'),
      SeasonChoice.christmas=>(Icons.auto_awesome_outlined,'Christmas glow','Warm moments across the miles'),
      SeasonChoice.newYear=>(Icons.celebration_outlined,'A new chapter','Dream together, begin together'),
+     SeasonChoice.ramadan=>(Icons.dark_mode_outlined,'Ramadan Kareem','Peaceful nights and shared iftars'),
+     SeasonChoice.nationalDay=>(Icons.flag_outlined,'Happy National Day','Proud moments, together'),
      _=>(Icons.palette_outlined,'Your OneSpace','One life, two places'),
     };
     final reduced=MediaQuery.disableAnimationsOf(ctx);

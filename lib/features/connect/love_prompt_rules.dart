@@ -28,6 +28,14 @@ class LovePromptRules{
   'miss_home'=>'I miss our home',
   'miss_kids'=>'I miss our kids',
   'miss_pets'=>'I miss our furry ones',
+  'love_you'=>'I love you',
+  'kiss'=>'Send a kiss',
+  'sorry'=>'I am sorry',
+  'celebrate'=>'Congratulations!',
+  'get_well'=>'Feel better soon',
+  'safe_travels'=>'Safe travels',
+  'call_me'=>'Call me when you can',
+  'date_night'=>'Cannot wait for our date',
   _=>'Any loving gesture',
  };
  static String message(String kind)=>

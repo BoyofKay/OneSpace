@@ -2,15 +2,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
-import '../search/global_search_screen.dart';
+import '../notifications/push_registration_gate.dart';
 import '../settings/account_data_screen.dart';
 import '../settings/onespace_settings_screen.dart';
-import '../share_in/items_to_sort_screen.dart';
+import '../support/support_screens.dart';
 import 'profile_settings_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
-/// R61: the "Me" tab (bottom right): my profile, settings, language and
-/// my data — everything that is about me rather than about us.
+/// R61/R64: the "Me" tab (bottom right): profile, settings, language, help &
+/// support and my data; troubleshooting and sign out at the very bottom.
 class MeScreen extends StatefulWidget {
   const MeScreen({super.key});
   @override
@@ -60,7 +60,7 @@ class _MeScreenState extends State<MeScreen> {
       ]),
       const SizedBox(height: 16),
       Card(elevation: 0, child: Column(children: [
-        tile(Icons.person_outline, tr(context, 'profile'), 'Name, partner, security and sign out',
+        tile(Icons.person_outline, tr(context, 'profile'), 'Name, partner and password',
           () => _open(_page(tr(context, 'profile'), const ProfileSettingsScreen()))),
         const Divider(height: 1),
         tile(Icons.settings_outlined, 'Settings', 'Relationship, theme, schedule, holidays, weather',
@@ -70,16 +70,44 @@ class _MeScreenState extends State<MeScreen> {
           () => _open(_page('Language', const ProfileSettingsScreen(settingsOnly: true, section: 'language')))),
       ])),
       const SizedBox(height: 12),
+      const SizedBox(height: 12),
+      Padding(padding: const EdgeInsetsDirectional.only(start: 4, bottom: 6),
+        child: Text(tt('Help and support'), style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary))),
       Card(elevation: 0, child: Column(children: [
-        tile(Icons.search, 'Search our space', 'Everything we saved, in one search',
-          () => _open(const GlobalSearchScreen())),
+        tile(Icons.help_outline, 'Questions and answers', 'How OneSpace works, privacy, notifications',
+          () => _open(const FaqScreen())),
         const Divider(height: 1),
-        tile(Icons.inbox_outlined, 'Items to sort', 'Things shared into OneSpace to decide on later',
-          () => _open(const ItemsToSortScreen())),
+        tile(Icons.mail_outline, 'Contact us', 'Questions, feedback or ideas',
+          () => _open(const SupportFormScreen(kind: 'contact'))),
+        const Divider(height: 1),
+        tile(Icons.bug_report_outlined, 'Report a technical issue', 'Something is broken or looks wrong',
+          () => _open(const SupportFormScreen(kind: 'issue'))),
+        const Divider(height: 1),
+        tile(Icons.forum_outlined, 'Your messages', 'What you sent us and its status',
+          () => _open(const MySupportRequestsScreen())),
+        const Divider(height: 1),
+        tile(Icons.privacy_tip_outlined, 'About and privacy', 'What we keep, what we never do',
+          () => _open(const AboutPrivacyScreen())),
       ])),
       const SizedBox(height: 12),
       Card(elevation: 0, child: tile(Icons.shield_outlined, 'Your data and account',
         'Download my data · Delete my account', () => _open(const AccountDataScreen()))),
+      const SizedBox(height: 28),
+      const Divider(),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: () async {
+          await disableCurrentPushDevice();
+          await Supabase.instance.client.auth.signOut();
+        },
+        icon: const Icon(Icons.logout),
+        label: Text(tr(context, 'signOut'))),
+      const SizedBox(height: 4),
+      Center(child: TextButton.icon(
+        onPressed: () => showTroubleshooting(context),
+        icon: const Icon(Icons.speed_outlined, size: 18),
+        label: Text(tt('Troubleshooting')))),
+      Center(child: Text('OneSpace ${AppInfo.version}', style: theme.textTheme.bodySmall)),
     ]);
   }
 }
