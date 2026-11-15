@@ -18,6 +18,10 @@ Previous development test content was cleared on 13 November 2026, while two exi
 
 **Continuing this project (any assistant): read [docs/DECISION_LOG.md](docs/DECISION_LOG.md) first.**
 
+## R53–R54 — links between items and polish (15 Nov 2026)
+
+"Create from this" on Activities, Trips, Occasions, Experiences and events creates a pre-filled reminder, event, to-do, note or trip and links it; every item shows a Linked items strip (both ways, never revealing the partner's private items). Completing a trip while apart updates "last time we met". Polish: Activities change log, On this day on Today, "Showing: Removed" line, contacts in search, completed/cancelled look in lists. See [R53–R54 notes and test script](docs/R53_R54_QA.md).
+
 ## R49–R52 — Today 2.0, global patterns, creation, share-in (15 Nov 2026)
 
 Today opens instantly from a saved copy and loads in one call; hero with How we live, travelling and good time to talk; Since you were away; all features as shortcuts with Quick add. Every collection screen has the drop-down filter panel (Removed is a filter) and a change log page; "Archive" is now "Remove". New Activity is a full draft page with purpose starters. Shared links and text land on Save to OneSpace with "Items to sort" first and content-based suggestions. See [R49–R52 notes and test script](docs/R49_R52_QA.md).

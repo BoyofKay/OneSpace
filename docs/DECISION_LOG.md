@@ -52,6 +52,9 @@ Companion documents in this folder:
 | D26 | 15 Nov 2026 | R51 creation: new Activity is a full draft page with purpose starters that fill an editable outline (they do not create empty sections); nothing is saved without a title. Quick add on Today offers the eight spec choices, each opening that item's own page. |
 | D27 | 15 Nov 2026 | R52 share-in: new table `items_to_sort`, private by default, shareable by its owner, Remove/Restore, no delete, change log kind `sort_item`. Suggestions come from the content (shop, media, travel, maps, unknown site, dated text, text). Gift idea goes into an occasion plan as a "wish" budget item. Sorting stamps `sorted_at`/`sorted_to`. Photos/PDFs from other apps are later. |
 | D28 | 15 Nov 2026 | Ahmed asked to build R49–R52 in one go ("don't hold back"). Built as four branches/PRs, each CI-verified, merged in order, one signed APK for all four. |
+| D29 | 15 Nov 2026 | R53 links: one generic `item_links` table (activity, trip, occasion, experience, event, reminder, to-do, note, memory), shown both ways in a Linked items strip; a link is visible only when the viewer can see BOTH items; Unlink keeps both items. Create from this pre-fills title/date and shares like its source; trip reminders default to trip day 6:00 (leave for airport), day before 9:00 (check-in); occasion preparation a week before 9:00. Completing a shared trip while Apart sets "last time we met" to the trip end (never backwards). |
+| D30 | 15 Nov 2026 | R54 polish: Activities join the shared change log; "On this day" = at most one past memory from today's date at the top of the agenda, hideable per memory on the phone; "Showing: Removed ✕" under list titles; search covers contacts and Items to sort; status look (completed = struck/muted/green check, cancelled = struck/red cross) in To-do, Activities, Occasions, Trips. |
+| D31 | 15 Nov 2026 | Ahmed: "take as much as you can". Built R53 + R54 as two CI-verified PRs, one APK. Remaining larger items listed in docs/R53_R54_QA.md. |
 
 ## C. Won't do (for now)
 - No relationship health/compatibility/mood scores, no streaks.
@@ -72,5 +75,6 @@ Companion documents in this folder:
 | R50 | Global patterns: filter panel, history page with chips, ⋮ menu, status model, icon dictionary, editor headers | Built 15 Nov 2026, partial: ⋮ menu and status looks per screen remain (docs/R49_R52_QA.md) |
 | R51 | Creation 2.0: draft pages, purpose starters, Quick add | Built 15 Nov 2026 |
 | R52 | Share-in 2.0 and "Items to sort" | Built 15 Nov 2026; photos/PDF share-in later |
-| R53 | Links: Create from this, Linked items strip | |
+| R53 | Links: Create from this, Linked items strip | Built 15 Nov 2026 (docs/R53_R54_QA.md) |
+| R54 | Polish: Activities change log, On this day, Showing line, search coverage, status look | Built 15 Nov 2026 |
 | Later | Search coverage (contacts, checklist items, chat), Calendar session, Trips offline documents, smart love reminders, occasion timing rule (salary month), full Arabic, settings consolidation, iOS, AI level 2, voice, account deletion/export | |
