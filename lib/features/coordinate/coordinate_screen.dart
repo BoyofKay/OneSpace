@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
 import 'activity_detail_screen.dart';
+import 'new_activity_screen.dart';
 import 'coordinate_activity_filters.dart';
 
 // Keep navigation imports from Remember and other existing features working.
@@ -56,72 +57,12 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
     }
   }
 
+  /// R51: a new Activity opens as a full draft page (no dialog).
   Future<void> create() async {
     if (space == null) return;
-    final title = TextEditingController();
-    final body = TextEditingController();
-    bool private = false;
-    try {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (ctx, update) => AlertDialog(
-            title: const Text('New Activity'),
-            content: SingleChildScrollView(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: title, maxLength: 120,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Title')),
-                TextField(
-                  controller: body, maxLength: 12000,
-                  maxLines: 5, minLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'What do we want to explore or decide?')),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Private to me'),
-                  subtitle: const Text(
-                      'Otherwise, both partners can see and contribute.'),
-                  value: private,
-                  onChanged: (v) => update(() => private = v),
-                ),
-              ],
-            )),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel')),
-              FilledButton(
-                onPressed: () {
-                  if (title.text.trim().isNotEmpty) {
-                    Navigator.pop(ctx, true);
-                  }
-                },
-                child: const Text('Create')),
-            ],
-          ),
-        ),
-      );
-      if (ok != true || !mounted) return;
-      final created = await db.from('activities').insert({
-        'space_id': space,
-        'title': title.text.trim(),
-        'body': body.text.trim(),
-        'visibility': private ? 'private' : 'shared',
-      }).select('id').single();
-      if (!mounted) return;
-      await Navigator.of(context).push<void>(MaterialPageRoute<void>(
-        builder: (_) => ActivityScreen(id: created['id'] as String)));
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => error = 'Could not create Activity.');
-    } finally {
-      title.dispose();
-      body.dispose();
-    }
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+      builder: (_) => NewActivityScreen(spaceId: space!)));
+    if (mounted) await load();
   }
 
   String updated(Object? raw) {
