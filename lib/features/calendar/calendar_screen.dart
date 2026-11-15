@@ -19,7 +19,6 @@ import 'calendar_event_editor.dart';
 import 'calendar_rules.dart';
 import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
-import '../occasions/occasion_rules.dart';
 import '../notes/related_notes_panel.dart';
 import '../../theme/appearance_settings_screen.dart';
 
