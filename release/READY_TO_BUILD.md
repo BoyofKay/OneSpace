@@ -1,30 +1,27 @@
-# R55 — Consistency pass
+# R56 — Finishing the consistency rules
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.421 (R53–R54).
+Previous signed preview: 0.1.422 (R55).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.421
-- One filter panel, floating add buttons, full-page editors with pinned
-  Cancel/Save and * fields, one ⋮ menu on list items.
-- Renames (To-do lists, Contact cards, Occasions, Start activity), Calendar
-  clean-up, Today shortcut regroup, built-in love nudge.
-- Daily connection tabs, Shared experiences pop-up + collection pages,
-  Selfie studio, Reminders cards, Letters load fix.
-- Photos/PDFs shared from other apps (Android), Activity purpose steps.
+## Included since 0.1.422
+- ⋮ menu on Calendar events, Activities (list + detail) and Contact cards.
+- Last editor pop-ups are pages (Edit activity + prompts, day off, flight
+  option, travel document, gesture edit).
+- "Search <screen>" labels; search on Trips and Items to sort.
+- Unique hero tags on floating buttons.
 
 ## Database
-- Applied live before this build (additive, non-destructive):
-  0115 r55 Today last love + realtime publication; 0116 r55 share-in files.
+- No database change in R56.
 
 ## Verification
-- "Verify OneSpace iteration" passed on r55-consistency.
+- "Verify OneSpace iteration" passed on r56-menus.
 
 ## Two-phone validation
-Follow docs/R55_QA.md (18 steps).
+Follow docs/R56_QA.md (10 steps), after docs/R55_QA.md.
 
-Controlled R55 signed preview candidate, November 15, 2026.
+Controlled R56 signed preview candidate, November 15, 2026.
