@@ -182,6 +182,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
          Expanded(child:Text('Coordinate',
           style:Theme.of(context).textTheme.headlineMedium)),
          RecordListTopActions(
+          historyKinds:const ['activity'],historyTitle:'Activities',
           showHistory:showArchived,
           onToggleHistory:()=>setState(()=>showArchived=!showArchived),
           hasActiveFilters:selected!=CoordinateActivityView.active,

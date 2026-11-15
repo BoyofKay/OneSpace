@@ -382,7 +382,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     ),
     IconButton(onPressed:()=>load(),tooltip:'Refresh reminders',
      icon:const Icon(Icons.refresh_outlined)),
-   ]),
+   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
     label:const Text('New reminder')),

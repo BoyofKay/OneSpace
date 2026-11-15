@@ -83,7 +83,9 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
 class TodayCalendarSection extends StatefulWidget {
  const TodayCalendarSection({super.key,required this.entries,required this.onOpen,
   this.onOpenActivity,this.onOpenExperience,this.onOpenTrip,this.onOpenOccasion,this.onOpenPlans,
-  this.onOpenReminder});
+  this.onOpenReminder,this.leading=const []});
+ /// Shown at the top of the Today block, e.g. "On this day" (spec 3.5).
+ final List<Widget> leading;
  final List<TodayCalendarEntry> entries;
  final VoidCallback onOpen;
  final void Function(String id)? onOpenActivity;
@@ -113,6 +115,7 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
      trailing:IconButton(tooltip:'Open shared calendar',
        onPressed:widget.onOpen,icon:const Icon(Icons.open_in_new,size:20)),
      children:[
+       ...widget.leading,
        if(entries.isEmpty)...[
          const TodayEmptyHint('A free day. Nothing planned for the next 7 days.'),
          Align(alignment:Alignment.centerLeft,child:TextButton.icon(

@@ -159,7 +159,7 @@ class _TripsScreenState extends State<TripsScreen> {
     ),
     IconButton(onPressed:load,tooltip:'Refresh trips',
      icon:const Icon(Icons.refresh)),
-   ]),
+   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     icon:const Icon(Icons.add),label:const Text('Plan a trip'),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(

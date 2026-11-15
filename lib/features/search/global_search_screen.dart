@@ -1,3 +1,5 @@
+import '../world/world_contacts_screen.dart';
+import '../share_in/items_to_sort_screen.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -112,10 +114,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Reminder',db.from('reminders').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
+       // R54: people and the share-in tray are searchable too.
+       guarded('Contact',db.from('saved_contacts').select('id,title:label').eq('space_id',id)
+         .isFilter('archived_at',null).ilike('label',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
+       guarded('Item to sort',db.from('items_to_sort').select('id,title').eq('space_id',id)
+         .isFilter('archived_at',null).isFilter('sorted_at',null).ilike('title',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
      ]);
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
      final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Memory',
-      'Activity','Calendar','Experience','Note','Memory','Reminder'];
+      'Activity','Calendar','Experience','Note','Memory','Reminder','Contact','Item to sort'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
@@ -155,6 +164,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Experience':target=SharedExperiencesScreen(initialExperienceId:hit.id);break;
      case 'Occasion':target=OccasionsScreen(initialPlanId:hit.id);break;
      case 'Memory':target=MemoriesScreen(initialMemoryId:hit.id);break;
+     case 'Contact':target=const WorldContactsScreen();break;
+     case 'Item to sort':target=const ItemsToSortScreen();break;
      default:target=const CoupleLettersScreen();
    }
    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
@@ -163,7 +174,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
    appBar:AppBar(title:const Text('Search our space'),actions:[
     PopupMenuButton<String>(
      tooltip:'Filter search results',
-     icon:const Icon(Icons.filter_alt_outlined),
+     icon:Badge(isLabelVisible:section!='All',smallSize:8,child:const Icon(Icons.tune)),
      initialValue:section,
      onSelected:(v){
       setState(()=>section=v);
@@ -172,7 +183,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      itemBuilder:(_)=>[
       for(final category in [
        'All','Activity','Calendar','To-do','Note','Letter','Tag',
-       'Trip','Experience','Trip item','Travel document','Occasion',
+       'Trip','Experience','Trip item','Travel document','Occasion','Contact','Item to sort',
        'Reminder','Memory',
       ])PopupMenuItem(value:category,child:Text(category)),
      ]),

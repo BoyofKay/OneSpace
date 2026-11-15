@@ -342,7 +342,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     ),
     IconButton(tooltip:'Experience edit history',
      icon:const Icon(Icons.history_outlined),onPressed:openHistory),
-   ]),
+   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),
     label:const Text('Add an experience')),

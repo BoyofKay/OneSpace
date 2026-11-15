@@ -166,7 +166,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     ),
     IconButton(tooltip:'Refresh',onPressed:load,
      icon:const Icon(Icons.refresh)),
-   ]),
+   ],bottom:archived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>archived=false))):null),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Plan an occasion')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
