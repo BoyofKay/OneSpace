@@ -6,13 +6,14 @@ import 'today_attention_rules.dart';
 class TodayAttentionSection extends StatefulWidget {
   const TodayAttentionSection({super.key, required this.items,
     required this.onOpen, required this.onSnooze,
-    this.onOpenPlans,this.onOpenCheckins,this.loading=false,this.error,
+    this.onOpenPlans,this.onOpenCheckins,this.onOpenReminder,this.loading=false,this.error,
     this.onRetry});
   final List<TodayAttentionItem> items;
   final void Function(String activityId) onOpen;
   final Future<void> Function(TodayAttentionItem item, int days) onSnooze;
   final VoidCallback? onOpenPlans;
   final VoidCallback? onOpenCheckins;
+  final void Function(String reminderId)? onOpenReminder;
   final bool loading;
   final String? error;
   final VoidCallback? onRetry;
@@ -62,7 +63,8 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
           title:Text(item.title,maxLines:2),
           subtitle:Text(item.reason??item.relativeLabel(now)),
           onTap:(){
-            if(item.source=='checkin')widget.onOpenCheckins?.call();
+            if(item.source=='reminder')widget.onOpenReminder?.call(item.id);
+            else if(item.source=='checkin')widget.onOpenCheckins?.call();
             else if(item.source=='task')widget.onOpenPlans?.call();
             else if(item.activityId.isNotEmpty)widget.onOpen(item.activityId);
           },
@@ -89,7 +91,8 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
 
 class TodayCalendarSection extends StatefulWidget {
  const TodayCalendarSection({super.key,required this.entries,required this.onOpen,
-  this.onOpenActivity,this.onOpenExperience,this.onOpenTrip,this.onOpenOccasion,this.onOpenPlans});
+  this.onOpenActivity,this.onOpenExperience,this.onOpenTrip,this.onOpenOccasion,this.onOpenPlans,
+  this.onOpenReminder});
  final List<TodayCalendarEntry> entries;
  final VoidCallback onOpen;
  final void Function(String id)? onOpenActivity;
@@ -97,6 +100,7 @@ class TodayCalendarSection extends StatefulWidget {
  final void Function(String id)? onOpenTrip;
  final void Function(String id)? onOpenOccasion;
  final VoidCallback? onOpenPlans;
+ final void Function(String id)? onOpenReminder;
  @override State<TodayCalendarSection> createState()=>_TodayCalendarSectionState();
 }
 class _TodayCalendarSectionState extends State<TodayCalendarSection> {
@@ -126,7 +130,7 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
            entry.source=='trip'||entry.source=='trip_item'?Icons.flight_outlined:
            entry.source=='experience'?Icons.movie_outlined:
            entry.source=='todo'?Icons.checklist_outlined:
-           entry.source=='component'?Icons.alarm_outlined:
+           entry.source=='component'||entry.source=='reminder'?Icons.alarm_outlined:
            Icons.event_outlined),
          title:Text(entry.title,maxLines:1,overflow:TextOverflow.ellipsis),
          subtitle:Text(CalendarRules.sqlDate(entry.date)+' · '+
@@ -134,9 +138,13 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
             entry.source=='trip'?'Trip':entry.source=='trip_item'?'Trip item':
             entry.source=='experience'?'Together time':
             entry.source=='todo'?'To-do':entry.source=='activity'?'Activity':
-             entry.source=='component'?'Activity item':'Calendar')),
+             entry.source=='component'?'Activity item':
+             entry.source=='reminder'?(entry.kind=='repeating_reminder'?'Repeating reminder':'Reminder'):
+             'Calendar')),
          onTap:(){
-           if(entry.activityId!=null && widget.onOpenActivity!=null){
+           if(entry.reminderId!=null&&widget.onOpenReminder!=null){
+             widget.onOpenReminder!(entry.reminderId!);
+           }else if(entry.activityId!=null && widget.onOpenActivity!=null){
              widget.onOpenActivity!(entry.activityId!);
            }else if(entry.occasionId!=null&&widget.onOpenOccasion!=null){
              widget.onOpenOccasion!(entry.occasionId!);

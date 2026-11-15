@@ -11,6 +11,9 @@ import '../plans/plans_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../connect/partner_gestures_screen.dart';
 import '../mentions/partner_mention_button.dart';
+import '../../core/device_time_zone.dart';
+import '../../core/partner_time_zones.dart';
+import 'reminder_repeat_rules.dart';
 
 /// R22: first-class shared and personal reminders. The database owns
 /// per-recipient state, privacy checks, delivery and immutable history.
@@ -74,7 +77,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
    final data=await db.from('reminders').select(
     'id,title,details,due_at,created_by,visibility,audience,'
     'source_kind,source_id,reminder_intent,reminder_gesture_kind,archived_at,updated_at,'
-    'reminder_recipients(recipient_id,state,next_alert_at,'
+    'repeat_rule,urgent,source_closed_at,'
+    'reminder_recipients(recipient_id,state,next_alert_at,open_occurrence_at,'
     'snoozed_until,acknowledged_at,outcome_note,updated_at),'
     'reminder_actions(actor_id,recipient_id,action,note,next_alert_at,recorded_at)')
      .eq('space_id',id).order('due_at',ascending:true).limit(250);
@@ -97,7 +101,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
   for(final row in recipients(r)){if(row['recipient_id']==me)return row;}
   return null;
  }
- String person(String id)=>id==me?'You':'Partner';
+ String person(Object? id)=>id==null?'OneSpace':id==me?'You':'Partner';
  String status(String s)=>s=='done'?'Done':s=='follow_up'?'Needs follow-up':'Pending';
  String when(Object? stamp){
   final dt=DateTime.tryParse(stamp?.toString()??'')?.toLocal();
@@ -240,8 +244,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
   final own=mine(r),shared=r['visibility']=='shared';
   final rows=recipients(r);
   final allDone=rows.isNotEmpty&&rows.every((x)=>x['state']=='done');
-  final due=DateTime.tryParse(r['due_at']?.toString()??'')?.toLocal();
-  final overdue=due!=null&&due.isBefore(DateTime.now())&&!allDone;
+  final repeating=r['repeat_rule'] is Map;
+  final closed=r['source_closed_at']!=null;
+  final nextMine=DateTime.tryParse((own?['next_alert_at']??'').toString())?.toLocal();
+  final openMine=own?['open_occurrence_at']!=null;
+  final due=repeating?(nextMine??DateTime.tryParse(r['due_at']?.toString()??'')?.toLocal()):
+   DateTime.tryParse(r['due_at']?.toString()??'')?.toLocal();
+  final overdue=!repeating&&due!=null&&due.isBefore(DateTime.now())&&!allDone;
   final history=List<Map<String,dynamic>>.from(
    r['reminder_actions'] as List? ??const [])
    ..sort((a,b)=>(b['recorded_at']??'').toString()
@@ -252,15 +261,21 @@ class _RemindersScreenState extends State<RemindersScreen> {
     style:TextStyle(fontWeight:FontWeight.w600,
      decoration:allDone?TextDecoration.lineThrough:null)),
    subtitle:Text([
-    when(r['due_at']),
+    if(repeating)ReminderRepeat.describe(r['repeat_rule'])
+    else when(r['due_at']),
+    if(repeating&&openMine)'Due now'
+    else if(repeating&&nextMine!=null&&!closed)'Next '+when(own?['next_alert_at']),
     shared?'Shared':'Only me',
+    if(r['urgent']==true)'Urgent',
+    if(closed)'Linked item closed · no more alerts',
     if(r['reminder_intent']=='love_gesture')'Choose when to send',
     if(overdue)'Overdue',
     if(r['archived_at']!=null)'Archived',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
    leading:Icon(allDone?Icons.task_alt_outlined:
-    overdue?Icons.notification_important_outlined:Icons.alarm_outlined,
-    color:overdue?Theme.of(context).colorScheme.error:null),
+    overdue||openMine?Icons.notification_important_outlined:
+    repeating?Icons.repeat:Icons.alarm_outlined,
+    color:overdue||openMine?Theme.of(context).colorScheme.error:null),
    childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
    children:[
     if((r['details']??'').toString().isNotEmpty)
@@ -277,6 +292,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       if(x['snoozed_until']!=null)'Snoozed until '+when(x['snoozed_until']),
       if(x['state']=='follow_up'&&x['next_alert_at']!=null)
        'Follow-up '+when(x['next_alert_at']),
+      if(repeating&&x['open_occurrence_at']!=null)
+       'Waiting for an answer since '+when(x['open_occurrence_at']),
       if((x['outcome_note']??'').toString().isNotEmpty)
        x['outcome_note'].toString(),
      ].join('\n')),
@@ -287,15 +304,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
        icon:const Icon(Icons.link),
        label:Text(r['reminder_intent']=='love_gesture'
         ?'Open A little love':'Open related item'))),
-    if(own!=null&&r['archived_at']==null)Wrap(
+    if(own!=null&&r['archived_at']==null&&!closed)Wrap(
      spacing:7,runSpacing:3,children:[
       OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'done'),
-       icon:const Icon(Icons.check),label:const Text('Done')),
+       icon:const Icon(Icons.check),
+       label:Text(repeating?'Done for this time':'Done')),
       OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'follow_up'),
        icon:const Icon(Icons.flag_outlined),label:const Text('Follow-up')),
       OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'snooze'),
        icon:const Icon(Icons.snooze),label:const Text('Snooze')),
-      if(own['state']=='done')TextButton(
+      if(own['state']=='done'&&!repeating)TextButton(
        onPressed:busy?null:()=>respond(r,'reopen'),child:const Text('Reopen')),
      ]),
     if(r['created_by']==me)Wrap(spacing:10,children:[
@@ -318,13 +336,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
      title:Text('Outcome history · '+history.length.toString()),
      children:[for(final event in history)ListTile(
       dense:true,contentPadding:EdgeInsets.zero,
-      title:Text(person(event['actor_id'].toString())+' · '+
-       event['action'].toString().replaceAll('_',' ')),
+      title:Text(person(event['actor_id'])+' · '+
+       ReminderRepeat.actionLabel(event['action']?.toString()??'')+
+       (event['actor_id']==null&&event['recipient_id']!=null?
+        ' (for '+person(event['recipient_id']).toLowerCase()+')':'')),
       subtitle:Text([
        when(event['recorded_at']),
        if((event['note']??'').toString().isNotEmpty)event['note'].toString(),
-       if(event['action']=='snooze'&&event['next_alert_at']!=null)
+       if((event['action']=='snooze'||event['action']=='deferred')&&event['next_alert_at']!=null)
         'Until '+when(event['next_alert_at']),
+       if(event['action']=='missed'&&event['next_alert_at']!=null)
+        'Occurrence of '+when(event['next_alert_at']),
       ].join(' · ')),
      )],
     ),
@@ -407,8 +429,11 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
  late DateTime due;
  late String visibility,audience;
  String? sourceKind,sourceId,error;
- bool saving=false,loadingLinks=true;
+ bool saving=false,loadingLinks=true,urgent=false;
  List<Map<String,dynamic>> links=[];
+ ReminderRepeat repeat=const ReminderRepeat();
+ String myZone='UTC';
+ String? partnerZone,partnerName;
  @override void initState(){
   super.initState();
   final prior=widget.existing;
@@ -420,7 +445,126 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
   audience=prior?['audience']?.toString()??'me';
   sourceKind=prior?['source_kind']?.toString();
   sourceId=prior?['source_id']?.toString();
+  repeat=ReminderRepeat.fromRule(prior?['repeat_rule'],start:due);
+  urgent=prior?['urgent']==true;
   loadLinks();
+  loadZones();
+ }
+ /// Repeating schedules are stored in a fixed IANA zone (this phone's), so a
+ /// daylight-saving change never moves the alarm. The partner's zone is only
+ /// used to show "that's 7:00 AM for them".
+ Future<void> loadZones()async{
+  try{
+   final zone=await DeviceTimeZone.readPhone();
+   final rows=await db.from('profiles').select('id,display_name,time_zone');
+   final meId=db.auth.currentUser?.id;
+   String? pz,pn,mz;
+   for(final row in rows){
+    if(row['id']==meId){mz=row['time_zone']?.toString();}
+    else{pz=row['time_zone']?.toString();pn=row['display_name']?.toString();}
+   }
+   if(!mounted)return;
+   setState((){
+    myZone=zone??(PartnerTimeZones.valid(mz)?mz!:'UTC');
+    partnerZone=PartnerTimeZones.valid(pz)?pz:null;
+    final first=(pn??'').trim().split(' ').first;
+    partnerName=first.isEmpty?null:first;
+   });
+  }catch(_){/* Hint only; saving still works with the phone zone. */}
+ }
+ String? partnerTimeHint(){
+  final zone=partnerZone;
+  if(audience=='me'||zone==null||zone==myZone)return null;
+  final there=PartnerTimeZones.inZone(zone,due);
+  if(there==null)return null;
+  final h=there.hour%12==0?12:there.hour%12;
+  final m=there.minute.toString().padLeft(2,'0');
+  final sameDay=there.day==due.day;
+  return "That's "+h.toString()+':'+m+(there.hour>=12?' PM':' AM')+
+   (sameDay?'':' ('+ReminderRepeat.dayShort[there.weekday-1]+')')+
+   ' for '+(partnerName??'your partner')+'.';
+ }
+ Future<void> addTime()async{
+  final picked=await showTimePicker(context:context,
+   initialTime:const TimeOfDay(hour:20,minute:0));
+  if(picked==null||!mounted)return;
+  final value=ReminderRepeat.hhmm(picked.hour,picked.minute);
+  final main=ReminderRepeat.hhmm(due.hour,due.minute);
+  if(value==main||repeat.extraTimes.contains(value))return;
+  if(repeat.extraTimes.length>=5){
+   setState(()=>error='Up to 6 times a day.');return;
+  }
+  setState(()=>repeat=repeat.copyWith(extraTimes:[...repeat.extraTimes,value]..sort()));
+ }
+ Future<void> pickUntil()async{
+  final picked=await showDatePicker(context:context,
+   initialDate:repeat.until??due.add(const Duration(days:30)),
+   firstDate:due,lastDate:DateTime(2100));
+  if(picked==null||!mounted)return;
+  setState(()=>repeat=repeat.copyWith(until:picked));
+ }
+ Widget repeatSection(){
+  final interval=repeat.interval;
+  final unit=repeat.preset=='daily'?'day':repeat.preset=='weekly'?'week':
+   repeat.preset=='monthly'?'month':'year';
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   DropdownButtonFormField<String>(
+    initialValue:repeat.preset,isExpanded:true,
+    decoration:const InputDecoration(labelText:'Repeat',
+     prefixIcon:Icon(Icons.repeat),border:OutlineInputBorder()),
+    items:[for(final p in ReminderRepeat.presets)
+     DropdownMenuItem(value:p,child:Text(ReminderRepeat.presetLabels[p]!))],
+    onChanged:saving?null:(v)=>setState((){
+     repeat=repeat.copyWith(preset:v??'none',interval:1,
+      weekdays:v=='weekly'?{due.weekday}:null);
+    })),
+   if(repeat.repeats&&repeat.preset!='weekdays')Row(children:[
+    const Text('Every'),
+    IconButton(onPressed:interval>1?()=>setState(()=>
+      repeat=repeat.copyWith(interval:interval-1)):null,
+     icon:const Icon(Icons.remove_circle_outline),tooltip:'Less often'),
+    Text(interval.toString(),style:const TextStyle(fontWeight:FontWeight.bold)),
+    IconButton(onPressed:interval<99?()=>setState(()=>
+      repeat=repeat.copyWith(interval:interval+1)):null,
+     icon:const Icon(Icons.add_circle_outline),tooltip:'More apart'),
+    Text(interval==1?unit:unit+'s'),
+   ]),
+   if(repeat.preset=='weekly')Wrap(spacing:6,children:[
+    for(var d=1;d<=7;d++)FilterChip(
+     label:Text(ReminderRepeat.dayShort[d-1]),
+     selected:repeat.weekdays.contains(d),
+     onSelected:(on)=>setState((){
+      final next={...repeat.weekdays};
+      if(on){next.add(d);}else if(next.length>1){next.remove(d);}
+      repeat=repeat.copyWith(weekdays:next);
+     })),
+   ]),
+   if(repeat.repeats)...[
+    const SizedBox(height:8),
+    const Text('Times of day'),
+    Wrap(spacing:6,runSpacing:4,children:[
+     Chip(label:Text(ReminderRepeat.clock(ReminderRepeat.hhmm(due.hour,due.minute)))),
+     for(final t in repeat.extraTimes)InputChip(
+      label:Text(ReminderRepeat.clock(t)),
+      onDeleted:()=>setState(()=>repeat=repeat.copyWith(
+       extraTimes:repeat.extraTimes.where((x)=>x!=t).toList()))),
+     ActionChip(avatar:const Icon(Icons.add,size:18),
+      label:const Text('Add another time'),onPressed:saving?null:addTime),
+    ]),
+    const SizedBox(height:6),
+    Wrap(crossAxisAlignment:WrapCrossAlignment.center,spacing:8,children:[
+     const Text('Ends'),
+     ChoiceChip(label:const Text('Never'),selected:repeat.until==null,
+      onSelected:(_)=>setState(()=>repeat=repeat.copyWith(clearUntil:true))),
+     ChoiceChip(label:Text(repeat.until==null?'On a date':
+       'On '+CalendarRules.sqlDate(repeat.until!)),
+      selected:repeat.until!=null,onSelected:(_)=>pickUntil()),
+    ]),
+    const SizedBox(height:4),
+    Text('Times follow this phone’s time zone ('+myZone+'), even when the clocks change.',
+     style:Theme.of(context).textTheme.bodySmall),
+   ],
+  ]);
  }
  @override void dispose(){title.dispose();details.dispose();super.dispose();}
  Future<void> loadLinks()async{
@@ -480,6 +624,8 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
    final fields={
     'title':name,'details':details.text.trim(),
     'due_at':due.toUtc().toIso8601String(),
+    'repeat_rule':repeat.toRule(start:due,timeZone:myZone),
+    'urgent':urgent&&audience!='me',
    };
    if(widget.existing==null){
     await db.from('reminders').insert({
@@ -508,7 +654,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
   return Scaffold(appBar:AppBar(
-   title:Text(editing?'Edit reminder':'New reminder')),
+   title:Text(editing?'Edit reminder':'Add new reminder')),
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
     TextField(controller:title,maxLength:160,
      decoration:const InputDecoration(labelText:'Reminder',
@@ -525,10 +671,15 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
     const SizedBox(height:14),
     OutlinedButton.icon(onPressed:saving?null:pickDue,
      icon:const Icon(Icons.event_outlined),
-     label:Text('Remind at · '+_when(due))),
-    const SizedBox(height:6),
-    const Text('The selected time is interpreted in this phone’s current '
-     'timezone; your partner sees it in their own local time.'),
+     label:Text((repeat.repeats?'Starts · ':'Remind at · ')+_when(due))),
+    if(partnerTimeHint()!=null)Padding(
+     padding:const EdgeInsets.only(top:6),
+     child:Row(children:[
+      const Icon(Icons.public,size:18),const SizedBox(width:6),
+      Expanded(child:Text(partnerTimeHint()!)),
+     ])),
+    const SizedBox(height:14),
+    repeatSection(),
     const SizedBox(height:16),
     if(!editing)...[
      SwitchListTile(
@@ -548,6 +699,13 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
       ]),
      ],
     ]else Text('Visibility: '+visibility+' · Recipients: '+audience),
+    if(visibility=='shared'&&audience!='me')SwitchListTile(
+     contentPadding:EdgeInsets.zero,
+     secondary:const Icon(Icons.priority_high),
+     title:const Text('Urgent'),
+     subtitle:const Text('Alerts even during your partner\'s sleep hours. '
+      'Without it, alerts wait until they wake up.'),
+     value:urgent,onChanged:saving?null:(v)=>setState(()=>urgent=v)),
     const SizedBox(height:12),
     if(loadingLinks)const LinearProgressIndicator(),
     DropdownButtonFormField<String>(
