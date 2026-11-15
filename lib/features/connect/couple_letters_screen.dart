@@ -49,11 +49,11 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
     final at=DateTime.tryParse((draft?letter['updated_at']:(letter['sent_at']??letter['updated_at']))
       ?.toString()??'')?.toLocal();
     if(at==null)return '';
-    const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final days=OneSpacePhrases.weekdaysShort;
+    final months=OneSpacePhrases.monthsShort;
     final h=at.hour%12==0?12:at.hour%12;
     final when='${days[at.weekday-1]} ${at.day} ${months[at.month-1]} ${at.year}, '
-      '$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?'PM':'AM'}';
+      '$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?tt('PM'):tt('AM')}';
     final mine=letter['author_id']==db.auth.currentUser?.id;
     return draft?'Edited $when':mine?'Sent $when':'Received $when';
   }

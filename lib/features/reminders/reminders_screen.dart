@@ -269,12 +269,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
   if(at!=null){
    final d=DateTime(at.year,at.month,at.day);
    final gap=d.difference(today).inDays;
-   const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+   final names=OneSpacePhrases.weekdaysShort;
+   final months=OneSpacePhrases.monthsShort;
    day=gap==0?'Today':gap==1?'Tomorrow':gap==-1?'Yesterday':
     '${names[at.weekday-1]} ${at.day} ${months[at.month-1]}';
    final h=at.hour%12==0?12:at.hour%12;
-   time='$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?'PM':'AM'}';
+   time='$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?tt('PM'):tt('AM')}';
   }
   final tone=done?colors.surfaceContainerHighest:
    alert?colors.errorContainer:urgent?colors.tertiaryContainer:colors.secondaryContainer;

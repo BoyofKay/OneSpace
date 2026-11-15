@@ -155,7 +155,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     final h = at.hour % 12 == 0 ? 12 : at.hour % 12;
     return '${at.day} ${months[at.month - 1]} · $h:${at.minute.toString().padLeft(2, '0')} '
-        '${at.hour >= 12 ? 'PM' : 'AM'}';
+        '${at.hour >= 12 ? tt('PM') : tt('AM')}';
   }
 
   @override Widget build(BuildContext context) {

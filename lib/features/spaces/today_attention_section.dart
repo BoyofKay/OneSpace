@@ -144,8 +144,8 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
  bool showAllToday=false;
 
  static String _dayLabel(DateTime day,DateTime today){
-   const names=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+   final names=OneSpacePhrases.weekdaysLong;
+   final months=OneSpacePhrases.monthsShort;
    if(day.difference(today).inDays==1)return 'Tomorrow';
    return '${names[day.weekday-1]}, ${day.day} ${months[day.month-1]}';
  }
