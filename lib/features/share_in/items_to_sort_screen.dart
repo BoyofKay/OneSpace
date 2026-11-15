@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/collection_history_screen.dart';
 import '../../core/current_space_cache.dart';
@@ -33,7 +34,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
         return;
       }
       var query = db.from('items_to_sort')
-          .select('id,created_by,title,link,note,visibility,archived_at,created_at')
+          .select('id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_name,file_mime')
           .eq('space_id', spaceId!).isFilter('sorted_at', null);
       query = showRemoved ? query.not('archived_at', 'is', null)
           : query.isFilter('archived_at', null);
@@ -63,6 +64,24 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
         builder: (_) => ShareIntakeScreen(trayItem: item)));
     if (mounted) await _load();
+  }
+
+  /// R55: open an attached photo/PDF through a short-lived signed link.
+  Future<void> _openFile(Map<String, dynamic> item) async {
+    try {
+      final url = await db.storage.from('onespace-share-in')
+          .createSignedUrl(item['file_path'].toString(), 300);
+      final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No app could open this file.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open the file. Please retry.')));
+      }
+    }
   }
 
   Future<void> _add() async {
@@ -140,6 +159,15 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
                 if ((item['link']?.toString() ?? '').isNotEmpty)
                   Text(item['link'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
+                if (item['file_path'] != null) Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: ActionChip(
+                    avatar: Icon(item['file_mime'] == 'application/pdf'
+                        ? Icons.picture_as_pdf_outlined : Icons.image_outlined, size: 18),
+                    label: Text(item['file_name']?.toString() ??
+                        (item['file_mime'] == 'application/pdf' ? 'PDF' : 'Photo'),
+                      overflow: TextOverflow.ellipsis),
+                    onPressed: () => _openFile(item))),
                 if ((item['note']?.toString() ?? '').isNotEmpty)
                   Padding(padding: const EdgeInsets.only(top: 2), child: Text(item['note'].toString(),
                     maxLines: 3, overflow: TextOverflow.ellipsis)),

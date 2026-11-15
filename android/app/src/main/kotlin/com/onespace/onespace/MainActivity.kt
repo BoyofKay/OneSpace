@@ -33,7 +33,7 @@ class MainActivity : FlutterFragmentActivity() {
     private var pendingContact: MethodChannel.Result? = null
     private var pendingVcard: Map<String, String>? = null
     // External shares stay in memory only, until the signed-in UI collects them.
-    private var pendingShare: Map<String, String>? = null
+    private var pendingShare: Map<String, Any>? = null
     private var shareChannel: MethodChannel? = null
 
     private val pickContact = registerForActivityResult(
@@ -174,6 +174,39 @@ class MainActivity : FlutterFragmentActivity() {
                 pendingVcard = parseVcard(data)
                 if (pendingVcard != null) shareChannel?.invokeMethod("shareAvailable", true)
             } catch (_: Exception) { /* Ignore malformed or unreadable vCards. */ }
+            return
+        }
+        // R55: a photo or PDF shared from another app. Read once (<= 10 MB) and
+        // hand the bytes to Flutter; no storage permission or URI is kept.
+        if (mime.startsWith("image/") || mime == "application/pdf") {
+            try {
+                val uri = incoming.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return
+                var name = if (mime == "application/pdf") "Shared PDF" else "Shared photo"
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { c -> if (c.moveToFirst()) name = c.getString(0) ?: name }
+                val bytes = contentResolver.openInputStream(uri)?.use { source ->
+                    val out = ByteArrayOutputStream()
+                    val buffer = ByteArray(16384)
+                    while (true) {
+                        val count = source.read(buffer)
+                        if (count <= 0) break
+                        out.write(buffer, 0, count)
+                        if (out.size() > maxBytes) throw IllegalStateException("too large")
+                    }
+                    out.toByteArray()
+                } ?: return
+                pendingShare = mapOf(
+                    "text" to (incoming.getStringExtra(Intent.EXTRA_TEXT) ?: "").take(8000),
+                    "subject" to (incoming.getStringExtra(Intent.EXTRA_SUBJECT) ?: "").take(160),
+                    "fileBytes" to bytes,
+                    "fileName" to name.take(200),
+                    "fileMime" to mime
+                )
+                shareChannel?.invokeMethod("shareAvailable", true)
+            } catch (_: Exception) {
+                pendingShare = mapOf("text" to "", "subject" to "", "fileError" to "This file is too large or could not be read (10 MB max).")
+                shareChannel?.invokeMethod("shareAvailable", true)
+            }
             return
         }
         if (mime != "text/plain") return

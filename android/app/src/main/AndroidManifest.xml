@@ -38,6 +38,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- R55: photos and PDFs shared in land in Items to sort (or a Memory). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
             <!-- Shared vCards are previewed as private OneSpace contact drafts. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
