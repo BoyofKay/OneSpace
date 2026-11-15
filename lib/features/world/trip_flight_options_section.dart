@@ -173,7 +173,7 @@ Future<bool> editFlightOption(BuildContext context,{required String tripId,
      });
     },child:Text(tt('Save'))),
    ],
-  )))));
+  ))));
  linkCtl.dispose();airlineCtl.dispose();priceCtl.dispose();
  if(saved==null||!context.mounted)return false;
  final messenger=ScaffoldMessenger.of(context);
