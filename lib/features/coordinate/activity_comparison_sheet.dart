@@ -103,8 +103,8 @@ class ActivityComparisonSheet extends StatelessWidget {
                         DataCell(Text(tt('Opinions'))),
                         for (final option in matrix.columns)
                           DataCell(SizedBox(width: 180, child: Text(
-                            'You ${_opinion(option.myOpinion)}  '
-                            'Partner ${_opinion(option.partnerOpinion)}',
+                            tt('You ${_opinion(option.myOpinion)}  '
+                            'Partner ${_opinion(option.partnerOpinion)}'),
                             style: theme.textTheme.bodyMedium))),
                       ]),
                       for (final row in matrix.rows)

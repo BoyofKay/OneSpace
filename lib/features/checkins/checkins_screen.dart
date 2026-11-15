@@ -349,7 +349,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                 if((item['note']?.toString()??'').isNotEmpty)Text('“${item['note']}”',
                   maxLines:2,overflow:TextOverflow.ellipsis,
                   style:Theme.of(context).textTheme.bodyMedium?.copyWith(fontStyle:FontStyle.italic)),
-                if(item['response_mood']!=null)Text('Felt ${_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1].toLowerCase()}',
+                if(item['response_mood']!=null)Text(tt('Felt ${_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1].toLowerCase()}'),
                   style:Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color:_moodColor((item['response_mood'] as num).toInt()),fontWeight:FontWeight.w600)),
                 Text(tt(_dateTime(item['requested_at'])+' · '+CheckinRequestRules.label(item,now)+

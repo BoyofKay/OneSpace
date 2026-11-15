@@ -234,7 +234,7 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
     body:ListView(padding:const EdgeInsets.all(16),children:[
       if(widget.parent!=null)
         Padding(padding:const EdgeInsets.only(bottom:12),
-          child:Text('Replying to: ${widget.parent!['title']}')),
+          child:Text(tt('Replying to: ${widget.parent!['title']}'))),
       TextField(controller:title,maxLength:160,
         textCapitalization:TextCapitalization.sentences,
         decoration:InputDecoration(

@@ -26,6 +26,16 @@ void main() {
     expect(tt(''), '');
   });
 
+  test('sentence patterns translate with their parts', () {
+    OneSpacePhrases.lang = 'ar';
+    expect(tt('Every 3 days'), 'كل 3 أيام');
+    expect(tt('Your space with Kay'), 'مساحتك مع Kay');
+    expect(tt('Remove “Groceries”?'), 'حذف «Groceries»؟');
+    // User text is never half-translated by a loose pattern.
+    expect(tt('Add milk to the list'), 'Add milk to the list');
+    expect(tt('Lord of the Rings'), 'Lord of the Rings');
+  });
+
   test('every Arabic phrase is filled in', () {
     for (final e in arPhrases.entries) {
       expect(e.value.trim(), isNotEmpty, reason: e.key);
