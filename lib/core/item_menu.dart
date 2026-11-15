@@ -116,11 +116,22 @@ class ItemMenu extends StatelessWidget {
     entries.add(const PopupMenuItem(value: 'log', child: ListTile(
         dense: true, contentPadding: EdgeInsets.zero,
         leading: Icon(MenuIcons.changeLog), title: Text('Change log'))));
-    return PopupMenuButton<String>(
+    // R58: the position is measured once, when tapped. PopupMenuButton
+    // re-measures its anchor on every layout while the menu is open, which
+    // crashed ("RenderBox was not laid out") on pages that rebuild live
+    // underneath the menu, such as an Activity.
+    return Builder(builder: (anchor) => IconButton(
       tooltip: 'More',
       icon: const Icon(Icons.more_vert),
-      itemBuilder: (_) => entries,
-      onSelected: (v) {
+      onPressed: () async {
+        final box = anchor.findRenderObject() as RenderBox?;
+        final overlay = Overlay.of(anchor).context.findRenderObject() as RenderBox?;
+        if (box == null || overlay == null || !box.hasSize) return;
+        final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+        final bottomRight = box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay);
+        final position = RelativeRect.fromRect(Rect.fromPoints(topLeft, bottomRight), Offset.zero & overlay.size);
+        final v = await showMenu<String>(context: anchor, position: position, items: entries);
+        if (v == null) return;
         if (v.startsWith('m')) {
           moreActions[int.parse(v.substring(1))].onSelected();
         } else if (v.startsWith('s')) {
@@ -128,12 +139,11 @@ class ItemMenu extends StatelessWidget {
         } else if (v == 'open') {
           onOpen?.call();
         } else if (v == 'remove') {
-          if (onRemove != null) { onRemove!(); } else { _toggleRemoved(context); }
-        } else if (v == 'log') {
-          openChangeLog(context, kind: kind, recordId: recordId, recordTitle: title);
+          if (onRemove != null) { onRemove!(); } else if (anchor.mounted) { _toggleRemoved(anchor); }
+        } else if (v == 'log' && anchor.mounted) {
+          openChangeLog(anchor, kind: kind, recordId: recordId, recordTitle: title);
         }
-      },
-    );
+      }));
   }
 }
 
@@ -159,3 +169,34 @@ PopupMenuItem<T> iconMenuItem<T>(T value, IconData icon, String label) => PopupM
   value: value,
   child: ListTile(dense: true, contentPadding: EdgeInsets.zero,
     leading: Icon(icon), title: Text(label)));
+
+/// Opens a menu at [anchor]'s current position, measured once.
+Future<T?> showAnchoredMenu<T>(BuildContext anchor, List<PopupMenuEntry<T>> items) async {
+  final box = anchor.findRenderObject() as RenderBox?;
+  final overlay = Overlay.of(anchor).context.findRenderObject() as RenderBox?;
+  if (box == null || overlay == null || !box.hasSize || items.isEmpty) return null;
+  final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+  final bottomRight = box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay);
+  return showMenu<T>(context: anchor, items: items,
+    position: RelativeRect.fromRect(Rect.fromPoints(topLeft, bottomRight), Offset.zero & overlay.size));
+}
+
+/// R58: drop-in for PopupMenuButton on pages that rebuild while a menu is
+/// open (it does not re-measure its anchor during the menu's layout).
+class AnchoredMenuButton<T> extends StatelessWidget {
+  const AnchoredMenuButton({super.key, required this.itemBuilder, this.onSelected,
+    this.icon, this.tooltip, this.initialValue});
+  final PopupMenuItemBuilder<T> itemBuilder;
+  final PopupMenuItemSelected<T>? onSelected;
+  final Widget? icon;
+  final String? tooltip;
+  final T? initialValue;
+  @override
+  Widget build(BuildContext context) => Builder(builder: (anchor) => IconButton(
+    tooltip: tooltip,
+    icon: icon ?? const Icon(Icons.more_vert),
+    onPressed: () async {
+      final v = await showAnchoredMenu<T>(anchor, itemBuilder(anchor));
+      if (v != null) onSelected?.call(v);
+    }));
+}

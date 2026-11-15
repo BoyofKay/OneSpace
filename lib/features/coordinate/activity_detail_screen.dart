@@ -238,7 +238,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 icon: const Icon(Icons.fact_check_outlined),
                 onPressed: chooseDecisionOption,
               ),
-              PopupMenuButton<String>(
+              AnchoredMenuButton<String>(
                 tooltip: 'Record an outcome',
                 icon: const Icon(Icons.more_horiz),
                 onSelected: (action) => recordDecision(action),
@@ -1507,7 +1507,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final due = item['due_on']?.toString();
     return Column(children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        PopupMenuButton<String>(
+        AnchoredMenuButton<String>(
           tooltip: 'Priority: $priority',
           icon: Icon(Icons.flag_outlined, size: 22,
             color: priority == 'high' || priority == 'urgent'
@@ -1518,7 +1518,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               PopupMenuItem(value: v, child: Text('Priority · $v')),
           ],
         ),
-        PopupMenuButton<String>(
+        AnchoredMenuButton<String>(
           tooltip: 'Status: $stage',
           icon: const Icon(Icons.task_alt, size: 22),
           onSelected: (value) {
