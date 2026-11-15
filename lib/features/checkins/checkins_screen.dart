@@ -411,7 +411,6 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
     );
   }
 
-  @override
   List<FilterGroupSpec> _filterGroups()=>[
     if(_tabs.index==0)FilterGroupSpec(id:'talks',label:'Check-ins',
       options:const {'all':'All','to_answer':'To answer','waiting':'Sent','history':'Past'},
