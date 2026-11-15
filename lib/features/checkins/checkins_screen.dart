@@ -1,10 +1,12 @@
+import '../../core/record_list_top_actions.dart';
+import '../../core/editor_scaffold.dart';
+import '../../core/collection_history_screen.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
-import '../../core/record_action_history_view.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -21,7 +23,11 @@ class CheckinsScreen extends StatefulWidget {
   State<CheckinsScreen> createState()=>_CheckinsScreenState();
 }
 
-class _CheckinsScreenState extends State<CheckinsScreen> {
+class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProviderStateMixin {
+  // R55: two tabs, each with its own floating button.
+  late final TabController _tabs=TabController(length:2,vsync:this)
+    ..addListener((){if(mounted)setState((){});});
+  String? _partnerName;
   final _client=Supabase.instance.client;
   String? _space;
   Stream<List<Map<String,dynamic>>>? _stream;
@@ -51,6 +57,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   @override
   void dispose() {
     _requestClock?.cancel();
+    _tabs.dispose();
     _grants?.cancel();
     _ackSubscription?.cancel();
     super.dispose();
@@ -129,6 +136,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           .order('requested_at',ascending:false);
       });
       if(id!=null){
+        unawaited(_loadPartnerName(id));
         _watchGrants(id);
         _watchAcks(id);
         unawaited(_openInitialRequest());
@@ -157,6 +165,34 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
         TimeOfDay.fromDateTime(date));
   }
 
+  Future<void> _loadPartnerName(String space) async {
+    try{
+      final me=_client.auth.currentUser?.id;
+      final rows=await _client.from('space_members').select('user_id').eq('space_id',space);
+      final peer=rows.where((r)=>r['user_id']!=me).firstOrNull?['user_id'];
+      if(peer==null)return;
+      final p=await _client.from('profiles').select('display_name').eq('id',peer).maybeSingle();
+      final mine=me==null?null:await _client.from('profiles')
+        .select('partner_label').eq('id',me).maybeSingle();
+      final label=mine?['partner_label']?.toString().trim()??'';
+      final first=(p?['display_name']?.toString().trim()??'').split(RegExp(r'\s+')).first;
+      if(mounted)setState(()=>_partnerName=label.isNotEmpty?label:first.isNotEmpty?first:null);
+    }catch(_){}
+  }
+
+  static const _moodWords=['Very low','Low','Okay','Good','Great'];
+  static const _moodIcons=[
+    Icons.sentiment_very_dissatisfied,
+    Icons.sentiment_dissatisfied,
+    Icons.sentiment_neutral,
+    Icons.sentiment_satisfied,
+    Icons.sentiment_very_satisfied,
+  ];
+  Color _moodColor(int mood){
+    final c=Theme.of(context).colorScheme;
+    return mood<=2?c.error:mood==3?c.tertiary:c.primary;
+  }
+
   Future<void> _askPartner() async{
     final space=_space,me=_client.auth.currentUser?.id;
     if(space==null||me==null)return;
@@ -169,40 +205,18 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
           content:Text('Connect your partner before sending a check-in.')));
         return;
       }
-      final note=TextEditingController();
-      try{
-        final accepted=await showDialog<bool>(
-          context:context,builder:(ctx)=>AlertDialog(
-            title:const Text('Check on your love'),
-            content:Column(mainAxisSize:MainAxisSize.min,
-              crossAxisAlignment:CrossAxisAlignment.start,children:[
-              const Text('A gentle invitation for your partner to share '
-                'how they feel. They choose whether and when to respond. '
-                'New invitations stay open for seven days, then quietly '
-                'move to history without follow-up notifications.'),
-              const SizedBox(height:12),
-              TextField(controller:note,maxLength:500,maxLines:3,
-                decoration:const InputDecoration(
-                  labelText:'Personal message (optional)',
-                  hintText:'How are you doing, my love?',
-                  border:OutlineInputBorder())),
-            ]),
-            actions:[
-              TextButton(onPressed:()=>Navigator.pop(ctx,false),
-                child:const Text('Cancel')),
-              FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-                child:const Text('Send check-in')),
-            ],
-          ),
-        );
-        if(accepted!=true||!mounted)return;
+      // R55: a page with Cancel/Send at the bottom, not a pop-up.
+      final note=await Navigator.of(context).push<String>(MaterialPageRoute(
+        builder:(_)=>CheckinRequestPage(partnerName:_partnerName)));
+      {
+        if(note==null||!mounted)return;
         await _client.from('partner_checkin_requests').insert({
           'space_id':space,'sender_id':me,
-          'recipient_id':peer['user_id'],'note':note.text.trim(),
+          'recipient_id':peer['user_id'],'note':note.trim(),
         });
         if(mounted)ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content:Text('Your check-in was sent.')));
-      }finally{note.dispose();}
+      }
     }on PostgrestException catch(e){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content:Text('Check-in could not be sent: '+e.message)));
@@ -313,20 +327,33 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
                item['sender_id']==me?
                 Icons.send_outlined:Icons.mark_email_unread_outlined),
               title:Text(item['sender_id']==me?
-                'You checked on your partner':'Your partner checked on you',
-                style:Theme.of(context).textTheme.titleSmall),
-              subtitle:Text(_dateTime(item['requested_at'])+
-                ' · '+CheckinRequestRules.label(item,now)+
-                (CheckinRequestRules.status(item,now)==CheckinRequestRules.pending?
-                 ' · '+CheckinRequestRules.expiryHint(item,now):''),
-                style:Theme.of(context).textTheme.bodySmall),
+                'You checked on ${_partnerName??'your partner'}':
+                '${_partnerName??'Your partner'} checked on you',
+                style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w700)),
+              subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+                if(CheckinRequestRules.canRespond(item,me,now))Container(
+                  margin:const EdgeInsets.only(top:4,bottom:2),
+                  padding:const EdgeInsets.symmetric(horizontal:8,vertical:2),
+                  decoration:BoxDecoration(color:Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius:BorderRadius.circular(20)),
+                  child:Text('Waiting for your answer',style:Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color:Theme.of(context).colorScheme.onPrimaryContainer,fontWeight:FontWeight.w700))),
+                if((item['note']?.toString()??'').isNotEmpty)Text('“${item['note']}”',
+                  maxLines:2,overflow:TextOverflow.ellipsis,
+                  style:Theme.of(context).textTheme.bodyMedium?.copyWith(fontStyle:FontStyle.italic)),
+                if(item['response_mood']!=null)Text('Felt ${_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1].toLowerCase()}',
+                  style:Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color:_moodColor((item['response_mood'] as num).toInt()),fontWeight:FontWeight.w600)),
+                Text(_dateTime(item['requested_at'])+' · '+CheckinRequestRules.label(item,now)+
+                  (CheckinRequestRules.status(item,now)==CheckinRequestRules.pending?
+                   ' · '+CheckinRequestRules.expiryHint(item,now):''),
+                  style:Theme.of(context).textTheme.labelSmall),
+              ]),
+              trailing:PopupMenuButton<String>(tooltip:'More',
+                onSelected:(_)=>openChangeLog(context,kind:'checkin_request',recordId:item['id'].toString()),
+                itemBuilder:(_)=>const [PopupMenuItem(value:'log',child:Text('Change log'))]),
               childrenPadding:const EdgeInsets.fromLTRB(15,0,15,14),
               children:[
-                Align(alignment:Alignment.centerRight,
-                 child:RecordActionHistoryButton(kind:'checkin_request',
-                  recordId:item['id'].toString())),
-                if((item['note']?.toString()??'').isNotEmpty)
-                  _detail('The check-in message',item['note'].toString()),
                 if(item['response_mood']!=null)ListTile(
                   contentPadding:EdgeInsets.zero,
                   leading:const Icon(Icons.favorite_outline),
@@ -385,166 +412,160 @@ class _CheckinsScreenState extends State<CheckinsScreen> {
   }
 
   @override
+  List<FilterGroupSpec> _filterGroups()=>[
+    if(_tabs.index==0)FilterGroupSpec(id:'talks',label:'Check-ins',
+      options:const {'all':'All','to_answer':'To answer','waiting':'Sent','history':'Past'},
+      selected:_requestFilter,defaultValue:'all')
+    else FilterGroupSpec(id:'who',label:'Who can see',
+      options:const {'all':'All','shared':'Shared','private':'Only me'},
+      selected:_filter,defaultValue:'all'),
+  ];
+
+  @override
   Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:Text(tr(context,'checkinTitle')),actions:[
-     IconButton(
-      tooltip:'Show check-in conversation history',
-      icon:Icon(_requestFilter=='history'?
-       Icons.history_toggle_off_outlined:Icons.history_outlined),
-      onPressed:()=>setState(()=>_requestFilter=
-       _requestFilter=='history'?'all':'history')),
-     IconButton(
-      tooltip:'Check-in filters',
-      icon:Icon(_requestFilter!='all'||_filter!='all'?
-       Icons.filter_alt:Icons.filter_alt_outlined),
-      onPressed:()=>showModalBottomSheet<void>(
-       context:context,showDragHandle:true,isScrollControlled:true,
-       builder:(_)=>SafeArea(child:Padding(
-        padding:const EdgeInsets.fromLTRB(16,10,16,24),
-        child:StatefulBuilder(builder:(ctx,refresh)=>Column(
-         mainAxisSize:MainAxisSize.min,
-         crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text('Filters',style:Theme.of(ctx).textTheme.titleLarge),
-          const SizedBox(height:12),
-          const Text('Check-in conversations'),
-          Wrap(spacing:8,runSpacing:5,children:[
-           for(final value in const ['all','to_answer','waiting','history'])
-            ChoiceChip(label:Text(switch(value){
-             'to_answer'=>'To answer','waiting'=>'Sent',
-             'history'=>'History',_=>'All',
-            }),selected:_requestFilter==value,
-             onSelected:(_){
-              setState(()=>_requestFilter=value);refresh((){});
-             }),
-          ]),
-          const SizedBox(height:12),
-          const Text('Feelings journal visibility'),
-          Wrap(spacing:8,runSpacing:5,children:[
-           for(final value in const ['all','shared','private'])
-            ChoiceChip(label:Text(tr(ctx,value)),selected:_filter==value,
-             onSelected:(_){
-              setState(()=>_filter=value);refresh((){});
-             }),
-          ]),
-          TextButton.icon(
-           onPressed:(){
-            setState((){
-             _filter='all';_requestFilter='all';
-            });
-            refresh((){});
-           },icon:const Icon(Icons.restart_alt),
-           label:const Text('Reset filters')),
-         ])))),
-      )),
-    ]),
-    body:RefreshIndicator(onRefresh:_load,child:ListView(
-      padding:const EdgeInsets.all(20),children:[
-      Text(tr(context,'checkinSubtitle')),
-      const SizedBox(height:12),
-      if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-      if(_loading)
-        const Padding(padding:EdgeInsets.all(30),
-          child:Center(child:CircularProgressIndicator()))
-      else if(_space==null)Text(tr(context,'noSpace'))
-      else ...[
-        Row(children:[
-         Expanded(child:Card(clipBehavior:Clip.antiAlias,
-          child:InkWell(onTap:()=>_edit(),child:AspectRatio(aspectRatio:1.15,
-           child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-            Icon(Icons.edit_note_outlined,size:34,color:Theme.of(context).colorScheme.primary),
-            const SizedBox(height:9),
-            const Text('Record my feeling',textAlign:TextAlign.center),
-           ]))))),
-         Expanded(child:Card(clipBehavior:Clip.antiAlias,
-          child:InkWell(onTap:_askPartner,child:AspectRatio(aspectRatio:1.15,
-           child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-            Icon(Icons.mark_chat_unread_outlined,size:34,color:Theme.of(context).colorScheme.primary),
-            const SizedBox(height:9),
-            const Text('Check on my partner',textAlign:TextAlign.center),
-           ]))))),
-        ]),
-        const SizedBox(height:13),
-        Text('Check-in conversations',
-          style:Theme.of(context).textTheme.titleMedium),
-        _requestHistory(),
-        const SizedBox(height:20),
-        Text('Our feelings journal',
-          style:Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height:12),
-        TextField(
-         onChanged:(value)=>setState(()=>_journalSearch=value),
-         decoration:const InputDecoration(
-          prefixIcon:Icon(Icons.search),
-          labelText:'Search feelings journal',
-          hintText:'Check-in dates, messages or gratitude')),
-        const SizedBox(height:10),
-        StreamBuilder<List<Map<String,dynamic>>>(
-          stream:_stream,builder:(context,snapshot){
-          if(snapshot.hasError) { return Text(tr(context,'loadFailed')); }
-          if(!snapshot.hasData) {
-            return const Center(child:CircularProgressIndicator());
-          }
-          final term=_journalSearch.trim().toLowerCase();
-          final entries=snapshot.data!.where((x)=>
-            (_filter=='all'||x['visibility']==_filter)&&
-            (term.isEmpty||[
-             x['checkin_date'],x['message'],x['gratitude'],
-            ].map((v)=>v?.toString().toLowerCase()??'')
-             .join(' ').contains(term))).toList();
-          if(entries.isEmpty) {
-            return Padding(
-              padding:const EdgeInsets.all(36),
-              child:Text(tr(context,'noCheckins'),textAlign:TextAlign.center));
-          }
-          final me=_client.auth.currentUser?.id ?? '';
-          return Column(children:entries.map((entry){
-            final owner=entry['created_by'] as String? ?? '';
-            final own=owner==me;
-            final private=entry['visibility']=='private';
-            final mood=(entry['mood'] as num).toInt();
-            const moodIcons=[
-              Icons.sentiment_very_dissatisfied_outlined,
-              Icons.sentiment_dissatisfied_outlined,
-              Icons.sentiment_neutral_outlined,
-              Icons.sentiment_satisfied_outlined,
-              Icons.sentiment_very_satisfied_outlined,
-            ];
-            return Card(elevation:0,clipBehavior:Clip.antiAlias,
-              child:ExpansionTile(
-                leading:CircleAvatar(
-                  child:Icon(moodIcons[mood.clamp(1,5).toInt()-1])),
-                title:Text(entry['checkin_date']?.toString()??'Check-in',
-                  style:Theme.of(context).textTheme.titleSmall),
-                subtitle:Text((own?'You':'Partner')+' · Mood '+mood.toString()+
-                  '/5 · '+(private?'Private':'Shared'),
-                  style:Theme.of(context).textTheme.bodySmall),
-                trailing:own?IconButton(
-                  tooltip:'Edit my check-in',
-                  icon:const Icon(Icons.edit_outlined),
-                  onPressed:()=>_edit(entry)):null,
-                childrenPadding:const EdgeInsets.fromLTRB(15,2,15,15),
-                children:[
-                  Align(alignment:Alignment.centerRight,
-                   child:RecordActionHistoryButton(kind:'checkin',
-                    recordId:entry['id'].toString())),
-                  if((entry['message']?.toString()??'').isNotEmpty)
-                    _detail('What’s on my mind',
-                      entry['message'].toString()),
-                  if((entry['gratitude']?.toString()??'').isNotEmpty)
-                    _detail('Something I’m grateful for',
-                      entry['gratitude'].toString()),
-                  if(own&&private)Align(
-                    alignment:AlignmentDirectional.centerEnd,
-                    child:PrivateShareButton(
-                      objectType:'checkin',objectId:entry['id'] as String)),
-                ],
-              ));
-
-          }).toList());
-        }),
-      ],
+      RecordListTopActions(
+        historyKinds:_tabs.index==0?const ['checkin_request']:const ['checkin'],
+        historyTitle:_tabs.index==0?'Daily check-in':'Feelings journal',
+        showHistory:false,onToggleHistory:(){},allowRemoved:false,
+        groups:_filterGroups(),
+        onApply:(v)=>setState((){
+          if(v.containsKey('talks'))_requestFilter=v['talks']!;
+          if(v.containsKey('who'))_filter=v['who']!;
+        })),
+    ],bottom:TabBar(controller:_tabs,tabs:const [
+      Tab(text:'Daily check-in'),
+      Tab(text:'Feelings journal'),
     ])),
+    floatingActionButton:_space==null?null:_tabs.index==0
+      ?AddFab(label:'Check on ${_partnerName??'your partner'}',onPressed:_askPartner,heroTag:'fab-checkin')
+      :AddFab(label:'Record my feeling',onPressed:()=>_edit(),heroTag:'fab-feeling'),
+    body:_loading
+      ?const Center(child:CircularProgressIndicator())
+      :_space==null?Center(child:Text(tr(context,'noSpace')))
+      :TabBarView(controller:_tabs,children:[
+        RefreshIndicator(onRefresh:_load,child:ListView(
+          padding:const EdgeInsets.fromLTRB(16,12,16,96),children:[
+          if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+          if(FilterGroupSpec.showing(_filterGroups()).isNotEmpty)FilterShowingLine(
+            labels:FilterGroupSpec.showing(_filterGroups()),
+            onClear:()=>setState(()=>_requestFilter='all')),
+          _requestHistory(),
+        ])),
+        RefreshIndicator(onRefresh:_load,child:ListView(
+          padding:const EdgeInsets.fromLTRB(16,12,16,96),children:[
+          if(FilterGroupSpec.showing(_filterGroups()).isNotEmpty)FilterShowingLine(
+            labels:FilterGroupSpec.showing(_filterGroups()),
+            onClear:()=>setState(()=>_filter='all')),
+          TextField(
+            onChanged:(value)=>setState(()=>_journalSearch=value),
+            decoration:const InputDecoration(
+              prefixIcon:Icon(Icons.search),
+              labelText:'Search feelings journal',
+              border:OutlineInputBorder())),
+          const SizedBox(height:10),
+          _journal(),
+        ])),
+      ]),
   );
+
+  /// R55: journal cards lead with who and how they felt, in words and colour.
+  Widget _journal()=>StreamBuilder<List<Map<String,dynamic>>>(
+    stream:_stream,builder:(context,snapshot){
+    if(snapshot.hasError) { return Text(tr(context,'loadFailed')); }
+    if(!snapshot.hasData) {
+      return const Center(child:CircularProgressIndicator());
+    }
+    final term=_journalSearch.trim().toLowerCase();
+    final entries=snapshot.data!.where((x)=>
+      (_filter=='all'||x['visibility']==_filter)&&
+      (term.isEmpty||[
+       x['checkin_date'],x['message'],x['gratitude'],
+      ].map((v)=>v?.toString().toLowerCase()??'')
+       .join(' ').contains(term))).toList();
+    if(entries.isEmpty) {
+      return Padding(
+        padding:const EdgeInsets.all(36),
+        child:Text(tr(context,'noCheckins'),textAlign:TextAlign.center));
+    }
+    final me=_client.auth.currentUser?.id ?? '';
+    final theme=Theme.of(context);
+    return Column(children:entries.map((entry){
+      final own=(entry['created_by'] as String? ?? '')==me;
+      final private=entry['visibility']=='private';
+      final mood=(entry['mood'] as num).toInt().clamp(1,5).toInt();
+      final color=_moodColor(mood);
+      final date=DateTime.tryParse(entry['checkin_date']?.toString()??'');
+      final message=entry['message']?.toString()??'';
+      return Card(elevation:0,clipBehavior:Clip.antiAlias,
+        color:Color.alphaBlend(color.withValues(alpha:.07),theme.colorScheme.surface),
+        margin:const EdgeInsets.only(bottom:10),
+        child:ExpansionTile(
+          leading:Icon(_moodIcons[mood-1],color:color,size:34),
+          title:Text('${own?'You':_partnerName??'Your partner'} · ${_moodWords[mood-1]}',
+            style:theme.textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w700)),
+          subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            if(message.isNotEmpty)Text(message,maxLines:2,overflow:TextOverflow.ellipsis,
+              style:theme.textTheme.bodyMedium),
+            Text([
+              date==null?entry['checkin_date']?.toString()??'':
+                MaterialLocalizations.of(context).formatMediumDate(date),
+              if(private)'Only me',
+            ].join(' · '),style:theme.textTheme.labelSmall),
+          ]),
+          trailing:own?PopupMenuButton<String>(
+            tooltip:'More',
+            onSelected:(v){
+              if(v=='edit')_edit(entry);
+              if(v=='log')openChangeLog(context,kind:'checkin',recordId:entry['id'].toString(),
+                recordTitle:entry['checkin_date']?.toString());
+            },
+            itemBuilder:(_)=>const [
+              PopupMenuItem(value:'edit',child:Text('Edit')),
+              PopupMenuItem(value:'log',child:Text('Change log')),
+            ]):null,
+          childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
+          expandedCrossAxisAlignment:CrossAxisAlignment.stretch,
+          children:[
+            if(message.isNotEmpty)_detail('What’s on my mind',message),
+            if((entry['gratitude']?.toString()??'').isNotEmpty)
+              _detail('Something I’m grateful for',entry['gratitude'].toString()),
+            if(own&&private)Align(
+              alignment:AlignmentDirectional.centerEnd,
+              child:PrivateShareButton(
+                objectType:'checkin',objectId:entry['id'] as String)),
+          ],
+        ));
+    }).toList());
+  });
+}
+
+/// R55: "Check on your partner" as a page with Cancel/Send at the bottom.
+class CheckinRequestPage extends StatefulWidget {
+  const CheckinRequestPage({super.key,this.partnerName});
+  final String? partnerName;
+  @override State<CheckinRequestPage> createState()=>_CheckinRequestPageState();
+}
+
+class _CheckinRequestPageState extends State<CheckinRequestPage> {
+  final note=TextEditingController();
+  @override void dispose(){note.dispose();super.dispose();}
+  @override Widget build(BuildContext context)=>EditorScaffold(
+    title:'Check on ${widget.partnerName??'your partner'}',
+    isNew:true,isChanged:()=>note.text.trim().isNotEmpty,isComplete:()=>true,
+    listenTo:[note],saveLabel:'Send',
+    onSave:()=>Navigator.pop(context,note.text),
+    body:ListView(padding:const EdgeInsets.all(18),children:[
+      Text('A gentle invitation to share how they feel. They choose whether and when to answer. '
+        'It stays open for seven days, then quietly moves to Past without reminders.',
+        style:Theme.of(context).textTheme.bodyMedium),
+      const SizedBox(height:16),
+      TextField(controller:note,maxLength:500,minLines:3,maxLines:6,
+        decoration:const InputDecoration(
+          labelText:'Personal message (optional)',
+          hintText:'How are you doing, my love?',
+          border:OutlineInputBorder())),
+    ]));
 }
 
 class CheckinEditor extends StatefulWidget {
