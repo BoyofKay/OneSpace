@@ -167,8 +167,8 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
             child:Padding(
               padding:const EdgeInsets.all(28),
               child:Column(mainAxisSize:MainAxisSize.min,children:[
-                const Icon(Icons.favorite_rounded,
-                  color:Color(0xFF167E81),size:60),
+                Image.asset('assets/branding/mark.png',width:96,height:96,
+                  semanticLabel:'OneSpace logo'),
                 const SizedBox(height:12),
                 const Text('OneSpace',style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
@@ -424,7 +424,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           }),
           tooltip: tr(context, 'backHome'),
         ) : null,
-        title:Column(
+        title:Row(mainAxisSize:MainAxisSize.min,children:[
+          Image.asset('assets/branding/mark.png',width:34,height:34,excludeFromSemantics:true),
+          const SizedBox(width:10),
+          Flexible(child:Column(
           mainAxisSize:MainAxisSize.min,
           crossAxisAlignment:CrossAxisAlignment.start,
           children:[
@@ -434,7 +437,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             Text(tr(context,'tagline'),
               maxLines:1,overflow:TextOverflow.ellipsis,
               style:Theme.of(context).textTheme.labelSmall),
-          ]),
+          ])),
+        ]),
         actions:[
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(
