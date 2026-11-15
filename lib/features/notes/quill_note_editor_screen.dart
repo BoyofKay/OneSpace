@@ -125,13 +125,13 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
  @override Widget build(BuildContext context){
   final isEditingAllowed=canEdit&&!archived;
   return Scaffold(
-   appBar:AppBar(title:Text(editing?'Note 2.0 · Edit':'Note 2.0 · New'),
+   appBar:AppBar(title:Text(editing?'Edit note':'Add new note'),
     actions:[
      if(editing)RecordActionHistoryButton(
        kind:'note',recordId:widget.existing!['id'].toString()),
      if(editing&&canEdit)IconButton(
       onPressed:busy?null:archive,
-      tooltip:archived?'Restore note':'Archive note',
+      tooltip:archived?'Restore note':'Remove note',
       icon:Icon(archived?Icons.unarchive_outlined:Icons.archive_outlined)),
     ]),
    body:SafeArea(child:ListView(

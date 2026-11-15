@@ -202,9 +202,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
       RecordListTopActions(
-        showHistory:_archived,
+        historyKinds:const ['memory'],historyTitle:'Memories',
+     showHistory:_archived,
         onToggleHistory:()=>setState(()=>_archived=!_archived),
         hasActiveFilters:_scope!='all',
+      onClearFilters:()=>setState((){_scope='all';}),
         filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
           mainAxisSize:MainAxisSize.min,
           crossAxisAlignment:CrossAxisAlignment.start,children:[

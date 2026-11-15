@@ -112,8 +112,8 @@ class _SavedContactEditorState extends State<SavedContactEditor>{
  @override Widget build(BuildContext context){
    final fromActivity=widget.existing!=null&&!widget.existing!.direct;
    return Scaffold(
-     appBar:AppBar(title:Text(widget.existing==null?'Remember someone':
-       'Edit contact card')),
+     appBar:AppBar(title:Text(widget.existing==null?'Add new contact':
+       'Edit contact')),
      body:SafeArea(child:ListView(
        padding:const EdgeInsets.all(18),children:[
        const Text('Contact card',style:TextStyle(

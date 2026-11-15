@@ -199,11 +199,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   final archived=row['archived_at']!=null;
   if(!archived){
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-    title:const Text('Archive this experience?'),
+    title:const Text('Remove this experience?'),
     content:const Text('It will move to experience history. Reviews remain saved.'),
     actions:[
      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Keep')),
-     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Archive')),
+     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Remove')),
     ]));
    if(yes!=true)return;
   }
@@ -213,7 +213,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    });
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Could not change archive status.')));
+    const SnackBar(content:Text('Could not remove or restore this item.')));
   }
  }
  Future<void> openHistory()async{
@@ -304,9 +304,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   return Scaffold(
    appBar:AppBar(title:const Text('Our experience'),actions:[
     RecordListTopActions(
+     historyKinds:const ['experience'],historyTitle:'Shared experiences',
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
      hasActiveFilters:status!='all'||mutualOnly||kind!='all',
+      onClearFilters:()=>setState((){status='all';mutualOnly=false;kind='all';}),
      filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
       mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,
       children:[
@@ -449,7 +451,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          const PopupMenuItem(value:'edit',child:Text('Edit details')),
          const PopupMenuItem(value:'rate',child:Text('Rate & review')),
          PopupMenuItem(value:'archive',child:Text(
-          r['archived_at']==null?'Archive':'Restore')),
+          r['archived_at']==null?'Remove':'Restore')),
         ]),
        onTap:()=>open(r)),
       if(ExperienceInterestRules.summary(interests,r['id'])!='No picks yet')
@@ -545,7 +547,7 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
    finally{if(mounted)setState(()=>saving=false);}
  }
  @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:Text(widget.original==null?'Suggest an experience':'Edit experience')),
+   appBar:AppBar(title:Text(widget.original==null?'Add new experience':'Edit experience')),
    body:ListView(padding:const EdgeInsets.all(16),children:[
    TextField(controller:title,maxLength:160,decoration:const InputDecoration(labelText:'Title')),
    DropdownButtonFormField<String>(initialValue:kind,
@@ -831,7 +833,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   return Scaffold(appBar:AppBar(title:const Text('Our experience'),actions:[
    if(r!=null)RecordActionHistoryButton(kind:'experience',recordId:widget.id),
    if(r!=null)IconButton(tooltip:'Edit',onPressed:edit,icon:const Icon(Icons.edit_outlined)),
-   if(r!=null)IconButton(tooltip:'Archive or restore',onPressed:archive,
+   if(r!=null)IconButton(tooltip:'Remove or restore',onPressed:archive,
     icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined)),
   ]),body:loading?const Center(child:CircularProgressIndicator()):
    r==null?Center(child:Text(error??'Not found')):ListView(

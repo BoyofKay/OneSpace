@@ -141,9 +141,11 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
   return Scaffold(
    appBar:AppBar(title:const Text('Occasions & surprises'),actions:[
     RecordListTopActions(
+     historyKinds:const ['occasion'],historyTitle:'Occasions',
      showHistory:archived,
      onToggleHistory:()=>setState(()=>archived=!archived),
      hasActiveFilters:filter!='upcoming',
+      onClearFilters:()=>setState((){filter='upcoming';}),
      filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
       mainAxisSize:MainAxisSize.min,
       crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -182,7 +184,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
       border:OutlineInputBorder())),
     const SizedBox(height:10),
     if(archived)Padding(padding:const EdgeInsets.only(bottom:8),
-     child:Text('Archived occasion history · Open to restore.',
+     child:Text('Removed occasions · Open one to restore it.',
       style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Center(child:Padding(padding:EdgeInsets.all(24),child:CircularProgressIndicator()))
@@ -285,7 +287,7 @@ class _OccasionEditorState extends State<OccasionEditor>{
   finally{if(mounted)setState(()=>busy=false);}
  }
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Plan an occasion':'Edit occasion')),
+  appBar:AppBar(title:Text(widget.existing==null?'Add new occasion':'Edit occasion')),
   body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,35),children:[
    TextField(controller:title,maxLength:160,decoration:const InputDecoration(
     labelText:'What are we celebrating?',border:OutlineInputBorder())),
@@ -398,7 +400,7 @@ class _OccasionStepEditorState extends State<OccasionStepEditor>{
    finally{if(mounted)setState(()=>busy=false);}
  }
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Add preparation step':'Edit preparation step')),
+  appBar:AppBar(title:Text(widget.existing==null?'Add new preparation step':'Edit preparation step')),
   body:ListView(padding:const EdgeInsets.all(16),children:[
    TextField(controller:title,maxLength:200,
     decoration:const InputDecoration(labelText:'What needs to happen?',border:OutlineInputBorder())),
@@ -545,7 +547,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
   return Scaffold(appBar:AppBar(title:const Text('Occasion plan'),actions:[
     if(p!=null)RecordActionHistoryButton(kind:'occasion',recordId:widget.id),
     if(p!=null)IconButton(tooltip:'Edit occasion',onPressed:editPlan,icon:const Icon(Icons.edit_outlined)),
-    if(p!=null)IconButton(tooltip:p['archived_at']==null?'Archive':'Restore',
+    if(p!=null)IconButton(tooltip:p['archived_at']==null?'Remove':'Restore',
       onPressed:busy?null:setArchived,icon:Icon(p['archived_at']==null?
        Icons.archive_outlined:Icons.restore_outlined)),
    ]),

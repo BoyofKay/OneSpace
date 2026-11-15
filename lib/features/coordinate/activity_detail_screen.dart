@@ -705,7 +705,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> _setActivityArchived(Map<String,dynamic> item,bool archive) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
       AlertDialog(
-        title:Text(archive?'Archive this Activity?':'Restore this Activity?'),
+        title:Text(archive?'Remove this Activity?':'Restore this Activity?'),
         content:Text(archive
           ?'Hide this Activity from active lists while keeping its '
            'comments, evidence, decisions, and audit trail.'
@@ -714,7 +714,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           TextButton(onPressed:()=>Navigator.pop(ctx,false),
             child:const Text('Cancel')),
           FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-            child:Text(archive?'Archive':'Restore')),
+            child:Text(archive?'Remove':'Restore')),
         ],
       ));
     if(confirmed!=true||!mounted)return;
@@ -1612,7 +1612,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 child:Text('Reopen Activity…')),
             if(!archived)
               const PopupMenuItem(value:'archive',
-                child:Text('Archive (keep history)…')),
+                child:Text('Remove…')),
             if(archived)
               const PopupMenuItem(value:'restore',
                 child:Text('Restore Activity…')),

@@ -115,9 +115,11 @@ class _NotesScreenState extends State<NotesScreen> {
     return Scaffold(
       appBar:AppBar(title:const Text('Notes'),actions:[
        RecordListTopActions(
-        showHistory:_showArchived,
+        historyKinds:const ['note'],historyTitle:'Notes',
+     showHistory:_showArchived,
         onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
         hasActiveFilters:_scope!='all',
+      onClearFilters:()=>setState((){_scope='all';}),
         filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
          mainAxisSize:MainAxisSize.min,children:[
           const Text('Visibility'),
