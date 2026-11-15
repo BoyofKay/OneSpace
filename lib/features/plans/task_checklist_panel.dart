@@ -6,13 +6,17 @@ import 'task_recurrence_rules.dart';
 import 'checklist_schedule.dart';
 import 'checklist_readout_sheet.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../calendar/holiday_calendar_service.dart';
 
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
  const TaskChecklistPanel({super.key,required this.taskId,
   required this.recurrence,required this.rule,required this.canManage,
   required this.canComplete,this.testItemsStream,this.testChecksStream,
-  this.testViewerId,this.listTitle='Checklist'});
+  this.testViewerId,this.listTitle='Checklist',this.ownerId});
+ /// R66: the person the list belongs to (their days off and holidays apply);
+ /// null = whoever is looking.
+ final String? ownerId;
  final String taskId,recurrence,listTitle;
  final Map<String,dynamic> rule;
  final bool canManage,canComplete;
@@ -28,7 +32,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  final inputScroll=ScrollController(keepScrollOffset:false);
  String? get viewerId=>widget.testViewerId??db.auth.currentUser?.id;
  Stream<List<Map<String,dynamic>>>? itemsStream,checksStream;
- bool busy=false,contextLoaded=false,dayOff=false;
+ bool busy=false,contextLoaded=false,dayOff=false,publicHoliday=false;
  List<int> workDays=const [1,2,3,4,5];
  String? error;
  String? contextDay;
@@ -42,7 +46,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
  bool get scheduled=>ChecklistSchedule.occurs(
   widget.recurrence,widget.rule,localNow,
   personalDayOff:dayOff,
-  usHoliday:ChecklistSchedule.usFederalHoliday(localNow),
+  usHoliday:publicHoliday,
   workDays:workDays);
  @override void initState(){super.initState();listen();_loadContext();_scheduleNextDay();}
  @override void didUpdateWidget(covariant TaskChecklistPanel old){
@@ -82,11 +86,12 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
    if(mounted)setState(()=>contextLoaded=true);
    return;
   }
-  final account=db.auth.currentUser?.id;
-  if(account==null)return;
+  final viewer=db.auth.currentUser?.id;
+  if(viewer==null)return;
+  final account=widget.ownerId??viewer;
   final day=currentDay;
   if(mounted)setState((){
-   contextLoaded=false;contextDay=day;dayOff=false;workDays=const [1,2,3,4,5];
+   contextLoaded=false;contextDay=day;dayOff=false;publicHoliday=false;workDays=const [1,2,3,4,5];
   });
   try{
    if(ChecklistSchedule.mode(widget.rule,widget.recurrence)=='workdays'){
@@ -94,6 +99,17 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
      .eq('id',account).maybeSingle();
     if(row?['work_days'] is List){
      workDays=(row!['work_days'] as List).whereType<num>().map((x)=>x.toInt()).toList();
+    }
+   }
+   if(widget.rule['skip_public_holidays']==true||widget.rule['skip_us_holidays']==true){
+    final row=await db.from('profiles').select('time_zone').eq('id',account).maybeSingle();
+    final country=ChecklistSchedule.countryForTimeZone(row?['time_zone']?.toString());
+    final local=localNow;
+    if(country=='US'){
+     publicHoliday=ChecklistSchedule.usFederalHoliday(local);
+    }else if(country!=null){
+     final days=await HolidayCalendarService().forYear(local.year,{country});
+     publicHoliday=days.any((h)=>h.date.year==local.year&&h.date.month==local.month&&h.date.day==local.day);
     }
    }
    if(widget.rule['skip_personal_days_off']==true){

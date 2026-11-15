@@ -34,14 +34,19 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
  bool busy=false;
  String? error;
  StreamSubscription<List<Map<String,dynamic>>>? revocationWatcher;
- bool get editing=>widget.existing!=null;
- bool get archived=>widget.existing?['archived_at']!=null;
+ /// R66: the saved note — the one opened, or the one saved quietly when
+ /// photos or links are added to a new note.
+ Map<String,dynamic>? record;
+ bool createdHere=false;
+ bool get editing=>record!=null;
+ bool get archived=>record?['archived_at']!=null;
  bool get canEdit=>widget.existing==null||ObjectPermissions.canEdit(
   visibility:widget.existing!['visibility'].toString(),
   createdBy:widget.existing!['created_by'].toString(),
   userId:db.auth.currentUser?.id??'');
  @override void initState(){
   super.initState();
+  record=widget.existing;
   final old=widget.existing;
   title=TextEditingController(text:(old?['title']??widget.initialTitle).toString());
   final raw=old?['rich_delta'];
@@ -99,16 +104,38 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
      'visibility':visibility,'created_by':db.auth.currentUser!.id,
     });
    }else{
-    final old=widget.existing!;
-    final result=await db.from('notes').update(fields)
-     .eq('id',old['id']).eq('space_id',widget.spaceId)
-     .eq('updated_at',old['updated_at']).select('id');
+    final old=record!;
+    var query=db.from('notes').update(fields)
+     .eq('id',old['id']).eq('space_id',widget.spaceId);
+    // Created a moment ago in this editor: photos may have touched it since.
+    if(!createdHere)query=query.eq('updated_at',old['updated_at']);
+    final result=await query.select('id');
     if(result.isEmpty){
      if(mounted)setState(()=>error='This note was updated elsewhere. Reopen it to avoid overwriting your partner’s work.');
      return;
     }
    }
    if(mounted)Navigator.of(context).pop();
+  }on PostgrestException catch(e){
+   if(mounted)setState(()=>error=e.message);
+  }catch(_){
+   if(mounted)setState(()=>error='Could not save your note.');
+  }finally{if(mounted)setState(()=>busy=false);}
+ }
+ /// R66: photos and links on a new note — save it quietly first.
+ Future<void> ensureSaved()async{
+  if(record!=null||busy)return;
+  final name=title.text.trim();
+  if(name.isEmpty){setState(()=>error='Add a title first, then photos and links.');return;}
+  setState((){busy=true;error=null;});
+  try{
+   final row=await db.from('notes').insert({
+    'title':name,'body':editor.document.toPlainText().trim(),
+    'rich_delta':editor.document.toDelta().toJson(),'pinned':pinned,
+    'space_id':widget.spaceId,'visibility':visibility,
+    'created_by':db.auth.currentUser!.id,
+   }).select('id,updated_at,visibility,created_by,archived_at').single();
+   if(mounted)setState((){record=row;createdHere=true;});
   }on PostgrestException catch(e){
    if(mounted)setState(()=>error=e.message);
   }catch(_){
@@ -135,7 +162,11 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    isNew:!editing,isChanged:()=>changed,isComplete:()=>isEditingAllowed&&title.text.trim().isNotEmpty,
    listenTo:[title,editor],saving:busy,onSave:save,
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
-     enabled:!editing&&!busy,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
+     enabled:!editing&&!busy,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private'),
+     extras:[FilterChip(avatar:Icon(pinned?Icons.push_pin:Icons.push_pin_outlined,size:18),
+      showCheckmark:false,label:Text(tt(pinned?'Pinned':'Pin')),selected:pinned,
+      tooltip:tt('Pin to the top'),
+      onSelected:isEditingAllowed?(v)=>setState(()=>pinned=v):null)]),
    body:SafeArea(child:ListView(
     padding:const EdgeInsetsDirectional.fromSTEB(16,14,16,36),children:[
      if(!isEditingAllowed)Text(tt('Read-only note'),
@@ -167,19 +198,19 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
      const SizedBox(height:12),
      if(editing)...[
       NotePhotosPanel(
-       noteId:widget.existing!['id'].toString(),canEdit:isEditingAllowed),
+       noteId:record!['id'].toString(),canEdit:isEditingAllowed),
       const SizedBox(height:12),
       NoteReferencesPanel(
-       noteId:widget.existing!['id'].toString(),
+       noteId:record!['id'].toString(),
        spaceId:widget.spaceId,
        noteVisibility:visibility,
        canEdit:isEditingAllowed),
-     ]else Text(tt('Save the note first, then add photos and links.'),
-      style:Theme.of(context).textTheme.bodySmall),
-     const SizedBox(height:10),
-     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Pin to the top'),
-      icon:Icons.push_pin_outlined,value:pinned,
-      onChanged:isEditingAllowed?(v)=>setState(()=>pinned=v):null)),
+     ]else Wrap(spacing:8,runSpacing:6,children:[
+      ActionChip(avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
+       label:Text(tt('Add photos')),onPressed:busy?null:ensureSaved),
+      ActionChip(avatar:const Icon(Icons.link,size:18),
+       label:Text(tt('Link an item')),onPressed:busy?null:ensureSaved),
+     ]),
      if(error!=null)Padding(padding:const EdgeInsets.all(8),
       child:Text(tt(error!),style:TextStyle(
        color:Theme.of(context).colorScheme.error))),

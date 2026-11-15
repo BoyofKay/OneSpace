@@ -1,5 +1,7 @@
 import '../../core/editor_scaffold.dart';
 import '../../core/item_menu.dart';
+import '../../core/form_kit.dart';
+import '../reminders/reminders_screen.dart';
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -63,12 +65,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? mentionSuggestion;
   int mentionOffset = -1;
   String? conversationSpaceId;
+  /// R66: for the Belongs to menu.
+  SpacePeople? people;
 
   String get me => db.auth.currentUser?.id ?? '';
 
   @override
   void initState() {
     super.initState();
+    SpacePeople.load().then((p) { if (mounted) setState(() => people = p); });
     final id = widget.id;
     activity = db.from('activities')
         .stream(primaryKey: ['id']).eq('id', id);
@@ -353,8 +358,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ('step', Icons.check_circle_outline, 'Step'),
       ('price', Icons.payments_outlined, 'Price'),
       ('spec', Icons.tune, 'Specification'),
-      ('date', Icons.event, 'Date'),
-      ('countdown', Icons.hourglass_bottom_outlined, 'Countdown'),
+      ('date', Icons.event, 'Date or countdown'),
       ('reminder', Icons.notifications_outlined, 'Remind us'),
       ('location', Icons.place_outlined, 'Map location'),
       ('contact', Icons.contact_phone_outlined, 'Contact information'),
@@ -447,6 +451,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
     String? parent,
     Map<String,dynamic>? existing,
   }) async {
+    // R66: "Remind us" creates a real reminder (with alerts) linked to this
+    // Activity; it stops on its own when the Activity is completed.
+    if (kind == 'reminder' && existing == null) {
+      try {
+        final a = await db.from('activities').select('title,visibility,space_id')
+          .eq('id', widget.id).single();
+        if (!mounted) return;
+        await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => ReminderEditorScreen(
+          spaceId: a['space_id'].toString(), initialTitle: a['title']?.toString() ?? '',
+          initialShared: a['visibility'] != 'private',
+          initialSourceKind: 'activity', initialSourceId: widget.id)));
+      } catch (_) {}
+      return;
+    }
     final draft = await showModalBottomSheet<Map<String,dynamic>>(
       context: context,
       showDragHandle: true,
@@ -977,7 +995,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final kind = item['kind'] as String? ?? 'note';
     final payload = item['payload'] as Map? ?? const {};
     final value = payload['value']?.toString() ?? '';
-    if(kind=='countdown'){
+    if(kind=='countdown'||(kind=='date'&&payload['countdown']==true)){
       return ActivityCountdownRules.summary(value,
         repeatYearly:payload['repeat_yearly']==true,now:DateTime.now());
     }
@@ -1073,7 +1091,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         fontWeight: kind == 'price' ? FontWeight.w600 : null,
                       )),
                   ],
-                  if(kind=='countdown')...[
+                  if(kind=='countdown'||(kind=='date'&&payload['countdown']==true))...[
                     const SizedBox(height:5),
                     Text(tt('Milestone: ')+(payload['value']?.toString()??''),
                       style:Theme.of(context).textTheme.labelSmall),
@@ -1540,6 +1558,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 child: Text(tt('Reopen Activity…'))),
           ],
         ),
+        if (people != null && item['visibility'] != 'private') AnchoredMenuButton<String>(
+          tooltip: tt('Belongs to'),
+          icon: Icon(item['for_user_id'] == null ? Icons.group_outlined : Icons.person_outline, size: 22),
+          onSelected: (v) => changeField(item, 'for_user_id', v.isEmpty ? null : v),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: '', child: Text(tt('Both of us'))),
+            PopupMenuItem(value: people!.me, child: Text(tt('Me'))),
+            if (people!.partnerId != null)
+              PopupMenuItem(value: people!.partnerId!, child: Text(people!.partnerName)),
+          ]),
         IconButton(tooltip: tt('Set due date'), icon: const Icon(Icons.event_outlined),
           onPressed: () => pickDueDate(item)),
         if (due != null)
@@ -1554,7 +1582,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         child: Text(
           '${priority[0].toUpperCase()}${priority.substring(1)} priority'
           ' · ${stage.replaceAll('_', ' ')}'
-          '${due == null ? '' : ' · due $due'}',
+          '${due == null ? '' : ' · due $due'}'
+          '${item['for_user_id'] == null || people == null ? '' : ' · ${item['for_user_id'] == people!.me ? tt('Me') : people!.partnerName}'}',
           style: Theme.of(context).textTheme.labelSmall,
         ),
       ),

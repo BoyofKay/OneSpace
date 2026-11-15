@@ -21,6 +21,7 @@ import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
 import '../../theme/appearance_settings_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../reminders/reminder_repeat_rules.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
 /// calculated locally without moving birthdays across timezones.
@@ -185,7 +186,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }
       final results = await Future.wait<List<Map<String, dynamic>>>([
         _client.from('space_events')
-            .select('id,space_id,created_by,title,details,event_date,kind,recurrence,visibility,archived_at,for_user_id,starts_at,ends_at,zone_id')
+            .select('id,space_id,created_by,title,details,event_date,kind,recurrence,repeat_rule,location,visibility,archived_at,for_user_id,starts_at,ends_at,zone_id')
             .eq('space_id', id).order('event_date').limit(500),
         _client.from('tasks')
             .select('id,title,target_date,status,visibility,created_by')
@@ -334,6 +335,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       original: date,
       recurrence: entry['recurrence'] as String? ?? 'none',
       selected: day,
+      rule: entry['repeat_rule'],
     );
   }
 
@@ -629,6 +631,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       original: sourceDate,
       recurrence: event['recurrence'] as String? ?? 'none',
       today: DateTime.now(),
+      rule: event['repeat_rule'],
     );
     final countdown = next == null ? '' :
         '${CalendarRules.calendarDaysUntil(DateTime.now(),next)} '
@@ -654,7 +657,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (upcoming && countdown.isNotEmpty) countdown,
               if (!upcoming && sourceDate != null)
                 CalendarRules.sqlDate(sourceDate),
-              if (event['recurrence'] == 'yearly') tr(context, 'yearly'),
+              if (event['repeat_rule'] is Map) ReminderRepeat.describe(event['repeat_rule'])
+              else if (event['recurrence'] == 'yearly') tr(context, 'yearly'),
+              if ((event['location'] ?? '').toString().isNotEmpty) event['location'].toString(),
               event['for_user_id']==null?'Both':
                 (_people[event['for_user_id']]??'Partner'),
               if(event['starts_at']!=null)

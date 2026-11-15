@@ -7,19 +7,20 @@ import 'package:onespace/l10n/phrases.dart';
 /// Bump [release] and rewrite [_items] when there is something worth telling.
 class WhatsNew {
   const WhatsNew._();
-  static const release = 'r65';
+  static const release = 'r66';
   static const _key = 'whats_new_seen_v1';
 
   static const _items = <(IconData, String, String, String, String)>[
-    (Icons.help_outline, 'Help is in Me', 'Questions and answers, Contact us and Report a technical issue now live in the Me tab.',
-      'المساعدة في «أنا»', 'الأسئلة والأجوبة و«تواصل معنا» و«الإبلاغ عن مشكلة تقنية» موجودة الآن في تبويب «أنا».'),
-    (Icons.favorite_outline, 'More little love', 'Eight new gestures — I love you, a kiss, safe travels, date night and more.',
-      'لمسات حب أكثر', 'ثماني لفتات جديدة — أحبك، قبلة، رحلة آمنة، موعدنا، والمزيد.'),
-    (Icons.palette_outlined, 'New looks', 'Five new color themes and background patterns, plus Ramadan and National Day decorations. Me → Settings → Appearance.',
-      'مظهر جديد', 'خمس سمات ألوان جديدة ونقوش للخلفية، وزينة رمضان واليوم الوطني. «أنا» ← «الإعدادات» ← «المظهر».'),
-    (Icons.translate, 'Better Arabic', 'More screens and messages now read naturally in Arabic.',
-      'عربية أفضل', 'مزيد من الشاشات والرسائل أصبحت تُقرأ بالعربية بشكل طبيعي.'),
+    (Icons.repeat, 'One way to repeat', 'Reminders, events and to-do lists now repeat the same way — daily, weekdays, chosen days, monthly, yearly, with an end date.',
+      'طريقة واحدة للتكرار', 'التذكيرات والمواعيد وقوائم المهام تتكرر بالطريقة نفسها — يوميًا، أيام العمل، أيام محددة، شهريًا، سنويًا، مع تاريخ انتهاء.'),
+    (Icons.place_outlined, 'Events: place and reminder', 'Add a location (opens in Maps) and "Remind us before" in one tap.',
+      'المواعيد: المكان والتذكير', 'أضف موقعًا (يفتح في الخرائط) و«ذكّرنا قبلها» بضغطة واحدة.'),
+    (Icons.hourglass_bottom_outlined, 'Countdowns on Activities', 'A date can show "N days remaining" on the Activity card. "Remind us" now sends real alerts.',
+      'عد تنازلي في الأنشطة', 'يمكن للتاريخ أن يعرض «متبقٍ N يومًا» على بطاقة النشاط. و«ذكّرنا» يرسل تنبيهات حقيقية الآن.'),
+    (Icons.link, 'Remind me about anything', 'A reminder can be about a list, event, note, occasion, activity or trip — pick the kind, then the item.',
+      'ذكّرني بأي شيء', 'يمكن ربط التذكير بقائمة أو موعد أو ملاحظة أو مناسبة أو نشاط أو رحلة — اختر النوع ثم العنصر.'),
   ];
+
 
   /// Shows the sheet if this release hasn't been seen on this phone. A brand-new
   /// install just records the release (nothing is "new" to a new person).

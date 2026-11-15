@@ -47,10 +47,12 @@ enum ActivityPurpose {
 /// Pure rules for the new-Activity draft, kept testable.
 class NewActivityDraft {
   const NewActivityDraft({required this.title, this.details = '',
-    this.shared = true, this.dueOn});
+    this.shared = true, this.dueOn, this.forUserId});
   final String title, details;
   final bool shared;
   final DateTime? dueOn;
+  /// R66: who it belongs to (null = both of us).
+  final String? forUserId;
 
   /// A draft becomes a record only once it has a title (no half-empty records).
   bool get canSave => title.trim().isNotEmpty;
@@ -61,6 +63,7 @@ class NewActivityDraft {
     'body': details.trim(),
     'visibility': shared ? 'shared' : 'private',
     if (dueOn != null) 'due_on': CalendarRules.sqlDate(dueOn!),
+    if (forUserId != null) 'for_user_id': forUserId,
   };
 
   /// Switching purpose replaces the outline only while the details still hold
@@ -85,7 +88,7 @@ class NewActivityScreen extends StatefulWidget {
 
 class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTracker<NewActivityScreen> {
  /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[title.text,details.text,shared,dueOn,purpose].join('|');
+ @override String get signature=>[title.text,details.text,shared,dueOn,purpose,forUserId].join('|');
 
   final db = Supabase.instance.client;
   late final title = TextEditingController(text: widget.initialTitle);
@@ -93,19 +96,23 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
   ActivityPurpose? purpose;
   bool shared = true;
   DateTime? dueOn;
+  String? forUserId;
+  SpacePeople? people;
   bool saving = false;
   String? error;
 
   @override void initState() {
     super.initState();
-    purpose = widget.initialPurpose;
+    purpose = widget.initialPurpose == ActivityPurpose.note ? null : widget.initialPurpose;
+    SpacePeople.load().then((p) { if (mounted) setState(() => people = p); });
     title.addListener(() => setState(() {}));
   }
 
   @override void dispose() { title.dispose(); details.dispose(); super.dispose(); }
 
   NewActivityDraft get draft => NewActivityDraft(title: title.text,
-      details: details.text, shared: shared, dueOn: dueOn);
+      details: details.text, shared: shared, dueOn: dueOn,
+      forUserId: shared ? forUserId : null);
 
   Future<void> _save() async {
     if (!draft.canSave || saving) return;
@@ -131,10 +138,11 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
   @override Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return EditorScaffold(title:tt('Start activity'),
-   isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,
+   isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,saveLabel:'Next',
    listenTo:[title,details],saving:saving,onSave:_save,
-   meta:MetaStrip(value:MetaValues(shared:shared,date:dueOn),showBelongs:false,dateLabel:tt('Due date'),
-    enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;})),
+   meta:MetaStrip(value:MetaValues(shared:shared,belongsTo:forUserId,date:dueOn),people:people,
+    showBelongs:people!=null,dateLabel:tt('Due date'),
+    enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;forUserId=v.belongsTo;})),
    body: SafeArea(child: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 24),
         children: [
@@ -151,25 +159,12 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
           Text(tt('What is it for?'), style: theme.textTheme.labelLarge),
           const SizedBox(height: 6),
           Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final p in ActivityPurpose.values) ChoiceChip(
+            for (final p in ActivityPurpose.values) if (p != ActivityPurpose.note) ChoiceChip(
               avatar: Icon(p.icon, size: 18),
               label: Text(tt(p.label)),
               selected: purpose == p,
               onSelected: (_) => setState(() => purpose = purpose == p ? null : p)),
           ]),
-          if (purpose != null && purpose!.steps.isNotEmpty) Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Card(elevation: 0, color: theme.colorScheme.surfaceContainerHighest,
-              child: Padding(padding: const EdgeInsets.all(12), child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(tt('Starts with these steps'), style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 4),
-                  for (final step in purpose!.steps) Row(children: [
-                    const Icon(Icons.radio_button_unchecked, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(tt(step))),
-                  ]),
-                ])))),
           const SizedBox(height: 14),
           TextField(
             controller: details,

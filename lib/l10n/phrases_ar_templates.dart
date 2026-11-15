@@ -2,6 +2,7 @@
 // "Your space with Kay"). `{}` matches any text; the matched parts are put
 // into the Arabic in the same order (and translated too when they are a known phrase).
 const Map<String, String> arTemplates = {
+  '{} days remaining': 'متبقٍ {} يومًا',
   'Every {} days': 'كل {} أيام',
   'Every {} weeks': 'كل {} أسابيع',
   'Every {} months': 'كل {} أشهر',

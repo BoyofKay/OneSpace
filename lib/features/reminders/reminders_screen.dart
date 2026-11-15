@@ -1,4 +1,5 @@
 import '../../core/form_kit.dart';
+import '../../core/repeat_control.dart';
 import '../../core/item_menu.dart';
 import '../../core/status_look.dart';
 import '../../core/editor_scaffold.dart';
@@ -443,7 +444,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
 class ReminderEditorScreen extends StatefulWidget{
  const ReminderEditorScreen({super.key,required this.spaceId,this.existing,
   this.initialTitle='',this.initialDetails='',this.initialDue,this.initialShared=false,
-  this.onCreated});
+  this.onCreated,this.initialSourceKind,this.initialSourceId});
+ /// R66: pre-linked source (e.g. "Remind us" in an Activity).
+ final String? initialSourceKind,initialSourceId;
  final String spaceId;
  final Map<String,dynamic>? existing;
  /// R52: pre-filled from shared content ("Items to sort").
@@ -464,6 +467,14 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
  late DateTime due;
  late String visibility,audience;
  String? sourceKind,sourceId,error;
+ /// R66: "About an item" is picked in two steps — the kind, then the item.
+ String? linkType;
+ static const linkKinds=['task','calendar','note','occasion','activity','trip'];
+ static const linkLabels={'task':'To-do lists','calendar':'Events','note':'Notes',
+  'occasion':'Occasions','activity':'Activities','trip':'Trips'};
+ static const linkIcons={'task':Icons.checklist,'calendar':Icons.event_outlined,
+  'note':Icons.sticky_note_2_outlined,'occasion':Icons.celebration_outlined,
+  'activity':Icons.lightbulb_outline,'trip':Icons.flight_takeoff};
  bool saving=false,loadingLinks=true,urgent=false;
  List<Map<String,dynamic>> links=[];
  ReminderRepeat repeat=const ReminderRepeat();
@@ -489,8 +500,9 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    ??widget.initialDue??DateTime.now().add(const Duration(hours:1));
   visibility=prior?['visibility']?.toString()??(widget.initialShared?'shared':'private');
   audience=prior?['audience']?.toString()??(widget.initialShared?'both':'me');
-  sourceKind=prior?['source_kind']?.toString();
-  sourceId=prior?['source_id']?.toString();
+  sourceKind=prior?['source_kind']?.toString()??widget.initialSourceKind;
+  linkType=sourceKind;
+  sourceId=prior?['source_id']?.toString()??widget.initialSourceId;
   repeat=ReminderRepeat.fromRule(prior?['repeat_rule'],start:due);
   urgent=prior?['urgent']==true;
   loadLinks();
@@ -543,85 +555,28 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   }
   setState(()=>repeat=repeat.copyWith(extraTimes:[...repeat.extraTimes,value]..sort()));
  }
- Future<void> pickUntil()async{
-  final picked=await showDatePicker(context:context,
-   initialDate:repeat.until??due.add(const Duration(days:30)),
-   firstDate:due,lastDate:DateTime(2100));
-  if(picked==null||!mounted)return;
-  setState(()=>repeat=repeat.copyWith(until:picked));
- }
- Widget repeatSection(){
-  final interval=repeat.interval;
-  final unit=repeat.preset=='daily'?'day':repeat.preset=='weekly'?'week':
-   repeat.preset=='monthly'?'month':'year';
-  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   ChoiceRow<String>(label:tt('Repeat'),
-    options:{for(final p in ReminderRepeat.presets)p:switch(p){
-     'none'=>'Once','daily'=>'Daily','weekdays'=>'Weekdays',
-     'weekly'=>'Weekly','monthly'=>'Monthly',_=>'Yearly'}},
-    selected:repeat.preset,
-    onSelected:(v){if(!saving)setState((){
-     repeat=repeat.copyWith(preset:v??'none',interval:1,
-      weekdays:v=='weekly'?{due.weekday}:null);
-    });}),
-   if(repeat.repeats&&repeat.preset!='weekdays')Row(children:[
-    Text(tt('Every')),
-    IconButton(onPressed:interval>1?()=>setState(()=>
-      repeat=repeat.copyWith(interval:interval-1)):null,
-     icon:const Icon(Icons.remove_circle_outline),tooltip:tt('Less often')),
-    Text(tt(interval.toString()),style:const TextStyle(fontWeight:FontWeight.bold)),
-    IconButton(onPressed:interval<99?()=>setState(()=>
-      repeat=repeat.copyWith(interval:interval+1)):null,
-     icon:const Icon(Icons.add_circle_outline),tooltip:tt('More apart')),
-    Text(tt(interval==1?unit:unit+'s')),
-   ]),
-   if(repeat.preset=='weekly')Wrap(spacing:6,children:[
-    for(var d=1;d<=7;d++)FilterChip(
-     label:Text(tt(ReminderRepeat.dayShort[d-1])),
-     selected:repeat.weekdays.contains(d),
-     onSelected:(on)=>setState((){
-      final next={...repeat.weekdays};
-      if(on){next.add(d);}else if(next.length>1){next.remove(d);}
-      repeat=repeat.copyWith(weekdays:next);
-     })),
-   ]),
-   if(repeat.repeats)...[
-    const SizedBox(height:8),
-    Text(tt('Times of day')),
-    Wrap(spacing:6,runSpacing:4,children:[
-     Chip(label:Text(tt(ReminderRepeat.clock(ReminderRepeat.hhmm(due.hour,due.minute))))),
-     for(final t in repeat.extraTimes)InputChip(
-      label:Text(tt(ReminderRepeat.clock(t))),
-      onDeleted:()=>setState(()=>repeat=repeat.copyWith(
-       extraTimes:repeat.extraTimes.where((x)=>x!=t).toList()))),
-     ActionChip(avatar:const Icon(Icons.add,size:18),
-      label:Text(tt('Add another time')),onPressed:saving?null:addTime),
-    ]),
-    const SizedBox(height:6),
-    Wrap(crossAxisAlignment:WrapCrossAlignment.center,spacing:8,children:[
-     Text(tt('Ends')),
-     ChoiceChip(label:Text(tt('Never')),selected:repeat.until==null,
-      onSelected:(_)=>setState(()=>repeat=repeat.copyWith(clearUntil:true))),
-     ChoiceChip(label:Text(tt(repeat.until==null?'On a date':
-       'On '+CalendarRules.sqlDate(repeat.until!))),
-      selected:repeat.until!=null,onSelected:(_)=>pickUntil()),
-    ]),
-    const SizedBox(height:4),
-    Text(tt('Times follow this phone’s time zone (')+myZone+'), even when the clocks change.',
-     style:Theme.of(context).textTheme.bodySmall),
-   ],
-  ]);
- }
+ Widget repeatSection()=>RepeatControl(value:repeat,start:due,enabled:!saving,
+  showTimes:true,onAddTime:addTime,
+  footnote:tt('Times follow this phone’s time zone (')+myZone+'), even when the clocks change.',
+  onChanged:(r)=>setState(()=>repeat=r));
  @override void dispose(){title.dispose();details.dispose();super.dispose();}
  Future<void> loadLinks()async{
   try{
    final lists=await Future.wait([
     db.from('tasks').select('id,title,visibility')
-     .eq('space_id',widget.spaceId).isFilter('migrated_to_list',null).limit(100),
+     .eq('space_id',widget.spaceId).isFilter('migrated_to_list',null).eq('status','open').limit(100),
     db.from('space_events').select('id,title,visibility')
+     .eq('space_id',widget.spaceId).isFilter('archived_at',null).limit(100),
+    db.from('notes').select('id,title,visibility')
      .eq('space_id',widget.spaceId).isFilter('archived_at',null).limit(100),
     db.from('occasion_plans').select('id,title,visibility')
      .eq('space_id',widget.spaceId).isFilter('archived_at',null).limit(100),
+    db.from('activities').select('id,title,visibility')
+     .eq('space_id',widget.spaceId).isFilter('archived_at',null)
+     .not('stage','in','(completed,cancelled)').limit(100),
+    db.from('shared_trips').select('id,title,visibility')
+     .eq('space_id',widget.spaceId).isFilter('archived_at',null)
+     .not('status','in','(completed,cancelled)').limit(100),
    ]);
    if(!mounted)return;
    setState((){
@@ -629,7 +584,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
      for(var i=0;i<lists.length;i++)
       for(final row in lists[i]){
        'id':row['id'],'title':row['title'],'visibility':row['visibility'],
-       'kind':['task','calendar','occasion'][i],
+       'kind':linkKinds[i],
       },
     ];loadingLinks=false;
    });
@@ -695,8 +650,9 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    item['visibility']=='shared').toList();
   final options={
    for(final item in eligible)
+    if(linkType==null||item['kind']==linkType)
     item['kind'].toString()+':'+item['id'].toString():
-      item['title'].toString()+' · '+(item['kind']=='task'?'To-do list':item['kind']=='calendar'?tt('Calendar'):tt('Occasion')),
+      item['title'].toString(),
   };
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
@@ -743,8 +699,13 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
       enabled:!saving)),
     const SizedBox(height:10),
     if(loadingLinks)const LinearProgressIndicator(),
-    if(!editing)ChoicePickerField<String>(label:tt('About an item (optional)'),
-     icon:Icons.link,noneLabel:tt('Not linked'),options:options,
+    if(!editing)ChoiceRow<String>(label:tt('About an item (optional)'),
+     options:{for(final k in linkKinds)k:linkLabels[k]!},icons:linkIcons,
+     selected:linkType,allowNone:true,
+     onSelected:(v)=>setState((){linkType=v;
+      if(sourceKind!=v){sourceKind=null;sourceId=null;}})),
+    if(!editing&&linkType!=null)ChoicePickerField<String>(label:tt(linkLabels[linkType]!),
+     icon:linkIcons[linkType]!,noneLabel:tt('Choose one'),options:options,
      selected:selected!=null&&options.containsKey(selected)?selected:null,
      onSelected:(v)=>setState((){
       if(v==null){sourceKind=null;sourceId=null;}

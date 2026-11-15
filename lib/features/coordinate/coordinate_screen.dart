@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
@@ -10,6 +11,7 @@ import 'activity_detail_screen.dart';
 import 'new_activity_screen.dart';
 import 'coordinate_activity_filters.dart';
 import 'package:onespace/l10n/phrases.dart';
+import 'activity_countdown_rules.dart';
 
 // Keep navigation imports from Remember and other existing features working.
 export 'activity_detail_screen.dart' show ActivityScreen;
@@ -39,7 +41,30 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
     load();
   }
 
+  /// R66: "N days remaining" per Activity, from its countdown dates.
+  Map<String, int> countdowns = const {};
+
+  Future<void> _loadCountdowns() async {
+    try {
+      final rows = await db.from('activity_components').select('activity_id,kind,payload')
+        .inFilter('kind', ['countdown', 'date']).isFilter('archived_at', null).limit(500);
+      final now = DateTime.now();
+      final map = <String, int>{};
+      for (final r in rows) {
+        final p = r['payload'] is Map ? r['payload'] as Map : const {};
+        if (r['kind'] == 'date' && p['countdown'] != true) continue;
+        final days = ActivityCountdownRules.remaining(p['value']?.toString(),
+          repeatYearly: p['repeat_yearly'] == true, now: now);
+        if (days == null || days < 0) continue;
+        final id = r['activity_id'].toString();
+        if (!map.containsKey(id) || days < map[id]!) map[id] = days;
+      }
+      if (mounted) setState(() => countdowns = map);
+    } catch (_) {}
+  }
+
   Future<void> load() async {
+    unawaited(_loadCountdowns());
     try {
       final id = await CurrentSpaceCache.instance.get();
       if (!mounted) return;
@@ -115,6 +140,17 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
                 child: Text(tt(body), maxLines: 2,
                     overflow: TextOverflow.ellipsis),
               ),
+            if (!archived && countdowns[item['id']?.toString()] != null) Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Row(children: [
+                Icon(Icons.hourglass_bottom_outlined, size: 15, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(tt(countdowns[item['id'].toString()] == 0 ? 'Today is the day!'
+                    : countdowns[item['id'].toString()] == 1 ? '1 day remaining'
+                    : '${countdowns[item['id'].toString()]} days remaining'),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
+              ])),
             const SizedBox(height: 5),
             Text(
               '${archived ? 'Removed · ' : ''}'

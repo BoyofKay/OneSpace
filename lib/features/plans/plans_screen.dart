@@ -490,7 +490,7 @@ class _PlansScreenState extends State<PlansScreen> {
          onOpen:()=>_taskEditor(existing:task)),
        childrenPadding:const EdgeInsetsDirectional.fromSTEB(15,2,15,14),
        children:[
-        if(_expandedLists.contains(task.id)) TaskChecklistPanel(
+        if(_expandedLists.contains(task.id)) TaskChecklistPanel(ownerId:task.assignedTo,
          key:ValueKey(task.id),taskId:task.id,listTitle:task.title,
          recurrence:task.recurrence,
          rule:task.rule,
