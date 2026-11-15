@@ -248,7 +248,6 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
            if(isOpen){expanded.remove(key);}else{expanded.add(key);}
          }),
          trailing:ItemMenu(kind:'contact',recordId:item.id,title:item.label,
-           readAloud:[item.label,item.contact.person,item.contact.phone,item.contact.address].where((x)=>x.isNotEmpty).join('. '),
            onOpen:deleted?null:()=>edit(item),
            moreActions:[
              if(!deleted)ItemMenuAction('Save to phone',Icons.contact_phone_outlined,()=>saveToPhone(item)),

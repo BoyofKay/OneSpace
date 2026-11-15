@@ -211,7 +211,6 @@ class _NotesScreenState extends State<NotesScreen> {
                           maxLines: 2, overflow: TextOverflow.ellipsis,
                         ),
                         trailing: ItemMenu(kind: 'note', recordId: note['id'].toString(),
-                          readAloud: '${note['title'] ?? ''}. ${note['body'] ?? ''}',
                           title: note['title']?.toString(),
                           onOpen: () => _openEditor(note: note), openLabel: canEdit ? 'Edit' : 'Open',
                           table: canEdit ? 'notes' : null, removed: archived, onChanged: _load),

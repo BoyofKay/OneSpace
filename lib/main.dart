@@ -1,6 +1,9 @@
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
+import 'core/voice.dart';
 import 'core/voice_assistant.dart';
+import 'features/coordinate/coordinate_hub.dart';
+import 'features/profile/me_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
@@ -22,7 +25,6 @@ import 'features/world/saved_contact_editor.dart';
 import 'core/current_space_cache.dart';
 import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
-import 'features/coordinate/coordinate_screen.dart';
 import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
 import 'core/secure_auth_storage.dart';
@@ -34,7 +36,6 @@ import 'features/memories/memories_screen.dart';
 import 'features/checkins/checkins_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
-import 'features/settings/onespace_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
 import 'l10n/onespace_locale_controller.dart';
 import 'l10n/onespace_strings.dart';
@@ -255,6 +256,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
   final BackExitPolicy _exitPolicy=BackExitPolicy();
   static const _incomingShares=MethodChannel('onespace/incoming_share');
   bool _handlingIncomingShare=false;
+  final _coordinate=GlobalKey<CoordinateHubState>();
 
   @override void initState(){
     super.initState();
@@ -264,6 +266,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     WidgetsBinding.instance.addPostFrameCallback((_){
       if(mounted)_takeIncomingShare();
       if(mounted)_checkPendingDeletion();
+      // R61: "Voice command" from a long-press on the app icon.
+      Voice.init((){if(mounted)VoiceAssistant.start(context,goToday:()=>navigate(0));});
     });
   }
 
@@ -396,16 +400,16 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           onOpenCheckins:()=>open(const CheckinsScreen()),
           onOpenLetters:()=>open(const CoupleLettersScreen()),
           onOpenCoordinate:()=>navigate(2),
-          onOpenWorld:()=>navigate(4),
-          onOpenProfile:()=>setState(() => showProfile = true),
+          onOpenWorld:(){navigate(2);WidgetsBinding.instance.addPostFrameCallback((_)=>_coordinate.currentState?.show(1));},
+          onOpenProfile:()=>navigate(4),
         ),
         if(visited.contains(1)) RememberScreen(refreshToken:refreshToken)
           else const SizedBox.shrink(),
-        if(visited.contains(2))const CoordinateScreen()
+        if(visited.contains(2))CoordinateHub(key:_coordinate)
           else const SizedBox.shrink(),
         if(visited.contains(3))const SectionHub(section:'connect')
           else const SizedBox.shrink(),
-        if(visited.contains(4))const SectionHub(section:'world')
+        if(visited.contains(4))const MeScreen()
           else const SizedBox.shrink(),
         if(showProfile)const ProfileSettingsScreen()
           else const SizedBox.shrink(),
@@ -426,7 +430,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           tooltip: tr(context, 'backHome'),
         ) : null,
         title:Row(mainAxisSize:MainAxisSize.min,children:[
-          Image.asset('assets/branding/mark.png',width:34,height:34,excludeFromSemantics:true),
+          Image.asset('assets/branding/mark.png',width:30,height:30,excludeFromSemantics:true),
           const SizedBox(width:10),
           Flexible(child:Column(
           mainAxisSize:MainAxisSize.min,
@@ -442,41 +446,25 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         ]),
         actions:[
           // R60: voice commands ("Remind me…", "What's on today?", "Open notes").
-          IconButton(tooltip:'Voice command',icon:const Icon(Icons.mic_none_rounded),
+          IconButton(tooltip:'Voice command',visualDensity:VisualDensity.compact,icon:const Icon(Icons.mic_none_rounded),
             onPressed:()=>VoiceAssistant.start(context,goToday:()=>navigate(0))),
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(
             tooltip:'More options',
             icon:const Icon(Icons.more_vert),
             onSelected:(choice){
-              if(choice=='settings')open(const OneSpaceSettingsScreen());
               if(choice=='search')open(const GlobalSearchScreen());
               if(choice=='sort')open(const ItemsToSortScreen());
-              if(choice=='language')open(Scaffold(
-                appBar:AppBar(title:const Text('Language')),
-                body:const SafeArea(child:ProfileSettingsScreen(
-                  settingsOnly:true,section:'language'))));
             },
             itemBuilder:(_)=>const [
-              PopupMenuItem(value:'settings',child:ListTile(
-                leading:Icon(Icons.settings_outlined),
-                title:Text('Settings'))),
-              PopupMenuItem(value:'sort',child:ListTile(
-                leading:Icon(Icons.inbox_outlined),
-                title:Text('Items to sort'))),
               PopupMenuItem(value:'search',child:ListTile(
                 leading:Icon(Icons.search_outlined),
                 title:Text('Search our space'))),
-              PopupMenuItem(value:'language',child:ListTile(
-                leading:Icon(Icons.translate),
-                title:Text('Language'))),
+              PopupMenuItem(value:'sort',child:ListTile(
+                leading:Icon(Icons.inbox_outlined),
+                title:Text('Items to sort'))),
             ],
           ),
-          if(!showProfile)IconButton(
-            key:const Key('profileTopBarButton'),
-            icon:const Icon(Icons.account_circle_outlined,size:28),
-            tooltip:tr(context,'profile'),
-            onPressed:()=>setState(()=>showProfile=true)),
         ],
       ),
       body:SafeArea(child:wide&&!showProfile?
@@ -495,8 +483,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
            selectedIcon:const Icon(Icons.hub),label:Text(tr(context,'coordinateTab'))),
           NavigationRailDestination(icon:const Icon(Icons.favorite_border),
            selectedIcon:const Icon(Icons.favorite),label:Text(tr(context,'connectTab'))),
-          NavigationRailDestination(icon:const Icon(Icons.public_outlined),
-           selectedIcon:const Icon(Icons.public),label:Text(tr(context,'worldTab'))),
+          NavigationRailDestination(icon:const Icon(Icons.person_outline),
+           selectedIcon:const Icon(Icons.person),label:Text(tr(context,'meTab'))),
          ],
         ),
         VerticalDivider(width:1,color:Theme.of(context).colorScheme.outlineVariant),
@@ -518,8 +506,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             selectedIcon:const Icon(Icons.hub),label:tr(context,'coordinateTab')),
           NavigationDestination(icon:const Icon(Icons.favorite_border),
             selectedIcon:const Icon(Icons.favorite),label:tr(context,'connectTab')),
-          NavigationDestination(icon:const Icon(Icons.public_outlined),
-            selectedIcon:const Icon(Icons.public),label:tr(context,'worldTab')),
+          NavigationDestination(icon:const Icon(Icons.person_outline),
+            selectedIcon:const Icon(Icons.person),label:tr(context,'meTab')),
         ],
       ),
     ));

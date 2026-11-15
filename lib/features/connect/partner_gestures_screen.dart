@@ -511,3 +511,13 @@ class _GestureEditorPageState extends State<GestureEditorPage> with FormChangeTr
       onSelected:(v){if(v!=null)setState(()=>kind=v);}),
   ]));
 }
+
+/// R61: a message for [kind] (used when a gesture is sent by voice).
+String? gestureMessageFor(String kind) {
+  final o = _options.where((x) => x.id == kind).firstOrNull;
+  if (o == null || o.messages.isEmpty) return null;
+  return o.messages[Random().nextInt(o.messages.length)];
+}
+
+/// R61: the gesture's title ("Send a hug").
+String? gestureTitleFor(String kind) => _options.where((x) => x.id == kind).firstOrNull?.title;

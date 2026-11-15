@@ -219,11 +219,6 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
         const SizedBox(width:5),
         Expanded(child:Text(items.isEmpty?'No items yet':'$done of ${items.length} done',
          style:Theme.of(context).textTheme.titleSmall)),
-        IconButton(
-         tooltip:'Listen to checklist',
-         icon:const Icon(Icons.record_voice_over_outlined),
-         onPressed:items.isEmpty?null:()=>readAloud(items,checkMap),
-        ),
         if(widget.recurrence!='none')Chip(
          avatar:const Icon(Icons.repeat,size:15),
          label:Text(ChecklistSchedule.mode(widget.rule,widget.recurrence).replaceAll('_',' '))),

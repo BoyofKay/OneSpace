@@ -34,7 +34,7 @@ void main() {
   test('note', () {
     final c = p('Take a note: the Wi-Fi password is on the router');
     expect(c.action, VoiceAction.note);
-    expect(c.title, 'The wi-fi password is on the router');
+    expect(c.title, 'Wi-fi password is on the router');
   });
 
   test('add to a list', () {

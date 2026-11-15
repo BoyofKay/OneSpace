@@ -262,7 +262,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           if (body.isNotEmpty) body.replaceAll('\n',' '),
                         ].join(' • '), maxLines: 3, overflow: TextOverflow.ellipsis),
                         trailing: ItemMenu(kind: 'memory', recordId: memory['id'].toString(),
-                          readAloud: '${memory['title'] ?? ''}. ${memory['body'] ?? ''}',
                           title: memory['title']?.toString(),
                           onOpen: () => _edit(existing: memory), openLabel: editable ? 'Edit' : 'Open',
                           table: editable ? 'memories' : null,
