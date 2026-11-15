@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import 'selfie_studio_screen.dart';
 import '../../core/editor_scaffold.dart';
@@ -8,7 +9,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
-import '../../core/record_action_history_view.dart';
 import '../../core/performance_timings.dart';
 import '../../l10n/onespace_strings.dart';
 import '../calendar/calendar_rules.dart';
@@ -365,14 +365,6 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
-    final date = await showDatePicker(
-      context: context, initialDate: _date,
-      firstDate: DateTime(1900), lastDate: DateTime(2100,12,31),
-    );
-    if (mounted && date != null) setState(() => _date = date);
-  }
-
   Future<void> _save() async {
     if (_busy || !_editable || _archived) return;
     final title = _title.text.trim();
@@ -418,140 +410,64 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     }
   }
 
-  Future<void> _toggleArchive() async {
-    if (!_editable || !_editing || _busy) return;
-    if (!_archived) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(tr(context,'archiveMemory')),
-          content: Text(tr(context,'archiveExplanation')),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext,false),
-              child: Text(tr(context,'cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext,true),
-              child: Text(tr(context,'archive')),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-    }
-    setState(() => _busy = true);
-    try {
-      final result = await _client.from('memories').update({
-        'archived_at': _archived ? null : DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', widget.existing!['id'] as String)
-        .eq('updated_at', widget.existing!['updated_at'] as String)
-        .select('id');
-      if (result.isEmpty) {
-        if (mounted) setState(() => _error = tr(context,'noteConflict'));
-        return;
-      }
-      if (mounted) Navigator.of(context).pop(true);
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = tr(context,'saveFailed'));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   @override
-  Widget build(BuildContext context) => EditorScaffold(title:tr(context,_editing?'editMemory':'newMemory'),
+  Widget build(BuildContext context) => EditorScaffold(
+   title:_editing?'Edit memory':'New story',
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body],saving:_busy,onSave:_save,
-   actions:[if(_editing)RecordActionHistoryButton(
-       kind:'memory',recordId:widget.existing!['id'].toString())],
+   meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),showBelongs:false,showDate:false,
+     enabled:!_editing&&!_busy,onChanged:(v)=>setState(()=>_visibility=v.shared?'shared':'private')),
    body: SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         children: [
-          if (!_editable) Text(tr(context,'viewOnly')),
-          if (_archived) Text(tr(context,'archived')),
+          if (!_editable) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(tr(context,'viewOnly'))),
+          if (_archived) Padding(padding: const EdgeInsets.only(bottom: 10),
+            child: Text('Removed · restore it from the ⋮ menu', style: Theme.of(context).textTheme.bodySmall)),
           TextField(
-            controller: _title, maxLength: 120, readOnly: !_editable,
+            controller: _title, maxLength: 120, readOnly: !_editable, autofocus: !_editing,
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: requiredLabel(tr(context,'memoryTitle')),
-              border: const OutlineInputBorder(),
+            decoration: const InputDecoration(
+              labelText: 'Give it a title *',
+              hintText: 'Our first winter walk…',
+              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: !_editable || _busy ? null : _selectDate,
-            icon: const Icon(Icons.calendar_today_outlined),
-            label: Text(CalendarRules.sqlDate(_date)),
-          ),
-          const SizedBox(height: 12),
+          DateField(label: 'When did it happen?', required: true, value: _date,
+            first: DateTime(1950), last: DateTime.now(),
+            onChanged: (v) { if (v != null && _editable && !_busy) setState(() => _date = v); }),
           TextField(
             controller: _body,
             readOnly: !_editable,
-            maxLines: 9, minLines: 4, maxLength: 20000,
+            maxLines: 14, minLines: 6, maxLength: 20000,
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: tr(context,'memoryStory'),
-              border: const OutlineInputBorder(), alignLabelWithHint: true,
+            decoration: const InputDecoration(
+              labelText: 'The story',
+              hintText: 'What happened, how it felt, what you want to remember…',
+              border: OutlineInputBorder(), alignLabelWithHint: true,
             ),
           ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(initialValue:_memoryType,
-           decoration:const InputDecoration(labelText:'Memory type',border:OutlineInputBorder()),
-           items:const [
-            DropdownMenuItem(value:'story',child:Text('Story / journal')),
-            DropdownMenuItem(value:'daily_selfie',child:Text('Daily selfie')),
-            DropdownMenuItem(value:'collage',child:Text('Photo collage')),
-           ],onChanged:!_editable||_busy?null:(v)=>setState(()=>_memoryType=v??_memoryType)),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(initialValue:_photoLayout,
-           decoration:const InputDecoration(labelText:'Photo layout',border:OutlineInputBorder()),
-           items:const [
-            DropdownMenuItem(value:'grid',child:Text('Photo grid')),
-            DropdownMenuItem(value:'feature',child:Text('One large, others below')),
-            DropdownMenuItem(value:'polaroid',child:Text('Polaroid-style collage')),
-            DropdownMenuItem(value:'overlap',child:Text('Overlapping photo stack')),
-           ],onChanged:!_editable||_busy?null:(v)=>setState(()=>_photoLayout=v??_photoLayout)),
-          const SizedBox(height: 8),
-          Text(tr(context,'visibility')),
-          Wrap(spacing: 8,children: ['shared','private'].map((v) =>
-            ChoiceChip(
-              label: Text(tr(context,v)),
-              selected: _visibility == v,
-              onSelected: _editing || _busy ? null :
-                  (_) => setState(() => _visibility = v),
-            )).toList()),
-          Text(tr(context,_editing?'privacyAlreadyFixed':'privacyFixed'),
-            style: Theme.of(context).textTheme.bodySmall),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(tr(context,'pinNote')),
-            value: _pinned,
-            onChanged: !_editable || _busy ? null
-              : (value) => setState(() => _pinned = value),
-          ),
-          if(_editing&&_visibility=='shared')const Padding(
-           padding:EdgeInsets.symmetric(vertical:6),
-           child:Text('This shared memory is collaborative: both partners can add photos, captions and tags.')),
+          Align(alignment: Alignment.centerLeft, child: OptionChip(label: 'Pin to the top',
+            icon: Icons.push_pin_outlined, value: _pinned,
+            onChanged: !_editable || _busy ? null : (v) => setState(() => _pinned = v))),
+          const FormSection('Photos'),
+          ChoiceRow<String>(label: 'Layout', options: const {
+              'grid': 'Grid', 'feature': 'One large', 'polaroid': 'Polaroids', 'overlap': 'Stack'},
+            icons: const {'grid': Icons.grid_view, 'feature': Icons.view_agenda_outlined,
+              'polaroid': Icons.photo_outlined, 'overlap': Icons.layers_outlined},
+            selected: _photoLayout,
+            onSelected: (v) { if (_editable && !_busy && v != null) setState(() => _photoLayout = v); }),
           if(_editing&&!_archived)MemoryPhotoGallery(
            memoryId:widget.existing!['id'].toString(),
-           editable:_editable,layout:_photoLayout),
-          if(!_editing)const Padding(padding:EdgeInsets.only(top:12),
-           child:Text('Save this memory first, then reopen it to attach photos.')),
-          if (_error != null) Text(_error!,
-            style: TextStyle(color:Theme.of(context).colorScheme.error)),
-          const SizedBox(height: 16),
-          if (_editing && _editable) ...[
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: _busy ? null : _toggleArchive,
-              icon: const Icon(Icons.archive_outlined),
-              label: Text(tr(context,_archived?'restore':'archive')),
-            ),
-          ],
+           editable:_editable,layout:_photoLayout)
+          else if(!_editing)Text('Save the story first, then add photos to it.',
+           style: Theme.of(context).textTheme.bodySmall),
+          if(_editing&&_visibility=='shared')Padding(
+           padding:const EdgeInsets.symmetric(vertical:6),
+           child:Text('Shared memories are written together: both of you can add photos, captions and tags.',
+            style: Theme.of(context).textTheme.bodySmall)),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_error!,
+            style: TextStyle(color:Theme.of(context).colorScheme.error))),
         ],
       ),
     ),
