@@ -252,7 +252,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               alignLabelWithHint: true,
             ),
           ),
-          if (_visibility == 'shared') Align(alignment: Alignment.centerLeft,
+          if (_visibility == 'shared') Align(alignment: AlignmentDirectional.centerStart,
             child: PartnerMentionButton(spaceId:widget.spaceId,controller:_details,enabled:_canEdit)),
           if (_editing) Text(tt('Who can see it was set when it was created.'),
             style: Theme.of(context).textTheme.bodySmall),

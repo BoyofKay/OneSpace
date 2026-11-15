@@ -334,11 +334,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
      onOpen:r['created_by']==me?()=>editor(existing:r):null,
      removed:r['archived_at']!=null,
      onRemove:r['created_by']==me?()=>archive(r):null),
-   childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
+   childrenPadding:const EdgeInsetsDirectional.fromSTEB(16,0,16,14),
    children:[
     LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
     if((r['details']??'').toString().isNotEmpty)
-     Align(alignment:Alignment.centerLeft,
+     Align(alignment:AlignmentDirectional.centerStart,
       child:Padding(padding:const EdgeInsets.symmetric(vertical:8),
        child:Text(tt(r['details'].toString())))),
     for(final x in rows)ListTile(
@@ -358,7 +358,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
      ].join('\n'))),
     ),
     if(r['source_kind']!=null||r['reminder_intent']=='love_gesture')
-     Align(alignment:Alignment.centerLeft,
+     Align(alignment:AlignmentDirectional.centerStart,
       child:TextButton.icon(onPressed:()=>linked(r),
        icon:const Icon(Icons.link),
        label:Text(tt(r['reminder_intent']=='love_gesture'
@@ -410,7 +410,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     label:Text(tt('Add reminder'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,16,16,95),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,16,16,95),children:[
      Text(tt('Remember what matters'),
       style:TextStyle(fontSize:24,fontWeight:FontWeight.bold)),
      const SizedBox(height:6),
@@ -728,7 +728,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
     const SizedBox(height:6),
     if(visibility=='shared'&&audience!='me')Padding(
      padding:const EdgeInsets.only(bottom:14),
-     child:Align(alignment:Alignment.centerLeft,child:OptionChip(
+     child:Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(
       label:tt('Urgent'),icon:Icons.priority_high,value:urgent,
       help:tt('Alerts even during your partner\'s sleep hours. Without it, alerts wait until they wake up.'),
       onChanged:saving?null:(v)=>setState(()=>urgent=v)))),
@@ -737,7 +737,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
      decoration:InputDecoration(labelText:tt('Details / instructions'),
       border:OutlineInputBorder())),
     if(visibility=='shared')Align(
-     alignment:Alignment.centerLeft,
+     alignment:AlignmentDirectional.centerStart,
      child:PartnerMentionButton(
       spaceId:widget.spaceId,controller:details,
       enabled:!saving)),

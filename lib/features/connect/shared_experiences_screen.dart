@@ -71,7 +71,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     final scheme=Theme.of(ctx).colorScheme;
     return Dialog(
      shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(22)),
-     child:Padding(padding:const EdgeInsets.fromLTRB(20,10,10,18),child:Column(
+     child:Padding(padding:const EdgeInsetsDirectional.fromSTEB(20,10,10,18),child:Column(
       mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
        Row(children:[
         Icon(Icons.auto_awesome,color:scheme.primary),
@@ -81,7 +81,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         IconButton(tooltip:tt('Close'),icon:const Icon(Icons.close),
          onPressed:()=>Navigator.pop(ctx)),
        ]),
-       Padding(padding:const EdgeInsets.only(right:10),child:Column(
+       Padding(padding:const EdgeInsetsDirectional.only(end:10),child:Column(
         crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text(tt(mutual.isNotEmpty?tt('From the things you both picked.'):tt('From your own collection.')),
          style:Theme.of(ctx).textTheme.bodySmall),
@@ -395,7 +395,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     label:Text(tt('Add experience'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,12,16,110),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,110),children:[
     Text(tt('Discover, watch, play, read'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:8),
     TextField(onChanged:(v)=>setState(()=>search=v),
@@ -443,7 +443,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     else if(filtered.isEmpty)Padding(padding:EdgeInsets.all(22),
       child:Text(tt('Nothing in this collection yet. Add the first title.')))
     else for(final r in filtered)Card(child:Padding(
-     padding:const EdgeInsets.fromLTRB(12,10,12,10),
+     padding:const EdgeInsetsDirectional.fromSTEB(12,10,12,10),
      child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
       ListTile(contentPadding:EdgeInsets.zero,
        leading:Icon(typeIcon(r['category'].toString()),color:scheme.primary,size:29),
@@ -464,7 +464,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         onOpen:()=>edit(r),removed:r['archived_at']!=null,onRemove:()=>archiveFromList(r)),
        onTap:()=>open(r)),
       if(ExperienceInterestRules.summary(interests,r['id'])!='No picks yet')
-       Padding(padding:const EdgeInsets.only(left:6,bottom:8),child:Row(children:[
+       Padding(padding:const EdgeInsetsDirectional.only(start:6,bottom:8),child:Row(children:[
         Icon(ExperienceInterestRules.mutuallyInterested(interests,r['id'])?
          Icons.favorite:Icons.favorite_border,size:17,color:scheme.primary),
         const SizedBox(width:6),
@@ -606,7 +606,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    TextField(controller:description,maxLength:5000,minLines:2,maxLines:6,
     decoration:InputDecoration(labelText:tt('Why this one?'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
-   Align(alignment:Alignment.centerLeft,
+   Align(alignment:AlignmentDirectional.centerStart,
     child:PartnerMentionButton(spaceId:widget.spaceId,controller:description)),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
@@ -916,14 +916,14 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     TextField(controller:review,maxLength:2000,maxLines:3,
      onChanged:(_)=>_reviewDraftDirty=true,
      decoration:InputDecoration(labelText:tt('My review'))),
-    Align(alignment:Alignment.centerRight,child:FilledButton(
+    Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton(
      onPressed:busy?null:saveReview,child:Text(tt('Save my review')))),
     const Divider(height:28),
     Text(tt('Our conversation'),style:Theme.of(context).textTheme.titleLarge),
     TextField(onChanged:(value)=>setState(()=>commentSearch=value),
      decoration:InputDecoration(prefixIcon:Icon(Icons.search),
       labelText:tt('Search conversation'))),
-    Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show my removed comments'),
+    Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show my removed comments'),
      icon:Icons.delete_outline,help:tt('Only you can see and restore them'),
      value:showMyRetracted,onChanged:(v)=>setState(()=>showMyRetracted=v))),
     for(final x in ExperienceCommentRules.visible(
@@ -954,7 +954,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
      decoration:InputDecoration(labelText:tt('Share your thoughts'))),
     if(r['space_id']!=null)PartnerMentionButton(
      spaceId:r['space_id'].toString(),controller:comment),
-    Align(alignment:Alignment.centerRight,child:FilledButton.icon(
+    Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(
      onPressed:busy?null:send,icon:const Icon(Icons.send_outlined),
      label:Text(tt('Send')))),
     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),

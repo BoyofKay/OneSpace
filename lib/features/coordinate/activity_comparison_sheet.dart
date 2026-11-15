@@ -64,7 +64,7 @@ class ActivityComparisonSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+              padding: const EdgeInsetsDirectional.fromSTEB(14, 4, 14, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

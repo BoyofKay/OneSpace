@@ -193,7 +193,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
    for(var i=0;i<active.length;i++)Transform.rotate(
     angle:(i.isEven?-1:1)*math.pi/72,
     child:SizedBox(width:160,child:Card(elevation:1,child:Padding(
-     padding:const EdgeInsets.fromLTRB(6,6,6,16),
+     padding:const EdgeInsetsDirectional.fromSTEB(6,6,6,16),
      child:Column(children:[
       _photo(active[i],height:145),
       if((active[i]['caption']??'').toString().isNotEmpty)

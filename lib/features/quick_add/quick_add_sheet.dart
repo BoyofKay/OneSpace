@@ -33,10 +33,10 @@ Future<void> showQuickAdd(BuildContext context, {required String spaceId}) async
     context: context,
     showDragHandle: true,
     builder: (ctx) => SafeArea(child: Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 16),
       child: Column(mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+        Padding(padding: const EdgeInsetsDirectional.fromSTEB(4, 0, 4, 10),
           child: Text(tt('Quick add'), style: Theme.of(ctx).textTheme.titleLarge)),
         GridView.count(
           crossAxisCount: 4, shrinkWrap: true,

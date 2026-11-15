@@ -119,7 +119,7 @@ class _GestureHistoryScreenState extends State<GestureHistoryScreen>{
              return ListView.builder(itemCount:items.length,itemBuilder:(ctx,i){
                final item=items[i];
                final style=GestureTheme.forKind(item['kind']?.toString());
-               return Card(elevation:0,margin:const EdgeInsets.fromLTRB(12,4,12,6),
+               return Card(elevation:0,margin:const EdgeInsetsDirectional.fromSTEB(12,4,12,6),
                  child:ListTile(
                    leading:CircleAvatar(
                      backgroundColor:style.color.withValues(alpha:.16),

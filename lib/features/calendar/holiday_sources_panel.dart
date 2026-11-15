@@ -54,7 +54,7 @@ class _HolidaySourcesPanelState extends State<HolidaySourcesPanel>{
    leading:const Icon(Icons.public_outlined),
    title:Text(tr(context,'holidaySourceTitle')),
    subtitle:Text(tr(context,'holidaySourceHint')),
-   childrenPadding:const EdgeInsets.fromLTRB(12,0,12,12),
+   childrenPadding:const EdgeInsetsDirectional.fromSTEB(12,0,12,12),
    children:[
     if(loading)const LinearProgressIndicator()
     else for(final code in HolidayCatalog.countryNames.keys)

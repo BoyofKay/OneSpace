@@ -158,7 +158,7 @@ class _TripsScreenState extends State<TripsScreen> {
     icon:const Icon(Icons.add),label:Text(tt('Add trip')),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,90),children:[
     if(widget.embedded)...[
      Row(children:[
       Expanded(child:Text(tt('Trips'),style:Theme.of(context).textTheme.headlineMedium)),
@@ -582,7 +582,7 @@ class _TripDetailState extends State<TripDetail>{
    t==null?Center(child:Text(tt(error??'Trip not available'))):RefreshIndicator(
     onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,14,16,32),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,14,16,32),children:[
      Text(tt(t['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
      const SizedBox(height:6),
@@ -611,7 +611,7 @@ class _TripDetailState extends State<TripDetail>{
       ]),
      Text(tt('Local times match the booking and do not convert between time zones.'),
       style:Theme.of(context).textTheme.bodySmall),
-     Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
+     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
       value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
      if(shown.isEmpty)Card(child:Padding(padding:EdgeInsets.all(18),
        child:Text(tt('Add a flight, stay, activity or reservation to build the journey.')))),
@@ -641,7 +641,7 @@ class _TripDetailState extends State<TripDetail>{
      TextField(controller:message,maxLength:3000,minLines:2,maxLines:4,
       decoration:InputDecoration(labelText:tt('Share a thought'),
        border:OutlineInputBorder())),
-     Align(alignment:Alignment.centerRight,child:FilledButton.icon(
+     Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(
       onPressed:busy?null:postMessage,
       icon:const Icon(Icons.send_outlined),label:Text(tt('Send')))),
      const Divider(height:28),

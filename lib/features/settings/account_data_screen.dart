@@ -205,7 +205,7 @@ class _DeleteConfirmPageState extends State<_DeleteConfirmPage> {
             border: OutlineInputBorder())),
       ]),
       bottomNavigationBar: SafeArea(child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 10),
         child: Row(children: [
           Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false),
             child: Text(tt('Cancel')))),

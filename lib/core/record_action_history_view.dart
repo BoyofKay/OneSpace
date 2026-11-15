@@ -61,7 +61,7 @@ class _RecordActionHistoryViewState extends State<RecordActionHistoryView>{
  @override Widget build(BuildContext context){
   final theme=Theme.of(context);
   return SafeArea(child:Padding(
-   padding:const EdgeInsets.fromLTRB(16,8,16,20),
+   padding:const EdgeInsetsDirectional.fromSTEB(16,8,16,20),
    child:Column(children:[
     Row(children:[
      const Icon(Icons.manage_history_outlined),

@@ -234,7 +234,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
              decoration:InputDecoration(labelText:tt('Message'),alignLabelWithHint:true,
               border:OutlineInputBorder())),
            const SizedBox(height:6),
-           Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Don’t pick this one at random'),
+           Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Don’t pick this one at random'),
              icon:Icons.visibility_off_outlined,value:disabled,onChanged:(v)=>update(()=>disabled=v))),
          ]),
          actions:[
@@ -274,7 +274,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
              child:GestureKindSymbol(kind:option.id,color:_tint(option.id))),
            title:Text(tt(option.title)),
            subtitle:Text(tt(pool(option).length.toString()+' active messages')),
-           childrenPadding:const EdgeInsets.fromLTRB(12,2,12,12),
+           childrenPadding:const EdgeInsetsDirectional.fromSTEB(12,2,12,12),
            children:[
              for(var index=0;index<option.messages.length;index++)
                ListTile(

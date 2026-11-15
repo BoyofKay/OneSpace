@@ -256,7 +256,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
            ],
            removed:deleted,onRemove:()=>removal(item,!deleted)),
        ),
-       if(isOpen)Padding(padding:const EdgeInsets.fromLTRB(15,2,15,12),
+       if(isOpen)Padding(padding:const EdgeInsetsDirectional.fromSTEB(15,2,15,12),
          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
            ActivityContactView(contact:item.contact,
              onPhone:openUri,onEmail:openUri,onMap:maps),
@@ -302,7 +302,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      ]),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
-       padding:const EdgeInsets.fromLTRB(14,14,14,96),
+       padding:const EdgeInsetsDirectional.fromSTEB(14,14,14,96),
        children:[
          Text(tt('Contact cards'),
            style:Theme.of(context).textTheme.titleMedium),

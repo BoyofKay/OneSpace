@@ -363,7 +363,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final chosen = await showModalBottomSheet<String>(
       context: context, showDragHandle: true,
       builder: (ctx) => SafeArea(child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 14),
         child: SingleChildScrollView(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1040,7 +1040,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           onTap: kind == 'voice'||removed ? null : primaryAction,
           onLongPress: () => componentMenu(item, allVotes),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(11, 10, 7, 10),
+            padding: const EdgeInsetsDirectional.fromSTEB(11, 10, 7, 10),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (kind == 'step')
                 SizedBox(width: 30, height: 30,
@@ -1051,7 +1051,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   child: Checkbox(value: done,
                     onChanged: (_) => toggleReminder(item)))
               else
-                Padding(padding: const EdgeInsets.only(top: 4, right: 8),
+                Padding(padding: const EdgeInsetsDirectional.only(top: 4, end: 8),
                   child: Icon(typeIcon(kind), size: 19,
                     color: Theme.of(context).colorScheme.secondary)),
               Expanded(child: Column(
@@ -1324,7 +1324,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
 
     return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
       child: GestureDetector(
         // Let tapping a voice bubble control playback; long-press still replies.
         onTap: isVoice ? null : () => startReply(msg),
@@ -1385,7 +1385,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               if (replyQuote != null || target != null) ...[
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 6, 4),
+                  padding: const EdgeInsetsDirectional.fromSTEB(8, 4, 6, 4),
                   decoration: BoxDecoration(
                     border: Border(
                       left: BorderSide(
@@ -1428,7 +1428,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Widget bottomComposer()=>SafeArea(
     top:false,
     child:Container(
-      padding:const EdgeInsets.fromLTRB(9,5,9,8),
+      padding:const EdgeInsetsDirectional.fromSTEB(9,5,9,8),
       decoration:BoxDecoration(
         color:Theme.of(context).colorScheme.surface,
         border:Border(top:BorderSide(
@@ -1448,7 +1448,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             })),
         ]),
         if(mentionSuggestion!=null)Align(
-          alignment:Alignment.centerLeft,
+          alignment:AlignmentDirectional.centerStart,
           child:Card(elevation:2,child:InkWell(
             onTap:_acceptMention,
             child:Padding(padding:const EdgeInsets.all(10),
@@ -1652,7 +1652,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         body:Column(children:[
           Expanded(child:ListView(
           keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 15),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 15),
           children: [
             LinkedItemsStrip(key: _links, kind: LinkKind.activity, id: widget.id),
             toolbar(item),
@@ -1661,7 +1661,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 child: Text(tt(issue!), style: TextStyle(
                   color: Theme.of(context).colorScheme.error))),
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+              padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 4, 12),
               child: InkWell(
                 onTap: () => editBody(item),
                 child: Text(

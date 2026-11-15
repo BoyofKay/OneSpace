@@ -465,7 +465,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _showLinked(Map<String,dynamic> event)=>showModalBottomSheet<void>(
     context:context,showDragHandle:true,
     builder:(ctx)=>SafeArea(child:Padding(
-      padding:const EdgeInsets.fromLTRB(16,0,16,20),
+      padding:const EdgeInsetsDirectional.fromSTEB(16,0,16,20),
       child:Column(mainAxisSize:MainAxisSize.min,
         crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text(tt(event['title']?.toString()??'Event'),

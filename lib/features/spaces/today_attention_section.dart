@@ -120,11 +120,11 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
        ...widget.leading,
        if(entries.isEmpty)...[
          TodayEmptyHint(tt('A free day. Nothing planned for the next 7 days.')),
-         Align(alignment:Alignment.centerLeft,child:TextButton.icon(
+         Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(
            onPressed:widget.onOpen,icon:const Icon(Icons.add),
            label:Text(tt('Add to the calendar')))),
        ]else...[
-         Padding(padding:const EdgeInsets.fromLTRB(4,4,4,0),
+         Padding(padding:const EdgeInsetsDirectional.fromSTEB(4,4,4,0),
            child:Text(tt('Today'),style:theme.textTheme.labelLarge)),
          if(todays.isEmpty)TodayEmptyHint(tt('Nothing planned for today.')),
          for(final entry in (showAllToday?todays:todays.take(3)))_row(entry),
@@ -132,7 +132,7 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
            onPressed:()=>setState(()=>showAllToday=!showAllToday),
            child:Text(tt(showAllToday?tt('Show fewer'):'Show all ${todays.length} for today'))),
          for(final day in days.keys)...[
-           Padding(padding:const EdgeInsets.fromLTRB(4,10,4,0),
+           Padding(padding:const EdgeInsetsDirectional.fromSTEB(4,10,4,0),
              child:Text(tt(_dayLabel(day,today)),style:theme.textTheme.labelLarge)),
            for(final entry in days[day]!)_row(entry),
          ],
@@ -209,7 +209,7 @@ class TodaySectionCard extends StatelessWidget {
       margin:const EdgeInsets.only(bottom:12),
       color:theme.colorScheme.surfaceContainerLow,
       child:Padding(
-        padding:const EdgeInsets.fromLTRB(12,8,8,8),
+        padding:const EdgeInsetsDirectional.fromSTEB(12,8,8,8),
         child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
           Row(children:[
             Icon(icon,size:20,color:theme.colorScheme.primary),
@@ -231,7 +231,7 @@ class TodayEmptyHint extends StatelessWidget {
   const TodayEmptyHint(this.text,{super.key});
   final String text;
   @override Widget build(BuildContext context)=>Padding(
-    padding:const EdgeInsets.fromLTRB(4,6,4,6),
+    padding:const EdgeInsetsDirectional.fromSTEB(4,6,4,6),
     child:Text(tt(text),style:Theme.of(context).textTheme.bodyMedium?.copyWith(
       color:Theme.of(context).colorScheme.onSurfaceVariant)));
 }

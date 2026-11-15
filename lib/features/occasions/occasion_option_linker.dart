@@ -66,7 +66,7 @@ class _OccasionOptionLinkerState extends State<OccasionOptionLinker>{
  @override Widget build(BuildContext context)=>SafeArea(
   child:SizedBox(height:MediaQuery.sizeOf(context).height*.7,
    child:Column(children:[
-    Padding(padding:const EdgeInsets.fromLTRB(18,10,18,12),
+    Padding(padding:const EdgeInsetsDirectional.fromSTEB(18,10,18,12),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Text(tt('Connect a decision to this occasion'),
        style:Theme.of(context).textTheme.titleLarge),

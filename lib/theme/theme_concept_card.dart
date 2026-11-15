@@ -69,7 +69,7 @@ class ThemeConceptCard extends StatelessWidget{
          Expanded(flex:2,child:Row(children:[
           for(final icon in [Icons.event_available_outlined,
             Icons.card_giftcard_outlined])...[
-           Expanded(child:Container(margin:const EdgeInsets.only(right:5),
+           Expanded(child:Container(margin:const EdgeInsetsDirectional.only(end:5),
             decoration:BoxDecoration(
              color:surface,borderRadius:BorderRadius.circular(9),
              border:Border.all(color:border)),

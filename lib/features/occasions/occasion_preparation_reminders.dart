@@ -52,7 +52,7 @@ class _OccasionPreparationRemindersState
   final approved=await showModalBottomSheet<bool>(
    context:context,showDragHandle:true,isScrollControlled:true,
    builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>SafeArea(
-    child:Padding(padding:EdgeInsets.fromLTRB(
+    child:Padding(padding:EdgeInsetsDirectional.fromSTEB(
      18,8,18,MediaQuery.viewInsetsOf(ctx).bottom+22),
      child:Column(mainAxisSize:MainAxisSize.min,
       crossAxisAlignment:CrossAxisAlignment.start,children:[

@@ -160,7 +160,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:Text(tt('Add occasion'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,90),children:[
     Text(tt('Plan the thoughtful moments'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
     Text(tt('Remember the day, prepare surprises early, and start saving in time. Private plans stay private.')),
@@ -307,7 +307,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    FormSection(tt('When')),
    DateField(label:tt('Date'),required:true,value:date,first:DateTime(1900),last:DateTime(2100),
     onChanged:(v){if(v!=null)setState(()=>date=v);}),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Every year'),icon:Icons.event_repeat,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Every year'),icon:Icons.event_repeat,
     value:annual,onChanged:(v)=>setState(()=>annual=v))),
    const SizedBox(height:14),
    ChoiceRow<String>(label:tt('Progress'),options:stages,selected:status,
@@ -332,7 +332,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:6,
     decoration:InputDecoration(labelText:tt('Gift ideas, plans or wishes'),
      alignLabelWithHint:true,border:OutlineInputBorder())),
-   if(visibility=='shared')Align(alignment:Alignment.centerLeft,
+   if(visibility=='shared')Align(alignment:AlignmentDirectional.centerStart,
     child:PartnerMentionButton(spaceId:widget.spaceId,controller:notes,enabled:true)),
    Text(tt(editing?'Who can see it stays as it was created, to protect surprises.'
     :'Tip: keep surprises Only me.'),style:Theme.of(context).textTheme.bodySmall),
@@ -416,7 +416,7 @@ class _OccasionStepEditorState extends State<OccasionStepEditor> with FormChange
      decoration:InputDecoration(labelText:tt('Currency'),border:OutlineInputBorder())),
    ),
    const SizedBox(height:6),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
     onChanged:(v)=>setState(()=>done=v))),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
@@ -572,7 +572,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
     p==null?Center(child:Text(tt(error??'Not available'))):RefreshIndicator(
     onRefresh:load,child:ListView(
      physics:const AlwaysScrollableScrollPhysics(),
-     padding:const EdgeInsets.fromLTRB(16,12,16,35),children:[
+     padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,35),children:[
      Text(tt(p['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.occasion,id:widget.id),
      Text(tt((occasionKinds[p['kind']]??'Occasion')+' · '+
@@ -613,7 +613,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
        TextButton.icon(onPressed:()=>editStep(),icon:const Icon(Icons.add),
         label:Text(tt('Add step'))),
       ]),
-     Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
+     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
       value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
      if(current.isEmpty)Text(tt('Add shopping, reservations, surprises or budget milestones.')),
      for(final step in steps.where((s)=>showRemoved||s['archived_at']==null))

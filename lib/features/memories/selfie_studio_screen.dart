@@ -153,12 +153,12 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       onSave: _save,
       meta: MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
         enabled: !_saving, onChanged: (v) => setState(() => _private = !v.shared)),
-      body: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 24), children: [
+      body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [
         Center(child: GestureDetector(
           onTap: () => _take(ImageSource.camera),
           child: Container(
             width: 280,
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 38),
+            padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 38),
             decoration: BoxDecoration(color: Colors.white,
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16),

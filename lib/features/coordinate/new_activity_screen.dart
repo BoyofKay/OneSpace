@@ -136,7 +136,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
    meta:MetaStrip(value:MetaValues(shared:shared,date:dueOn),showBelongs:false,dateLabel:tt('Due date'),
     enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;})),
    body: SafeArea(child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 24),
         children: [
           TextField(
             controller: title,

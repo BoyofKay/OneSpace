@@ -47,7 +47,7 @@ class _MeScreenState extends State<MeScreen> {
     Widget tile(IconData icon, String title, String subtitle, VoidCallback onTap) => ListTile(
       leading: Icon(icon), title: Text(tt(title)), subtitle: Text(tt(subtitle)),
       trailing: const Icon(Icons.chevron_right), onTap: onTap);
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 32), children: [
+    return ListView(padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 32), children: [
       Row(children: [
         CircleAvatar(radius: 30, backgroundColor: theme.colorScheme.primaryContainer,
           child: Text(tt(name.isEmpty ? '?' : name.characters.first.toUpperCase()),

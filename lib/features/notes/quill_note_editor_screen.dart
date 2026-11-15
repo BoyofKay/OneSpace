@@ -137,7 +137,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
      enabled:!editing&&!busy,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
    body:SafeArea(child:ListView(
-    padding:const EdgeInsets.fromLTRB(16,14,16,36),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,14,16,36),children:[
      if(!isEditingAllowed)Text(tt('Read-only note'),
       style:TextStyle(fontWeight:FontWeight.bold)),
      TextField(controller:title,maxLength:120,autofocus:!editing,
@@ -147,7 +147,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
      const SizedBox(height:10),
      if(isEditingAllowed)...[
       if(visibility=='shared')Align(
-       alignment:Alignment.centerLeft,
+       alignment:AlignmentDirectional.centerStart,
        child:RichNoteMentionButton(
         spaceId:widget.spaceId,controller:editor)),
       quill.QuillSimpleToolbar(
@@ -177,7 +177,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
      ]else Text(tt('Save the note first, then add photos and links.'),
       style:Theme.of(context).textTheme.bodySmall),
      const SizedBox(height:10),
-     Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Pin to the top'),
+     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Pin to the top'),
       icon:Icons.push_pin_outlined,value:pinned,
       onChanged:isEditingAllowed?(v)=>setState(()=>pinned=v):null)),
      if(error!=null)Padding(padding:const EdgeInsets.all(8),

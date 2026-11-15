@@ -81,7 +81,7 @@ class _ChecklistReadoutSheetState extends State<ChecklistReadoutSheet>
   final theme=Theme.of(context);
   final safeIndex=stepsNow.isEmpty?0:at.clamp(0,stepsNow.length-1).toInt();
   return SafeArea(child:Padding(
-   padding:EdgeInsets.fromLTRB(16,8,16,
+   padding:EdgeInsetsDirectional.fromSTEB(16,8,16,
     MediaQuery.viewInsetsOf(context).bottom+20),
    child:ListView(shrinkWrap:true,children:[
     Row(children:[

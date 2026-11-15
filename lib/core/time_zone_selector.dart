@@ -35,7 +35,7 @@ class TimeZoneSelector extends StatelessWidget {
               child: FractionallySizedBox(
                 heightFactor: 0.75,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 8),
                   child: Column(children: [
                     Text(tt('Choose your time zone'),
                         style: Theme.of(context).textTheme.titleLarge),

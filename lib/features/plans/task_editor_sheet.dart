@@ -288,7 +288,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
           _date = v.date;
         })),
       body: SafeArea(child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+        padding: const EdgeInsetsDirectional.fromSTEB(18, 12, 18, 24),
         children: [
           TextField(
             key: const Key('taskTitleInput'),
@@ -302,7 +302,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
               border: OutlineInputBorder(),
             ),
           ),
-          if (shared) Align(alignment: Alignment.centerLeft,
+          if (shared) Align(alignment: AlignmentDirectional.centerStart,
             child: PartnerMentionButton(spaceId:widget.spaceId??'', controller:_title, enabled:true)),
           if (existing == null) ...[
             const SizedBox(height: 6),

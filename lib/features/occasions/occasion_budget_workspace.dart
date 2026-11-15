@@ -198,7 +198,7 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
         textAlign:TextAlign.center),
       ]))),
      for(final item in visible)Card(child:Padding(
-      padding:const EdgeInsets.fromLTRB(12,10,12,10),
+      padding:const EdgeInsetsDirectional.fromSTEB(12,10,12,10),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Row(children:[
         CircleAvatar(child:Icon(item['status']=='purchased'?
@@ -337,7 +337,7 @@ class _SavedGiftProposals extends StatelessWidget{
      for(final proposal in proposals)Card(child:ExpansionTile(
       title:Text(tt(proposal['title'].toString())),
       subtitle:Text(tt('Status: ')+proposal['status'].toString()),
-      childrenPadding:const EdgeInsets.fromLTRB(12,0,12,12),
+      childrenPadding:const EdgeInsetsDirectional.fromSTEB(12,0,12,12),
       children:[
        if((proposal['notes']??'').toString().isNotEmpty)Text(tt(proposal['notes'].toString())),
        for(final link in (proposal['occasion_proposal_items'] as List? ??const []))

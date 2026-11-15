@@ -120,7 +120,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
       floatingActionButton: FloatingActionButton.extended(heroTag: 'add-sort-item',
         onPressed: _add, icon: const Icon(Icons.add), label: Text(tt('Add item'))),
       body: RefreshIndicator(onRefresh: _load, child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 12, 96),
         children: [
           TextField(
             onChanged: (v) => setState(() => query = v),
@@ -142,7 +142,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
           else for (final item in items.where(_matches)) Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLow,
-            child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 4, 8), child: Column(
+            child: Padding(padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 4, 8), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Expanded(child: Text(tt(item['title']?.toString() ?? 'Saved item'),

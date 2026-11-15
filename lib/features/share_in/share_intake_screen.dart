@@ -340,7 +340,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       onSave: d == null ? saveToTray : saveToDestination,
       meta: showStrip ? MetaStrip(value: MetaValues(shared: !onlyMe), showBelongs: false, showDate: false,
         enabled: !saving, onChanged: (v) => setState(() => onlyMe = !v.shared)) : null,
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
+      body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 24), children: [
         FormSection(tt('1 · What it is')),
         TextField(controller: title, maxLength: 120,
           onChanged: (_) => setState(() {}),
@@ -369,7 +369,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
         if (!sorting && d == null) Padding(padding: const EdgeInsets.only(top: 8),
           child: Text(tt('No choice yet? Save it to Items to sort (only you) and decide later.'),
             style: theme.textTheme.bodySmall)),
-        if (d != null && !sorting) Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+        if (d != null && !sorting) Align(alignment: AlignmentDirectional.centerStart, child: TextButton.icon(
           onPressed: () => setState(() => destination = null),
           icon: const Icon(Icons.inbox_outlined), label: Text(tt('Sort it later instead')))),
         _destinationDetails(context),

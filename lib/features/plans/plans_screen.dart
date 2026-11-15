@@ -305,7 +305,7 @@ class _PlansScreenState extends State<PlansScreen> {
       body:RefreshIndicator(
       onRefresh: _loadSpace,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20,16,20,96),
+        padding: const EdgeInsetsDirectional.fromSTEB(20,16,20,96),
         children: [
           TextField(
             onChanged:(v)=>setState(()=>_query=v.trim().toLowerCase()),
@@ -488,7 +488,7 @@ class _PlansScreenState extends State<PlansScreen> {
           if(cancelled||completed)ItemMenuAction(tt('Reopen list'),MenuIcons.reopen,()=>_changeStatus(task,TaskStatus.open)),
          ],
          onOpen:()=>_taskEditor(existing:task)),
-       childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
+       childrenPadding:const EdgeInsetsDirectional.fromSTEB(15,2,15,14),
        children:[
         if(_expandedLists.contains(task.id)) TaskChecklistPanel(
          key:ValueKey(task.id),taskId:task.id,listTitle:task.title,

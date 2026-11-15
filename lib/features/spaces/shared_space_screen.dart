@@ -732,7 +732,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       color:Color.alphaBlend((_together?colors.tertiary:colors.primary)
         .withValues(alpha:.09),colors.surface),
       child:Padding(
-        padding:const EdgeInsets.fromLTRB(14,6,6,12),
+        padding:const EdgeInsetsDirectional.fromSTEB(14,6,6,12),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Row(children:[
             Expanded(child:Text(tt(_together?'Together under one roof':
@@ -751,7 +751,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           ])
           else PartnerClockStrip(members:clockMembers,relationshipMode:relationshipMode),
           if(trip!=null)Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:Row(children:[
               Icon(Icons.luggage_outlined,size:18,color:colors.primary),
               const SizedBox(width:6),
@@ -764,21 +764,21 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ].join(' · ')))),
             ])),
           if(window!=null)Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:Row(children:[
               Icon(Icons.phone_in_talk_outlined,size:18,color:colors.primary),
               const SizedBox(width:6),
               Expanded(child:Text(tt(talkWindowLabel(window,DateTime.now().toUtc(),myZone)))),
             ]))
           else if(missingSchedules)Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:Text(tt('Add your work and sleep hours in Profile to see good times to talk.'),
               style:theme.textTheme.bodySmall)),
           if(apart&&(lastMetOn!=null||nextMeetOn!=null))Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:_meetingCounters()),
           if(countdown!=null)Padding(
-            padding:const EdgeInsets.only(top:6,right:8),
+            padding:const EdgeInsetsDirectional.only(top:6,end:8),
             child:InkWell(
               onTap:()=>_openFocusActivity(countdown['activity_id'].toString()),
               child:Row(children:[
@@ -931,7 +931,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               if(mounted)await _load();
             }),
           if(sinceAwayTotal>sinceAway.length)Padding(
-            padding:const EdgeInsets.only(left:4,top:2),
+            padding:const EdgeInsetsDirectional.only(start:4,top:2),
             child:Text('${tt('and')} ${sinceAwayTotal-sinceAway.length} ${tt('more')}',
               style:theme.textTheme.bodySmall)),
         ],
@@ -957,7 +957,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final dueReminders=focusItems.where((i)=>i.isReminder).length;
     Widget group(String label,Color color,List<_Shortcut> tiles)=>Column(
       crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Padding(padding:const EdgeInsets.fromLTRB(2,10,2,6),
+        Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,10,2,6),
           child:Text(tt(label.toUpperCase()),style:theme.textTheme.labelSmall?.copyWith(
             color:color,fontWeight:FontWeight.w800,letterSpacing:.8))),
         GridView.count(
@@ -1048,7 +1048,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16,16,16,24),
+        padding: const EdgeInsetsDirectional.fromSTEB(16,16,16,24),
         children: [
           Text(tt(spaceId == null ? tr(context, 'ourSpace') : _greeting()),
             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),

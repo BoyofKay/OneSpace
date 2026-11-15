@@ -431,13 +431,13 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
      for(final x in photoRows)x['id'].toString():x
     };
     final scheme=ScrapbookTemplates.get(page['template_key']?.toString());
-    return ListView(padding:const EdgeInsets.fromLTRB(14,10,14,90),children:[
+    return ListView(padding:const EdgeInsetsDirectional.fromSTEB(14,10,14,90),children:[
      Text(tt(memory!['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      const SizedBox(height:8),
      _collaboration(),
      const SizedBox(height:8),
      SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
-      for(var n=0;n<pages.length;n++)Padding(padding:const EdgeInsets.only(right:6),
+      for(var n=0;n<pages.length;n++)Padding(padding:const EdgeInsetsDirectional.only(end:6),
        child:ChoiceChip(
         label:Text(tt('Page ')+(n+1).toString()),
         selected:idx==n,onSelected:(_)=>setState(()=>selectedPage=n))),

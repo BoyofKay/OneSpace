@@ -46,7 +46,7 @@ class _WeatherCityPickerState extends State<WeatherCityPicker> {
     child:FractionallySizedBox(
       heightFactor:0.79,
       child:Padding(
-        padding:EdgeInsets.fromLTRB(16,8,16,
+        padding:EdgeInsetsDirectional.fromSTEB(16,8,16,
           MediaQuery.viewInsetsOf(context).bottom+12),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Row(children:[

@@ -86,7 +86,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
     body:RefreshIndicator(
       onRefresh:load,
       child:ListView(
-        padding:const EdgeInsets.fromLTRB(15,10,15,95),
+        padding:const EdgeInsetsDirectional.fromSTEB(15,10,15,95),
         physics:const AlwaysScrollableScrollPhysics(),
         children:[
           Text(tt('Words worth keeping'),

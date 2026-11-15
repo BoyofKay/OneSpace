@@ -45,7 +45,7 @@ class _CombinationState extends State<OccasionCombinationPlanner>{
   });
   final foreign=chosen.length-comparable.length;
   final unpriced=comparable.where((i)=>i['unit_price']==null).length;
-  return SafeArea(child:ListView(padding:EdgeInsets.fromLTRB(
+  return SafeArea(child:ListView(padding:EdgeInsetsDirectional.fromSTEB(
    16,10,16,MediaQuery.viewInsetsOf(context).bottom+24),children:[
    Text(tt('Build a proposed gift list'),style:Theme.of(context).textTheme.titleLarge),
    const SizedBox(height:8),

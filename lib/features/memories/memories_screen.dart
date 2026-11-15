@@ -448,7 +448,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
               border: OutlineInputBorder(), alignLabelWithHint: true,
             ),
           ),
-          Align(alignment: Alignment.centerLeft, child: OptionChip(label: tt('Pin to the top'),
+          Align(alignment: AlignmentDirectional.centerStart, child: OptionChip(label: tt('Pin to the top'),
             icon: Icons.push_pin_outlined, value: _pinned,
             onChanged: !_editable || _busy ? null : (v) => setState(() => _pinned = v))),
           FormSection(tt('Photos')),

@@ -14,7 +14,7 @@ class OneSpaceCanvas extends StatelessWidget{
   if(tokens==null)return child;
   return Stack(fit:StackFit.expand,children:[
    DecoratedBox(decoration:BoxDecoration(gradient:LinearGradient(
-    begin:Alignment.topLeft,end:Alignment.bottomRight,
+    begin:AlignmentDirectional.topStart,end:AlignmentDirectional.bottomEnd,
     colors:[tokens.heroEnd,tokens.canvas,tokens.canvas]))),
    IgnorePointer(child:CustomPaint(
     painter:_AtmospherePainter(

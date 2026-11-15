@@ -284,7 +284,7 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
     return SafeArea(child: SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: Column(children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: Column(
+        Padding(padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 8), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(tt(widget.title), style: Theme.of(context).textTheme.titleMedium),
             if (widget.options.length > 8) Padding(padding: const EdgeInsets.only(top: 8),

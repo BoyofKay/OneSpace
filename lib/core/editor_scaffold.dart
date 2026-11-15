@@ -63,7 +63,7 @@ class EditorScaffold extends StatelessWidget {
             elevation: 6,
             color: theme.colorScheme.surface,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 10),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 if (meta != null) Align(alignment: AlignmentDirectional.centerStart, child: meta!),
                 if (missingHint != null && !complete) Padding(
@@ -267,9 +267,9 @@ class EditorPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: title),
     body: SafeArea(child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 24), child: content)),
+      padding: const EdgeInsetsDirectional.fromSTEB(18, 12, 18, 24), child: content)),
     bottomNavigationBar: SafeArea(child: Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 12),
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface,
         border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant))),
       child: Row(children: [

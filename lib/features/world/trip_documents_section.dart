@@ -254,7 +254,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    ]),
    Text(tt('Boarding passes, tickets, travel PDFs and photo scans. Files stay private to people who can view this trip.')),
    const SizedBox(height:8),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
     value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
    if(error!=null)Padding(padding:const EdgeInsets.all(6),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),

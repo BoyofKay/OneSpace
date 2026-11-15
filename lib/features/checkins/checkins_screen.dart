@@ -362,8 +362,8 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                   if(CheckinRequestRules.canRespond(item,me,now))
                     ItemMenuAction(tt('Respond'),Icons.reply_outlined,()=>_respond(item)),
                 ]),
-              childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
-              expandedAlignment:Alignment.centerLeft,
+              childrenPadding:const EdgeInsetsDirectional.fromSTEB(16,0,16,14),
+              expandedAlignment:AlignmentDirectional.centerStart,
               expandedCrossAxisAlignment:CrossAxisAlignment.start,
               children:[
                 if(item['response_mood']!=null)ListTile(
@@ -469,7 +469,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       :_space==null?Center(child:Text(tr(context,'noSpace')))
       :TabBarView(controller:_tabs,children:[
         RefreshIndicator(onRefresh:_load,child:ListView(
-          padding:const EdgeInsets.fromLTRB(16,12,16,96),children:[
+          padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,96),children:[
           if(_error!=null)Text(tt(_error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
           if(FilterGroupSpec.showing(_filterGroups()).isNotEmpty)FilterShowingLine(
             labels:FilterGroupSpec.showing(_filterGroups()),
@@ -477,7 +477,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
           _requestHistory(),
         ])),
         RefreshIndicator(onRefresh:_load,child:ListView(
-          padding:const EdgeInsets.fromLTRB(16,12,16,96),children:[
+          padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,96),children:[
           if(FilterGroupSpec.showing(_filterGroups()).isNotEmpty)FilterShowingLine(
             labels:FilterGroupSpec.showing(_filterGroups()),
             onClear:()=>setState(()=>_filter='all')),
@@ -539,7 +539,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
           ]),
           trailing:own?ItemMenu(kind:'checkin',recordId:entry['id'].toString(),
             title:entry['checkin_date']?.toString(),onOpen:()=>_edit(entry)):null,
-          childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
+          childrenPadding:const EdgeInsetsDirectional.fromSTEB(16,0,16,14),
           expandedCrossAxisAlignment:CrossAxisAlignment.stretch,
           children:[
             if(message.isNotEmpty)_detail(tt('What’s on my mind'),message),

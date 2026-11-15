@@ -148,7 +148,7 @@ class _VoiceSessionSheetState extends State<VoiceSessionSheet> {
     return Directionality(
       textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
       child: SafeArea(child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsetsDirectional.fromSTEB(20, 0, 20, 16 + MediaQuery.viewInsetsOf(context).bottom),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .75),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -161,13 +161,13 @@ class _VoiceSessionSheetState extends State<VoiceSessionSheet> {
             Flexible(child: ListView(shrinkWrap: true, reverse: false, children: [
               for (final turn in turns) ...[
                 Align(alignment: AlignmentDirectional.centerEnd, child: Container(
-                  margin: const EdgeInsets.only(top: 8, left: 40),
+                  margin: const EdgeInsetsDirectional.only(top: 8, start: 40),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(color: scheme.primaryContainer,
                     borderRadius: BorderRadius.circular(16)),
                   child: Text(tt(turn.heard), style: TextStyle(color: scheme.onPrimaryContainer)))),
                 Align(alignment: AlignmentDirectional.centerStart, child: Container(
-                  margin: const EdgeInsets.only(top: 6, right: 40),
+                  margin: const EdgeInsetsDirectional.only(top: 6, end: 40),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(color: scheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(16)),

@@ -168,7 +168,7 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
       return personOk && historyActionMatches(action, r['action']?.toString() ?? '');
     }).toList();
     Widget chip(String label, bool selected, VoidCallback onTap) => Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsetsDirectional.only(end: 6),
       child: ChoiceChip(label: Text(tt(label)), selected: selected,
           onSelected: (_) => onTap()));
     return Scaffold(
@@ -176,12 +176,12 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
           ? '${widget.title} · change log' : tt('Change log')))),
       body: Column(children: [
         if (widget.recordTitle != null) Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: Align(alignment: Alignment.centerLeft,
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 0),
+          child: Align(alignment: AlignmentDirectional.centerStart,
             child: Text(tt(widget.recordTitle!), style: theme.textTheme.titleMedium))),
         SizedBox(height: 52, child: ListView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 4),
           children: [
             chip('Everyone', person == 'everyone', () => setState(() => person = 'everyone')),
             if (me != null) chip('Me', person == me, () => setState(() => person = me)),

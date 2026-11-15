@@ -138,10 +138,10 @@ class LinkedItemsStripState extends State<LinkedItemsStrip> {
     return SizedBox(
       height: 44,
       child: ListView(scrollDirection: Axis.horizontal, children: [
-        Padding(padding: const EdgeInsets.only(right: 6, top: 12),
+        Padding(padding: const EdgeInsetsDirectional.only(end: 6, top: 12),
           child: Text(tt('Linked'), style: Theme.of(context).textTheme.labelMedium)),
         for (final item in items) Padding(
-          padding: const EdgeInsets.only(right: 6),
+          padding: const EdgeInsetsDirectional.only(end: 6),
           child: GestureDetector(
             onLongPress: () => _unlink(item),
             child: ActionChip(

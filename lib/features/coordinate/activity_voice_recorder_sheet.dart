@@ -277,7 +277,7 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16,
+          padding: EdgeInsetsDirectional.fromSTEB(16, 8, 16,
               MediaQuery.viewInsetsOf(context).bottom + 12),
           child: SingleChildScrollView(
             child: Column(

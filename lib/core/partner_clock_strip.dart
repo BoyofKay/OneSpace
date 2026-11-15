@@ -96,7 +96,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
          maxLines:1,overflow:TextOverflow.ellipsis,
          style:Theme.of(context).textTheme.labelLarge),
        const SizedBox(height:5),
-       FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
          child:Text(tt(actual==null?'—':PartnerTimeZones.timeLabel(actual)),
            style:Theme.of(context).textTheme.headlineSmall)),
        if(member!=null)_weather(member),
@@ -113,7 +113,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
    final otherTime=PartnerTimeZones.inZone(other?['time_zone']?.toString(),now);
    final attribution=mine?['city_weather_shared']==true||
      other?['city_weather_shared']==true;
-   return Padding(padding:const EdgeInsets.fromLTRB(2,4,2,5),
+   return Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,4,2,5),
      child:Column(children:[
        Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
          _column(mine,mineTime,mine:true),
@@ -122,7 +122,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
            _column(other,otherTime,mine:false),
          ],
        ]),
-       if(attribution)Align(alignment:Alignment.centerRight,
+       if(attribution)Align(alignment:AlignmentDirectional.centerEnd,
          child:InkWell(
            onTap:()=>unawaited(launchUrl(
              Uri.parse('https://open-meteo.com/'),

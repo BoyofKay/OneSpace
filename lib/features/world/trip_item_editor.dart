@@ -220,7 +220,7 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
     decoration:InputDecoration(labelText:tt('Notes and details'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
    const SizedBox(height:10),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
     onChanged:(v)=>setState(()=>done=v))),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),

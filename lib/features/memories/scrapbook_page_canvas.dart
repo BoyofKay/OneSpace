@@ -19,7 +19,7 @@ class ScrapbookPageCanvas extends StatelessWidget {
     decoration:BoxDecoration(color:Colors.white,
      borderRadius:BorderRadius.circular(7),
      boxShadow:const [BoxShadow(color:Color(0x22000000),blurRadius:9,offset:Offset(1,4))]),
-    padding:const EdgeInsets.fromLTRB(6,6,6,15),
+    padding:const EdgeInsetsDirectional.fromSTEB(6,6,6,15),
     child:ClipRRect(borderRadius:BorderRadius.circular(3),
      child:url==null?Container(color:accent.withAlpha(28),
       child:Center(child:Column(mainAxisSize:MainAxisSize.min,children:[
@@ -69,7 +69,7 @@ class ScrapbookPageCanvas extends StatelessWidget {
   return AspectRatio(aspectRatio:0.76,child:Container(
    decoration:BoxDecoration(color:design.paper,
     borderRadius:BorderRadius.circular(8)),
-   padding:const EdgeInsets.fromLTRB(15,15,15,13),
+   padding:const EdgeInsetsDirectional.fromSTEB(15,15,15,13),
    child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
     Row(children:[
      Icon(design.icon,color:design.accent,size:19),

@@ -112,7 +112,7 @@ Future<void> showFilterPanel(BuildContext anchor, {
                 final theme = Theme.of(context);
                 Widget group(String label, Map<String, String> options, String value,
                     ValueChanged<String> pick) => Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 6),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(tt(label), style: theme.textTheme.labelLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant)),
@@ -130,7 +130,7 @@ Future<void> showFilterPanel(BuildContext anchor, {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 8, 2),
+                      padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 8, 2),
                       child: Row(children: [
                         Expanded(child: Text(tt('Filter'), style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700))),
@@ -155,7 +155,7 @@ Future<void> showFilterPanel(BuildContext anchor, {
                       ]))),
                     const Divider(height: 1),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                      padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 10),
                       child: Row(children: [
                         Expanded(child: OutlinedButton(
                           onPressed: () {
@@ -189,7 +189,7 @@ class FilterShowingLine extends StatelessWidget {
   @override Widget build(BuildContext context) {
     if (labels.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 4),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 8, 4),
       child: Row(children: [
         Expanded(child: Text('${tt('Showing')}: ${labels.map(tt).join(' · ')}',
           style: Theme.of(context).textTheme.bodySmall)),

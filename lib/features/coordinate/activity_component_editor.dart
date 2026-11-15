@@ -263,7 +263,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   Widget build(BuildContext context) {
     final kind = widget.kind;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding: EdgeInsetsDirectional.fromSTEB(
         18, 12, 18, MediaQuery.viewInsetsOf(context).bottom + 18,
       ),
       child: SingleChildScrollView(

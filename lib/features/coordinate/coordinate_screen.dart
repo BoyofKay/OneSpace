@@ -93,7 +93,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(12, 5, 5, 5),
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(12, 5, 5, 5),
         leading: (archived ? null : StatusLook.mark(item['stage']?.toString())) ?? Icon(
           archived ? Icons.inventory_2_outlined :
             CoordinateActivityFilters.finished(item)
@@ -194,7 +194,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
     onRefresh: load,
     child: ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 96),
       children: [
         Row(children:[
          Expanded(child:Text(tt('Coordinate'),

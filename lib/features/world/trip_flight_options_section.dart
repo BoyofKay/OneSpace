@@ -83,7 +83,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
          if(d!=null)change(()=>arrival=d);
         }),
       ]),
-      Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Flexible dates'),
+      Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Flexible dates'),
        icon:Icons.date_range_outlined,value:flexible,onChanged:(v)=>change(()=>flexible=v))),
       TextFormField(initialValue:stops,
        keyboardType:TextInputType.number,onChanged:(v)=>stops=v,
@@ -97,7 +97,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
         labelText:tt('Saved price (optional; not live)'))),
       TextFormField(initialValue:currency,maxLength:3,
        onChanged:(v)=>currency=v,decoration:InputDecoration(labelText:tt('Currency (USD/SAR)'))),
-      Align(alignment:Alignment.centerLeft,child:Text(tt('My preference'),style:Theme.of(ctx).textTheme.labelLarge)),
+      Align(alignment:AlignmentDirectional.centerStart,child:Text(tt('My preference'),style:Theme.of(ctx).textTheme.labelLarge)),
       StarRating(value:score,onChanged:(v)=>change(()=>score=v)),
       const SizedBox(height:10),
       TextFormField(initialValue:link,maxLength:1800,
@@ -217,11 +217,11 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
       icon:const Icon(Icons.add),label:Text(tt('Save option'))),
     ]),
     Text(tt('Compare links, price snapshots, stops, baggage and flexible travel dates before booking.')),
-    Align(alignment:Alignment.centerLeft,child:TextButton.icon(
+    Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(
      onPressed:()=>open('https://www.google.com/travel/flights'),
      icon:const Icon(Icons.open_in_new),
      label:Text(tt('Search Google Flights externally')))),
-    Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
+    Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
      value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
     if(snapshot.hasError)Text(tt('Flight options could not load.')),
     if(!snapshot.hasData)const LinearProgressIndicator(),
