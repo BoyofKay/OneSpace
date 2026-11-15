@@ -18,9 +18,12 @@ export 'task_editor_sheet.dart'
 /// RLS determines which tasks are visible. Filtering in the UI is convenience,
 /// not a privacy boundary: private rows are excluded by the database itself.
 class PlansScreen extends StatefulWidget {
-  const PlansScreen({super.key, this.onOpenSpace, this.focusTaskId});
+  const PlansScreen({super.key, this.onOpenSpace, this.focusTaskId,
+    this.startNewTask = false});
   final VoidCallback? onOpenSpace;
   final String? focusTaskId;
+  /// R51 Quick add: open the new to-do editor as soon as the space is known.
+  final bool startNewTask;
 
   @override
   State<PlansScreen> createState() => _PlansScreenState();
@@ -42,6 +45,8 @@ class _PlansScreenState extends State<PlansScreen> {
   String? _error;
 
   String get _me => _client.auth.currentUser?.id ?? '';
+
+  bool _startedNewTask = false;
 
   @override
   void initState() {
@@ -119,6 +124,12 @@ class _PlansScreenState extends State<PlansScreen> {
             .order('created_at', ascending: false);
       });
       _watchGrants(id);
+      if (widget.startNewTask && !_startedNewTask) {
+        _startedNewTask = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_taskEditor());
+        });
+      }
       // Direct Plans entry (before Home completes) still has a safe fallback.
       if (cachedNames == null) unawaited(_loadMemberNames(id));
     } on PostgrestException catch (e) {

@@ -26,6 +26,7 @@ import '../notifications/notifications_screen.dart';
 import '../search/global_search_screen.dart';
 import '../world/world_contacts_screen.dart';
 import 'today_talk_window.dart';
+import '../quick_add/quick_add_sheet.dart';
 import '../../core/partner_time_zones.dart';
 import '../../core/performance_timings.dart';
 import '../../theme/appearance_settings_screen.dart';
@@ -910,7 +911,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         ),
       ]);
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Our space',style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700)),
+      Row(children:[
+        Expanded(child:Text('Our space',
+          style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700))),
+        FilledButton.tonalIcon(
+          onPressed:spaceId==null?null:()async{
+            await showQuickAdd(context,spaceId:spaceId!);
+            if(mounted)await _load();
+          },
+          icon:const Icon(Icons.add),
+          label:const Text('Quick add')),
+      ]),
       group('Remember',colors.primary,[
         _Shortcut('Calendar',Icons.calendar_month_outlined,widget.onOpenCalendar),
         _Shortcut('To-do & Checklists',Icons.checklist_outlined,widget.onOpenPlans),
