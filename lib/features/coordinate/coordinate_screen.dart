@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
+import '../../core/status_look.dart';
 import 'activity_detail_screen.dart';
 import 'new_activity_screen.dart';
 import 'coordinate_activity_filters.dart';
@@ -90,7 +91,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
       margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(12, 5, 5, 5),
-        leading: Icon(
+        leading: (archived ? null : StatusLook.mark(item['stage']?.toString())) ?? Icon(
           archived ? Icons.inventory_2_outlined :
             CoordinateActivityFilters.finished(item)
               ? Icons.check_circle_outline : Icons.hub_outlined,
@@ -99,7 +100,8 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         ),
         title: Text(
           item['title']?.toString() ?? '',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: StatusLook.title(context, item['stage']?.toString(),
+              const TextStyle(fontWeight: FontWeight.w600)),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,4 @@
+import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
 import 'dart:async';
 
@@ -186,10 +187,10 @@ class _TripsScreenState extends State<TripsScreen> {
     else for(final trip in visible)Card(elevation:0,clipBehavior:Clip.antiAlias,
      child:ListTile(
       contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:8),
-      leading:CircleAvatar(child:Icon(trip['visibility']=='private'?
+      leading:CircleAvatar(child:StatusLook.mark(trip['status']?.toString())??Icon(trip['visibility']=='private'?
        Icons.lock_outline:Icons.flight_takeoff_outlined)),
       title:Text(trip['title'].toString(),
-       style:Theme.of(context).textTheme.titleMedium),
+       style:StatusLook.title(context,trip['status']?.toString(),Theme.of(context).textTheme.titleMedium)),
       subtitle:Text([
        if((trip['destination']??'').toString().isNotEmpty)trip['destination'].toString(),
        tripStages[trip['status']]??'Planning',

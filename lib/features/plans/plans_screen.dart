@@ -1,3 +1,4 @@
+import '../../core/status_look.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -473,11 +474,8 @@ class _PlansScreenState extends State<PlansScreen> {
        onExpansionChanged:(expanded)=>setState((){
         if(expanded){_expandedLists.add(task.id);}else{_expandedLists.remove(task.id);}
        }),
-       leading:Icon(cancelled?Icons.cancel_outlined:
-        completed?Icons.task_alt_outlined:Icons.format_list_bulleted_outlined),
-       title:Text(task.title,style:TextStyle(
-        decoration:cancelled||completed?TextDecoration.lineThrough:null,
-        color:cancelled?Theme.of(context).colorScheme.error:null)),
+       leading:StatusLook.mark(task.status.name)??const Icon(Icons.format_list_bulleted_outlined),
+       title:Text(task.title,style:StatusLook.title(context,task.status.name)),
        subtitle:Text(details.join(' • ')),
        trailing:!canEdit?const Icon(Icons.lock_outline):
         PopupMenuButton<String>(

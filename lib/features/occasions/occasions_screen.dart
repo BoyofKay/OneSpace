@@ -1,3 +1,4 @@
+import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
 import 'dart:async';
 
@@ -193,9 +194,10 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     else if(shown.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),
      child:Text('Nothing planned here yet. Start with an upcoming birthday, anniversary or holiday.')))
     else for(final p in shown)Card(elevation:0,child:ListTile(
-     leading:CircleAvatar(child:Icon(p['visibility']=='private'?
+     leading:CircleAvatar(child:StatusLook.mark(p['status']?.toString())??Icon(p['visibility']=='private'?
       Icons.lock_outline:Icons.card_giftcard_outlined)),
-     title:Text(p['title'].toString(),style:Theme.of(context).textTheme.titleMedium),
+     title:Text(p['title'].toString(),style:StatusLook.title(context,p['status']?.toString(),
+      Theme.of(context).textTheme.titleMedium)),
      subtitle:Text([
       if((p['honoree_name']??'').toString().isNotEmpty)p['honoree_name'].toString(),
       occasionKinds[p['kind']]??'Occasion',
