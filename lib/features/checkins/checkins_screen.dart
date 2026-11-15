@@ -357,6 +357,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                   style:Theme.of(context).textTheme.labelSmall),
               ]),
               trailing:ItemMenu(kind:'checkin_request',recordId:item['id'].toString(),
+                readAloud:[item['note'],item['response_message'],item['response_topic']].where((x)=>(x??'').toString().isNotEmpty).join('. '),
                 statusActions:[
                   if(CheckinRequestRules.canRespond(item,me,now))
                     ItemMenuAction('Respond',Icons.reply_outlined,()=>_respond(item)),
@@ -537,6 +538,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
             ].join(' · '),style:theme.textTheme.labelSmall),
           ]),
           trailing:own?ItemMenu(kind:'checkin',recordId:entry['id'].toString(),
+            readAloud:'${entry['message']??''}. ${(entry['gratitude']??'').toString().isEmpty?'':'Grateful for: ${entry['gratitude']}'}',
             title:entry['checkin_date']?.toString(),onOpen:()=>_edit(entry)):null,
           childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
           expandedCrossAxisAlignment:CrossAxisAlignment.stretch,

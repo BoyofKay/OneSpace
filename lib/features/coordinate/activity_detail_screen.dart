@@ -1627,6 +1627,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               final archived = item['archived_at'] != null;
               final finished = stage == 'completed' || stage == 'cancelled' || stage == 'on_hold';
               return ItemMenu(kind: 'activity', recordId: widget.id,
+                readAloud: '${item['title'] ?? ''}. ${item['body'] ?? ''}',
                 title: item['title']?.toString(),
                 statusActions: [
                   if (!archived && !finished)

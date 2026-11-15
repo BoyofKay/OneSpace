@@ -20,7 +20,10 @@ class CalendarEventEditor extends StatefulWidget {
     this.initialTitle = '',
     this.initialDetails = '',
     this.onCreated,
+    this.initialTime,
   });
+  /// R60: a time said by voice ("… at 7 pm") makes it a timed event.
+  final TimeOfDay? initialTime;
 
   final String spaceId;
   final DateTime? initialDate;
@@ -76,6 +79,11 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     _forUser=existing?['for_user_id']?.toString();
     final initialStart=DateTime.tryParse(existing?['starts_at']?.toString()??'')?.toLocal();
     final initialEnd=DateTime.tryParse(existing?['ends_at']?.toString()??'')?.toLocal();
+    if(existing==null&&widget.initialTime!=null){
+      _allDay=false;
+      _start=widget.initialTime!;
+      _end=TimeOfDay(hour:(widget.initialTime!.hour+1)%24,minute:widget.initialTime!.minute);
+    }
     if(initialStart!=null){
       _allDay=false;
       _start=TimeOfDay.fromDateTime(initialStart);

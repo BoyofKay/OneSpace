@@ -115,7 +115,10 @@ class TaskEditorSheet extends StatefulWidget {
     required this.onSave,
     this.spaceId,
     this.existing,
+    this.initialTitle = '',
   });
+  /// R60: pre-filled list name (voice).
+  final String initialTitle;
 
   final SharedTask? existing;
   final Map<String, String> members;
@@ -149,7 +152,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
   @override
   void initState() {
     super.initState();
-    _title = TextEditingController(text: widget.existing?.title ?? '');
+    _title = TextEditingController(text: widget.existing?.title ?? widget.initialTitle);
     _priority = widget.existing?.priority ?? TaskPriority.normal;
     _recurrence=widget.existing?.recurrence??'none';
     _rule={...?widget.existing?.rule};

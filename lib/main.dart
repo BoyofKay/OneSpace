@@ -1,5 +1,6 @@
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
+import 'core/voice_assistant.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
@@ -440,6 +441,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           ])),
         ]),
         actions:[
+          // R60: voice commands ("Remind me…", "What's on today?", "Open notes").
+          IconButton(tooltip:'Voice command',icon:const Icon(Icons.mic_none_rounded),
+            onPressed:()=>VoiceAssistant.start(context,goToday:()=>navigate(0))),
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(
             tooltip:'More options',

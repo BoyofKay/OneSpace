@@ -458,7 +458,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          ExperiencePickerRules.completionState(r['category'].toString())+
           ': '+r['enjoyed_on'].toString(),
        ].join(' · ')),
-       trailing:ItemMenu(kind:'experience',recordId:r['id'].toString(),title:r['title']?.toString(),
+       trailing:ItemMenu(kind:'experience',recordId:r['id'].toString(),readAloud:'${r['title']}. ${r['description']??''}',title:r['title']?.toString(),
         statusActions:[ItemMenuAction('Rate & review',Icons.star_outline,()=>quickRate(r))],
         onOpen:()=>edit(r),removed:r['archived_at']!=null,onRemove:()=>archiveFromList(r)),
        onTap:()=>open(r)),

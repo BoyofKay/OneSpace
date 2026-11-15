@@ -230,6 +230,20 @@ class MainActivity : FlutterFragmentActivity() {
         captureShare(intent)
     }
 
+    // R60: voice commands use Android's own speech recognizer screen; the
+    // audio never reaches OneSpace — only the recognized text comes back.
+    private var pendingVoice: MethodChannel.Result? = null
+    private val listenForSpeech = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { outcome ->
+        val callback = pendingVoice
+        pendingVoice = null
+        val heard = outcome.data
+            ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+        callback?.success(if (outcome.resultCode == Activity.RESULT_OK) heard else null)
+    }
+
     private val pickDocument = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -334,6 +348,33 @@ class MainActivity : FlutterFragmentActivity() {
         // Export a rendered scrapbook page into Android Photos using scoped
         // storage, then show the native Share sheet. No storage permission,
         // unrestricted file access or private photo URI is exposed.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/voice")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "listen") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                if (pendingVoice != null) {
+                    result.error("BUSY", "Already listening", null)
+                    return@setMethodCallHandler
+                }
+                val language = call.argument<String>("language") ?: "en-US"
+                val prompt = call.argument<String>("prompt") ?: "What would you like to do?"
+                val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, language)
+                    putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, prompt)
+                    putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                }
+                try {
+                    pendingVoice = result
+                    listenForSpeech.launch(intent)
+                } catch (e: Exception) {
+                    pendingVoice = null
+                    result.error("NO_RECOGNIZER", "Speech recognition is not available on this phone.", null)
+                }
+            }
         // R59: "Download my data" saves a JSON file to Downloads/OneSpace.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/data_export")
             .setMethodCallHandler { call, result ->
