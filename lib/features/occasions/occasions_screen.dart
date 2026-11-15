@@ -1,3 +1,4 @@
+import '../../core/linked_items.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -429,6 +430,7 @@ class OccasionDetail extends StatefulWidget{
  @override State<OccasionDetail> createState()=>_OccasionDetailState();
 }
 class _OccasionDetailState extends State<OccasionDetail>{
+ final _links=GlobalKey<LinkedItemsStripState>();
  final db=Supabase.instance.client;
  Map<String,dynamic>? plan;
  List<Map<String,dynamic>> steps=[],history=[];
@@ -545,6 +547,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
    annual:p['annual']==true,today:DateTime.now());
   final total=OccasionRules.estimatedByCurrency(current);
   return Scaffold(appBar:AppBar(title:const Text('Occasion plan'),actions:[
+    if(p!=null&&p['space_id']!=null)CreateFromThisButton(kind:LinkKind.occasion,id:widget.id,spaceId:p['space_id'].toString(),title:p['title'].toString(),date:DateTime.tryParse(p['occasion_on']?.toString()??''),shared:p['visibility']!='private',stripKey:_links),
     if(p!=null)RecordActionHistoryButton(kind:'occasion',recordId:widget.id),
     if(p!=null)IconButton(tooltip:'Edit occasion',onPressed:editPlan,icon:const Icon(Icons.edit_outlined)),
     if(p!=null)IconButton(tooltip:p['archived_at']==null?'Remove':'Restore',
@@ -557,6 +560,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
      physics:const AlwaysScrollableScrollPhysics(),
      padding:const EdgeInsets.fromLTRB(16,12,16,35),children:[
      Text(p['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+     LinkedItemsStrip(key:_links,kind:LinkKind.occasion,id:widget.id),
      Text((occasionKinds[p['kind']]??'Occasion')+' · '+
       ((p['honoree_name']??'').toString().isNotEmpty?p['honoree_name'].toString()+' · ':'')+
       (p['visibility']=='private'?'Only me':'Both of us')+' · '+

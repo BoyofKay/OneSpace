@@ -1,3 +1,4 @@
+import '../../core/linked_items.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -203,7 +204,9 @@ class _TripsScreenState extends State<TripsScreen> {
 }
 
 class TripEditor extends StatefulWidget {
- const TripEditor({super.key,required this.spaceId,this.existing,this.prefill});
+ const TripEditor({super.key,required this.spaceId,this.existing,this.prefill,this.onCreated});
+ /// R53: called with the new trip's id so "Create from this" can link it.
+ final Future<void> Function(String id)? onCreated;
  final String spaceId;
  final Map<String,dynamic>? existing;
  /// R52: fields pre-filled for a new trip (from shared content); never an id.
@@ -259,9 +262,10 @@ class _TripEditorState extends State<TripEditor> {
     'end_on':to==null?null:CalendarRules.sqlDate(to!),
    };
    if(widget.existing==null){
-    await db.from('shared_trips').insert({
+    final created=await db.from('shared_trips').insert({
      ...values,'space_id':widget.spaceId,'visibility':visibility,
-    });
+    }).select('id').single();
+    await widget.onCreated?.call(created['id'].toString());
    }else{
     await db.from('shared_trips').update(values).eq('id',widget.existing!['id']);
    }
@@ -334,6 +338,7 @@ class TripDetail extends StatefulWidget {
  @override State<TripDetail> createState()=>_TripDetailState();
 }
 class _TripDetailState extends State<TripDetail>{
+ final _links=GlobalKey<LinkedItemsStripState>();
  final db=Supabase.instance.client;
  final message=TextEditingController();
  Map<String,dynamic>? trip;
@@ -563,6 +568,7 @@ class _TripDetailState extends State<TripDetail>{
   final amounts=TripRules.sumByCurrency(active);
   return Scaffold(
    appBar:AppBar(title:const Text('Trip details'),actions:[
+    if(t!=null&&t['space_id']!=null)CreateFromThisButton(kind:LinkKind.trip,id:widget.tripId,spaceId:t['space_id'].toString(),title:t['title'].toString(),date:DateTime.tryParse(t['start_on']?.toString()??''),shared:t['visibility']!='private',stripKey:_links),
     if(t!=null)RecordActionHistoryButton(
      kind:'trip',recordId:widget.tripId),
     IconButton(tooltip:'Refresh trip',icon:const Icon(Icons.refresh),onPressed:load),
@@ -577,6 +583,7 @@ class _TripDetailState extends State<TripDetail>{
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,14,16,32),children:[
      Text(t['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+     LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
      const SizedBox(height:6),
      Text((tripStages[t['status']]??'Planning')+' · '+
        (t['visibility']=='private'?'Only me':'Both of us')),

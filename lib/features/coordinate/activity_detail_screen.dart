@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/linked_items.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
@@ -43,6 +44,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late final Stream<List<Map<String, dynamic>>> components;
   late final Stream<List<Map<String, dynamic>>> comments;
   final GlobalKey _conversationKey = GlobalKey();
+  final _links = GlobalKey<LinkedItemsStripState>();
   bool _conversationFocused = false;
   late final Stream<List<Map<String, dynamic>>> revisions;
   late final Stream<List<Map<String, dynamic>>> reactions;
@@ -1694,6 +1696,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
           title: Text(item['title']?.toString() ?? 'Activity',
               maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
+            if (item['space_id'] != null) CreateFromThisButton(
+              kind: LinkKind.activity, id: widget.id,
+              spaceId: item['space_id'].toString(),
+              title: item['title']?.toString() ?? 'Activity',
+              date: DateTime.tryParse(item['due_on']?.toString() ?? ''),
+              shared: item['visibility'] != 'private', stripKey: _links),
             IconButton(tooltip: 'Edit title and details',
               onPressed: () => editActivity(item),
               icon: const Icon(Icons.edit_outlined)),
@@ -1703,6 +1711,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 15),
           children: [
+            LinkedItemsStrip(key: _links, kind: LinkKind.activity, id: widget.id),
             toolbar(item),
             if (issue != null)
               Padding(padding: const EdgeInsets.only(bottom: 8),

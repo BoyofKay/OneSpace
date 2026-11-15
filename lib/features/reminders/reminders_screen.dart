@@ -1,10 +1,11 @@
+import '../../core/linked_items.dart';
+import '../../core/collection_history_screen.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
-import '../../core/record_action_history_view.dart';
 import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
 import '../plans/plans_screen.dart';
@@ -278,6 +279,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     color:overdue||openMine?Theme.of(context).colorScheme.error:null),
    childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
    children:[
+    LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
     if((r['details']??'').toString().isNotEmpty)
      Align(alignment:Alignment.centerLeft,
       child:Padding(padding:const EdgeInsets.symmetric(vertical:8),
@@ -325,13 +327,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
     ]),
     Align(alignment:Alignment.centerRight,
      child:TextButton.icon(
-      onPressed:()=>showModalBottomSheet<void>(
-       context:context,showDragHandle:true,isScrollControlled:true,
-       builder:(_)=>FractionallySizedBox(heightFactor:.78,
-        child:RecordActionHistoryView(
-         kind:'reminder',recordId:r['id'].toString()))),
-      icon:const Icon(Icons.manage_history_outlined),
-      label:const Text('Record action history'))),
+      onPressed:()=>openChangeLog(context,kind:'reminder',
+       recordId:r['id'].toString(),recordTitle:r['title']?.toString()),
+      icon:const Icon(Icons.history),
+      label:const Text('Change log'))),
     if(history.isNotEmpty)ExpansionTile(
      title:Text('Outcome history · '+history.length.toString()),
      children:[for(final event in history)ListTile(
@@ -421,11 +420,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
 class ReminderEditorScreen extends StatefulWidget{
  const ReminderEditorScreen({super.key,required this.spaceId,this.existing,
-  this.initialTitle='',this.initialDetails=''});
+  this.initialTitle='',this.initialDetails='',this.initialDue,this.initialShared=false,
+  this.onCreated});
  final String spaceId;
  final Map<String,dynamic>? existing;
  /// R52: pre-filled from shared content ("Items to sort").
  final String initialTitle,initialDetails;
+ /// R53 "Create from this": pre-filled due time, shared with both, and a
+ /// callback with the new reminder's id so it can be linked to its source.
+ final DateTime? initialDue;
+ final bool initialShared;
+ final Future<void> Function(String id)? onCreated;
  @override State<ReminderEditorScreen> createState()=>_ReminderEditorScreenState();
 }
 class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
@@ -445,9 +450,9 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
   title=TextEditingController(text:prior?['title']?.toString()??widget.initialTitle);
   details=TextEditingController(text:prior?['details']?.toString()??widget.initialDetails);
   due=DateTime.tryParse(prior?['due_at']?.toString()??'')?.toLocal()
-   ??DateTime.now().add(const Duration(hours:1));
-  visibility=prior?['visibility']?.toString()??'private';
-  audience=prior?['audience']?.toString()??'me';
+   ??widget.initialDue??DateTime.now().add(const Duration(hours:1));
+  visibility=prior?['visibility']?.toString()??(widget.initialShared?'shared':'private');
+  audience=prior?['audience']?.toString()??(widget.initialShared?'both':'me');
   sourceKind=prior?['source_kind']?.toString();
   sourceId=prior?['source_id']?.toString();
   repeat=ReminderRepeat.fromRule(prior?['repeat_rule'],start:due);
@@ -633,11 +638,12 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
     'urgent':urgent&&audience!='me',
    };
    if(widget.existing==null){
-    await db.from('reminders').insert({
+    final created=await db.from('reminders').insert({
      ...fields,'space_id':widget.spaceId,
      'visibility':visibility,'audience':audience,
      'source_kind':sourceKind,'source_id':sourceId,
-    });
+    }).select('id').single();
+    await widget.onCreated?.call(created['id'].toString());
    }else{
     await db.from('reminders').update(fields)
       .eq('id',widget.existing!['id'].toString());
