@@ -22,7 +22,8 @@ class SpacePeople {
   static SpacePeople? _cached;
   static Future<SpacePeople?> load() async {
     if (_cached != null) return _cached;
-    final db = Supabase.instance.client;
+    final SupabaseClient db;
+    try { db = Supabase.instance.client; } catch (_) { return null; }
     final me = db.auth.currentUser?.id;
     if (me == null) return null;
     try {
