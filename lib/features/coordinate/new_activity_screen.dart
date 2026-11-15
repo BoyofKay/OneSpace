@@ -9,19 +9,37 @@ import 'activity_detail_screen.dart';
 /// a short, editable outline so the Activity starts with the right shape.
 enum ActivityPurpose {
   buy('Buy something', Icons.shopping_bag_outlined,
-      'What we need:\nBudget:\nOptions we are comparing:\nWhere to buy:'),
+      'What we need and why.', [
+        'Agree on a budget', 'Compare at least two options', 'Choose where to buy',
+      ]),
   findService('Find a class or service', Icons.school_outlined,
-      'What we are looking for:\nWhen and how often:\nPeople or places to contact:\nNext step:'),
+      'What we are looking for, and when.', [
+        'List places or people to contact', 'Ask about times and prices', 'Pick a start date',
+      ]),
   planEvent('Plan an event', Icons.celebration_outlined,
-      'What and why:\nDate and place:\nWho is coming:\nChecklist:'),
+      'What we are celebrating and why.', [
+        'Set the date and place', 'Make the guest list', 'Send invitations', 'Prepare what we need',
+      ]),
   decide('Decide something', Icons.balance_outlined,
-      'The question:\nOptions:\nWhat matters most to us:\nDecide by:'),
-  note('Just a note', Icons.notes_outlined, '');
+      'The question we need to answer.', [
+        'Write down the options', 'Each of us says what matters most', 'Agree on a decision date',
+      ]),
+  note('Just a note', Icons.notes_outlined, '', []);
 
-  const ActivityPurpose(this.label, this.icon, this.outline);
+  const ActivityPurpose(this.label, this.icon, this.outline, this.steps);
   final String label;
   final IconData icon;
   final String outline;
+
+  /// R55: sections pre-added to the new Activity as open steps, so it starts
+  /// with the right shape (each can be edited, ticked or removed).
+  final List<String> steps;
+
+  List<Map<String, dynamic>> sectionsFor(String activityId) => [
+    for (final step in steps)
+      {'activity_id': activityId, 'kind': 'step', 'label': step,
+       'payload': {'value': '', 'status': 'open'}},
+  ];
 }
 
 /// Pure rules for the new-Activity draft, kept testable.
@@ -69,8 +87,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
 
   final db = Supabase.instance.client;
   late final title = TextEditingController(text: widget.initialTitle);
-  late final details = TextEditingController(text: widget.initialDetails.isNotEmpty
-      ? widget.initialDetails : widget.initialPurpose?.outline ?? '');
+  late final details = TextEditingController(text: widget.initialDetails);
   ActivityPurpose? purpose;
   bool shared = true;
   DateTime? dueOn;
@@ -94,6 +111,11 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
     try {
       final created = await db.from('activities')
           .insert(draft.toInsert(widget.spaceId)).select('id').single();
+      final sections = purpose?.sectionsFor(created['id'].toString()) ?? const [];
+      if (sections.isNotEmpty) {
+        try { await db.from('activity_components').insert(sections); }
+        catch (_) {/* The Activity exists; steps can be added by hand. */}
+      }
       if (!mounted) return;
       await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
           builder: (_) => ActivityScreen(id: created['id'].toString())));
@@ -149,19 +171,30 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
               avatar: Icon(p.icon, size: 18),
               label: Text(p.label),
               selected: purpose == p,
-              onSelected: (_) => setState(() {
-                purpose = p;
-                details.text = NewActivityDraft.detailsFor(p, details.text);
-              })),
+              onSelected: (_) => setState(() => purpose = purpose == p ? null : p)),
           ]),
+          if (purpose != null && purpose!.steps.isNotEmpty) Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Card(elevation: 0, color: theme.colorScheme.surfaceContainerHighest,
+              child: Padding(padding: const EdgeInsets.all(12), child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Starts with these steps', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 4),
+                  for (final step in purpose!.steps) Row(children: [
+                    const Icon(Icons.radio_button_unchecked, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(step)),
+                  ]),
+                ])))),
           const SizedBox(height: 14),
           TextField(
             controller: details,
             minLines: 5, maxLines: 14, maxLength: 12000,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Details', alignLabelWithHint: true,
-              border: OutlineInputBorder())),
+              hintText: purpose?.outline,
+              border: const OutlineInputBorder())),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8),
             child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
           const SizedBox(height: 12),

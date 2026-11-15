@@ -25,6 +25,14 @@ void main() {
         'my own words');
   });
 
+  test('purposes pre-add open steps; a plain note adds none', () {
+    final rows = ActivityPurpose.planEvent.sectionsFor('a1');
+    expect(rows.length, ActivityPurpose.planEvent.steps.length);
+    expect(rows.first, {'activity_id': 'a1', 'kind': 'step',
+        'label': 'Set the date and place', 'payload': {'value': '', 'status': 'open'}});
+    expect(ActivityPurpose.note.sectionsFor('a1'), isEmpty);
+  });
+
   test('quick add offers the eight spec choices in order', () {
     expect(QuickAddKind.values.map((k) => k.label).toList(), [
       'Reminder', 'To-do', 'Event', 'Note', 'Something to research',
