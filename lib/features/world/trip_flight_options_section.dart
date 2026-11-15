@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -50,8 +51,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
   var link=(prior?['booking_link']??'').toString();
   var notes=(prior?['notes']??'').toString();
   var status=(prior?['status']??'considering').toString();
-  final result=await showDialog<Map<String,dynamic>>(context:context,
-   builder:(ctx)=>StatefulBuilder(builder:(ctx,change)=>AlertDialog(
+  final result=await Navigator.of(context).push<Map<String,dynamic>>(MaterialPageRoute<Map<String,dynamic>>(fullscreenDialog:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,change)=>EditorPage(
     title:Text(prior==null?'Add new flight option':'Edit flight option'),
     content:SizedBox(width:530,child:SingleChildScrollView(child:Column(
      mainAxisSize:MainAxisSize.min,children:[
@@ -146,7 +146,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
       });
      },child:const Text('Save option')),
     ],
-   )));
+   ))));
   if(result==null||!mounted)return;
   if(result.containsKey('error')){
    setState(()=>error=result['error'].toString());return;

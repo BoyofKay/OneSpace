@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -38,42 +39,18 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
    if(space==null)return;
    var date=DateTime.tryParse(existing?['off_date']?.toString()??'')??
      DateTime.now();
-   final label=TextEditingController(text:existing?['label']?.toString()??'Day off');
+   final result=await Navigator.of(context).push<(DateTime,String)>(MaterialPageRoute(
+     builder:(_)=>DayOffEditorPage(date:date,label:existing?['label']?.toString()??'',
+       isNew:existing==null)));
    try{
-     final result=await showDialog<bool>(context:context,
-       builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-         title:Text(existing==null?'Add new day off':'Edit day off'),
-         content:SingleChildScrollView(child:Column(
-           mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,
-           children:[
-             ListTile(contentPadding:EdgeInsets.zero,
-               leading:const Icon(Icons.event_outlined),
-               title:Text(CalendarRules.sqlDate(date)),
-               subtitle:const Text('Day off date'),
-               onTap:()async{
-                 final picked=await showDatePicker(context:ctx,
-                   initialDate:date,
-                   firstDate:DateTime(2020),lastDate:DateTime(2100));
-                 if(picked!=null)update(()=>date=picked);
-               }),
-             TextField(controller:label,maxLength:120,
-               decoration:const InputDecoration(labelText:'Name or reason (optional)')),
-             const Text('This date appears on both calendars. '
-               'Automatic gestures respect the normal working and sleep schedule.'),
-           ])),
-         actions:[
-           TextButton(onPressed:()=>Navigator.pop(ctx,false),
-             child:const Text('Cancel')),
-           FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-             child:const Text('Save day off')),
-         ],
-       )));
-     if(result!=true||!mounted)return;
+     if(result==null||!mounted)return;
+     date=result.$1;
+     final label=result.$2;
      setState(()=>busy=true);
      final values=<String,dynamic>{
        'space_id':space,'user_id':db.auth.currentUser!.id,
        'off_date':CalendarRules.sqlDate(date),
-       'label':label.text.trim().isEmpty?'Day off':label.text.trim(),
+       'label':label.isEmpty?'Day off':label,
      };
      if(existing==null){
        await db.from('personal_days_off').insert(values);
@@ -93,7 +70,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      if(mounted)setState((){
        busy=false;error='Could not save this day off.';
      });
-   }finally{label.dispose();}
+   }
  }
  Future<void> _remove(Map<String,dynamic> row)async{
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>
@@ -145,4 +122,42 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      const SizedBox(height:90),
    ])),
  );
+}
+
+
+/// R56: add/edit a day off as a page (Cancel/Save pinned at the bottom).
+class DayOffEditorPage extends StatefulWidget{
+ const DayOffEditorPage({super.key,required this.date,required this.label,this.isNew=false});
+ final DateTime date;
+ final String label;
+ final bool isNew;
+ @override State<DayOffEditorPage> createState()=>_DayOffEditorPageState();
+}
+class _DayOffEditorPageState extends State<DayOffEditorPage>{
+ late DateTime date=widget.date;
+ late final label=TextEditingController(text:widget.label);
+ @override void dispose(){label.dispose();super.dispose();}
+ @override Widget build(BuildContext context)=>EditorScaffold(
+   title:widget.isNew?'Add day off':'Edit day off',isNew:widget.isNew,
+   isChanged:()=>label.text!=widget.label||!DateUtils.isSameDay(date,widget.date),
+   isComplete:()=>true,listenTo:[label],saveLabel:'Save day off',
+   onSave:()=>Navigator.pop(context,(date,label.text.trim())),
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+     Card(elevation:0,child:ListTile(
+       leading:const Icon(Icons.event_outlined),
+       title:Text(MaterialLocalizations.of(context).formatFullDate(date)),
+       subtitle:Text(requiredLabel('Date')),
+       trailing:const Icon(Icons.edit_calendar_outlined),
+       onTap:()async{
+         final picked=await showDatePicker(context:context,initialDate:date,
+           firstDate:DateTime(2020),lastDate:DateTime(2100));
+         if(picked!=null)setState(()=>date=picked);
+       })),
+     const SizedBox(height:12),
+     TextField(controller:label,maxLength:120,
+       decoration:const InputDecoration(labelText:'Name or reason (optional)',
+         border:OutlineInputBorder())),
+     Text('This date appears on both calendars.',
+       style:Theme.of(context).textTheme.bodySmall),
+   ]));
 }

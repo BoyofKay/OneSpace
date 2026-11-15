@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import '../../core/item_menu.dart';
 
 import 'package:flutter/services.dart';
@@ -116,73 +117,29 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
+  /// R56: free-text prompts open as a page (Cancel/Save pinned), not a pop-up.
   Future<String?> prompt(String label, {String initial = '', int max = 12000}) async {
-    final text = TextEditingController(text: initial);
-    try {
-      return await showDialog<String>(context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(label),
-            content: TextField(controller: text, maxLength: max,
-              minLines: 2, maxLines: 8, autofocus: true,
-              decoration: const InputDecoration(border: OutlineInputBorder())),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel')),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, text.text.trim()),
-                child: const Text('Save')),
-            ],
-          ));
-    } finally {
-      text.dispose();
-    }
+    final values = await showFormPage(context, title: label, isNew: initial.isEmpty,
+        fields: [FormFieldSpec('Text', initial: initial, maxLength: max, lines: 3)]);
+    return values?.first;
   }
 
   Future<void> editActivity(Map<String, dynamic> item) async {
-    final title = TextEditingController(text: item['title']?.toString() ?? '');
-    final body = TextEditingController(text: item['body']?.toString() ?? '');
-    try {
-      final changed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Edit Activity'),
-          content: SingleChildScrollView(child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: title, maxLength: 120,
-                decoration: const InputDecoration(labelText: 'Title')),
-              TextField(controller: body, maxLength: 12000,
-                minLines: 4, maxLines: 8,
-                decoration: const InputDecoration(labelText: 'Details')),
-            ],
-          )),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-            FilledButton(onPressed: () {
-              if (title.text.trim().isNotEmpty) {
-                Navigator.pop(ctx, true);
-              }
-            }, child: const Text('Save')),
-          ],
-        ),
-      );
-      if (changed != true || !mounted) return;
-      await run(() async {
-        final rows = await db.from('activities').update({
-            'title': title.text.trim(), 'body': body.text.trim(),
-          }).eq('id', widget.id)
-          .eq('updated_at', item['updated_at'] as String)
-          .select('id');
-        if (rows.isEmpty) {
-          throw StateError('Your partner edited this Activity. Review their changes first.');
-        }
-      });
-    } finally {
-      title.dispose();
-      body.dispose();
-    }
+    final values = await showFormPage(context, title: 'Edit activity', fields: [
+      FormFieldSpec('Title', initial: item['title']?.toString() ?? '', required: true, maxLength: 120),
+      FormFieldSpec('Details', initial: item['body']?.toString() ?? '', maxLength: 12000, lines: 5),
+    ]);
+    if (values == null || !mounted) return;
+    await run(() async {
+      final rows = await db.from('activities').update({
+          'title': values[0], 'body': values[1],
+        }).eq('id', widget.id)
+        .eq('updated_at', item['updated_at'] as String)
+        .select('id');
+      if (rows.isEmpty) {
+        throw StateError('Your partner edited this Activity. Review their changes first.');
+      }
+    });
   }
 
   Future<void> editBody(Map<String, dynamic> item) async {
