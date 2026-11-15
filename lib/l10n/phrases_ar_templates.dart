@@ -56,6 +56,7 @@ const Map<String, String> arTemplates = {
   'More options for {}': 'خيارات أكثر لـ {}',
   'Created by {}': 'أنشأه {}',
   'Next steps · {}': 'الخطوات التالية · {}',
+  'Next steps · {} open': 'الخطوات التالية · {} مفتوحة',
   'Remove “{}”?': 'حذف «{}»؟',
   'Remove this item?': 'حذف هذا العنصر؟',
   'Create from “{}”': 'إنشاء من «{}»',

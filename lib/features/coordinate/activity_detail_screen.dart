@@ -1235,7 +1235,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             if (steps.isNotEmpty) ...[
               Row(children: [
                 Expanded(child: Text(tt('Next steps · ${steps.where(
-                    (i) => (i['payload'] as Map?)?['status'] != 'done').length)} open',
+                    (i) => (i['payload'] as Map?)?['status'] != 'done').length} open'),
                   style: Theme.of(context).textTheme.titleMedium)),
                 IconButton(tooltip: tt('Add step'),
                   onPressed: () => openEditor('step'),
