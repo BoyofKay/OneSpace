@@ -230,7 +230,7 @@ class OneSpaceApp extends StatelessWidget {
             themeMode:appearance.mode,
             builder:(context,child){
               OneSpacePhrases.follow(context);
-              return OneSpaceCanvas(season:activeSeason,child:child??const SizedBox.shrink());
+              return OneSpaceCanvas(season:activeSeason,style:appearance.background,child:child??const SizedBox.shrink());
             },
             themeAnimationDuration:
               WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
@@ -270,7 +270,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       if(mounted)_takeIncomingShare();
       if(mounted)_checkPendingDeletion();
       // R61: "Voice command" from a long-press on the app icon.
-      Voice.init((){if(mounted)VoiceAssistant.start(context,goToday:()=>navigate(0));});
+      if(Voice.enabled)Voice.init((){if(mounted)VoiceAssistant.start(context,goToday:()=>navigate(0));});
     });
   }
 
@@ -449,7 +449,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         ]),
         actions:[
           // R60: voice commands ("Remind me…", "What's on today?", "Open notes").
-          IconButton(tooltip:tt('Voice command'),visualDensity:VisualDensity.compact,icon:const Icon(Icons.mic_none_rounded),
+          if(Voice.enabled)IconButton(tooltip:tt('Voice command'),visualDensity:VisualDensity.compact,icon:const Icon(Icons.mic_none_rounded),
             onPressed:()=>VoiceAssistant.start(context,goToday:()=>navigate(0))),
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(

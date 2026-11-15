@@ -28,21 +28,33 @@ const _options=[
    'Sending you a big, warm hug.',
    'A hug is on its way to you, my love.',
    'Wrapping you in a little extra love today.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Here is a hug that lasts all day.",
+   "Hold on — a long, tight hug is coming your way.",
  ]),
  _GestureOption('miss_you','I miss you',Icons.heart_broken_outlined,[
    'I miss you more than words can say.',
    'Wish you were here with me right now.',
    'Across the distance, I am missing you.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Everything reminds me of you today.",
+   "Counting down until I can see you again.",
  ]),
  _GestureOption('thinking','Thinking of you',Icons.favorite_outline,[
    'Just wanted you to know I am thinking about you.',
    'You crossed my mind, and I smiled.',
    'No matter the distance, you are in my thoughts.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "You are on my mind, as always.",
+   "A quiet moment, and of course I thought of you.",
  ]),
  _GestureOption('smile','You made me smile',Icons.sentiment_satisfied_alt_outlined,[
    'Thinking about you just made me smile.',
    'You are the brightest part of my day.',
    'A little smile, just because of you.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Remembering your laugh made my whole day.",
+   "You have a way of making everything lighter.",
  ]),
  _GestureOption('morning','Good morning',Icons.wb_sunny_outlined,[
    'Good morning, my love. I hope your day is kind to you.',
@@ -59,6 +71,9 @@ const _options=[
    "Morning hugs, delivered across the distance.",
    "I hope today brings you peace and happy surprises.",
    "Another day, another reminder that you are loved.",
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Good morning! Do not forget your breakfast.",
+   "Rise and shine, my love. Today is yours.",
  ]),
  _GestureOption('goodnight','Sweet dreams',Icons.nightlight_round,[
    'Sweet dreams. I am holding you in my heart.',
@@ -75,11 +90,17 @@ const _options=[
    "Rest easy. Tomorrow holds another little beginning.",
    "Wishing you a calm and comforting night.",
    "Goodnight. Thinking of you with so much affection.",
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Goodnight. I will meet you in our dreams.",
+   "Sleep well. I am right here in your heart.",
  ]),
  _GestureOption('proud','Proud of you',Icons.auto_awesome_outlined,[
    'I am so proud of you.',
    'I see everything you do, and I appreciate you.',
    'You are amazing. I hope you know that.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Look how far you have come. I am proud of you.",
+   "You inspire me every single day.",
  ]),
  _GestureOption('support','You have got this',Icons.fitness_center_outlined,[
    'I am here for you, even from far away.',
@@ -96,38 +117,107 @@ const _options=[
    "Thinking of you as your workday winds down.",
    "Here is a little encouragement for the evening.",
    "Sending care and comfort after a busy day.",
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Whatever today brings, we face it together.",
+   "Breathe. You are stronger than you think.",
  ]),
  _GestureOption('thanks','Thank you',Icons.handshake_outlined,[
    'Thank you for being there for me.',
    'I notice all the little things you do. Thank you, love.',
    'Thank you for making my life warmer.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Thank you for loving me the way you do.",
+   "Thank you for every little thing, every day.",
  ]),
  _GestureOption('lucky','Lucky to have you',Icons.stars_outlined,[
    'I feel so lucky to have you in my life.',
    'Of all the people in the world, I get to love you.',
    'Being yours is one of my favorite things.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Out of everyone, I got you. Lucky me.",
+   "Loving you is the best thing that ever happened to me.",
  ]),
  _GestureOption('miss_together','I miss us together',Icons.people_alt_outlined,[
    'I miss the simple moments when we are side by side.',
    'I miss our laughter and the ordinary magic of us together.',
    'I cannot wait for our next moment together.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Our next hug is going to be a long one.",
+   "I miss sharing ordinary days with you.",
  ]),
  _GestureOption('miss_home','I miss our home',Icons.home_outlined,[
    'I miss the feeling of being home with you.',
    'Home is wherever we get to be together.',
    'Missing our little routines and our place.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "I miss our coffee mornings at home.",
+   "Our place is not the same without both of us.",
  ]),
  _GestureOption('miss_kids','I miss our kids',Icons.child_care_outlined,[
    'I am missing our kids and all their little moments.',
    'Sending extra love to the little ones today.',
    'I wish I could share this moment with our family.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Give the little ones a big hug from me.",
+   "Tell the kids I love them to the moon and back.",
  ]),
  _GestureOption('miss_pets','I miss our furry ones',Icons.pets_outlined,[
    'Please give our furry ones an extra cuddle from me.',
    'I miss their little paws and all the chaos they bring.',
    'Thinking of our furry family today.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Tell our furry ones I will be home soon.",
+   "A scratch behind the ears from me, please.",
  ]),
-
+ // R64: new gesture types.
+ _GestureOption('love_you','I love you',Icons.favorite,[
+   "I love you. Simply, completely, always.",
+   "Just a reminder: I love you more today than yesterday.",
+   "I love you — in every language and every time zone.",
+   "You are my favorite person. I love you.",
+ ]),
+ _GestureOption('kiss','Send a kiss',Icons.emoji_emotions_outlined,[
+   "Sending you a kiss.",
+   "A little kiss, delivered right to your heart.",
+   "Close your eyes — that was a kiss from me.",
+   "Kisses across the miles, just for you.",
+ ]),
+ _GestureOption('sorry','I am sorry',Icons.healing_outlined,[
+   "I am sorry. You matter more to me than being right.",
+   "I did not handle that well. I am sorry, my love.",
+   "Can we start again? I am sorry.",
+   "I hear you, and I am sorry I hurt you.",
+ ]),
+ _GestureOption('celebrate','Congratulations!',Icons.celebration_outlined,[
+   "Congratulations! I knew you could do it.",
+   "So proud of this moment — let us celebrate!",
+   "You did it! Cheering for you so loudly.",
+   "Today is your day. Congratulations, my love.",
+ ]),
+ _GestureOption('get_well','Feel better soon',Icons.local_florist_outlined,[
+   "Feel better soon. Rest, drink water, and let me spoil you.",
+   "Sending healing hugs and a warm blanket of love.",
+   "I wish I could take care of you right now. Get well soon.",
+   "Take it easy today. Your only job is to rest.",
+ ]),
+ _GestureOption('safe_travels','Safe travels',Icons.flight_takeoff,[
+   "Safe travels, my love. Text me when you land.",
+   "Every mile brings you closer. Travel safe.",
+   "Wishing you smooth skies and an easy journey.",
+   "Have a safe trip. My heart is traveling with you.",
+ ]),
+ _GestureOption('call_me','Call me when you can',Icons.call_outlined,[
+   "Call me when you can — I miss your voice.",
+   "No rush. Whenever you are free, I would love to talk.",
+   "I have something to tell you. Call me when you can?",
+   "Your voice would make my day. Call me later?",
+ ]),
+ _GestureOption('date_night','Cannot wait for our date',Icons.wine_bar_outlined,[
+   "I cannot wait for our date.",
+   "Counting the hours until our date night.",
+   "Save your best smile for tonight — it is a date.",
+   "Our date is the best part of my week.",
+ ]),
 ];
 
 class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
@@ -211,6 +301,15 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      case 'miss_home':return const Color(0xFFDC9960);
      case 'miss_kids':return const Color(0xFF729CC8);
      case 'miss_pets':return const Color(0xFFBC804D);
+     case 'love_you':return const Color(0xFFE0566F);
+     case 'kiss':return const Color(0xFFE86FA0);
+     case 'sorry':return const Color(0xFF8E8FB8);
+     case 'celebrate':return const Color(0xFFE0A33A);
+     case 'get_well':return const Color(0xFF5FA88A);
+     case 'safe_travels':return const Color(0xFF4F8FC0);
+     case 'call_me':return const Color(0xFF3C9C9A);
+     case 'date_night':return const Color(0xFFB0577A);
+
      default:return const Color(0xFF518FB7);
    }
  }

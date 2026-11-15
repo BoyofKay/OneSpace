@@ -51,7 +51,7 @@ jobs:
             echo "No iOS Firebase config yet — push stays off; the app still builds."
           fi
       - name: Build (no code signing)
-        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
+        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=ios-${{ github.run_number }}
       - name: Package
         run: |
           cd build/ios/iphoneos

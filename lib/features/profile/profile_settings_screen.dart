@@ -1,11 +1,8 @@
-import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../notifications/push_registration_gate.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
-import '../../core/performance_timings.dart';
 import '../../core/device_time_zone.dart';
 import '../../core/device_weather_service.dart';
 import '../../core/shared_weather.dart';
@@ -308,51 +305,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
-  Future<void> _showPerformanceDiagnostics() async {
-    // Measure an authenticated API request separately from Flutter rendering.
-    // This query returns only the signed-in user's own membership ID, not
-    // private user content; no identifiers are retained in the report.
-    final id = _client.auth.currentUser?.id;
-    if (id != null) {
-      final sample = Stopwatch()..start();
-      try {
-        await _client.from('space_members').select('space_id')
-            .eq('user_id',id).limit(1)
-            .timeout(const Duration(seconds:12));
-        PerformanceTimings.instance.record(
-          'Seoul API round trip', sample.elapsed);
-      } catch (_) {
-        PerformanceTimings.instance.record(
-          'API failed or timed out', sample.elapsed);
-      }
-    }
-    if (!mounted) return;
-    final report = PerformanceTimings.instance.report;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(tr(context, 'performanceDiagnostics')),
-        content: SingleChildScrollView(
-          child: SelectableText(report),
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: report));
-              Navigator.of(dialogContext).pop();
-            },
-            icon: const Icon(Icons.copy_outlined),
-            label: Text(tr(context, 'copyDiagnostics')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(tr(context, 'done')),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -527,27 +479,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           subtitle: Text(tt('Update your own sign-in password')),
           trailing: const Icon(Icons.chevron_right),
           onTap: _changePassword,
-        ),
-        const SizedBox(height: 18),
-        const Divider(),
-        const SizedBox(height: 14),
-        OutlinedButton.icon(
-          onPressed: () async {
-            await disableCurrentPushDevice();
-            await _client.auth.signOut();
-          },
-          icon: const Icon(Icons.logout),
-          label: Text(tr(context, 'signOut')),
-        ),
-        // Technical timings stay available for troubleshooting only,
-        // de-emphasized below account actions (R46).
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: TextButton.icon(
-            onPressed: _showPerformanceDiagnostics,
-            icon: const Icon(Icons.speed_outlined, size: 18),
-            label: Text(tt('Troubleshooting')),
-          ),
         ),
         ],
       ],

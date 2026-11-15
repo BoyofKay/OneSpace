@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onespace/theme/onespace_appearance.dart';
 
 void main(){
- test('Four themes are available without tying palettes to gender',(){
-  expect(OneSpacePalette.values.length,4);
+ test('Nine themes are available without tying palettes to gender',(){
+  expect(OneSpacePalette.values.length,9);
   for(final palette in OneSpacePalette.values){
    final light=OneSpaceTheme.build(palette:palette,brightness:Brightness.light);
    final dark=OneSpaceTheme.build(palette:palette,brightness:Brightness.dark);
@@ -26,6 +26,7 @@ void main(){
  test('Preserved user-requested theme names are the actual four presets',(){
   expect(OneSpacePalette.values.map(OneSpaceAppearance.paletteName).toList(),[
    'Midnight Blue','Monochrome','Clean Light','Soft Rose',
+   'OneSpace Coral & Teal','Ocean Teal','Sage Garden','Lavender Dusk','Desert Sand',
   ]);
  });
  test('Holiday palette affects entire component scheme, not a single card',(){

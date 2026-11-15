@@ -286,12 +286,17 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    companion object { private const val VOICE_ENABLED = false }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         captureShare(intent)
         captureVoiceLaunch(intent)
         try {
-            androidx.core.content.pm.ShortcutManagerCompat.pushDynamicShortcut(this,
+            if (!VOICE_ENABLED) {
+                // R64: voice is hidden until it is mature (matches Voice.enabled in Dart).
+                androidx.core.content.pm.ShortcutManagerCompat.removeDynamicShortcuts(this, listOf("voice"))
+            } else androidx.core.content.pm.ShortcutManagerCompat.pushDynamicShortcut(this,
                 androidx.core.content.pm.ShortcutInfoCompat.Builder(this, "voice")
                     .setShortLabel(getString(R.string.shortcut_voice_short))
                     .setLongLabel(getString(R.string.shortcut_voice_long))

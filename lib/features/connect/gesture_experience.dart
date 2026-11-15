@@ -66,6 +66,14 @@ class GestureTheme {
      case 'miss_home':return const GestureTheme(Icons.home_outlined,Color(0xFFDC9960),'Missing our home');
      case 'miss_kids':return const GestureTheme(Icons.child_care_outlined,Color(0xFF729CC8),'Missing our kids');
      case 'miss_pets':return const GestureTheme(Icons.pets_outlined,Color(0xFFBC804D),'Missing our furry ones');
+     case 'love_you':return const GestureTheme(Icons.favorite,Color(0xFFE0566F),'I love you');
+     case 'kiss':return const GestureTheme(Icons.emoji_emotions_outlined,Color(0xFFE86FA0),'A kiss for you');
+     case 'sorry':return const GestureTheme(Icons.healing_outlined,Color(0xFF8E8FB8),'An apology');
+     case 'celebrate':return const GestureTheme(Icons.celebration_outlined,Color(0xFFE0A33A),'Celebrating you');
+     case 'get_well':return const GestureTheme(Icons.local_florist_outlined,Color(0xFF5FA88A),'Get well soon');
+     case 'safe_travels':return const GestureTheme(Icons.flight_takeoff,Color(0xFF4F8FC0),'Safe travels');
+     case 'call_me':return const GestureTheme(Icons.call_outlined,Color(0xFF3C9C9A),'Let us talk');
+     case 'date_night':return const GestureTheme(Icons.wine_bar_outlined,Color(0xFFB0577A),'Date night');
      default:return const GestureTheme(Icons.favorite_outline,Color(0xFF518FB7),'Here for you');
    }
  }

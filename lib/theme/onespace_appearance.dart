@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum OneSpacePalette { midnightBlue, monochrome, cleanLight, softRose }
-enum SeasonChoice { off, automatic, valentines, spring, halloween, winter, eid, birthday, anniversary, thanksgiving, christmas, newYear }
+enum OneSpacePalette { midnightBlue, monochrome, cleanLight, softRose, oneSpace, oceanTeal, sageGarden, lavenderDusk, desertSand }
+/// R64: the background pattern behind every screen (seasons override it while active).
+enum BackgroundStyle { calm, hearts, stars, waves, pattern, plain }
+enum SeasonChoice { off, automatic, valentines, spring, halloween, winter, eid, birthday, anniversary, thanksgiving, christmas, newYear, ramadan, nationalDay }
 
 class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  OneSpaceAppearance._(){WidgetsBinding.instance.addObserver(this);}
@@ -13,6 +15,8 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  static const _paletteKey='appearance.palette.v1';
  static const _modeKey='appearance.mode.v1';
  static const _seasonKey='appearance.season.v1';
+ static const _backgroundKey='appearance.background.v1';
+ BackgroundStyle background=BackgroundStyle.calm;
  OneSpacePalette palette=OneSpacePalette.cleanLight;
  ThemeMode mode=ThemeMode.system;
  SeasonChoice season=SeasonChoice.automatic;
@@ -38,6 +42,7 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
    palette=_enumOf(OneSpacePalette.values,migrated,OneSpacePalette.cleanLight);
    mode=_enumOf(ThemeMode.values,prefs.getString(_modeKey),ThemeMode.system);
    season=_enumOf(SeasonChoice.values,prefs.getString(_seasonKey),SeasonChoice.automatic);
+   background=_enumOf(BackgroundStyle.values,prefs.getString(_backgroundKey),BackgroundStyle.calm);
   }catch(_){ /* Default theme must remain available offline. */ }
   loaded=true;
   notifyListeners();
@@ -63,6 +68,18 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   mode=value;notifyListeners();
   try{(await SharedPreferences.getInstance()).setString(_modeKey,value.name);}catch(_){}
  }
+ Future<void> setBackground(BackgroundStyle value)async{
+  background=value;notifyListeners();
+  try{(await SharedPreferences.getInstance()).setString(_backgroundKey,value.name);}catch(_){}
+ }
+ static String backgroundName(BackgroundStyle value)=>switch(value){
+  BackgroundStyle.calm=>'Calm circles',
+  BackgroundStyle.hearts=>'Little hearts',
+  BackgroundStyle.stars=>'Starry night',
+  BackgroundStyle.waves=>'Soft waves',
+  BackgroundStyle.pattern=>'Arabesque',
+  BackgroundStyle.plain=>'Plain',
+ };
  Future<void> setSeason(SeasonChoice value)async{
   season=value;notifyListeners();
   try{(await SharedPreferences.getInstance()).setString(_seasonKey,value.name);}catch(_){}
@@ -73,12 +90,34 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   OneSpacePalette.monochrome=>'Monochrome',
   OneSpacePalette.cleanLight=>'Clean Light',
   OneSpacePalette.softRose=>'Soft Rose',
+  OneSpacePalette.oneSpace=>'OneSpace Coral & Teal',
+  OneSpacePalette.oceanTeal=>'Ocean Teal',
+  OneSpacePalette.sageGarden=>'Sage Garden',
+  OneSpacePalette.lavenderDusk=>'Lavender Dusk',
+  OneSpacePalette.desertSand=>'Desert Sand',
  };
  static Color paletteSeed(OneSpacePalette value)=>switch(value){
   OneSpacePalette.midnightBlue=>const Color(0xFF4A80D8),
   OneSpacePalette.monochrome=>const Color(0xFF62646B),
   OneSpacePalette.cleanLight=>const Color(0xFF3768BA),
   OneSpacePalette.softRose=>const Color(0xFFBA688B),
+  OneSpacePalette.oneSpace=>const Color(0xFFE8745A),
+  OneSpacePalette.oceanTeal=>const Color(0xFF1F6E78),
+  OneSpacePalette.sageGarden=>const Color(0xFF5E8C61),
+  OneSpacePalette.lavenderDusk=>const Color(0xFF8A6FC2),
+  OneSpacePalette.desertSand=>const Color(0xFFB98348),
+ };
+ /// Background and card colours per palette (light, dark).
+ static (Color,Color) paletteCanvas(OneSpacePalette p,bool dark)=>switch(p){
+  OneSpacePalette.midnightBlue=>dark?(const Color(0xFF080F20),const Color(0xFF16213B)):(const Color(0xFFEDF3FC),Colors.white),
+  OneSpacePalette.monochrome=>dark?(const Color(0xFF0D0E10),const Color(0xFF1F2024)):(const Color(0xFFF4F4F4),Colors.white),
+  OneSpacePalette.cleanLight=>dark?(const Color(0xFF111827),const Color(0xFF1C2638)):(const Color(0xFFF6F8FC),Colors.white),
+  OneSpacePalette.softRose=>dark?(const Color(0xFF211820),const Color(0xFF342431)):(const Color(0xFFFFF6FA),Colors.white),
+  OneSpacePalette.oneSpace=>dark?(const Color(0xFF1E1715),const Color(0xFF2E2320)):(const Color(0xFFFBF8F1),Colors.white),
+  OneSpacePalette.oceanTeal=>dark?(const Color(0xFF0B1D20),const Color(0xFF15302F)):(const Color(0xFFEEF7F7),Colors.white),
+  OneSpacePalette.sageGarden=>dark?(const Color(0xFF121A14),const Color(0xFF1F2B21)):(const Color(0xFFF3F7F1),Colors.white),
+  OneSpacePalette.lavenderDusk=>dark?(const Color(0xFF17131F),const Color(0xFF272035)):(const Color(0xFFF6F3FC),Colors.white),
+  OneSpacePalette.desertSand=>dark?(const Color(0xFF1C1611),const Color(0xFF2E251C)):(const Color(0xFFFBF6EE),Colors.white),
  };
  static String seasonName(SeasonChoice value)=>switch(value){
   SeasonChoice.off=>'Off',
@@ -93,6 +132,8 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.thanksgiving=>'Thanksgiving',
   SeasonChoice.christmas=>'Christmas',
   SeasonChoice.newYear=>'New Year',
+  SeasonChoice.ramadan=>'Ramadan',
+  SeasonChoice.nationalDay=>'Saudi National Day',
  };
  static SeasonChoice effectiveSeason(SeasonChoice setting,DateTime date,
    {SeasonChoice? personal}){
@@ -128,6 +169,8 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.thanksgiving=>const Color(0xFFB4783F),
   SeasonChoice.christmas=>const Color(0xFF2D8659),
   SeasonChoice.newYear=>const Color(0xFFAD8E46),
+  SeasonChoice.ramadan=>const Color(0xFF7A5BA6),
+  SeasonChoice.nationalDay=>const Color(0xFF1F8A55),
   _=>null,
  };
 }
@@ -177,18 +220,7 @@ class OneSpaceTheme {
   // Seasonal color is an entire scheme-level overlay, not just a Today card.
   final accent=holiday==null?seed:Color.lerp(seed,holiday,.65)!;
   final scheme=ColorScheme.fromSeed(seedColor:accent,brightness:brightness);
-  final bg=switch(palette){
-   OneSpacePalette.midnightBlue=>dark?const Color(0xFF080F20):const Color(0xFFEDF3FC),
-   OneSpacePalette.monochrome=>dark?const Color(0xFF0D0E10):const Color(0xFFF4F4F4),
-   OneSpacePalette.cleanLight=>dark?const Color(0xFF111827):const Color(0xFFF6F8FC),
-   OneSpacePalette.softRose=>dark?const Color(0xFF211820):const Color(0xFFFFF6FA),
-  };
-  final surface=switch(palette){
-   OneSpacePalette.midnightBlue=>dark?const Color(0xFF16213B):Colors.white,
-   OneSpacePalette.monochrome=>dark?const Color(0xFF1F2024):Colors.white,
-   OneSpacePalette.cleanLight=>dark?const Color(0xFF1C2638):Colors.white,
-   OneSpacePalette.softRose=>dark?const Color(0xFF342431):Colors.white,
-  };
+  final (bg,surface)=OneSpaceAppearance.paletteCanvas(palette,dark);
   final border=dark?Colors.white.withValues(alpha:.13)
     :scheme.outlineVariant.withValues(alpha:.75);
   final card=holiday==null?surface:Color.alphaBlend(

@@ -14,12 +14,7 @@ class ThemeConceptCard extends StatelessWidget{
   final dark=palette==OneSpacePalette.midnightBlue||
     palette==OneSpacePalette.monochrome;
   final primary=OneSpaceAppearance.paletteSeed(palette);
-  final base=switch(palette){
-   OneSpacePalette.midnightBlue=>const Color(0xFF0D1933),
-   OneSpacePalette.monochrome=>const Color(0xFF121214),
-   OneSpacePalette.cleanLight=>const Color(0xFFF8FAFE),
-   OneSpacePalette.softRose=>const Color(0xFFFFF6FA),
-  };
+  final base=OneSpaceAppearance.paletteCanvas(palette,dark).$1;
   final surface=dark?Color.alphaBlend(Colors.white.withValues(alpha:.07),base)
     :Colors.white;
   final ink=dark?Colors.white:const Color(0xFF243044);
