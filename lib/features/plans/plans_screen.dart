@@ -23,7 +23,9 @@ export 'task_editor_sheet.dart'
 /// not a privacy boundary: private rows are excluded by the database itself.
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key, this.onOpenSpace, this.focusTaskId,
-    this.startNewTask = false});
+    this.startNewTask = false, this.newListTitle = ''});
+  /// R60: name for the new list when opened by voice.
+  final String newListTitle;
   final VoidCallback? onOpenSpace;
   final String? focusTaskId;
   /// R51 Quick add: open the new to-do editor as soon as the space is known.
@@ -188,6 +190,7 @@ class _PlansScreenState extends State<PlansScreen> {
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
       builder: (_) => TaskEditorSheet(
         existing: existing,
+        initialTitle: existing == null ? widget.newListTitle : '',
         members: _memberNames,
         currentUserId: _me,
         spaceId:spaceId,
@@ -477,7 +480,7 @@ class _PlansScreenState extends State<PlansScreen> {
        title:Text(task.title,style:StatusLook.title(context,task.status.name)),
        subtitle:details.isEmpty?null:Text(details.join(' · ')),
        trailing:!canEdit?const Icon(Icons.lock_outline):
-        ItemMenu(kind:'task',recordId:task.id,title:task.title,
+        ItemMenu(kind:'task',recordId:task.id,title:task.title,readAloud:task.title,
          statusActions:[
           if(!cancelled&&!completed)ItemMenuAction('Mark complete',MenuIcons.complete,()=>_changeStatus(task,TaskStatus.completed)),
           if(!cancelled&&!completed)ItemMenuAction('Cancel list',MenuIcons.cancel,()=>_cancelTask(task)),

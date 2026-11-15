@@ -322,6 +322,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     if(r['archived_at']!=null)'Removed',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:ItemMenu(kind:'reminder',recordId:r['id'].toString(),title:r['title']?.toString(),
+     readAloud:'Reminder: ${r['title']}. ${r['details']??''}',
      statusActions:[
       if(own!=null&&r['archived_at']==null&&!closed)...[
        ItemMenuAction(repeating?'Done for this time':'Done',Icons.check,()=>respond(r,'done')),

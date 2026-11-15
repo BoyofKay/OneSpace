@@ -18,12 +18,20 @@ import 'global_search_rules.dart';
 
 /// A single RLS-filtered search surface. No cross-space indexing or copying.
 class GlobalSearchScreen extends StatefulWidget {
-  const GlobalSearchScreen({super.key});
+  const GlobalSearchScreen({super.key,this.initialQuery=''});
+  /// R60: "search for …" by voice.
+  final String initialQuery;
   @override State<GlobalSearchScreen> createState()=>_GlobalSearchScreenState();
 }
 class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
  final db=Supabase.instance.client;
- final query=TextEditingController();
+ late final query=TextEditingController(text:widget.initialQuery);
+ @override void initState(){
+   super.initState();
+   if(widget.initialQuery.trim().isNotEmpty){
+     WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)search(widget.initialQuery);});
+   }
+ }
  Timer? debounce;
  int version=0;
  bool busy=false;

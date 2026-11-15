@@ -96,10 +96,9 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
         labelText:'Saved price (optional; not live)')),
       TextFormField(initialValue:currency,maxLength:3,
        onChanged:(v)=>currency=v,decoration:const InputDecoration(labelText:'Currency (USD/SAR)')),
-      ChoiceRow<int>(label:'My preference',
-       options:const {0:'No score',1:'1',2:'2',3:'3',4:'4',5:'5'},
-       icons:const {1:Icons.star_border,2:Icons.star_border,3:Icons.star_half,4:Icons.star,5:Icons.star},
-       selected:score??0,onSelected:(v)=>change(()=>score=v==null||v==0?null:v)),
+      Align(alignment:Alignment.centerLeft,child:Text('My preference',style:Theme.of(ctx).textTheme.labelLarge)),
+      StarRating(value:score,onChanged:(v)=>change(()=>score=v)),
+      const SizedBox(height:10),
       TextFormField(initialValue:link,maxLength:1800,
        keyboardType:TextInputType.url,
        onChanged:(v)=>link=v,decoration:const InputDecoration(

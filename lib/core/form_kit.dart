@@ -420,3 +420,25 @@ class MoodPicker extends StatelessWidget {
       ]));
   }
 }
+
+/// R60: five stars that always fit on one line (they share the width
+/// instead of wrapping), filled in amber; tap the same star again to clear.
+class StarRating extends StatelessWidget {
+  const StarRating({super.key, required this.value, required this.onChanged, this.maxSize = 40});
+  final int? value;
+  final ValueChanged<int?>? onChanged;
+  final double maxSize;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+    final size = ((box.maxWidth.isFinite ? box.maxWidth : 5 * maxSize) / 5).clamp(24.0, maxSize);
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      for (var i = 1; i <= 5; i++) SizedBox(width: size, height: size, child: InkResponse(
+        radius: size / 2,
+        onTap: onChanged == null ? null : () => onChanged!(value == i ? null : i),
+        child: Tooltip(message: '$i of 5', child: Icon(
+          (value ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded,
+          size: size * .82,
+          color: (value ?? 0) >= i ? Colors.amber.shade600 : Theme.of(context).colorScheme.outline)))),
+    ]);
+  });
+}

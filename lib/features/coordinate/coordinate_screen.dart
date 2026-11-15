@@ -127,6 +127,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           ],
         ),
         trailing: ItemMenu(kind: 'activity', recordId: item['id'].toString(),
+          readAloud: '${item['title'] ?? ''}. ${item['body'] ?? ''}',
           title: item['title']?.toString(), openLabel: 'Open',
           onOpen: () async {
             await Navigator.of(context).push<void>(MaterialPageRoute<void>(

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'collection_history_screen.dart';
+import 'voice.dart';
 
 /// One extra action shown in an [ItemMenu] (for example "Mark done").
 class ItemMenuAction {
@@ -35,6 +36,7 @@ class ItemMenu extends StatelessWidget {
     this.onChanged,
     this.onRemove,
     this.moreActions = const [],
+    this.readAloud,
   });
 
   /// Change-log kind (as used by `record_action_history`).
@@ -56,6 +58,9 @@ class ItemMenu extends StatelessWidget {
   /// Item-specific extras (Create from this, Linked items, Share…), shown
   /// after Edit and before Remove.
   final List<ItemMenuAction> moreActions;
+
+  /// R60: text for "Read aloud" (shown when not empty).
+  final String? readAloud;
 
   Future<void> _toggleRemoved(BuildContext context) async {
     final t = table;
@@ -102,6 +107,11 @@ class ItemMenu extends StatelessWidget {
           dense: true, contentPadding: EdgeInsets.zero,
           leading: Icon(openLabel == 'Open' ? Icons.open_in_new : MenuIcons.edit), title: Text(openLabel))));
     }
+    if ((readAloud ?? '').trim().isNotEmpty) {
+      entries.add(const PopupMenuItem(value: 'read', child: ListTile(
+          dense: true, contentPadding: EdgeInsets.zero,
+          leading: Icon(MenuIcons.readAloud), title: Text('Read aloud'))));
+    }
     for (var i = 0; i < moreActions.length; i++) {
       entries.add(PopupMenuItem(value: 'm$i', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
@@ -140,6 +150,8 @@ class ItemMenu extends StatelessWidget {
           onOpen?.call();
         } else if (v == 'remove') {
           if (onRemove != null) { onRemove!(); } else if (anchor.mounted) { _toggleRemoved(anchor); }
+        } else if (v == 'read' && anchor.mounted) {
+          Voice.speak(anchor, readAloud!);
         } else if (v == 'log' && anchor.mounted) {
           openChangeLog(anchor, kind: kind, recordId: recordId, recordTitle: title);
         }
@@ -162,6 +174,7 @@ class MenuIcons {
   static const private = Icons.lock_outline;
   static const createFrom = Icons.add_link;
   static const linked = Icons.link;
+  static const readAloud = Icons.volume_up_outlined;
 }
 
 /// A menu row with its icon (for menus that are not [ItemMenu]).

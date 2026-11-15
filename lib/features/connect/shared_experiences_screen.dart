@@ -93,16 +93,22 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         ]),
         const SizedBox(height:18),
         // R57: three small chips on one line.
-        Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
-         ActionChip(avatar:const Icon(Icons.event_available_outlined,size:18),
-          label:const Text('Plan'),visualDensity:VisualDensity.compact,
-          onPressed:(){Navigator.pop(ctx);planSuggestion(pick);}),
-         ActionChip(avatar:const Icon(Icons.shuffle,size:18),
-          label:const Text('Another'),visualDensity:VisualDensity.compact,
-          onPressed:()=>refresh(()=>offset++)),
-         ActionChip(avatar:const Icon(Icons.open_in_new,size:18),
-          label:const Text('View'),visualDensity:VisualDensity.compact,
-          onPressed:(){Navigator.pop(ctx);open(pick);}),
+        // R60: three equal blocks that always fit inside the card.
+        Row(children:[
+         for(final a in <(IconData,String,VoidCallback)>[
+          (Icons.event_available_outlined,'Plan',(){Navigator.pop(ctx);planSuggestion(pick);}),
+          (Icons.shuffle,'Another',()=>refresh(()=>offset++)),
+          (Icons.open_in_new,'View',(){Navigator.pop(ctx);open(pick);}),
+         ])Expanded(child:Padding(padding:const EdgeInsets.symmetric(horizontal:3),
+          child:Material(color:scheme.secondaryContainer,borderRadius:BorderRadius.circular(14),
+           child:InkWell(borderRadius:BorderRadius.circular(14),onTap:a.$3,
+            child:Padding(padding:const EdgeInsets.symmetric(vertical:10),child:Column(
+             mainAxisSize:MainAxisSize.min,children:[
+              Icon(a.$1,size:22,color:scheme.onSecondaryContainer),
+              const SizedBox(height:4),
+              Text(a.$2,maxLines:1,overflow:TextOverflow.ellipsis,
+               style:Theme.of(ctx).textTheme.labelMedium?.copyWith(color:scheme.onSecondaryContainer)),
+             ])))))),
         ]),
        ])),
       ])));
@@ -235,12 +241,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     StatefulBuilder(builder:(ctx,update)=>AlertDialog(
      title:Text('Rate '+row['title'].toString()),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-      Wrap(children:[for(var i=1;i<=5;i++)IconButton(
-       tooltip:'Rate '+i.toString(),
-       icon:Icon((rating??0)>=i?Icons.star:Icons.star_border),
-       onPressed:()=>update(()=>rating=i))]),
-      TextField(controller:review,maxLength:2000,maxLines:3,
-       decoration:const InputDecoration(labelText:'Review (optional)')),
+      StarRating(value:rating,onChanged:(v)=>update(()=>rating=v)),
+      const SizedBox(height:12),
+      TextField(controller:review,maxLength:2000,minLines:2,maxLines:4,
+       textCapitalization:TextCapitalization.sentences,
+       decoration:const InputDecoration(labelText:'Review (optional)',border:OutlineInputBorder())),
      ])),
      actions:[
       TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
@@ -453,7 +458,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          ExperiencePickerRules.completionState(r['category'].toString())+
           ': '+r['enjoyed_on'].toString(),
        ].join(' · ')),
-       trailing:ItemMenu(kind:'experience',recordId:r['id'].toString(),title:r['title']?.toString(),
+       trailing:ItemMenu(kind:'experience',recordId:r['id'].toString(),readAloud:'${r['title']}. ${r['description']??''}',title:r['title']?.toString(),
         statusActions:[ItemMenuAction('Rate & review',Icons.star_outline,()=>quickRate(r))],
         onOpen:()=>edit(r),removed:r['archived_at']!=null,onRemove:()=>archiveFromList(r)),
        onTap:()=>open(r)),
@@ -901,10 +906,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
       title:Text(who(x['user_id'])+' · '+(x['rating']??'No rating').toString()),
       subtitle:Text((x['review']??'').toString()))),
     const Text('My rating'),
-    Wrap(children:[
-     for(var i=1;i<=5;i++)IconButton(tooltip:'Rate '+i.toString(),
-      onPressed:()=>setState((){rating=i;_reviewDraftDirty=true;}),
-      icon:Icon((rating??0)>=i?Icons.star:Icons.star_border)),
+    Row(children:[
+     Expanded(child:StarRating(value:rating,onChanged:(v)=>setState((){rating=v;_reviewDraftDirty=true;}))),
      TextButton(onPressed:()=>setState((){
       rating=null;_reviewDraftDirty=true;
      }),child:const Text('Clear')),

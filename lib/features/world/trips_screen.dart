@@ -188,6 +188,7 @@ class _TripsScreenState extends State<TripsScreen> {
        if(trip['visibility']=='private')'Only me',
       ].join(' · '),maxLines:4),
       trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
+       readAloud:'${trip['title']}. ${(trip['destination']??'').toString().isEmpty?'':'To ${trip['destination']}. '}${trip['notes']??''}',
        onOpen:()=>open(trip),openLabel:'Open',table:'shared_trips',
        removed:trip['archived_at']!=null,onChanged:load),
       onTap:()=>open(trip),

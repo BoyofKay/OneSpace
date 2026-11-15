@@ -1,5 +1,6 @@
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
+import 'core/voice_assistant.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
@@ -167,8 +168,8 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
             child:Padding(
               padding:const EdgeInsets.all(28),
               child:Column(mainAxisSize:MainAxisSize.min,children:[
-                const Icon(Icons.favorite_rounded,
-                  color:Color(0xFF167E81),size:60),
+                Image.asset('assets/branding/mark.png',width:96,height:96,
+                  semanticLabel:'OneSpace logo'),
                 const SizedBox(height:12),
                 const Text('OneSpace',style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
@@ -424,7 +425,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           }),
           tooltip: tr(context, 'backHome'),
         ) : null,
-        title:Column(
+        title:Row(mainAxisSize:MainAxisSize.min,children:[
+          Image.asset('assets/branding/mark.png',width:34,height:34,excludeFromSemantics:true),
+          const SizedBox(width:10),
+          Flexible(child:Column(
           mainAxisSize:MainAxisSize.min,
           crossAxisAlignment:CrossAxisAlignment.start,
           children:[
@@ -434,8 +438,12 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             Text(tr(context,'tagline'),
               maxLines:1,overflow:TextOverflow.ellipsis,
               style:Theme.of(context).textTheme.labelSmall),
-          ]),
+          ])),
+        ]),
         actions:[
+          // R60: voice commands ("Remind me…", "What's on today?", "Open notes").
+          IconButton(tooltip:'Voice command',icon:const Icon(Icons.mic_none_rounded),
+            onPressed:()=>VoiceAssistant.start(context,goToday:()=>navigate(0))),
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(
             tooltip:'More options',

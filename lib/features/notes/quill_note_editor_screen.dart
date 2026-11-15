@@ -14,8 +14,10 @@ import 'dart:async';
 /// OneSpace Notes 2.0: real rich-text editing, native selection/copy/paste,
 /// lists, headings, links and basic formatting, not markdown-in-text fields.
 class QuillNoteEditorScreen extends StatefulWidget {
- const QuillNoteEditorScreen({super.key,required this.spaceId,this.existing});
+ const QuillNoteEditorScreen({super.key,required this.spaceId,this.existing,this.initialTitle='',this.initialBody=''});
  final String spaceId;
+ /// R60: pre-filled by voice ("take a note …").
+ final String initialTitle,initialBody;
  final Map<String,dynamic>? existing;
  @override State<QuillNoteEditorScreen> createState()=>_QuillNoteEditorState();
 }
@@ -40,7 +42,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
  @override void initState(){
   super.initState();
   final old=widget.existing;
-  title=TextEditingController(text:(old?['title']??'').toString());
+  title=TextEditingController(text:(old?['title']??widget.initialTitle).toString());
   final raw=old?['rich_delta'];
   quill.Document document;
   if(raw is List){
@@ -48,7 +50,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
     raw.map((x)=>Map<String,dynamic>.from(x as Map)).toList());}
    catch(_){document=_fromPlain((old?['body']??'').toString());}
   }else{
-   document=_fromPlain((old?['body']??'').toString());
+   document=_fromPlain((old?['body']??widget.initialBody).toString());
   }
   editor=quill.QuillController(document:document,
    selection:const TextSelection.collapsed(offset:0));
