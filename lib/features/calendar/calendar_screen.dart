@@ -1,3 +1,5 @@
+import '../../core/linked_items.dart';
+import '../../core/collection_history_screen.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -17,7 +19,6 @@ import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
 import '../occasions/occasion_rules.dart';
 import '../notes/related_notes_panel.dart';
-import '../../core/record_action_history_view.dart';
 import '../../theme/appearance_settings_screen.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
@@ -463,6 +464,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  /// R53: the event's Linked items, in a small sheet (tap opens, long-press unlinks).
+  Future<void> _showLinked(Map<String,dynamic> event)=>showModalBottomSheet<void>(
+    context:context,showDragHandle:true,
+    builder:(ctx)=>SafeArea(child:Padding(
+      padding:const EdgeInsets.fromLTRB(16,0,16,20),
+      child:Column(mainAxisSize:MainAxisSize.min,
+        crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Text(event['title']?.toString()??'Event',
+          style:Theme.of(ctx).textTheme.titleMedium),
+        const SizedBox(height:8),
+        LinkedItemsStrip(kind:LinkKind.event,id:event['id'].toString()),
+        const SizedBox(height:6),
+        Text('Nothing shows here until something is linked, for example with Create from this.',
+          style:Theme.of(ctx).textTheme.bodySmall),
+      ]))));
+
   Future<void> _emailEvent(Map<String,dynamic> event) async {
     final title=event['title']?.toString()??'Calendar event';
     final date=event['event_date']?.toString()??'';
@@ -668,16 +685,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 if(action=='email')_emailEvent(event);
                 if(action=='remind')_remindPartner(event);
                 if(action=='notes')_showRelatedNotes(event);
-                if(action=='history')showModalBottomSheet<void>(
-                 context:context,showDragHandle:true,isScrollControlled:true,
-                 builder:(_)=>FractionallySizedBox(heightFactor:.78,
-                  child:RecordActionHistoryView(
-                   kind:'event',recordId:event['id'].toString())));
+                if(action=='history')openChangeLog(context,kind:'event',
+                 recordId:event['id'].toString(),recordTitle:event['title']?.toString());
+                if(action=='create'&&event['space_id']!=null)createFromThis(context,
+                 kind:LinkKind.event,id:event['id'].toString(),
+                 spaceId:event['space_id'].toString(),
+                 title:event['title']?.toString()??'Event',
+                 date:DateTime.tryParse(event['event_date']?.toString()??''),
+                 shared:event['visibility']!='private');
+                if(action=='linked')_showLinked(event);
               },
               itemBuilder:(_)=>[
+                const PopupMenuItem(value:'create',child:Row(children:[
+                  Icon(Icons.add_link),SizedBox(width:10),
+                  Text('Create from this')])),
+                const PopupMenuItem(value:'linked',child:Row(children:[
+                  Icon(Icons.link),SizedBox(width:10),
+                  Text('Linked items')])),
                 const PopupMenuItem(value:'history',child:Row(children:[
-                  Icon(Icons.manage_history_outlined),SizedBox(width:10),
-                  Text('Record action history')])),
+                  Icon(Icons.history),SizedBox(width:10),
+                  Text('Change log')])),
                 const PopupMenuItem(value:'notes',child:Row(children:[
                   Icon(Icons.sticky_note_2_outlined),SizedBox(width:10),
                   Text('Related notes')])),

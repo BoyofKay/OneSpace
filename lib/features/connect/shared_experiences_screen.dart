@@ -1,3 +1,4 @@
+import '../../core/linked_items.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -591,6 +592,7 @@ class ExperienceDetail extends StatefulWidget{
  @override State<ExperienceDetail> createState()=>_ExperienceDetailState();
 }
 class _ExperienceDetailState extends State<ExperienceDetail>{
+ final _links=GlobalKey<LinkedItemsStripState>();
  final db=Supabase.instance.client;
  final comment=TextEditingController(),review=TextEditingController();
  Map<String,dynamic>? item;
@@ -831,7 +833,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   final partnerPick=interests.where((x)=>x['user_id']!=myId)
    .map((x)=>x['choice']?.toString()??'undecided').firstOrNull??'undecided';
   return Scaffold(appBar:AppBar(title:const Text('Our experience'),actions:[
-   if(r!=null)RecordActionHistoryButton(kind:'experience',recordId:widget.id),
+   if(r!=null&&r['space_id']!=null)CreateFromThisButton(kind:LinkKind.experience,id:widget.id,spaceId:r['space_id'].toString(),title:r['title'].toString(),date:DateTime.tryParse(r['planned_on']?.toString()??''),shared:r['visibility']!='private',stripKey:_links),
+    if(r!=null)RecordActionHistoryButton(kind:'experience',recordId:widget.id),
    if(r!=null)IconButton(tooltip:'Edit',onPressed:edit,icon:const Icon(Icons.edit_outlined)),
    if(r!=null)IconButton(tooltip:'Remove or restore',onPressed:archive,
     icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined)),
@@ -839,6 +842,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    r==null?Center(child:Text(error??'Not found')):ListView(
     padding:const EdgeInsets.all(16),children:[
     Text(r['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+     LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
     Text((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested')),
     if(r['planned_on']!=null)Text('Planned together: '+r['planned_on'].toString()),
     if(r['enjoyed_on']!=null)Text(

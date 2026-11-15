@@ -17,6 +17,7 @@ class CalendarEventEditor extends StatefulWidget {
     this.existing,
     this.initialTitle = '',
     this.initialDetails = '',
+    this.onCreated,
   });
 
   final String spaceId;
@@ -24,6 +25,8 @@ class CalendarEventEditor extends StatefulWidget {
   final Map<String, dynamic>? existing;
   /// R52: pre-filled from shared content ("Items to sort").
   final String initialTitle, initialDetails;
+  /// R53: called with the new event's id so "Create from this" can link it.
+  final Future<void> Function(String id)? onCreated;
 
   @override
   State<CalendarEventEditor> createState() => _CalendarEventEditorState();
@@ -143,12 +146,13 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
         fields['zone_id']=await DeviceTimeZone.readPhone();
       }
       if (!_editing) {
-        await _client.from('space_events').insert({
+        final created = await _client.from('space_events').insert({
           ...fields,
           'space_id': widget.spaceId,
           'created_by': _client.auth.currentUser!.id,
           'visibility': _visibility,
-        });
+        }).select('id').single();
+        await widget.onCreated?.call(created['id'].toString());
       } else {
         final rows = await _client.from('space_events')
           .update(fields)
