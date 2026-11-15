@@ -12,7 +12,10 @@ class CoupleLettersScreen extends StatefulWidget {
 class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   final db=Supabase.instance.client;
   String? spaceId;
-  Stream<List<Map<String,dynamic>>>? letters;
+  // R55: a plain load, not a realtime stream. couple_letters is not in the
+  // realtime publication, so the stream failed a little after opening
+  // ("Unable to load letters"). Reloads on return and pull-to-refresh.
+  List<Map<String,dynamic>>? letters;
   String view='inbox';
   String? error;
   bool loading=true;
@@ -22,20 +25,36 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   Future<void> load() async {
     try{
       final id=await CurrentSpaceCache.instance.get();
+      final rows=id==null?null:List<Map<String,dynamic>>.from(
+        await db.from('couple_letters').select().eq('space_id',id)
+          .order('updated_at',ascending:false).limit(300));
       if(!mounted)return;
       setState((){
         spaceId=id;
         loading=false;
         error=null;
-        letters=id==null?null:db.from('couple_letters')
-          .stream(primaryKey:['id']).eq('space_id',id)
-          .order('updated_at',ascending:false);
+        letters=rows;
       });
     }catch(_){
       if(mounted){setState((){
         loading=false;error='Could not load your letters.';
       });}
     }
+  }
+
+  /// "Received Sun 15 Nov, 2:30 PM" / "Sent …" / "Edited …".
+  String _stamp(Map<String,dynamic> letter){
+    final draft=letter['status']=='draft';
+    final at=DateTime.tryParse((draft?letter['updated_at']:(letter['sent_at']??letter['updated_at']))
+      ?.toString()??'')?.toLocal();
+    if(at==null)return '';
+    const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final h=at.hour%12==0?12:at.hour%12;
+    final when='${days[at.weekday-1]} ${at.day} ${months[at.month-1]} ${at.year}, '
+      '$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?'PM':'AM'}';
+    final mine=letter['author_id']==db.auth.currentUser?.id;
+    return draft?'Edited $when':mine?'Sent $when':'Received $when';
   }
 
   Future<void> compose({Map<String,dynamic>? draft}) async {
@@ -45,12 +64,14 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
         spaceId:spaceId!,existing:draft,
       ),
     ));
+    if(mounted)await load();
   }
 
   Future<void> read(Map<String,dynamic> letter) async {
     await Navigator.push<void>(context,MaterialPageRoute(
       builder:(_)=>CoupleLetterDetail(letter:letter),
     ));
+    if(mounted)await load();
   }
 
   @override
@@ -75,13 +96,11 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
           const SizedBox(height:14),
           SegmentedButton<String>(
             segments:const [
-              ButtonSegment(value:'inbox',label:Text('Received'),
-                icon:Icon(Icons.mark_email_unread_outlined)),
-              ButtonSegment(value:'sent',label:Text('Sent'),
-                icon:Icon(Icons.outbox_outlined)),
-              ButtonSegment(value:'drafts',label:Text('Drafts'),
-                icon:Icon(Icons.edit_note)),
+              ButtonSegment(value:'inbox',label:Text('Received',maxLines:1,softWrap:false)),
+              ButtonSegment(value:'sent',label:Text('Sent',maxLines:1)),
+              ButtonSegment(value:'drafts',label:Text('Drafts',maxLines:1)),
             ],
+            showSelectedIcon:false,
             selected:{view},
             onSelectionChanged:(next)=>setState(()=>view=next.first),
           ),
@@ -89,13 +108,10 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
           if(loading)const Center(child:CircularProgressIndicator())
           else if(error!=null)Text(error!)
           else if(spaceId==null)const Text('Connect your shared space first.')
-          else StreamBuilder<List<Map<String,dynamic>>>(
-            stream:letters,
-            builder:(ctx,snapshot){
-              if(snapshot.hasError)return const Text('Unable to load letters.');
-              if(!snapshot.hasData)return const LinearProgressIndicator();
+          else Builder(
+            builder:(ctx){
               final data=CoupleLetterRules.filter(
-                snapshot.data!,view,db.auth.currentUser?.id??'',
+                letters??const [],view,db.auth.currentUser?.id??'',
               );
               if(data.isEmpty){return Padding(
                 padding:const EdgeInsets.symmetric(vertical:35),
@@ -113,9 +129,14 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
                       ? Icons.edit_note:Icons.mail_outline),
                     title:Text(letter['title']?.toString()??'Letter',
                       maxLines:2,overflow:TextOverflow.ellipsis),
-                    subtitle:Text(CoupleLetterRules.snippet(
-                      letter['body']?.toString()??''),
-                      maxLines:2,overflow:TextOverflow.ellipsis),
+                    subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+                      Text(CoupleLetterRules.snippet(
+                        letter['body']?.toString()??''),
+                        maxLines:2,overflow:TextOverflow.ellipsis),
+                      const SizedBox(height:3),
+                      Text(_stamp(letter),style:Theme.of(context).textTheme.labelSmall),
+                    ]),
+                    isThreeLine:true,
                     trailing:const Icon(Icons.chevron_right),
                     onTap:()=>letter['status']=='draft'
                       ? compose(draft:letter):read(letter),

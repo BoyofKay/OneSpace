@@ -13,3 +13,17 @@ begin
  if position(o in d)=0 then raise exception 'pattern not found'; end if;
  execute replace(d,o,n);
 end $m$;
+
+-- R55 (applied as r55_realtime_letters_and_revisions): two screens streamed
+-- tables that were not in the realtime publication, so their live channel
+-- failed shortly after opening ("Unable to load letters"). Row-level security
+-- still applies to realtime.
+do $m$
+declare t text;
+begin
+ foreach t in array array['couple_letters','activity_revisions'] loop
+   if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename=t) then
+     execute format('alter publication supabase_realtime add table public.%I', t);
+   end if;
+ end loop;
+end $m$;

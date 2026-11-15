@@ -88,7 +88,9 @@ class LinkedItemsStrip extends StatefulWidget {
 }
 
 class LinkedItemsStripState extends State<LinkedItemsStrip> {
-  final db = Supabase.instance.client;
+  // Looked up lazily so screens that embed the strip still work where the
+  // backend is not initialised (widget tests, previews).
+  SupabaseClient get db => Supabase.instance.client;
   List<LinkedItem> items = const [];
 
   @override void initState() { super.initState(); reload(); }
