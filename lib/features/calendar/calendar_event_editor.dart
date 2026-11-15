@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -50,6 +51,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
   TimeOfDay _start=const TimeOfDay(hour:9,minute:0);
   TimeOfDay _end=const TimeOfDay(hour:10,minute:0);
   List<Map<String,dynamic>> _people=const [];
+  SpacePeople? _peopleMeta;
   String? _error;
 
   bool get _editing => widget.existing != null;
@@ -80,6 +82,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       if(initialEnd!=null){_end=TimeOfDay.fromDateTime(initialEnd);}
     }
     _loadPeople();
+    SpacePeople.load().then((p){ if (mounted) setState(() => _peopleMeta = p); });
   }
 
   @override
@@ -108,18 +111,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     });
   }
 
-  Future<void> _pickDate() async {
-    if (!_canEdit || _saving) return;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100, 12, 31),
-    );
-    if (picked != null && mounted) setState(() => _date = picked);
-  }
-
-  Future<void> _save() async {
+    Future<void> _save() async {
     if (_saving || !_canEdit || _archived) return;
     final title = _title.text.trim();
     final details = _details.text.trim();
@@ -175,50 +167,24 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     }
   }
 
-  Future<void> _toggleArchive() async {
-    if (!_editing || !_canEdit || _saving) return;
-    if (!_archived) {
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(tr(context, 'archiveEvent')),
-          content: Text(tr(context, 'archiveExplanation')),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(tr(context, 'cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(tr(context, 'archive')),
-            ),
-          ],
-        ),
-      );
-      if (confirm != true || !mounted) return;
-    }
-    setState(() => _saving = true);
-    try {
-      await _client.from('space_events').update({
-        'archived_at': _archived ? null : DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', widget.existing!['id'] as String);
-      if (mounted) Navigator.of(context).pop(true);
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = tr(context, 'saveFailed'));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
+  String _timeLabel(TimeOfDay t) => MaterialLocalizations.of(context).formatTimeOfDay(t);
 
   @override
-  Widget build(BuildContext context) => EditorScaffold(title:tr(context, _editing ? 'editEvent' : 'newEvent'),
+  Widget build(BuildContext context) => EditorScaffold(
+   title: _editing ? 'Edit event' : 'Add event',
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_canEdit && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_details],saving:_saving,onSave:_save,
+   meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(
+     people:_peopleMeta, showDate:false, enabled:_canEdit && !_saving,
+     value:MetaValues(shared:_visibility=='shared',belongsTo:_forUser),
+     onChanged:(v)=>setState((){
+       if(!_editing)_visibility=v.shared?'shared':'private';
+       _forUser=v.belongsTo;
+       if(_visibility=='private')_forUser=_peopleMeta?.me;
+     })),
    body: SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         children: [
           if (!_canEdit)
             Padding(
@@ -226,77 +192,49 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               child: Text(tr(context, 'viewOnly'),
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-          if (_archived) Text(tr(context, 'archived')),
+          if (_archived) Padding(padding: const EdgeInsets.only(bottom: 12),
+            child: Text('Removed · restore it from the ⋮ menu', style: Theme.of(context).textTheme.bodySmall)),
           TextField(
             key: const Key('eventTitle'),
             controller: _title,
             readOnly: !_canEdit,
+            autofocus: !_editing,
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: requiredLabel(tr(context, 'eventTitle')),
-              border: const OutlineInputBorder(),
+            decoration: const InputDecoration(
+              labelText: 'What is happening? *',
+              hintText: 'Dinner with friends, doctor visit…',
+              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 10),
-          Text(tr(context, 'calendarType')),
-          Wrap(spacing: 8, children: ['event','occasion'].map((kind) =>
-            ChoiceChip(
-              label: Text(tr(context, kind)),
-              selected: _kind == kind,
-              onSelected: !_canEdit || _saving ? null
-                : (_) => setState(() => _kind = kind),
-            )).toList()),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: !_canEdit || _saving ? null : _pickDate,
-            icon: const Icon(Icons.calendar_month_outlined),
-            label: Text(CalendarRules.sqlDate(_date)),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            key:ValueKey('person_${_forUser}_${_people.length}'),
-            initialValue:_forUser!=null && _people.any((p)=>p['id']==_forUser)?_forUser:'both',
-            decoration:const InputDecoration(
-              labelText:'Event belongs to',border:OutlineInputBorder()),
-            items:[
-              const DropdownMenuItem(value:'both',child:Text('Both of us')),
-              for(final person in _people)
-                DropdownMenuItem(value:person['id'].toString(),
-                  child:Text(person['display_name']?.toString()??'Partner')),
+          ChoiceRow<String>(label: 'Type', options: {'event': tr(context, 'event'), 'occasion': tr(context, 'occasion')},
+            icons: const {'event': Icons.event_outlined, 'occasion': Icons.celebration_outlined},
+            selected: _kind,
+            onSelected: (v) { if (_canEdit && !_saving && v != null) setState(() => _kind = v); }),
+          const FormSection('When'),
+          DateField(label: 'Date', required: true, value: _date, first: DateTime(1900), last: DateTime(2100, 12, 31),
+            onChanged: (v) { if (v != null && _canEdit && !_saving) setState(() => _date = v); }),
+          Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            OptionChip(label: 'All day', icon: Icons.wb_sunny_outlined, value: _allDay,
+              onChanged: !_canEdit || _saving ? null : (v) => setState(() => _allDay = v)),
+            if (!_allDay) ...[
+              ActionChip(avatar: const Icon(Icons.schedule, size: 18),
+                label: Text('Starts ${_timeLabel(_start)}'), onPressed: () => _pickTime(true)),
+              ActionChip(avatar: const Icon(Icons.schedule_outlined, size: 18),
+                label: Text('Ends ${_timeLabel(_end)}'), onPressed: () => _pickTime(false)),
             ],
-            onChanged:!_canEdit||_saving?null:(v)=>
-              setState(()=>_forUser=v=='both'?null:v),
-          ),
-          SwitchListTile(
-            contentPadding:EdgeInsets.zero,
-            title:const Text('All-day event'),
-            value:_allDay,
-            onChanged:!_canEdit||_saving?null:(v)=>setState(()=>_allDay=v),
-          ),
-          if(!_allDay)Row(children:[
-            Expanded(child:OutlinedButton(
-              onPressed:()=>_pickTime(true),
-              child:Text('Start ${_start.format(context)}'))),
-            const SizedBox(width:8),
-            Expanded(child:OutlinedButton(
-              onPressed:()=>_pickTime(false),
-              child:Text('End ${_end.format(context)}'))),
           ]),
-          const SizedBox(height:12),
-          Text(tr(context, 'repeat')),
-          Wrap(spacing: 8, children: ['none','yearly'].map((option) =>
-            ChoiceChip(
-              label: Text(tr(context, option)),
-              selected: _recurrence == option,
-              onSelected: !_canEdit || _saving ? null
-                  : (_) => setState(() => _recurrence = option),
-            )).toList()),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          ChoiceRow<String>(label: 'Repeat', options: const {'none': 'Once', 'yearly': 'Every year'},
+            icons: const {'none': Icons.looks_one_outlined, 'yearly': Icons.event_repeat},
+            selected: _recurrence,
+            onSelected: (v) { if (_canEdit && !_saving && v != null) setState(() => _recurrence = v); }),
+          const FormSection('More details'),
           TextField(
             controller: _details,
             maxLength: 2000,
-            maxLines: 4,
+            minLines: 2,
+            maxLines: 6,
             readOnly: !_canEdit,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
@@ -305,34 +243,13 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               alignLabelWithHint: true,
             ),
           ),
-          PartnerMentionButton(spaceId:widget.spaceId,controller:_details,
-           enabled:_canEdit&&_visibility=='shared'),
-          const SizedBox(height: 8),
-          Text(tr(context, 'visibility')),
-          Wrap(spacing: 8, children: ['shared','private'].map((visibility) =>
-            ChoiceChip(
-              label: Text(tr(context, visibility)),
-              selected: _visibility == visibility,
-              onSelected: _editing || _saving ? null
-                  : (_) => setState(() => _visibility = visibility),
-            )).toList()),
-          Text(
-            tr(context, _editing ? 'privacyAlreadyFixed' : 'privacyFixed'),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (_visibility == 'shared') Align(alignment: Alignment.centerLeft,
+            child: PartnerMentionButton(spaceId:widget.spaceId,controller:_details,enabled:_canEdit)),
+          if (_editing) Text('Who can see it was set when it was created.',
+            style: Theme.of(context).textTheme.bodySmall),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-          ],
-          const SizedBox(height: 16),
-          if (_editing && _canEdit) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _saving ? null : _toggleArchive,
-              icon: Icon(_archived ? Icons.unarchive_outlined
-                  : Icons.archive_outlined),
-              label: Text(tr(context, _archived ? 'restore' : 'archive')),
-            ),
+            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ],
         ],
       ),
