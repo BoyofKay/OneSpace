@@ -47,7 +47,7 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
   _deviceId=id;
   try{
    await db.rpc('register_push_device',params:{
-    'p_device_id':id,'p_fcm_token':token,'p_platform':'android',
+    'p_device_id':id,'p_fcm_token':token,'p_platform':Platform.isIOS?'ios':'android',
    });
   }catch(_){
    // In-app alerts remain visible while offline. A later unlock retries.
@@ -55,7 +55,7 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
   }
  }
  Future<void> _start()async{
-  if(_initializing||_ready||!mounted||!Platform.isAndroid)return;
+  if(_initializing||_ready||!mounted||!(Platform.isAndroid||Platform.isIOS))return;
   _initializing=true;
   try{
    // Without registered Firebase app configuration this gracefully

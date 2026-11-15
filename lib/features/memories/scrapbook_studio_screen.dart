@@ -338,7 +338,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
    final encoded=await img.toByteData(format:ui.ImageByteFormat.png);
    img.dispose();
    if(encoded==null)throw StateError('Could not create PNG.');
-   if(!Platform.isAndroid){
+   if(!Platform.isAndroid&&!Platform.isIOS){
     throw StateError('PNG export is currently supported in the Android preview.');
    }
    await const MethodChannel('onespace/scrapbook_export').invokeMethod<void>(
