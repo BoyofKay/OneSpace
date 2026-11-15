@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -179,17 +180,6 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: TaskDateRules.localToday(now),
-      initialDate: TaskDateRules.initialForPicker(_date, now),
-      lastDate: DateTime(2100),
-    );
-    if (mounted && picked != null) setState(() => _date = picked);
-  }
-
   Future<void> _save() async {
     if (_saving) return;
     final title = _title.text.trim();
@@ -257,9 +247,24 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
     }
   }
 
+  static const _repeatLabels = {
+    'none': 'One-time', 'daily': 'Every day', 'weekly': 'Every week',
+    'monthly': 'Every month', 'yearly': 'Every year', 'weekdays': 'Weekdays (Mon–Fri)',
+    'weekends': 'Weekends', 'workdays': 'My working days',
+    'selected_weekdays': 'Selected weekdays', 'every_n_days': 'Every N days',
+    'every_n_weeks': 'Every N weeks', 'month_days': 'Specific days of the month',
+  };
+
+  SpacePeople get _people {
+    final partner = widget.members.entries.where((e) => e.key != widget.currentUserId).firstOrNull;
+    return SpacePeople(me: widget.currentUserId, partnerId: partner?.key,
+      partnerName: (partner?.value ?? 'Partner').split(' ').first);
+  }
+
   @override
   Widget build(BuildContext context) {
     final existing = widget.existing;
+    final shared = _visibility == TaskVisibility.shared;
     return EditorScaffold(
       title: existing == null ? 'New list' : 'Edit list',
       isNew: existing == null,
@@ -268,188 +273,108 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
       listenTo: [_title, _items, _interval, _timeZone, _monthDays, _excludedDates],
       saving: _saving,
       onSave: _save,
-      body: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                key: const Key('taskTitleInput'),
-                controller: _title,
-                autofocus: true,
-                maxLength: 120,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'List name *',
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              PartnerMentionButton(spaceId:widget.spaceId??'',
-               controller:_title,enabled:_visibility==TaskVisibility.shared),
-              if (existing == null) ...[
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _items,
-                  minLines: 3, maxLines: 10,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: "What's on the list?",
-                    hintText: 'One item per line',
-                    alignLabelWithHint: true,
-                    border: OutlineInputBorder())),
-              ],
-              const SizedBox(height: 10),
-              Text(tr(context, 'visibility'),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-              Wrap(
-                spacing: 8,
-                children: TaskVisibility.values.map((value) => ChoiceChip(
-                  label: Text(tr(context,
-                      value == TaskVisibility.shared ? 'sharedWithPartner' : 'onlyMe')),
-                  selected: _visibility == value,
-                  onSelected: existing != null || _saving ? null : (_) => setState(() {
-                    _visibility = value;
-                    if (value == TaskVisibility.private) _assignedTo = null;
-                  }),
-                )).toList(),
-              ),
-              const SizedBox(height: 5),
-              Text(tr(context, existing == null ? 'chooseVisibility'
-                  : _visibility == TaskVisibility.private
-                      ? 'privateDescription' : 'sharedDescription'),
-                  style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 14),
-              if (_visibility == TaskVisibility.shared) ...[
-                const SizedBox(height: 14),
-                Text(tr(context, 'assignTo'),
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-                Wrap(
-                  spacing: 8,
-                  children: <Widget>[
-                    ChoiceChip(
-                      label: const Text('Both of us'),
-                      selected: _assignedTo == null,
-                      onSelected: _saving ? null : (_) =>
-                          setState(() => _assignedTo = null),
-                    ),
-                    for (final member in widget.members.entries)
-                      ChoiceChip(
-                        label: Text(member.key == widget.currentUserId
-                            ? tr(context, 'me') : member.value),
-                        selected: _assignedTo == member.key,
-                        onSelected: _saving ? null :
-                          (_) => setState(() => _assignedTo = member.key),
-                      ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : _selectDate,
-                icon: const Icon(Icons.event_outlined),
-                label: Text(_date == null ? tr(context, 'optionalDate')
-                    : '${tr(context, 'target')}: ${_date!.year}-'
-                        '${_date!.month.toString().padLeft(2, '0')}-'
-                        '${_date!.day.toString().padLeft(2, '0')}'),
-              ),
-              if (_date != null)
-                TextButton(
-                  onPressed: _saving ? null : () => setState(() => _date = null),
-                  child: Text(tr(context, 'clearDate')),
-                ),
-              const SizedBox(height: 8),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(bottom: 8),
-                title: const Text('More options'),
-                subtitle: const Text('Repeat and priority'),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              DropdownButtonFormField<String>(
-               initialValue:_scheduleMode,
-               decoration:const InputDecoration(
-                prefixIcon:Icon(Icons.repeat),labelText:'Repeat checklist'),
-               items:const [
-                DropdownMenuItem(value:'none',child:Text('One-time')),
-                DropdownMenuItem(value:'daily',child:Text('Every day')),
-                DropdownMenuItem(value:'weekly',child:Text('Every week (one cycle)')),
-                DropdownMenuItem(value:'monthly',child:Text('Every month (one cycle)')),
-                DropdownMenuItem(value:'yearly',child:Text('Every year')),
-                DropdownMenuItem(value:'weekdays',child:Text('Every weekday (Mon–Fri)')),
-                DropdownMenuItem(value:'weekends',child:Text('Weekends only')),
-                DropdownMenuItem(value:'workdays',child:Text('My configured working days')),
-                DropdownMenuItem(value:'selected_weekdays',child:Text('Selected weekdays')),
-                DropdownMenuItem(value:'every_n_days',child:Text('Every N days')),
-                DropdownMenuItem(value:'every_n_weeks',child:Text('Every N weeks')),
-                DropdownMenuItem(value:'month_days',child:Text('Specific days of each month')),
-               ],
-               onChanged:(v)=>setState((){
-                _scheduleMode=v??'none';
-                _recurrence=['none','daily','weekly','monthly','yearly']
-                 .contains(_scheduleMode)?_scheduleMode:'daily';
-               })),
-              if(_scheduleMode=='selected_weekdays'||_scheduleMode=='every_n_weeks')...[
-               const SizedBox(height:8),
-               const Text('Choose the weekdays:'),
-               Wrap(spacing:5,children:[
-                for(var d=1;d<=7;d++)FilterChip(
-                 label:Text(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d-1]),
-                 selected:_weekdays.contains(d),onSelected:(on)=>setState((){
-                  if(on){_weekdays.add(d);}else{_weekdays.remove(d);}
-                 })),
-               ]),
-              ],
-              if(_scheduleMode=='every_n_days'||_scheduleMode=='every_n_weeks')
-               TextField(controller:_interval,keyboardType:TextInputType.number,
-                decoration:InputDecoration(labelText:_scheduleMode=='every_n_days'
-                 ?'Repeat every how many days?':'Repeat every how many weeks?')),
-              if(_scheduleMode=='month_days')
-               TextField(controller:_monthDays,
-                decoration:const InputDecoration(
-                 labelText:'Month days (e.g. 1, 15, -1 for last day)')),
-              if(_scheduleMode!='none')...[
-               const SizedBox(height:10),
-               TextField(controller:_timeZone,
-                decoration:const InputDecoration(
-                 labelText:'Timezone override (optional)',
-                 hintText:'America/New_York',
-                 helperText:'Leave blank for each responsible partner’s phone timezone')),
-               SwitchListTile(value:_skipDaysOff,title:const Text('Skip recorded days off'),
-                subtitle:const Text('Uses each person’s Days Off calendar'),
-                onChanged:(v)=>setState(()=>_skipDaysOff=v)),
-               SwitchListTile(value:_skipUsHolidays,title:const Text('Skip US federal holidays'),
-                subtitle:const Text('Federal holidays, including observed weekdays'),
-                onChanged:(v)=>setState(()=>_skipUsHolidays=v)),
-               TextField(controller:_excludedDates,
-                decoration:const InputDecoration(
-                 labelText:'Additional dates to skip (optional)',
-                 hintText:'2026-12-24, 2027-01-02',
-                 helperText:'Comma-separated YYYY-MM-DD; useful for special occasions')),
-              ],
-              const SizedBox(height: 14),
-              Text(tr(context, 'priority'),
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-              Wrap(
-                spacing: 8,
-                children: TaskPriority.values.map((value) => ChoiceChip(
-                  label: Text(tr(context, value.name)),
-                  selected: _priority == value,
-                  onSelected: _saving ? null :
-                      (_) => setState(() => _priority = value),
-                )).toList(),
-              ),
-                ]),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
-            ],
+      meta: MetaStrip(
+        people: _people, dateLabel: 'Due date', enabled: !_saving,
+        value: MetaValues(shared: shared, belongsTo: _assignedTo, date: _date),
+        onChanged: (v) => setState(() {
+          if (existing == null) {
+            _visibility = v.shared ? TaskVisibility.shared : TaskVisibility.private;
+          }
+          _assignedTo = _visibility == TaskVisibility.private ? null : v.belongsTo;
+          _date = v.date;
+        })),
+      body: SafeArea(child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+        children: [
+          TextField(
+            key: const Key('taskTitleInput'),
+            controller: _title,
+            autofocus: true,
+            maxLength: 120,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'List name *',
+              hintText: 'Groceries, packing for the trip…',
+              border: OutlineInputBorder(),
+            ),
           ),
-        ),
-      ),
-    ));
+          if (shared) Align(alignment: Alignment.centerLeft,
+            child: PartnerMentionButton(spaceId:widget.spaceId??'', controller:_title, enabled:true)),
+          if (existing == null) ...[
+            const SizedBox(height: 6),
+            TextField(
+              controller: _items,
+              minLines: 4, maxLines: 12,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: "What's on the list?",
+                hintText: 'One item per line',
+                alignLabelWithHint: true,
+                border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+          ],
+          ChoiceRow<TaskPriority>(label: 'Priority',
+            options: {for (final v in TaskPriority.values) v: tr(context, v.name)},
+            icons: const {TaskPriority.low: Icons.south, TaskPriority.normal: Icons.remove,
+              TaskPriority.high: Icons.priority_high},
+            selected: _priority,
+            onSelected: (v) { if (!_saving && v != null) setState(() => _priority = v); }),
+          ChoicePickerField<String>(label: 'Repeat', icon: Icons.repeat,
+            options: _repeatLabels, selected: _scheduleMode,
+            onSelected: (v) => setState(() {
+              _scheduleMode = v ?? 'none';
+              _recurrence = ['none','daily','weekly','monthly','yearly']
+                .contains(_scheduleMode) ? _scheduleMode : 'daily';
+            })),
+          if (_scheduleMode == 'selected_weekdays' || _scheduleMode == 'every_n_weeks') ...[
+            Text('On these days', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (var d = 1; d <= 7; d++) FilterChip(
+                label: Text(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d-1]),
+                selected: _weekdays.contains(d),
+                onSelected: (on) => setState(() { if (on) { _weekdays.add(d); } else { _weekdays.remove(d); } })),
+            ]),
+            const SizedBox(height: 14),
+          ],
+          if (_scheduleMode == 'every_n_days' || _scheduleMode == 'every_n_weeks') Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: TextField(controller: _interval, keyboardType: TextInputType.number,
+              decoration: InputDecoration(border: const OutlineInputBorder(),
+                labelText: _scheduleMode == 'every_n_days' ? 'Every how many days? *' : 'Every how many weeks? *'))),
+          if (_scheduleMode == 'month_days') Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: TextField(controller: _monthDays,
+              decoration: const InputDecoration(border: OutlineInputBorder(),
+                labelText: 'Days of the month *', hintText: '1, 15, -1 for the last day'))),
+          if (_scheduleMode != 'none') ...[
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              OptionChip(label: 'Skip days off', icon: Icons.beach_access_outlined, value: _skipDaysOff,
+                help: 'Uses each person’s Days off', onChanged: (v) => setState(() => _skipDaysOff = v)),
+              OptionChip(label: 'Skip US holidays', icon: Icons.flag_outlined, value: _skipUsHolidays,
+                help: 'Federal holidays, including observed weekdays',
+                onChanged: (v) => setState(() => _skipUsHolidays = v)),
+            ]),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Advanced repeat'),
+              subtitle: const Text('Time zone and dates to skip'),
+              children: [
+                TextField(controller: _timeZone,
+                  decoration: const InputDecoration(border: OutlineInputBorder(),
+                    labelText: 'Time zone (optional)', hintText: 'America/New_York',
+                    helperText: 'Blank = each person’s phone time zone')),
+                const SizedBox(height: 10),
+                TextField(controller: _excludedDates,
+                  decoration: const InputDecoration(border: OutlineInputBorder(),
+                    labelText: 'Dates to skip (optional)', hintText: '2026-12-24, 2027-01-02')),
+                const SizedBox(height: 8),
+              ]),
+          ],
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12),
+            child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+        ],
+      )),
+    );
   }
 }

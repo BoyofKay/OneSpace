@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -132,74 +133,96 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
   }
  }
 
- @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new itinerary item':'Edit itinerary item',
+ /// R57: labels follow what the entry is (a flight has airports and an
+ /// airline; a stay has check-in/out and a host).
+ Map<String,String> get words=>switch(kind){
+  'flight'=>{'from':'From airport','to':'To airport','start':'Departs','end':'Arrives',
+   'provider':'Airline and flight number','ref':'Booking reference','title':'Flight'},
+  'stay'=>{'from':'Address','to':'','start':'Check-in','end':'Check-out',
+   'provider':'Hotel or host','ref':'Confirmation number','title':'Where we stay'},
+  'transport'=>{'from':'From','to':'To','start':'Departs','end':'Arrives',
+   'provider':'Company (train, car, transfer)','ref':'Booking reference','title':'Train, car or transfer'},
+  'activity'=>{'from':'Place','to':'','start':'Starts','end':'Ends',
+   'provider':'Organizer','ref':'Ticket or booking reference','title':'What we will do'},
+  'booking'=>{'from':'Place','to':'','start':'Date','end':'',
+   'provider':'Restaurant or venue','ref':'Reservation reference','title':'Reservation'},
+  _=>{'from':'','to':'','start':'','end':'','provider':'','ref':'','title':'Note'},
+ };
+
+ Widget whenChips(String label,DateTime? date,TimeOfDay? time,bool isEnd){
+  final loc=MaterialLocalizations.of(context);
+  return Padding(padding:const EdgeInsets.only(bottom:10),child:Row(children:[
+   SizedBox(width:92,child:Text(label,style:Theme.of(context).textTheme.labelLarge)),
+   Expanded(child:Wrap(spacing:8,runSpacing:6,children:[
+    InputChip(avatar:const Icon(Icons.event_outlined,size:18),
+     label:Text(date==null?'Date':loc.formatMediumDate(date)),
+     onPressed:()=>pickDate(isEnd),
+     onDeleted:date==null?null:()=>setState((){if(isEnd){endDate=null;}else{localDate=null;}})),
+    InputChip(avatar:const Icon(Icons.schedule,size:18),
+     label:Text(time==null?'Time':time.format(context)),
+     onPressed:()=>pickTime(isEnd),
+     onDeleted:time==null?null:()=>setState((){if(isEnd){endTime=null;}else{localTime=null;}})),
+   ])),
+  ]));
+ }
+
+ @override Widget build(BuildContext context){
+  final w=words;
+  final isNote=kind=='note';
+  return EditorScaffold(title:widget.existing==null?'Add to the itinerary':'Edit itinerary entry',
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,location,destination,provider,reference,link,details,cost,currency],saving:saving,onSave:save,
-   body:ListView(padding:const EdgeInsets.all(16),children:[
-   Text('Keep booking details in one place',
-    style:Theme.of(context).textTheme.titleLarge),
-   const SizedBox(height:4),
-   Text('Departure and arrival dates/times are local to each place, exactly as shown on the booking.'),
-   const SizedBox(height:16),
-   DropdownButtonFormField<String>(
-    initialValue:kind,decoration:const InputDecoration(labelText:'Type',border:OutlineInputBorder()),
-    items:[for(final item in tripItemKinds.entries)
-     DropdownMenuItem(value:item.key,child:Text(item.value))],
-    onChanged:saving?null:(v)=>setState(()=>kind=v??kind)),
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+   ChoiceRow<String>(label:'What is it?',options:tripItemKinds,selected:kind,
+    icons:const {'flight':Icons.flight_outlined,'stay':Icons.hotel_outlined,
+     'transport':Icons.directions_car_outlined,'activity':Icons.local_activity_outlined,
+     'booking':Icons.restaurant_outlined,'note':Icons.sticky_note_2_outlined},
+    onSelected:(v){if(!saving&&v!=null)setState(()=>kind=v);}),
+   TextField(controller:title,maxLength:160,textCapitalization:TextCapitalization.sentences,
+    decoration:InputDecoration(labelText:'Title *',hintText:w['title'],border:const OutlineInputBorder())),
+   if(!isNote)...[
+    const FormSection('Where and when'),
+    if(w['from']!.isNotEmpty)Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(
+     controller:location,maxLength:240,
+     decoration:InputDecoration(labelText:w['from'],prefixIcon:const Icon(Icons.place_outlined),
+      border:const OutlineInputBorder()))),
+    if(w['to']!.isNotEmpty)Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(
+     controller:destination,maxLength:240,
+     decoration:InputDecoration(labelText:w['to'],prefixIcon:const Icon(Icons.flag_outlined),
+      border:const OutlineInputBorder()))),
+    whenChips(w['start']!,localDate,localTime,false),
+    if(w['end']!.isNotEmpty)whenChips(w['end']!,endDate,endTime,true),
+    Text('Local times, exactly as on the booking.',style:Theme.of(context).textTheme.bodySmall),
+    const FormSection('Booking'),
+    TextField(controller:provider,maxLength:160,
+     decoration:InputDecoration(labelText:w['provider'],border:const OutlineInputBorder())),
+    const SizedBox(height:10),
+    TextField(controller:reference,maxLength:120,
+     decoration:InputDecoration(labelText:w['ref'],prefixIcon:const Icon(Icons.confirmation_number_outlined),
+      border:const OutlineInputBorder())),
+    const SizedBox(height:10),
+    TextField(controller:link,maxLength:1800,keyboardType:TextInputType.url,
+     decoration:const InputDecoration(labelText:'Link',prefixIcon:Icon(Icons.link),
+      border:OutlineInputBorder())),
+    const SizedBox(height:10),
+    ResponsiveFieldPair(
+     first:TextField(controller:cost,
+      keyboardType:const TextInputType.numberWithOptions(decimal:true),
+      decoration:const InputDecoration(labelText:'Cost',border:OutlineInputBorder())),
+     second:TextField(controller:currency,maxLength:3,
+      textCapitalization:TextCapitalization.characters,
+      decoration:const InputDecoration(labelText:'Currency',hintText:'USD',border:OutlineInputBorder())),
+    ),
+   ],
+   const FormSection('Notes'),
+   TextField(controller:details,maxLength:5000,minLines:2,maxLines:6,
+    decoration:const InputDecoration(labelText:'Notes and details',alignLabelWithHint:true,
+     border:OutlineInputBorder())),
    const SizedBox(height:10),
-   TextField(controller:title,maxLength:160,
-    decoration:const InputDecoration(labelText:'Title *',border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   TextField(controller:location,maxLength:240,
-    decoration:const InputDecoration(labelText:'From / location (optional)',border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   TextField(controller:destination,maxLength:240,
-    decoration:const InputDecoration(labelText:'To / destination (optional)',border:OutlineInputBorder())),
-   const SizedBox(height:8),
-   ListTile(leading:const Icon(Icons.event_outlined),title:const Text('Start / departure date'),
-    subtitle:Text(localDate==null?'Not set':CalendarRules.sqlDate(localDate!)),
-    onTap:()=>pickDate(false),
-    trailing:IconButton(tooltip:'Clear start date',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>localDate=null))),
-   ListTile(leading:const Icon(Icons.schedule_outlined),title:const Text('Local departure time'),
-    subtitle:Text(localTime?.format(context)??'Not set'),
-    onTap:()=>pickTime(false),
-    trailing:IconButton(tooltip:'Clear start time',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>localTime=null))),
-   ListTile(leading:const Icon(Icons.event_available_outlined),title:const Text('End / arrival date'),
-    subtitle:Text(endDate==null?'Not set':CalendarRules.sqlDate(endDate!)),
-    onTap:()=>pickDate(true),
-    trailing:IconButton(tooltip:'Clear end date',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>endDate=null))),
-   ListTile(leading:const Icon(Icons.access_time_outlined),title:const Text('Local arrival time'),
-    subtitle:Text(endTime?.format(context)??'Not set'),
-    onTap:()=>pickTime(true),
-    trailing:IconButton(tooltip:'Clear end time',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>endTime=null))),
-   const SizedBox(height:8),
-   TextField(controller:provider,maxLength:160,
-    decoration:const InputDecoration(labelText:'Airline / hotel / provider',border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   TextField(controller:reference,maxLength:120,
-    decoration:const InputDecoration(labelText:'Booking reference (optional)',border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   TextField(controller:link,maxLength:1800,keyboardType:TextInputType.url,
-    decoration:const InputDecoration(labelText:'Booking or itinerary link',border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   TextField(controller:details,maxLength:5000,maxLines:4,
-    decoration:const InputDecoration(labelText:'Notes and details',border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   ResponsiveFieldPair(
-    first:TextField(controller:cost,
-     keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     decoration:const InputDecoration(labelText:'Estimated cost',border:OutlineInputBorder())),
-    second:TextField(controller:currency,maxLength:3,
-     textCapitalization:TextCapitalization.characters,
-     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
-   ),
-   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Completed'),
-    value:done,onChanged:(v)=>setState(()=>done=v)),
-   if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-   const SizedBox(height:12),
+   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Done',icon:Icons.task_alt,value:done,
+    onChanged:(v)=>setState(()=>done=v))),
+   if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
+    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
+ }
 }

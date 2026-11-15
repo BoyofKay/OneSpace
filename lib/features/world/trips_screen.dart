@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
@@ -273,56 +274,47 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    if(mounted)setState(()=>saving=false);
   }
  }
- @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new trip':'Edit trip',
-   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+ @override Widget build(BuildContext context){
+  final editing=widget.existing!=null;
+  final stages={for(final e in tripStages.entries)
+   if(!['completed','cancelled'].contains(e.key)||e.key==status)e.key:e.value};
+  return EditorScaffold(title:editing?'Edit trip':'Add trip',
+   isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,origin,destination,notes],saving:saving,onSave:save,
-   body:ListView(padding:const EdgeInsets.all(16),children:[
-   Text('The journey starts here',style:Theme.of(context).textTheme.titleLarge),
-   const SizedBox(height:12),
-   TextField(controller:title,maxLength:160,
-    decoration:const InputDecoration(labelText:'Trip name *',border:OutlineInputBorder())),
-   const SizedBox(height:8),
+   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+    enabled:!editing,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+   TextField(controller:title,maxLength:160,autofocus:!editing,
+    textCapitalization:TextCapitalization.sentences,
+    decoration:const InputDecoration(labelText:'Trip name *',
+     hintText:'Christmas in Philadelphia, weekend in AlUla…',border:OutlineInputBorder())),
+   const FormSection('Where'),
    TextField(controller:origin,maxLength:160,
-    decoration:const InputDecoration(labelText:'Traveling from (optional)',border:OutlineInputBorder())),
-   const SizedBox(height:8),
-   TextField(controller:destination,maxLength:160,
-    decoration:const InputDecoration(labelText:'Destination (optional)',border:OutlineInputBorder())),
-   const SizedBox(height:12),
-   ListTile(title:const Text('Departure date'),
-    leading:const Icon(Icons.flight_takeoff_outlined),
-    subtitle:Text(from==null?'Not set':CalendarRules.sqlDate(from!)),
-    onTap:()=>pick(false),trailing:IconButton(tooltip:'Clear departure',
-     icon:const Icon(Icons.clear),onPressed:()=>setState(()=>from=null))),
-   ListTile(title:const Text('Return date'),
-    leading:const Icon(Icons.flight_land_outlined),
-    subtitle:Text(to==null?'Not set':CalendarRules.sqlDate(to!)),
-    onTap:()=>pick(true),trailing:IconButton(tooltip:'Clear return',
-     icon:const Icon(Icons.clear),onPressed:()=>setState(()=>to=null))),
-   const SizedBox(height:8),
-   DropdownButtonFormField<String>(
-    initialValue:status,
-    decoration:const InputDecoration(labelText:'Trip status',border:OutlineInputBorder()),
-    items:[for(final stage in tripStages.entries)
-     DropdownMenuItem(value:stage.key,child:Text(stage.value))],
-    onChanged:(v)=>setState(()=>status=v??status)),
-   const SizedBox(height:12),
-   TextField(controller:notes,maxLength:5000,maxLines:4,
-    decoration:const InputDecoration(labelText:'Plans, ideas and things to remember',
+    decoration:const InputDecoration(labelText:'From',prefixIcon:Icon(Icons.flight_takeoff_outlined),
      border:OutlineInputBorder())),
-   const SizedBox(height:12),
-   if(widget.existing==null)SwitchListTile(
-    contentPadding:EdgeInsets.zero,
-    title:const Text('Only me'),
-    subtitle:const Text('Off means both of us can plan and edit this journey.'),
-    value:visibility=='private',
-    onChanged:(v)=>setState(()=>visibility=v?'private':'shared'),
-   )else ListTile(
-    leading:Icon(visibility=='private'?Icons.lock_outline:Icons.people_outline),
-    title:Text(visibility=='private'?'Only me':'Both of us'),
-    subtitle:const Text('Privacy stays fixed to protect existing travel information.'),
-   ),
-   if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+   const SizedBox(height:10),
+   TextField(controller:destination,maxLength:160,
+    decoration:const InputDecoration(labelText:'To',prefixIcon:Icon(Icons.flight_land_outlined),
+     border:OutlineInputBorder())),
+   const FormSection('When'),
+   DateField(label:'Leaving',value:from,first:DateTime(2000),last:DateTime(2100),
+    onChanged:(v)=>setState(()=>from=v)),
+   DateField(label:'Coming back',value:to,first:from??DateTime(2000),last:DateTime(2100),
+    onChanged:(v)=>setState(()=>to=v)),
+   ChoiceRow<String>(label:'Stage',options:stages,selected:status,
+    icons:const {'planning':Icons.edit_note,'booked':Icons.confirmation_number_outlined,
+     'traveling':Icons.luggage_outlined,'completed':Icons.task_alt,'cancelled':Icons.block},
+    onSelected:(v){if(v!=null)setState(()=>status=v);}),
+   const FormSection('Notes'),
+   TextField(controller:notes,maxLength:5000,minLines:3,maxLines:8,
+    decoration:const InputDecoration(labelText:'Plans, ideas and things to remember',
+     alignLabelWithHint:true,border:OutlineInputBorder())),
+   if(editing)Text('Who can see it stays as it was created, to protect travel documents.',
+    style:Theme.of(context).textTheme.bodySmall),
+   if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
+    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
+ }
 }
 
 class TripDetail extends StatefulWidget {
@@ -602,9 +594,8 @@ class _TripDetailState extends State<TripDetail>{
       ]),
      Text('Local times match the booking and do not convert between time zones.',
       style:Theme.of(context).textTheme.bodySmall),
-     SwitchListTile(contentPadding:EdgeInsets.zero,
-      title:const Text('Show removed items'),value:showRemoved,
-      onChanged:(v)=>setState(()=>showRemoved=v)),
+     Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+      value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
      if(shown.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(18),
        child:Text('Add a flight, stay, activity or reservation to build the journey.'))),
      for(final entry in shown)itineraryCard(entry),

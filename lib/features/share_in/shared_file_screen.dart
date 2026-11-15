@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/editor_scaffold.dart';
 import '../calendar/calendar_rules.dart';
 import '../memories/memory_photo_service.dart';
+import '../../core/form_kit.dart';
 import 'share_intake_rules.dart';
 
 /// R55: save a photo or PDF shared from another app.
@@ -94,6 +95,8 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
       listenTo: [title, note],
       saving: saving,
       onSave: _save,
+      meta: MetaStrip(value: MetaValues(shared: shared), showBelongs: false, showDate: false,
+        enabled: !saving, onChanged: (v) => setState(() => shared = v.shared)),
       body: ListView(padding: const EdgeInsets.all(18), children: [
         if (f.isImage)
           ClipRRect(borderRadius: BorderRadius.circular(14),
@@ -115,26 +118,10 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
           decoration: const InputDecoration(labelText: 'Note (optional)',
             border: OutlineInputBorder())),
         if (f.isImage) ...[
-          Text('Save to', style: theme.textTheme.labelLarge),
-          const SizedBox(height: 6),
-          SegmentedButton<bool>(showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: false, icon: Icon(Icons.inbox_outlined), label: Text('Items to sort')),
-              ButtonSegment(value: true, icon: Icon(Icons.photo_album_outlined), label: Text('Memories')),
-            ],
-            selected: {toMemory},
-            onSelectionChanged: (v) => setState(() => toMemory = v.first)),
-          const SizedBox(height: 14),
+          ChoiceRow<bool>(label: 'Save to', options: const {false: 'Items to sort', true: 'Memories'},
+            icons: const {false: Icons.inbox_outlined, true: Icons.photo_album_outlined},
+            selected: toMemory, onSelected: (v) => setState(() => toMemory = v ?? toMemory)),
         ],
-        Text('Who can see it', style: theme.textTheme.labelLarge),
-        const SizedBox(height: 6),
-        SegmentedButton<bool>(showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(value: false, icon: Icon(Icons.lock_outline), label: Text('Only me')),
-            ButtonSegment(value: true, icon: Icon(Icons.people_outline), label: Text('Both of us')),
-          ],
-          selected: {shared},
-          onSelectionChanged: (v) => setState(() => shared = v.first)),
         if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
           child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
       ]),

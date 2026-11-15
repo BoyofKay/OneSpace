@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'today_attention_rules.dart';
@@ -65,10 +66,10 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
             tooltip:'Snooze for me',
             icon:const Icon(Icons.snooze_outlined,size:20),
             onSelected:(days)=>widget.onSnooze(item,days),
-            itemBuilder:(_)=>const [
-              PopupMenuItem(value:1,child:Text('Snooze until tomorrow')),
-              PopupMenuItem(value:3,child:Text('Snooze for 3 days')),
-              PopupMenuItem(value:7,child:Text('Snooze for 7 days')),
+            itemBuilder:(_)=>[
+              iconMenuItem(1,Icons.snooze_outlined,'Until tomorrow'),
+              iconMenuItem(3,Icons.snooze_outlined,'For 3 days'),
+              iconMenuItem(7,Icons.snooze_outlined,'For a week'),
             ],
           ),
         ),

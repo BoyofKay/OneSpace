@@ -11,7 +11,7 @@ class EditorScaffold extends StatelessWidget {
   const EditorScaffold({super.key, required this.title, required this.body,
     required this.isChanged, required this.isComplete, required this.onSave,
     this.listenTo = const [], this.saving = false, this.saveLabel = 'Save', this.isNew = false,
-    this.actions = const [], this.missingHint = 'Fill in the fields marked *'});
+    this.actions = const [], this.missingHint = 'Fill in the fields marked *', this.meta});
 
   final String title;
   final Widget body;
@@ -29,6 +29,9 @@ class EditorScaffold extends StatelessWidget {
   final String saveLabel;
   final List<Widget> actions;
   final String? missingHint;
+  /// R57: the fixed Shared · Belongs to · Date strip, shown right above
+  /// Cancel/Save (see form_kit.dart).
+  final Widget? meta;
 
   static Future<bool> confirmDiscard(BuildContext context) async =>
       await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
@@ -61,6 +64,7 @@ class EditorScaffold extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if (meta != null) Align(alignment: AlignmentDirectional.centerStart, child: meta!),
                 if (missingHint != null && !complete) Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(missingHint!, style: theme.textTheme.bodySmall?.copyWith(

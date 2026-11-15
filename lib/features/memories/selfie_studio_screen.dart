@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/editor_scaffold.dart';
+import '../../core/form_kit.dart';
 import '../calendar/calendar_rules.dart';
 import 'memory_photo_service.dart';
 
@@ -149,6 +150,8 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       saveLabel: 'Save selfie',
       listenTo: [_caption],
       onSave: _save,
+      meta: MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
+        enabled: !_saving, onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 24), children: [
         Center(child: GestureDetector(
           onTap: () => _take(ImageSource.camera),
@@ -182,15 +185,6 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
         TextField(controller: _caption, maxLength: 80, textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(labelText: 'Caption (optional)',
                 hintText: 'Today in a few words', border: OutlineInputBorder())),
-        SegmentedButton<bool>(
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(value: false, icon: Icon(Icons.people_outline), label: Text('Shared')),
-            ButtonSegment(value: true, icon: Icon(Icons.lock_outline), label: Text('Only me')),
-          ],
-          selected: {_private},
-          onSelectionChanged: (v) => setState(() => _private = v.first),
-        ),
         if (_error != null) Padding(padding: const EdgeInsets.only(top: 12),
             child: Text(_error!, style: TextStyle(color: scheme.error))),
         const SizedBox(height: 22),

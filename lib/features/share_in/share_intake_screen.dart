@@ -1,3 +1,5 @@
+import '../../core/editor_scaffold.dart';
+import '../../core/form_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -250,6 +252,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
   }
 
   Widget _destinationChip(ShareDestination d) => ChoiceChip(
+    avatar: Icon(d.icon, size: 18), showCheckmark: false,
     label: Text(d.label),
     selected: destination == d,
     onSelected: (_) => setState(() { destination = d; error = null; }));
@@ -258,27 +261,17 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     final d = destination;
     if (d == null) return const SizedBox.shrink();
     final theme = Theme.of(context);
-    final privacy = d == ShareDestination.activityOption || d == ShareDestination.giftIdea
-        || d == ShareDestination.experience || d == ShareDestination.reminder
-        || d == ShareDestination.event || d == ShareDestination.trip
-        ? null
-        : SwitchListTile(contentPadding: EdgeInsets.zero,
-            value: onlyMe, onChanged: (v) => setState(() => onlyMe = v),
-            title: const Text('Only me'),
-            subtitle: Text(onlyMe ? 'Kept private to you.' : 'Both of you can see it.'));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const SizedBox(height: 10),
       if (d == ShareDestination.activityOption) ...[
         if (loading) const LinearProgressIndicator(),
         if (activities.isEmpty && !loading)
           const Text('There are no Activities yet. Choose "New Activity" instead.')
-        else if (activities.isNotEmpty) DropdownButtonFormField<String>(
-          initialValue: selectedActivity, isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Activity', border: OutlineInputBorder()),
-          items: [for (final a in activities) DropdownMenuItem(value: a['id'].toString(),
-            child: Text('${a['title']}${a['visibility'] == 'private' ? ' · Only me' : ''}',
-              overflow: TextOverflow.ellipsis))],
-          onChanged: (v) => setState(() => selectedActivity = v)),
+        else if (activities.isNotEmpty) ChoicePickerField<String>(label: 'Activity', required: true, icon: Icons.hub_outlined,
+          options: {for (final a in activities) a['id'].toString():
+            '${a['title']}${a['visibility'] == 'private' ? ' · Only me' : ''}'},
+          selected: selectedActivity,
+          onSelected: (v) => setState(() => selectedActivity = v)),
         if (url.text.trim().isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(children: [
@@ -301,33 +294,30 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       if (d == ShareDestination.giftIdea) ...[
         if (occasions.isEmpty && !loading)
           const Text('There is no upcoming occasion yet. Plan one in Occasions first.')
-        else if (occasions.isNotEmpty) DropdownButtonFormField<String>(
-          initialValue: selectedOccasion, isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Occasion', border: OutlineInputBorder()),
-          items: [for (final o in occasions) DropdownMenuItem(value: o['id'].toString(),
-            child: Text('${o['title']}${o['occasion_on'] == null ? '' : ' · ${o['occasion_on']}'}',
-              overflow: TextOverflow.ellipsis))],
-          onChanged: (v) => setState(() => selectedOccasion = v)),
+        else if (occasions.isNotEmpty) ChoicePickerField<String>(label: 'Occasion', required: true, icon: Icons.card_giftcard_outlined,
+          options: {for (final o in occasions) o['id'].toString():
+            '${o['title']}${o['occasion_on'] == null ? '' : ' · ${o['occasion_on']}'}'},
+          selected: selectedOccasion,
+          onSelected: (v) => setState(() => selectedOccasion = v)),
         Text('Saved as a gift idea in that occasion\'s plan.', style: theme.textTheme.bodySmall),
       ],
       if (d == ShareDestination.experience) ...[
-        DropdownButtonFormField<String>(initialValue: category,
-          decoration: const InputDecoration(labelText: 'Experience type', border: OutlineInputBorder()),
-          items: [for (final e in experienceTypes.entries)
-            DropdownMenuItem(value: e.key, child: Text(e.value))],
-          onChanged: (v) => setState(() => category = v ?? category)),
+        ChoiceRow<String>(label: 'Watchlist', options: experienceTypes, selected: category,
+          onSelected: (v) => setState(() => category = v ?? category)),
         Text('Shared experiences are visible to both of you.', style: theme.textTheme.bodySmall),
       ],
       if (d == ShareDestination.reminder || d == ShareDestination.event || d == ShareDestination.trip)
         Text('Opens the ${d.label.toLowerCase()} page with this filled in; choose the date and save there.',
           style: theme.textTheme.bodySmall),
-      if (privacy != null) privacy,
-      const SizedBox(height: 10),
-      FilledButton.icon(
-        onPressed: saving || spaceId == null ? null : saveToDestination,
-        icon: const Icon(Icons.check),
-        label: Text(saving ? 'Saving…' : 'Save as ${d.label}')),
     ]);
+  }
+
+  /// Destinations that carry their own privacy (or open a page that asks).
+  bool get _ownPrivacy {
+    final d = destination;
+    return d == ShareDestination.activityOption || d == ShareDestination.giftIdea
+        || d == ShareDestination.experience || d == ShareDestination.reminder
+        || d == ShareDestination.event || d == ShareDestination.trip;
   }
 
   @override Widget build(BuildContext context) {
@@ -335,51 +325,52 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     final share = current;
     final suggested = ShareSuggestions.forShare(share);
     final others = ShareSuggestions.more(share);
-    return Scaffold(
-      appBar: AppBar(title: Text(sorting ? 'Sort item' : 'Save to OneSpace')),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 40), children: [
-        Card(elevation: 0, color: theme.colorScheme.surfaceContainerLow,
-          child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [
-            TextField(controller: title, maxLength: 120,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder())),
-            const SizedBox(height: 6),
-            TextField(controller: url, maxLength: 1800, keyboardType: TextInputType.url,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Link (optional)', border: OutlineInputBorder())),
-            const SizedBox(height: 6),
-            TextField(controller: notes, maxLength: 5000, minLines: 2, maxLines: 5,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Comment (optional)',
-                border: OutlineInputBorder())),
-          ]))),
-        if (!sorting) ...[
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: saving || spaceId == null ? null : saveToTray,
-            icon: const Icon(Icons.inbox_outlined),
-            label: const Text('Save to Items to sort')),
-          Padding(padding: const EdgeInsets.only(top: 4, bottom: 4),
-            child: Text('Done for now; sort it later. Only you can see it.',
-              textAlign: TextAlign.center, style: theme.textTheme.bodySmall)),
-        ],
-        const SizedBox(height: 12),
-        Text(sorting ? 'Where should it go?' : 'Or put it somewhere now',
-          style: theme.textTheme.titleMedium),
+    final d = destination;
+    final showStrip = d == null ? false : !_ownPrivacy;
+    return EditorScaffold(
+      title: sorting ? 'Sort item' : 'Save to OneSpace',
+      isNew: true,
+      isChanged: () => title.text.isNotEmpty || url.text.isNotEmpty || notes.text.isNotEmpty,
+      isComplete: () => spaceId != null && title.text.trim().isNotEmpty && (d != null || !sorting),
+      missingHint: sorting && d == null ? 'Choose where it should go' : 'Give it a title',
+      listenTo: [title, url, notes],
+      saving: saving,
+      saveLabel: d == null ? 'Save to Items to sort' : 'Save as ${d.label}',
+      onSave: d == null ? saveToTray : saveToDestination,
+      meta: showStrip ? MetaStrip(value: MetaValues(shared: !onlyMe), showBelongs: false, showDate: false,
+        enabled: !saving, onChanged: (v) => setState(() => onlyMe = !v.shared)) : null,
+      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
+        const FormSection('1 · What it is'),
+        TextField(controller: title, maxLength: 120,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(labelText: 'Title *', border: OutlineInputBorder())),
         const SizedBox(height: 6),
-        Text('Suggested', style: theme.textTheme.labelMedium),
-        const SizedBox(height: 4),
+        TextField(controller: url, maxLength: 1800, keyboardType: TextInputType.url,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(labelText: 'Link', prefixIcon: Icon(Icons.link),
+            border: OutlineInputBorder())),
+        const SizedBox(height: 6),
+        TextField(controller: notes, maxLength: 5000, minLines: 2, maxLines: 5,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(labelText: 'Comment', border: OutlineInputBorder())),
+        FormSection(sorting ? '2 · Where it goes' : '2 · Where it goes (or sort it later)'),
         Wrap(spacing: 8, runSpacing: 6, children: [
-          for (final d in suggested) _destinationChip(d),
+          for (final x in suggested) _destinationChip(x),
           ActionChip(
             avatar: Icon(showMore ? Icons.expand_less : Icons.expand_more, size: 18),
-            label: const Text('More…'),
+            label: Text(showMore ? 'Fewer' : 'More…'),
             onPressed: () => setState(() => showMore = !showMore)),
         ]),
         if (showMore) ...[
           const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 6, children: [for (final d in others) _destinationChip(d)]),
+          Wrap(spacing: 8, runSpacing: 6, children: [for (final x in others) _destinationChip(x)]),
         ],
+        if (!sorting && d == null) Padding(padding: const EdgeInsets.only(top: 8),
+          child: Text('No choice yet? Save it to Items to sort (only you) and decide later.',
+            style: theme.textTheme.bodySmall)),
+        if (d != null && !sorting) Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+          onPressed: () => setState(() => destination = null),
+          icon: const Icon(Icons.inbox_outlined), label: const Text('Sort it later instead'))),
         _destinationDetails(context),
         if (error != null) Padding(padding: const EdgeInsets.all(6),
           child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),

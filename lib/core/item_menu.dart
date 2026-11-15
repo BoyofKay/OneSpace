@@ -100,7 +100,7 @@ class ItemMenu extends StatelessWidget {
     if (onOpen != null) {
       entries.add(PopupMenuItem(value: 'open', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.edit_outlined), title: Text(openLabel))));
+          leading: Icon(openLabel == 'Open' ? Icons.open_in_new : MenuIcons.edit), title: Text(openLabel))));
     }
     for (var i = 0; i < moreActions.length; i++) {
       entries.add(PopupMenuItem(value: 'm$i', child: ListTile(
@@ -110,12 +110,12 @@ class ItemMenu extends StatelessWidget {
     if (table != null || onRemove != null) {
       entries.add(PopupMenuItem(value: 'remove', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
-          leading: Icon(removed ? Icons.restore : Icons.delete_outline),
+          leading: Icon(removed ? MenuIcons.restore : MenuIcons.remove),
           title: Text(removed ? 'Restore' : 'Remove'))));
     }
     entries.add(const PopupMenuItem(value: 'log', child: ListTile(
         dense: true, contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.history), title: Text('Change log'))));
+        leading: Icon(MenuIcons.changeLog), title: Text('Change log'))));
     return PopupMenuButton<String>(
       tooltip: 'More',
       icon: const Icon(Icons.more_vert),
@@ -136,3 +136,26 @@ class ItemMenu extends StatelessWidget {
     );
   }
 }
+
+/// R57: the standard icons for menu actions, so the same action always looks
+/// the same everywhere.
+class MenuIcons {
+  const MenuIcons._();
+  static const edit = Icons.edit_outlined;
+  static const remove = Icons.delete_outline;
+  static const restore = Icons.restore;
+  static const changeLog = Icons.history;
+  static const complete = Icons.task_alt;
+  static const cancel = Icons.block;
+  static const reopen = Icons.undo;
+  static const share = Icons.people_outline;
+  static const private = Icons.lock_outline;
+  static const createFrom = Icons.add_link;
+  static const linked = Icons.link;
+}
+
+/// A menu row with its icon (for menus that are not [ItemMenu]).
+PopupMenuItem<T> iconMenuItem<T>(T value, IconData icon, String label) => PopupMenuItem<T>(
+  value: value,
+  child: ListTile(dense: true, contentPadding: EdgeInsets.zero,
+    leading: Icon(icon), title: Text(label)));

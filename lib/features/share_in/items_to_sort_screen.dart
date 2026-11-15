@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -154,19 +155,21 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
                         case 'remove': _update(item, {'archived_at': DateTime.now().toUtc().toIso8601String()},
                             'Removed. Restore it from the filter panel.');
                         case 'restore': _update(item, {'archived_at': null}, 'Restored.');
+                        case 'sort': _sort(item);
                         case 'log': openChangeLog(context, kind: 'sort_item',
                             recordId: item['id'].toString(), recordTitle: item['title']?.toString());
                       }
                     },
                     itemBuilder: (_) => [
-                      if (item['created_by'] == me) PopupMenuItem(
-                        value: item['visibility'] == 'shared' ? 'private' : 'share',
-                        child: Text(item['visibility'] == 'shared' ? 'Make it only mine' : 'Share with my partner')),
+                      if (item['created_by'] == me) item['visibility'] == 'shared'
+                        ? iconMenuItem('private', MenuIcons.private, 'Make it only mine')
+                        : iconMenuItem('share', MenuIcons.share, 'Share with my partner'),
+                      if (item['archived_at'] == null) iconMenuItem('sort', Icons.drive_file_move_outlined, 'Sort'),
                       const PopupMenuDivider(),
                       if (item['archived_at'] == null)
-                        const PopupMenuItem(value: 'remove', child: Text('Remove'))
-                      else const PopupMenuItem(value: 'restore', child: Text('Restore')),
-                      const PopupMenuItem(value: 'log', child: Text('Change log')),
+                        iconMenuItem('remove', MenuIcons.remove, 'Remove')
+                      else iconMenuItem('restore', MenuIcons.restore, 'Restore'),
+                      iconMenuItem('log', MenuIcons.changeLog, 'Change log'),
                     ]),
                 ]),
                 if ((item['link']?.toString() ?? '').isNotEmpty)

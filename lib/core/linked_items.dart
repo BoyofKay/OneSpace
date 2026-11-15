@@ -173,8 +173,13 @@ enum CreateFromAction {
   final IconData icon;
 
   /// Common actions first, then the ones that only make sense for [kind].
+  /// Never offers to create the same kind of thing (an event is already on
+  /// the calendar; occasions show on the calendar by themselves).
   static List<CreateFromAction> forKind(LinkKind kind) => [
-    reminder, calendar, todo, note,
+    if (kind != LinkKind.reminder) reminder,
+    if (kind != LinkKind.event && kind != LinkKind.occasion) calendar,
+    if (kind != LinkKind.task) todo,
+    if (kind != LinkKind.note) note,
     ...switch (kind) {
       LinkKind.activity => const [turnIntoTrip],
       LinkKind.trip => const [leaveForAirport, checkIn],

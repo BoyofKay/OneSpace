@@ -20,7 +20,10 @@ void main() {
       'Leave-for-airport reminder', 'Online check-in reminder']);
     expect(CreateFromAction.forKind(LinkKind.activity).last, CreateFromAction.turnIntoTrip);
     expect(CreateFromAction.forKind(LinkKind.occasion).last, CreateFromAction.preparation);
-    expect(CreateFromAction.forKind(LinkKind.note).length, 4);
+    expect(CreateFromAction.forKind(LinkKind.note).length, 3);
+    expect(CreateFromAction.forKind(LinkKind.event), isNot(contains(CreateFromAction.calendar)));
+    expect(CreateFromAction.forKind(LinkKind.occasion), isNot(contains(CreateFromAction.calendar)));
+    expect(CreateFromAction.forKind(LinkKind.reminder), isNot(contains(CreateFromAction.reminder)));
   });
 
   test('B-17: trip reminders are pre-filled with title and date', () {

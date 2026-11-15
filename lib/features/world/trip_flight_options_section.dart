@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -81,9 +82,8 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
          if(d!=null)change(()=>arrival=d);
         }),
       ]),
-      CheckboxListTile(value:flexible,contentPadding:EdgeInsets.zero,
-       title:const Text('Dates are flexible'),
-       onChanged:(v)=>change(()=>flexible=v??false)),
+      Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Flexible dates',
+       icon:Icons.date_range_outlined,value:flexible,onChanged:(v)=>change(()=>flexible=v))),
       TextFormField(initialValue:stops,
        keyboardType:TextInputType.number,onChanged:(v)=>stops=v,
        decoration:const InputDecoration(labelText:'Number of stops (optional)')),
@@ -96,24 +96,19 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
         labelText:'Saved price (optional; not live)')),
       TextFormField(initialValue:currency,maxLength:3,
        onChanged:(v)=>currency=v,decoration:const InputDecoration(labelText:'Currency (USD/SAR)')),
-      DropdownButtonFormField<int?>(
-       initialValue:score,decoration:const InputDecoration(labelText:'My preference score'),
-       items:[const DropdownMenuItem<int?>(value:null,child:Text('No score')),
-        for(var s=1;s<=5;s++)DropdownMenuItem<int?>(value:s,
-         child:Text(s.toString()+'/5'))],
-       onChanged:(v)=>change(()=>score=v)),
+      ChoiceRow<int>(label:'My preference',
+       options:const {0:'No score',1:'1',2:'2',3:'3',4:'4',5:'5'},
+       icons:const {1:Icons.star_border,2:Icons.star_border,3:Icons.star_half,4:Icons.star,5:Icons.star},
+       selected:score??0,onSelected:(v)=>change(()=>score=v==null||v==0?null:v)),
       TextFormField(initialValue:link,maxLength:1800,
        keyboardType:TextInputType.url,
        onChanged:(v)=>link=v,decoration:const InputDecoration(
         labelText:'Google Flights / airline / booking URL')),
-      DropdownButtonFormField<String>(
-       initialValue:status,decoration:const InputDecoration(labelText:'Decision'),
-       items:const [
-        DropdownMenuItem(value:'considering',child:Text('Considering')),
-        DropdownMenuItem(value:'proposed',child:Text('Proposed option')),
-        DropdownMenuItem(value:'booked',child:Text('Booked / purchased')),
-        DropdownMenuItem(value:'rejected',child:Text('Not selected'))],
-       onChanged:(v)=>change(()=>status=v??status)),
+      ChoiceRow<String>(label:'Decision',
+       options:const {'considering':'Considering','proposed':'Proposed','booked':'Booked','rejected':'Not selected'},
+       icons:const {'considering':Icons.help_outline,'proposed':Icons.thumb_up_outlined,
+        'booked':Icons.confirmation_number_outlined,'rejected':Icons.block},
+       selected:status,onSelected:(v)=>change(()=>status=v??status)),
       TextFormField(initialValue:notes,maxLength:2200,maxLines:3,
        onChanged:(v)=>notes=v,decoration:const InputDecoration(labelText:'Pros, cons and notes')),
     ]))),
@@ -226,10 +221,8 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
      onPressed:()=>open('https://www.google.com/travel/flights'),
      icon:const Icon(Icons.open_in_new),
      label:const Text('Search Google Flights externally'))),
-    SwitchListTile(
-     contentPadding:EdgeInsets.zero,value:showArchived,
-     title:const Text('Show removed flight options'),
-     onChanged:(v)=>setState(()=>showArchived=v)),
+    Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+     value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
     if(snapshot.hasError)const Text('Flight options could not load.'),
     if(!snapshot.hasData)const LinearProgressIndicator(),
     if(snapshot.hasData&&shown.isEmpty)const Card(child:Padding(

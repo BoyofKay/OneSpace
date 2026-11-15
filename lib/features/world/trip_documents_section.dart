@@ -1,3 +1,5 @@
+import '../../core/item_menu.dart';
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:typed_data';
 
@@ -118,22 +120,15 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
        const SizedBox(height:12),
        TextFormField(initialValue:title,maxLength:160,
         onChanged:(value)=>title=value,
-        decoration:const InputDecoration(labelText:'Document title')),
-       DropdownButtonFormField<String>(initialValue:kind,
-        decoration:const InputDecoration(labelText:'Type'),
-        items:[for(final e in tripDocumentKinds.entries)
-         DropdownMenuItem(value:e.key,child:Text(e.value))],
-        onChanged:(v)=>update(()=>kind=v??kind)),
-       const SizedBox(height:12),
-       DropdownButtonFormField<String>(initialValue:location,
-        decoration:const InputDecoration(labelText:'Attach to'),
-        items:[
-         const DropdownMenuItem(value:'whole_trip',child:Text('Whole trip')),
+        decoration:const InputDecoration(labelText:'Title *',border:OutlineInputBorder())),
+       const SizedBox(height:10),
+       ChoiceRow<String>(label:'Type',options:tripDocumentKinds,selected:kind,icons:const {'boarding_pass':Icons.airplane_ticket_outlined,'itinerary':Icons.route_outlined,'ticket':Icons.confirmation_number_outlined,'receipt':Icons.receipt_long_outlined,'photo':Icons.photo_camera_outlined,'other':Icons.description_outlined},
+        onSelected:(v)=>update(()=>kind=v??kind)),
+       ChoicePickerField<String>(label:'Belongs to',icon:Icons.luggage_outlined,
+        options:{'whole_trip':'The whole trip',
          for(final item in widget.itineraryItems.where((item)=>item['archived_at']==null))
-          DropdownMenuItem(value:item['id'].toString(),
-            child:Text(item['title'].toString(),overflow:TextOverflow.ellipsis)),
-        ],
-        onChanged:(v)=>update(()=>location=v??location)),
+          item['id'].toString():item['title'].toString()},
+        selected:location,onSelected:(v)=>update(()=>location=v??location)),
        const SizedBox(height:8),
        Text('Private file · Maximum 10 MB',style:Theme.of(ctx).textTheme.bodySmall),
       ])),
@@ -174,21 +169,14 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
      title:const Text('Edit document'),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       TextFormField(initialValue:title,maxLength:160,onChanged:(v)=>title=v,
-       decoration:const InputDecoration(labelText:'Title')),
-      DropdownButtonFormField<String>(initialValue:kind,
-       decoration:const InputDecoration(labelText:'Type'),
-       items:[for(final e in tripDocumentKinds.entries)
-        DropdownMenuItem(value:e.key,child:Text(e.value))],
-       onChanged:(v)=>update(()=>kind=v??kind)),
-      DropdownButtonFormField<String>(initialValue:location,
-       decoration:const InputDecoration(labelText:'Attached to'),
-       items:[
-        const DropdownMenuItem(value:'whole_trip',child:Text('Whole trip')),
-        for(final item in widget.itineraryItems)
-         DropdownMenuItem(value:item['id'].toString(),child:Text(
-          item['title'].toString(),overflow:TextOverflow.ellipsis)),
-       ],
-       onChanged:(v)=>update(()=>location=v??location)),
+       decoration:const InputDecoration(labelText:'Title *',border:OutlineInputBorder())),
+      const SizedBox(height:10),
+      ChoiceRow<String>(label:'Type',options:tripDocumentKinds,selected:kind,icons:const {'boarding_pass':Icons.airplane_ticket_outlined,'itinerary':Icons.route_outlined,'ticket':Icons.confirmation_number_outlined,'receipt':Icons.receipt_long_outlined,'photo':Icons.photo_camera_outlined,'other':Icons.description_outlined},
+       onSelected:(v)=>update(()=>kind=v??kind)),
+      ChoicePickerField<String>(label:'Belongs to',icon:Icons.luggage_outlined,
+       options:{'whole_trip':'The whole trip',
+        for(final item in widget.itineraryItems)item['id'].toString():item['title'].toString()},
+       selected:location,onSelected:(v)=>update(()=>location=v??location)),
      ])),
      actions:[
       TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
@@ -265,8 +253,8 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    ]),
    const Text('Boarding passes, tickets, travel PDFs and photo scans. Files stay private to people who can view this trip.'),
    const SizedBox(height:8),
-   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Show removed documents'),
-    value:showArchived,onChanged:(v)=>setState(()=>showArchived=v)),
+   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+    value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
    if(error!=null)Padding(padding:const EdgeInsets.all(6),
     child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
    if(busy)const LinearProgressIndicator(),
@@ -292,15 +280,15 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       ].join(' · '),maxLines:3),
       onTap:doc['archived_at']!=null?null:()=>view(doc),
       trailing:PopupMenuButton<String>(
-       tooltip:'Document options',
+       tooltip:'More',
        onSelected:(choice){
         if(choice=='edit'){edit(doc);}
         else if(choice=='archive'){toggleArchive(doc);}
        },
        itemBuilder:(_)=>[
-        const PopupMenuItem(value:'edit',child:Text('Edit details')),
-        PopupMenuItem(value:'archive',child:Text(
-         doc['archived_at']!=null?'Restore':'Remove')),
+        iconMenuItem('edit',MenuIcons.edit,'Edit'),
+        doc['archived_at']!=null?iconMenuItem('archive',MenuIcons.restore,'Restore')
+         :iconMenuItem('archive',MenuIcons.remove,'Remove'),
        ],
       ),
      )),
