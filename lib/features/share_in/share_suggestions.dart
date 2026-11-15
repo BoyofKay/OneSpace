@@ -1,20 +1,22 @@
+import 'package:material_ui/material_ui.dart';
 import 'share_intake_rules.dart';
 
 /// Where shared content can go (spec 4.1/4.2). "Items to sort" is always the
 /// first choice and is offered separately, so it is not in this list.
 enum ShareDestination {
-  giftIdea('Gift idea for an occasion'),
-  activityOption('Option in an Activity'),
-  newActivity('New Activity'),
-  todo('To-do'),
-  experience('Shared experience'),
-  trip('Trip'),
-  note('Note'),
-  reminder('Reminder'),
-  event('Event');
+  giftIdea('Gift idea for an occasion', Icons.card_giftcard_outlined),
+  activityOption('Option in an Activity', Icons.compare_arrows),
+  newActivity('New Activity', Icons.hub_outlined),
+  todo('To-do', Icons.checklist_outlined),
+  experience('Shared experience', Icons.movie_outlined),
+  trip('Trip', Icons.flight_takeoff_outlined),
+  note('Note', Icons.sticky_note_2_outlined),
+  reminder('Reminder', Icons.alarm_outlined),
+  event('Event', Icons.event_outlined);
 
-  const ShareDestination(this.label);
+  const ShareDestination(this.label, this.icon);
   final String label;
+  final IconData icon;
 }
 
 /// What kind of thing arrived, recognised from the content itself, never
