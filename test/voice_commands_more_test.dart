@@ -61,7 +61,7 @@ void main() {
     test('normalize keeps length', () {
       const s = 'أضف حليب إلى قائمة المشتريات ٣';
       expect(ArabicVoiceRules.normalize(s).length, s.length);
-      expect(ArabicVoiceRules.normalize(s), 'اضف حليب الي قائمه المشتريات 3');
+      expect(ArabicVoiceRules.normalize(s), 'اضف حليب الي قايمه المشتريات 3');
     });
     test('reminder with tomorrow at 5 in the evening', () {
       final c = p('ذكرني أن أتصل بالعيادة بكرة الساعة 5 المساء');

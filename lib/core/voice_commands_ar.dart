@@ -295,5 +295,6 @@ class ArabicVoiceRules {
 
   static String _tidy(String s) => s.replaceAll(_r(r'\s+'), ' ').trim()
       .replaceFirst(_r(r'^(ان|بان|ب)\s+'), '')
+      .replaceFirst(RegExp(r'^ب(?=ال)'), '')
       .replaceFirst(_r(r'\s+(في|على|يوم)$'), '').trim();
 }

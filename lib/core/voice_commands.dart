@@ -152,7 +152,7 @@ class VoiceCommandRules {
         if (kind != null) return c(VoiceAction.gesture, target: kind, title: phrase);
       }
     }
-    m = RegExp(r"^(i'?m|i am|i feel|i'?m feeling|feeling|today i feel|i'?m doing)( really| very| pretty| so| a bit| quite| kind of| a little)? ([a-z ]+?)( today)?(,? because (.+))?$")
+    m = RegExp(r"^(i'?m feeling|i am feeling|today i feel|i feel|i'?m doing|i am|i'?m|feeling)( really| very| pretty| so| a bit| quite| kind of| a little)? ([a-z ]+?)( today)?(,? because (.+))?$")
         .firstMatch(t);
     if (m != null && moods.containsKey(m.group(3))) {
       return c(VoiceAction.feeling, number: moods[m.group(3)], title: _cap(m.group(6) ?? ''));
