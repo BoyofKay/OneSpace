@@ -1,7 +1,7 @@
+import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
-import '../../core/collection_history_screen.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -19,7 +19,6 @@ import 'calendar_event_editor.dart';
 import 'calendar_rules.dart';
 import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
-import '../notes/related_notes_panel.dart';
 import '../../theme/appearance_settings_screen.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
@@ -616,17 +615,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Future<void> _showRelatedNotes(Map<String,dynamic> event) async {
-    await showModalBottomSheet<void>(context:context,
-      showDragHandle:true,isScrollControlled:true,
-      builder:(_)=>FractionallySizedBox(heightFactor:.60,
-        child:SafeArea(child:SingleChildScrollView(
-          padding:const EdgeInsets.all(12),
-          child:RelatedNotesPanel(
-            sourceKind:'event',sourceId:event['id'].toString(),
-            initiallyExpanded:true)))));
-  }
-
   Widget _eventTile(Map<String, dynamic> event, {bool upcoming = false}) {
     final id = _client.auth.currentUser?.id ?? '';
     final visibility = event['visibility'] as String? ?? 'shared';
@@ -675,45 +663,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (!canEdit) tr(context, 'viewOnly'),
               if (event['archived_at'] != null) tr(context, 'archived'),
             ].join(' • ')),
-            trailing:PopupMenuButton<String>(
-              tooltip:'Event actions',
-              icon:const Icon(Icons.more_horiz),
-              onSelected:(action){
-                if(action=='email')_emailEvent(event);
-                if(action=='remind')_remindPartner(event);
-                if(action=='notes')_showRelatedNotes(event);
-                if(action=='history')openChangeLog(context,kind:'event',
-                 recordId:event['id'].toString(),recordTitle:event['title']?.toString());
-                if(action=='create'&&event['space_id']!=null)createFromThis(context,
-                 kind:LinkKind.event,id:event['id'].toString(),
-                 spaceId:event['space_id'].toString(),
-                 title:event['title']?.toString()??'Event',
-                 date:DateTime.tryParse(event['event_date']?.toString()??''),
-                 shared:event['visibility']!='private');
-                if(action=='linked')_showLinked(event);
-              },
-              itemBuilder:(_)=>[
-                const PopupMenuItem(value:'create',child:Row(children:[
-                  Icon(Icons.add_link),SizedBox(width:10),
-                  Text('Create from this')])),
-                const PopupMenuItem(value:'linked',child:Row(children:[
-                  Icon(Icons.link),SizedBox(width:10),
-                  Text('Linked items')])),
-                const PopupMenuItem(value:'history',child:Row(children:[
-                  Icon(Icons.history),SizedBox(width:10),
-                  Text('Change log')])),
-                const PopupMenuItem(value:'notes',child:Row(children:[
-                  Icon(Icons.sticky_note_2_outlined),SizedBox(width:10),
-                  Text('Related notes')])),
-                const PopupMenuItem(value:'email',child:Row(children:[
-                  Icon(Icons.mail_outline),SizedBox(width:10),
-                  Text('Share by email')])),
+            trailing:ItemMenu(kind:'event',recordId:event['id'].toString(),
+              title:event['title']?.toString(),
+              onOpen:()=>_openEditor(existing:event),openLabel:canEdit?'Edit':'Open',
+              moreActions:[
+                if(event['space_id']!=null)ItemMenuAction('Create from this',Icons.add_link,
+                  ()=>createFromThis(context,
+                    kind:LinkKind.event,id:event['id'].toString(),
+                    spaceId:event['space_id'].toString(),
+                    title:event['title']?.toString()??'Event',
+                    date:DateTime.tryParse(event['event_date']?.toString()??''),
+                    shared:event['visibility']!='private')),
+                ItemMenuAction('Linked items',Icons.link,()=>_showLinked(event)),
+                ItemMenuAction('Share by email',Icons.mail_outline,()=>_emailEvent(event)),
                 if(visibility=='shared'&&event['archived_at']==null)
-                  const PopupMenuItem(value:'remind',child:Row(children:[
-                    Icon(Icons.notifications_active_outlined),SizedBox(width:10),
-                    Text('Remind partner now')])),
+                  ItemMenuAction('Remind partner now',Icons.notifications_active_outlined,
+                    ()=>_remindPartner(event)),
               ],
-            ),
+              table:canEdit?'space_events':null,
+              removed:event['archived_at']!=null,onChanged:_load),
             onTap: () => _openEditor(existing: event),
           ),
           if (canShare)

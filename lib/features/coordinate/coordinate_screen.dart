@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -125,10 +126,19 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
             ),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(builder: (_) =>
-            ActivityScreen(id: item['id'] as String))),
+        trailing: ItemMenu(kind: 'activity', recordId: item['id'].toString(),
+          title: item['title']?.toString(), openLabel: 'Open',
+          onOpen: () async {
+            await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+              builder: (_) => ActivityScreen(id: item['id'] as String)));
+            if (mounted) await load();
+          },
+          table: 'activities', removed: archived, onChanged: load),
+        onTap: () async {
+          await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+            builder: (_) => ActivityScreen(id: item['id'] as String)));
+          if (mounted) await load();
+        },
       ),
     );
   }

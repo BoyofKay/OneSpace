@@ -34,6 +34,7 @@ class ItemMenu extends StatelessWidget {
     this.removed = false,
     this.onChanged,
     this.onRemove,
+    this.moreActions = const [],
   });
 
   /// Change-log kind (as used by `record_action_history`).
@@ -51,6 +52,10 @@ class ItemMenu extends StatelessWidget {
 
   /// Screen-specific remove/restore (keeps its own checks); shown when set.
   final VoidCallback? onRemove;
+
+  /// Item-specific extras (Create from this, Linked items, Share…), shown
+  /// after Edit and before Remove.
+  final List<ItemMenuAction> moreActions;
 
   Future<void> _toggleRemoved(BuildContext context) async {
     final t = table;
@@ -97,6 +102,11 @@ class ItemMenu extends StatelessWidget {
           dense: true, contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.edit_outlined), title: Text(openLabel))));
     }
+    for (var i = 0; i < moreActions.length; i++) {
+      entries.add(PopupMenuItem(value: 'm$i', child: ListTile(
+          dense: true, contentPadding: EdgeInsets.zero,
+          leading: Icon(moreActions[i].icon), title: Text(moreActions[i].label))));
+    }
     if (table != null || onRemove != null) {
       entries.add(PopupMenuItem(value: 'remove', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
@@ -111,7 +121,9 @@ class ItemMenu extends StatelessWidget {
       icon: const Icon(Icons.more_vert),
       itemBuilder: (_) => entries,
       onSelected: (v) {
-        if (v.startsWith('s')) {
+        if (v.startsWith('m')) {
+          moreActions[int.parse(v.substring(1))].onSelected();
+        } else if (v.startsWith('s')) {
           statusActions[int.parse(v.substring(1))].onSelected();
         } else if (v == 'open') {
           onOpen?.call();

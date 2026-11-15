@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -6,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
-import '../../core/record_action_history_view.dart';
 import '../coordinate/activity_contact_view.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'saved_contact_editor.dart';
@@ -247,13 +247,14 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
          onTap:()=>setState((){
            if(isOpen){expanded.remove(key);}else{expanded.add(key);}
          }),
-         trailing:Row(mainAxisSize:MainAxisSize.min,children:[
-           IconButton(
-             tooltip:'Edit contact card',
-             icon:const Icon(Icons.edit_outlined),
-             onPressed:deleted?null:()=>edit(item)),
-           Icon(isOpen?Icons.expand_less:Icons.expand_more),
-         ]),
+         trailing:ItemMenu(kind:'contact',recordId:item.id,title:item.label,
+           onOpen:deleted?null:()=>edit(item),
+           moreActions:[
+             if(!deleted)ItemMenuAction('Save to phone',Icons.contact_phone_outlined,()=>saveToPhone(item)),
+             if(!item.direct)ItemMenuAction('Open the Activity',Icons.open_in_new,()=>openOrigin(item)),
+             ItemMenuAction('Edit history',Icons.edit_note,()=>showHistory(item)),
+           ],
+           removed:deleted,onRemove:()=>removal(item,!deleted)),
        ),
        if(isOpen)Padding(padding:const EdgeInsets.fromLTRB(15,2,15,12),
          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -271,22 +272,6 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
            else TextButton(
              onPressed:()=>openOrigin(item),
              child:Text('From: '+item.activityTitle)),
-           Wrap(spacing:8,children:[
-             OutlinedButton.icon(
-               onPressed:deleted?null:()=>saveToPhone(item),
-               icon:const Icon(Icons.contact_phone_outlined),
-               label:const Text('Save to phone')),
-             OutlinedButton.icon(
-               onPressed:()=>showHistory(item),
-               icon:const Icon(Icons.history),
-               label:const Text('Edit history')),
-             if(item.direct)RecordActionHistoryButton(
-              kind:'contact',recordId:item.id),
-             OutlinedButton.icon(
-               onPressed:()=>removal(item,!deleted),
-               icon:Icon(deleted?Icons.restore:Icons.delete_outline),
-               label:Text(deleted?'Restore':'Remove')),
-           ]),
          ])),
      ],
    ));

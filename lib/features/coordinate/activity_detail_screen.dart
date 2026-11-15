@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -1590,37 +1591,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
             onPressed: () => changeField(item, 'due_on', null)),
         IconButton(tooltip: 'Add an item', icon: const Icon(Icons.add_circle_outline),
           onPressed: chooseAdd),
-        PopupMenuButton<String>(
-          tooltip:'Activity actions',
-          icon:const Icon(Icons.more_horiz),
-          onSelected:(value){
-            if(value=='completed')_finishActivity(item);
-            if(value=='cancelled')recordDecision('cancelled');
-            if(value=='reopen')recordDecision('reopened');
-            if(value=='archive')_setActivityArchived(item,true);
-            if(value=='restore')_setActivityArchived(item,false);
-            if(value=='history')showActivityHistory(item);
-          },
-          itemBuilder:(_)=>[
+        ItemMenu(kind:'activity',recordId:item['id'].toString(),
+          title:item['title']?.toString(),
+          statusActions:[
             if(!archived && stage!='completed')
-              const PopupMenuItem(value:'completed',
-                child:Text('Mark completed')),
+              ItemMenuAction('Mark completed',Icons.task_alt,()=>_finishActivity(item)),
             if(!archived && stage!='cancelled')
-              const PopupMenuItem(value:'cancelled',
-                child:Text('Cancel Activity…')),
-            if(!archived && (stage=='cancelled'||stage=='completed'||
-              stage=='on_hold'))
-              const PopupMenuItem(value:'reopen',
-                child:Text('Reopen Activity…')),
-            if(!archived)
-              const PopupMenuItem(value:'archive',
-                child:Text('Remove…')),
-            if(archived)
-              const PopupMenuItem(value:'restore',
-                child:Text('Restore Activity…')),
-            const PopupMenuItem(value:'history',child:Text('Audit history')),
+              ItemMenuAction('Cancel activity',Icons.block,()=>recordDecision('cancelled')),
+            if(!archived && (stage=='cancelled'||stage=='completed'||stage=='on_hold'))
+              ItemMenuAction('Reopen',Icons.undo,()=>recordDecision('reopened')),
           ],
-        ),
+          moreActions:[
+            ItemMenuAction('Edit history',Icons.edit_note,()=>showActivityHistory(item)),
+          ],
+          removed:archived,
+          onRemove:()=>_setActivityArchived(item,!archived)),
       ]),
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
