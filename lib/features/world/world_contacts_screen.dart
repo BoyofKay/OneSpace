@@ -252,7 +252,6 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
            moreActions:[
              if(!deleted)ItemMenuAction('Save to phone',Icons.contact_phone_outlined,()=>saveToPhone(item)),
              if(!item.direct)ItemMenuAction('Open the Activity',Icons.open_in_new,()=>openOrigin(item)),
-             ItemMenuAction('Edit history',Icons.edit_note,()=>showHistory(item)),
            ],
            removed:deleted,onRemove:()=>removal(item,!deleted)),
        ),
@@ -294,17 +293,12 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
       onApply:(v)=>setState((){sourceFilter=v['source']!;}),
      ),
      ],bottom:filterShowingBar(_filterGroups(),removed:showDeleted,onClear:()=>setState((){showDeleted=false;sourceFilter='all';}))),
-     // R55: add at the lower right, import from the phone at the lower left.
-     floatingActionButtonLocation:FloatingActionButtonLocation.endFloat,
-     floatingActionButton:space==null?null:Padding(
-       padding:const EdgeInsets.only(left:32),
-       child:Row(children:[
-         FloatingActionButton.small(heroTag:'import-contacts',
-           tooltip:'Import from phone',onPressed:importFromPhone,
-           child:const Icon(Icons.contacts_outlined)),
-         const Spacer(),
-         AddFab(label:'Add contact card',onPressed:()=>edit()),
-       ])),
+     // R57: one add button; "Import from phone" is one of its choices
+     // (it brings a phone contact in — the opposite of Save to phone).
+     floatingActionButton:space==null?null:AddFabMenu(label:'Add contact card',options:[
+       AddFabOption('New contact card',Icons.person_add_alt_outlined,()=>edit()),
+       AddFabOption('Import from phone',Icons.contacts_outlined,importFromPhone),
+     ]),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
        padding:const EdgeInsets.fromLTRB(14,14,14,96),

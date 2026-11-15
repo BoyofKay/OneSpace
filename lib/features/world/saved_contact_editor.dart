@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -42,11 +43,13 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
    super.dispose();
  }
  Widget field(TextEditingController c,String label,{int max=180,int lines=1,
-   TextInputType? type})=>Padding(
+   TextInputType? type,IconData? icon,String? hint})=>Padding(
      padding:const EdgeInsets.only(bottom:12),
      child:TextField(
-       controller:c,maxLength:max,maxLines:lines,keyboardType:type,
-       decoration:InputDecoration(labelText:label,
+       controller:c,maxLength:max,minLines:lines,maxLines:lines==1?1:lines+3,keyboardType:type,
+       textCapitalization:type==null?TextCapitalization.sentences:TextCapitalization.none,
+       decoration:InputDecoration(labelText:label,hintText:hint,
+         prefixIcon:icon==null?null:Icon(icon),
          border:const OutlineInputBorder(),counterText:''),
      ));
  Future<void> save()async{
@@ -115,44 +118,37 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
  }
  @override Widget build(BuildContext context){
    final fromActivity=widget.existing!=null&&!widget.existing!.direct;
-   return EditorScaffold(title:widget.existing==null?'Add new contact card':'Edit contact card',
+   return EditorScaffold(title:widget.existing==null?'Add contact card':'Edit contact card',
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>name.text.trim().isNotEmpty,
    listenTo:[name,person,phone,email,address,hours,notes,company,role,website],saving:busy,onSave:save,
+   meta:fromActivity?null:MetaStrip(value:MetaValues(shared:!onlyMe),showBelongs:false,showDate:false,
+     enabled:!busy,onChanged:(v)=>setState(()=>onlyMe=!v.shared)),
    body:SafeArea(child:ListView(
        padding:const EdgeInsets.all(18),children:[
-       const Text('Contact card',style:TextStyle(
-         fontSize:19,fontWeight:FontWeight.w700)),
-       const SizedBox(height:6),
-       if(widget.imported!=null)const Padding(
-        padding:EdgeInsets.only(bottom:8),
-        child:Text('Imported from your phone. Review the details and choose privacy before saving.')),
-       Text(fromActivity?'This contact belongs to its original Activity.':
-         'Save a person or place directly, without creating an Activity.',
-         style:Theme.of(context).textTheme.bodySmall),
-       const SizedBox(height:16),
-       field(name,'Contact card name *'),
-       field(person,'Contact person'),
-       field(phone,'Phone number',max:80,type:TextInputType.phone),
-       field(email,'Email',max:254,type:TextInputType.emailAddress),
-       field(address,'Address',max:1000,lines:2),
-       field(hours,'Working hours',max:800,lines:2),
-       field(company,'Company'),
-       field(role,'Job title / role'),
-       field(website,'Website',max:500,type:TextInputType.url),
-       field(notes,'Notes',max:3000,lines:4),
-       if(!fromActivity)SwitchListTile(
-         title:const Text('Only me'),
-         subtitle:const Text('Off: both partners can see this card.'),
-         value:onlyMe,
-         onChanged:busy?null:(value)=>setState(()=>onlyMe=value)),
-       if(fromActivity)const Text(
-         'Visibility is inherited from the Activity.',
-       ),
+       if(widget.imported!=null)Padding(
+        padding:const EdgeInsets.only(bottom:12),
+        child:Text('Imported from your phone. Check the details before saving.',
+         style:Theme.of(context).textTheme.bodySmall)),
+       if(fromActivity)Padding(padding:const EdgeInsets.only(bottom:12),
+        child:Text('This card comes from an Activity, so it follows that Activity’s privacy.',
+         style:Theme.of(context).textTheme.bodySmall)),
+       field(name,'Name on the card *',icon:Icons.badge_outlined,hint:'Dr. Sara, Kids’ swim club…'),
+       field(person,'Contact person',icon:Icons.person_outline),
+       const FormSection('Reach them'),
+       field(phone,'Phone',max:80,type:TextInputType.phone,icon:Icons.phone_outlined),
+       field(email,'Email',max:254,type:TextInputType.emailAddress,icon:Icons.mail_outline),
+       field(website,'Website',max:500,type:TextInputType.url,icon:Icons.language),
+       const FormSection('Where and when'),
+       field(address,'Address',max:1000,lines:2,icon:Icons.place_outlined),
+       field(hours,'Opening or working hours',max:800,lines:2,icon:Icons.schedule),
+       const FormSection('Work'),
+       field(company,'Company',icon:Icons.business_outlined),
+       field(role,'Job title or role',icon:Icons.work_outline),
+       const FormSection('Notes'),
+       field(notes,'Notes',max:3000,lines:3),
        if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),
          child:Text(error!,style:TextStyle(
            color:Theme.of(context).colorScheme.error))),
-       const SizedBox(height:12),
-       const SizedBox(height:30),
      ])),
    );
  }
