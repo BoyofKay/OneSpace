@@ -1,30 +1,25 @@
-# R57 — Editors redesigned
+# R58 — Fix: ⋮ menu crash inside an Activity
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.423 (R56).
+Previous signed preview: 0.1.424 (R57).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.423
-- Form kit: chips / searchable picker / option chips; no dropdowns or switches.
-- Fixed strip above Cancel/Save: Shared · Belongs to · Date (linked rules).
-- Every editor regrouped by purpose (reminder, event, to-do list, trip,
-  itinerary entry, occasion, step, gift, experience, contact card, note,
-  story, check-in, answer, gesture, flight, document, Save/Sort wizard).
-- Reminders done → Completed; actions only in ⋮. Activity/Occasion pages: one ⋮.
-- Contact cards import in the add button; check-in and experience fixes;
-  standard menu icons.
+## Included since 0.1.424
+- Fix: tapping ⋮ inside an Activity crashed ("RenderBox was not laid out").
+  Menus now measure their position once, when tapped (all ⋮ menus, plus the
+  priority/status/outcome menus inside an Activity).
 
 ## Database
 - No database change in R56.
 
 ## Verification
-- "Verify OneSpace iteration" passed on r57-editors.
+- "Verify OneSpace iteration" passed on r58-menu-fix.
 
 ## Two-phone validation
-Follow docs/R57_QA.md (15 steps).
+Open an Activity, tap ⋮ and each toolbar menu; then continue docs/R57_QA.md.
 
-Controlled R57 signed preview candidate, November 15, 2026.
+Controlled R58 signed preview candidate, November 15, 2026.
