@@ -9,6 +9,7 @@ enum ShareDestination {
   newActivity('New Activity', Icons.hub_outlined),
   todo('To-do', Icons.checklist_outlined),
   experience('Shared experience', Icons.movie_outlined),
+  flightOption('Flight option for a trip', Icons.airplane_ticket_outlined),
   trip('Trip', Icons.flight_takeoff_outlined),
   note('Note', Icons.sticky_note_2_outlined),
   reminder('Reminder', Icons.alarm_outlined),
@@ -21,7 +22,7 @@ enum ShareDestination {
 
 /// What kind of thing arrived, recognised from the content itself, never
 /// from which app sent it.
-enum ShareContentKind { shop, media, travel, maps, website, datedText, text }
+enum ShareContentKind { shop, media, flight, travel, maps, website, datedText, text }
 
 class ShareSuggestions {
   const ShareSuggestions._();
@@ -38,6 +39,11 @@ class ShareSuggestions {
     'kayak.', 'trip.com', 'agoda.', 'hotels.com', 'flydubai.', 'saudia.',
     'emirates.', 'qatarairways.', 'flynas.', 'aa.com', 'united.com', 'delta.com',
     'tripadvisor.', 'google.com/travel', 'almosafer.', 'wego.'];
+  /// R67: flight searches and airline sites (a flight to compare in a trip).
+  static const _flights = ['google.com/travel/flights', 'skyscanner.', 'kayak.',
+    'flydubai.', 'saudia.', 'emirates.', 'qatarairways.', 'flynas.', 'flyadeal.',
+    'aa.com', 'united.com', 'delta.com', 'etihad.', 'turkishairlines.', 'egyptair.',
+    '/flights', '/flight/'];
   static const _maps = ['maps.google.', 'google.com/maps', 'goo.gl/maps',
     'maps.app.goo.gl', 'maps.apple.', 'waze.com'];
 
@@ -54,6 +60,7 @@ class ShareSuggestions {
     if (link.isNotEmpty) {
       if (any(_maps)) return ShareContentKind.maps;
       if (any(_media)) return ShareContentKind.media;
+      if (any(_flights)) return ShareContentKind.flight;
       if (any(_travel)) return ShareContentKind.travel;
       if (any(_shops)) return ShareContentKind.shop;
       return ShareContentKind.website;
@@ -69,6 +76,8 @@ class ShareSuggestions {
           ShareDestination.activityOption, ShareDestination.todo],
         ShareContentKind.media => const [ShareDestination.experience,
           ShareDestination.newActivity, ShareDestination.note],
+        ShareContentKind.flight => const [ShareDestination.flightOption,
+          ShareDestination.trip, ShareDestination.note],
         ShareContentKind.travel => const [ShareDestination.trip,
           ShareDestination.newActivity, ShareDestination.note],
         ShareContentKind.maps => const [ShareDestination.newActivity,

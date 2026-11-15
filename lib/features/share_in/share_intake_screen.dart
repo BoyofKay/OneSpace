@@ -12,6 +12,7 @@ import '../occasions/occasions_screen.dart';
 import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../world/trips_screen.dart';
+import '../world/trip_flight_options_section.dart';
 import 'items_to_sort_screen.dart';
 import 'share_intake_rules.dart';
 import 'share_suggestions.dart';
@@ -35,11 +36,11 @@ class ShareIntakeScreen extends StatefulWidget {
 class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
   final db = Supabase.instance.client;
   late final TextEditingController title, url, notes, price, currency, specs;
-  String? spaceId, error, selectedActivity, selectedOccasion;
+  String? spaceId, error, selectedActivity, selectedOccasion, selectedTrip;
   bool loading = true, saving = false, onlyMe = false, showMore = false;
   ShareDestination? destination;
   String category = 'other';
-  List<Map<String, dynamic>> activities = [], occasions = [];
+  List<Map<String, dynamic>> activities = [], occasions = [], trips = [];
 
   bool get sorting => widget.trayItem != null;
 
@@ -81,8 +82,14 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           .eq('space_id', id).isFilter('archived_at', null)
           .not('status', 'in', '(celebrated,cancelled)')
           .order('occasion_on', ascending: true).limit(60);
+      final tripRows = await db.from('shared_trips').select()
+          .eq('space_id', id).isFilter('archived_at', null)
+          .not('status', 'in', '(completed,cancelled)')
+          .order('updated_at', ascending: false).limit(60);
       if (!mounted) return;
       setState(() {
+        trips = List<Map<String, dynamic>>.from(tripRows);
+        selectedTrip = trips.isEmpty ? null : trips.first['id'].toString();
         activities = List<Map<String, dynamic>>.from(rows);
         occasions = List<Map<String, dynamic>>.from(plans);
         selectedActivity = activities.isEmpty ? null : activities.first['id'].toString();
@@ -230,10 +237,28 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
             builder: (_) => CalendarEventEditor(spaceId: spaceId!,
               initialDate: DateTime.now(), initialTitle: name,
               initialDetails: _bodyWithLink))) == true;
+        case ShareDestination.flightOption:
+          final trip = trips.where((t) => t['id'].toString() == selectedTrip).firstOrNull;
+          if (trip == null) {
+            setState(() { saving = false; error = 'Choose a trip first, or save it as a new Trip.'; });
+            return;
+          }
+          final draft = await readFlight('$name\n$body\n$link');
+          if (!mounted) return;
+          done = await editFlightOption(context, tripId: trip['id'].toString(), trip: trip, draft: draft);
+          next = TripDetail(tripId: trip['id'].toString());
         case ShareDestination.trip:
+          // R67: a shared flight starts the trip with its airports and dates.
+          final draft = await readFlight('$name\n$body\n$link');
+          if (!mounted) return;
+          String day(DateTime d) => d.toIso8601String().substring(0, 10);
           done = await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
             builder: (_) => TripEditor(spaceId: spaceId!,
-              prefill: {'title': name, 'notes': _bodyWithLink}))) == true;
+              prefill: {'title': name, 'notes': _bodyWithLink,
+                if (draft.origin != null) 'origin': draft.origin!,
+                if (draft.destination != null) 'destination': draft.destination!,
+                if (draft.departure != null) 'start_on': day(draft.departure!),
+                if (draft.returnOn != null) 'end_on': day(draft.returnOn!)}))) == true;
       }
       if (!mounted) return;
       if (!done) { setState(() => saving = false); return; }
@@ -302,6 +327,18 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           onSelected: (v) => setState(() => selectedOccasion = v)),
         Text(tt('Saved as a gift idea in that occasion\'s plan.'), style: theme.textTheme.bodySmall),
       ],
+      if (d == ShareDestination.flightOption) ...[
+        if (trips.isEmpty && !loading)
+          Text(tt('There is no upcoming trip yet. Choose "Trip" to start one with this flight.'))
+        else if (trips.isNotEmpty) ChoicePickerField<String>(label: tt('Trip'), required: true,
+          icon: Icons.flight_takeoff_outlined,
+          options: {for (final t in trips) t['id'].toString():
+            '${t['title']}${t['start_on'] == null ? '' : ' · ${t['start_on']}'}'},
+          selected: selectedTrip,
+          onSelected: (v) => setState(() => selectedTrip = v)),
+        Text(tt('OneSpace reads the airports, dates, airline and price it can find; check them before saving.'),
+          style: theme.textTheme.bodySmall),
+      ],
       if (d == ShareDestination.experience) ...[
         ChoiceRow<String>(label: tt('Watchlist'), options: experienceTypes, selected: category,
           onSelected: (v) => setState(() => category = v ?? category)),
@@ -317,6 +354,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
   bool get _ownPrivacy {
     final d = destination;
     return d == ShareDestination.activityOption || d == ShareDestination.giftIdea
+        || d == ShareDestination.flightOption
         || d == ShareDestination.experience || d == ShareDestination.reminder
         || d == ShareDestination.event || d == ShareDestination.trip;
   }

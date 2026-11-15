@@ -12,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
 import '../../core/record_collection_search_rules.dart';
-import '../../core/record_action_history_view.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import 'trip_item_editor.dart';
@@ -20,12 +19,12 @@ import 'trip_rules.dart';
 import 'trip_documents_section.dart';
 import 'trip_flight_options_section.dart';
 import 'trip_preparation_section.dart';
+import 'airports.dart';
+import 'trip_widgets.dart';
 import 'package:onespace/l10n/phrases.dart';
 
-const tripStages=<String,String>{
- 'planning':'Planning','booked':'Booked','traveling':'Traveling',
- 'completed':'Completed','cancelled':'Cancelled'
-};
+/// R67: the status is automatic; these are its display words.
+const tripStages=TripRules.statusLabels;
 
 class TripsScreen extends StatefulWidget {
  const TripsScreen({super.key,this.initialTripId,this.embedded=false});
@@ -45,7 +44,7 @@ class _TripsScreenState extends State<TripsScreen> {
  String? _watchedSpace;
  int _loadVersion=0;
 
- @override void initState(){super.initState();load();}
+ @override void initState(){super.initState();load();Airports.load().then((_){if(mounted)setState((){});});}
  @override void dispose(){
   _loadVersion++;
   _debounce?.cancel();
@@ -138,10 +137,9 @@ class _TripsScreenState extends State<TripsScreen> {
    if(!RecordCollectionSearchRules.matches(trip,query,
     fields:const ['title','destination','origin','notes']))return false;
    if(showArchived||filter=='all')return true;
-   final end=DateTime.tryParse((trip['end_on']??trip['start_on']??'').toString());
-   final past=end!=null&&end.isBefore(now);
-   if(filter=='past')return past||trip['status']=='completed';
-   return !past&&trip['status']!='completed'&&trip['status']!='cancelled';
+   final st=TripRules.status(trip,now);
+   if(filter=='past')return st=='completed'||st=='cancelled';
+   return st!='completed'&&st!='cancelled';
   }).toList();
   return Scaffold(
    backgroundColor:widget.embedded?Colors.transparent:null,
@@ -193,13 +191,13 @@ class _TripsScreenState extends State<TripsScreen> {
     else for(final trip in visible)Card(elevation:0,clipBehavior:Clip.antiAlias,
      child:ListTile(
       contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:8),
-      leading:CircleAvatar(child:StatusLook.mark(trip['status']?.toString())??Icon(trip['visibility']=='private'?
-       Icons.lock_outline:Icons.flight_takeoff_outlined)),
+      leading:CircleAvatar(child:StatusLook.mark(tripLook(TripRules.status(trip,now)))??Icon(trip['visibility']=='private'?
+       Icons.lock_outline:tripModeIcon(trip['travel_mode']?.toString()))),
       title:Text(tt(trip['title'].toString()),
-       style:StatusLook.title(context,trip['status']?.toString(),Theme.of(context).textTheme.titleMedium)),
+       style:StatusLook.title(context,tripLook(TripRules.status(trip,now)),Theme.of(context).textTheme.titleMedium)),
       subtitle:Text(tt([
-       if((trip['destination']??'').toString().isNotEmpty)trip['destination'].toString(),
-       tripStages[trip['status']]??'Planning',
+       if((trip['destination']??'').toString().isNotEmpty)Airports.label(trip['destination'].toString()),
+       tripStages[TripRules.status(trip,now)]??'Planning',
        if(trip['start_on']!=null)trip['start_on'].toString()+
          (trip['end_on']!=null?' – '+trip['end_on'].toString():''),
        if(trip['visibility']=='private')'Only me',
@@ -213,6 +211,23 @@ class _TripsScreenState extends State<TripsScreen> {
  }
 }
 
+
+/// A booked trip still looks "open" in lists (only past/cancelled are struck).
+String tripLook(String status)=>status=='booked'||status=='traveling'?'planning':status;
+
+IconData tripModeIcon(String? mode)=>switch(mode){
+ 'road'=>Icons.directions_car_outlined,
+ 'train'=>Icons.train_outlined,
+ 'other'=>Icons.luggage_outlined,
+ _=>Icons.flight_takeoff_outlined,
+};
+
+const tripModes=<String,String>{'flight':'Flight','road':'Road trip','train':'Train','other':'Other'};
+
+/// R67 (forms review): the trip's first step. Everything that shapes the
+/// search sits here: how we travel, one way or round trip, airports (as
+/// 3-letter codes for flights), dates, flexible dates, who is traveling and
+/// how many passengers. A new trip says Next: it is saved and its page opens.
 class TripEditor extends StatefulWidget {
  const TripEditor({super.key,required this.spaceId,this.existing,this.prefill,this.onCreated});
  /// R53: called with the new trip's id so "Create from this" can link it.
@@ -224,64 +239,76 @@ class TripEditor extends StatefulWidget {
  @override State<TripEditor> createState()=>_TripEditorState();
 }
 class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEditor> {
- /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[title.text,origin.text,destination.text,notes.text,from,to,status,visibility].join('|');
+ @override String get signature=>[title.text,origin,destination,originText.text,destinationText.text,
+  notes.text,from,to,visibility,mode,tripType,traveler,adults,children,infants,flexible].join('|');
 
  final db=Supabase.instance.client;
- late final TextEditingController title,origin,destination,notes;
- late String status,visibility;
+ late final TextEditingController title,notes,originText,destinationText;
+ String? origin,destination,traveler;
+ late String visibility,mode,tripType;
  DateTime? from,to;
- bool saving=false;
+ int adults=2,children=0,infants=0;
+ bool flexible=false,saving=false,adultsTouched=false;
+ SpacePeople? people;
  String? error;
  @override void initState(){
   super.initState();
   final x=widget.existing??widget.prefill??{};
   title=TextEditingController(text:(x['title']??'').toString());
-  origin=TextEditingController(text:(x['origin']??'').toString());
-  destination=TextEditingController(text:(x['destination']??'').toString());
   notes=TextEditingController(text:(x['notes']??'').toString());
-  status=(x['status']??'planning').toString();
+  mode=(x['travel_mode']??'flight').toString();
+  tripType=(x['trip_type']??'round').toString();
+  final o=(x['origin']??'').toString().trim(),d=(x['destination']??'').toString().trim();
+  origin=o.isEmpty?null:o;destination=d.isEmpty?null:d;
+  originText=TextEditingController(text:o);destinationText=TextEditingController(text:d);
   visibility=(x['visibility']??'shared').toString();
   from=DateTime.tryParse((x['start_on']??'').toString());
   to=DateTime.tryParse((x['end_on']??'').toString());
+  traveler=x['traveler_id']?.toString();
+  final e=widget.existing;
+  if(e!=null){
+   adults=(e['adults'] as num?)?.toInt()??2;children=(e['children'] as num?)?.toInt()??0;
+   infants=(e['infants'] as num?)?.toInt()??0;flexible=e['flexible_dates']==true;adultsTouched=true;
+  }
+  SpacePeople.load().then((p){if(mounted)setState(()=>people=p);});
+  Airports.load().then((_){if(mounted)setState((){});});
  }
  @override void dispose(){
-  title.dispose();origin.dispose();destination.dispose();notes.dispose();
+  title.dispose();notes.dispose();originText.dispose();destinationText.dispose();
   super.dispose();
- }
- Future<void> pick(bool isEnd)async{
-  final d=await showDatePicker(context:context,
-    firstDate:DateTime(2000),lastDate:DateTime(2100),
-    initialDate:(isEnd?to:from)??DateTime.now());
-  if(d!=null&&mounted)setState((){
-   if(isEnd){to=d;}else{from=d;}
-  });
  }
  Future<void> save()async{
   if(saving)return;
-  if(title.text.trim().isEmpty){
-   setState(()=>error='Give the trip a title.');return;
-  }
+  if(title.text.trim().isEmpty){setState(()=>error='Give the trip a name.');return;}
   if(from!=null&&to!=null&&to!.isBefore(from!)){
    setState(()=>error='The return date cannot be before departure.');return;
   }
+  if(adults+children+infants==0){setState(()=>error='Add at least one passenger.');return;}
+  final flight=mode=='flight';
+  final o=flight?(origin??''):originText.text.trim();
+  final d=flight?(destination??''):destinationText.text.trim();
   setState((){saving=true;error=null;});
   try{
    final values=<String,dynamic>{
-    'title':title.text.trim(),'origin':origin.text.trim(),
-    'destination':destination.text.trim(),'notes':notes.text.trim(),
-    'status':status,
+    'title':title.text.trim(),'origin':o,'destination':d,'notes':notes.text.trim(),
+    'travel_mode':mode,'trip_type':tripType,'traveler_id':traveler,
+    'adults':adults,'children':children,'infants':infants,'flexible_dates':flexible,
     'start_on':from==null?null:CalendarRules.sqlDate(from!),
-    'end_on':to==null?null:CalendarRules.sqlDate(to!),
+    'end_on':to==null||tripType=='one_way'?null:CalendarRules.sqlDate(to!),
    };
    if(widget.existing==null){
     final created=await db.from('shared_trips').insert({
-     ...values,'space_id':widget.spaceId,'visibility':visibility,
+     ...values,'space_id':widget.spaceId,'visibility':visibility,'status':'planning',
     }).select('id').single();
-    await widget.onCreated?.call(created['id'].toString());
-   }else{
-    await db.from('shared_trips').update(values).eq('id',widget.existing!['id']);
+    final id=created['id'].toString();
+    await widget.onCreated?.call(id);
+    if(!mounted)return;
+    // Next: the trip is saved; its page is the next step.
+    Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+     builder:(_)=>TripDetail(tripId:id)),result:true);
+    return;
    }
+   await db.from('shared_trips').update(values).eq('id',widget.existing!['id']);
    if(mounted)Navigator.pop(context,true);
   }on PostgrestException catch(e){
    if(mounted)setState(()=>error=e.message);
@@ -291,41 +318,76 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    if(mounted)setState(()=>saving=false);
   }
  }
+ void setTraveler(String? v){
+  setState((){
+   traveler=v;
+   if(!adultsTouched)adults=v==null?2:1;
+  });
+ }
  @override Widget build(BuildContext context){
   final editing=widget.existing!=null;
-  final stages={for(final e in tripStages.entries)
-   if(!['completed','cancelled'].contains(e.key)||e.key==status)e.key:e.value};
-  return EditorScaffold(title:editing?tt('Edit trip'):tt('Add trip'),
+  final flight=mode=='flight';
+  final p=people;
+  return EditorScaffold(title:editing?tt('Edit trip'):tt('New trip'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
-   listenTo:[title,origin,destination,notes],saving:saving,onSave:save,
+   listenTo:[title,notes,originText,destinationText],saving:saving,onSave:save,
+   saveLabel:editing?'Save':'Next',
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    TextField(controller:title,maxLength:160,autofocus:!editing,
     textCapitalization:TextCapitalization.sentences,
     decoration:InputDecoration(labelText:tt('Trip name *'),
-     hintText:tt('Christmas in Philadelphia, weekend in AlUla…'),border:OutlineInputBorder())),
+     hintText:tt('Christmas in Philadelphia, weekend in AlUla…'),border:const OutlineInputBorder())),
+   ChoiceRow<String>(label:tt('How are we traveling?'),options:tripModes,selected:mode,
+    icons:const {'flight':Icons.flight_outlined,'road':Icons.directions_car_outlined,
+     'train':Icons.train_outlined,'other':Icons.luggage_outlined},
+    onSelected:(v){if(v!=null)setState(()=>mode=v);}),
+   ChoiceRow<String>(label:tt('Trip type'),options:const {'round':'Round trip','one_way':'One way'},
+    selected:tripType,icons:const {'round':Icons.sync_alt,'one_way':Icons.arrow_right_alt},
+    onSelected:(v){if(v!=null)setState(()=>tripType=v);}),
    FormSection(tt('Where')),
-   TextField(controller:origin,maxLength:160,
-    decoration:InputDecoration(labelText:tt('From'),prefixIcon:Icon(Icons.flight_takeoff_outlined),
-     border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   TextField(controller:destination,maxLength:160,
-    decoration:InputDecoration(labelText:tt('To'),prefixIcon:Icon(Icons.flight_land_outlined),
-     border:OutlineInputBorder())),
+   if(flight)...[
+    AirportField(label:tt('From'),value:origin,onChanged:(v)=>setState(()=>origin=v)),
+    AirportField(label:tt('To'),value:destination,icon:Icons.flight_land_outlined,
+     onChanged:(v)=>setState(()=>destination=v)),
+   ]else...[
+    TextField(controller:originText,maxLength:160,
+     decoration:InputDecoration(labelText:tt('From'),prefixIcon:const Icon(Icons.trip_origin),
+      border:const OutlineInputBorder())),
+    const SizedBox(height:6),
+    TextField(controller:destinationText,maxLength:160,
+     decoration:InputDecoration(labelText:tt('To'),prefixIcon:const Icon(Icons.place_outlined),
+      border:const OutlineInputBorder())),
+   ],
    FormSection(tt('When')),
    DateField(label:tt('Leaving'),value:from,first:DateTime(2000),last:DateTime(2100),
     onChanged:(v)=>setState(()=>from=v)),
-   DateField(label:tt('Coming back'),value:to,first:from??DateTime(2000),last:DateTime(2100),
+   if(tripType=='round')DateField(label:tt('Coming back'),value:to,first:from??DateTime(2000),last:DateTime(2100),
     onChanged:(v)=>setState(()=>to=v)),
-   ChoiceRow<String>(label:tt('Stage'),options:stages,selected:status,
-    icons:const {'planning':Icons.edit_note,'booked':Icons.confirmation_number_outlined,
-     'traveling':Icons.luggage_outlined,'completed':Icons.task_alt,'cancelled':Icons.block},
-    onSelected:(v){if(v!=null)setState(()=>status=v);}),
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Flexible dates'),
+    icon:Icons.date_range_outlined,value:flexible,onChanged:(v)=>setState(()=>flexible=v))),
+   Padding(padding:const EdgeInsets.only(top:4),child:Text(
+    tt('Dates can wait while you plan. Booking a flight fills them in.'),
+    style:Theme.of(context).textTheme.bodySmall)),
+   FormSection(tt("Who's traveling")),
+   if(p!=null&&p.partnerId!=null)Wrap(spacing:8,runSpacing:6,children:[
+    ChoiceChip(label:Text(tt('Both of us')),selected:traveler==null,onSelected:(_)=>setTraveler(null)),
+    ChoiceChip(label:Text(tt('Me')),selected:traveler==p.me,onSelected:(_)=>setTraveler(p.me)),
+    ChoiceChip(label:Text(tt(p.partnerName)),selected:traveler==p.partnerId,
+     onSelected:(_)=>setTraveler(p.partnerId)),
+   ]),
+   const SizedBox(height:10),
+   CountStepper(label:tt('Adults'),help:tt('12 and over'),value:adults,icon:Icons.person_outline,
+    onChanged:(v)=>setState((){adults=v;adultsTouched=true;})),
+   CountStepper(label:tt('Children'),help:tt('2 to 11'),value:children,icon:Icons.child_care_outlined,
+    onChanged:(v)=>setState(()=>children=v)),
+   CountStepper(label:tt('Infants'),help:tt('Under 2'),value:infants,icon:Icons.baby_changing_station_outlined,
+    onChanged:(v)=>setState(()=>infants=v)),
    FormSection(tt('Notes')),
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:8,
     decoration:InputDecoration(labelText:tt('Plans, ideas and things to remember'),
-     alignLabelWithHint:true,border:OutlineInputBorder())),
+     alignLabelWithHint:true,border:const OutlineInputBorder())),
    if(editing)Text(tt('Who can see it stays as it was created, to protect travel documents.'),
     style:Theme.of(context).textTheme.bodySmall),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
@@ -344,8 +406,10 @@ class _TripDetailState extends State<TripDetail>{
  final db=Supabase.instance.client;
  final message=TextEditingController();
  Map<String,dynamic>? trip;
- List<Map<String,dynamic>> items=[],messages=[],history=[];
- bool loading=true,busy=false,showRemoved=false,showHistory=false;
+ List<Map<String,dynamic>> items=[],messages=[];
+ bool loading=true,busy=false,showRemoved=false,flightBooked=false;
+ bool? flightsOpen;
+ SpacePeople? people;
  String? error;
  RealtimeChannel? _changes;
  Timer? _debounce;
@@ -363,10 +427,16 @@ class _TripDetailState extends State<TripDetail>{
      type:PostgresChangeFilterType.eq,column:'trip_id',value:widget.tripId),
     callback:(_)=>_scheduleRefresh())
    .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
+    table:'trip_flight_options',filter:PostgresChangeFilter(
+     type:PostgresChangeFilterType.eq,column:'trip_id',value:widget.tripId),
+    callback:(_)=>_scheduleRefresh())
+   .onPostgresChanges(event:PostgresChangeEvent.all,schema:'public',
     table:'trip_messages',filter:PostgresChangeFilter(
      type:PostgresChangeFilterType.eq,column:'trip_id',value:widget.tripId),
     callback:(_)=>_scheduleRefresh())
    .subscribe();
+  SpacePeople.load().then((p){if(mounted)setState(()=>people=p);});
+  Airports.load().then((_){if(mounted)setState((){});});
   load();
  }
  void _scheduleRefresh(){
@@ -398,10 +468,8 @@ class _TripDetailState extends State<TripDetail>{
     safe(db.from('trip_items').select().eq('trip_id',widget.tripId).limit(250)),
     safe(db.from('trip_messages').select().eq('trip_id',widget.tripId)
      .order('created_at',ascending:true).limit(250)),
-    // Only request the audit fields used by the collapsed history UI.
-    safe(db.from('trip_revisions')
-     .select('id,record_kind,changed_by,changed_at')
-     .eq('trip_id',widget.tripId).order('changed_at',ascending:false).limit(60)),
+    safe(db.from('trip_flight_options').select('id').eq('trip_id',widget.tripId)
+     .eq('status','booked').isFilter('archived_at',null).limit(1)),
    ]);
    if(!mounted||request!=_request||db.auth.currentUser?.id!=user)return;
    final ordered=List<Map<String,dynamic>>.from(results[0]??items)
@@ -415,7 +483,7 @@ class _TripDetailState extends State<TripDetail>{
    setState((){
     trip=t;items=ordered;
     if(results[1]!=null)messages=List<Map<String,dynamic>>.from(results[1]);
-    if(results[2]!=null)history=List<Map<String,dynamic>>.from(results[2]);
+    if(results[2]!=null)flightBooked=(results[2] as List).isNotEmpty;
     loading=false;
     error=failures==0?null:
       'Some trip sections could not refresh. Existing information is kept; pull down to retry.';
@@ -448,15 +516,31 @@ class _TripDetailState extends State<TripDetail>{
  }
  Future<void> editItem([Map<String,dynamic>? item])async{
   final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>TripItemEditor(tripId:widget.tripId,existing:item)));
+   builder:(_)=>TripItemEditor(tripId:widget.tripId,existing:item,trip:trip)));
   if(saved==true&&mounted)await load();
  }
  Future<void> setTripRemoved()async{
   final t=trip;if(t==null)return;
+  if(t['archived_at']==null){
+   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+    title:Text(tt('Remove this trip?')),
+    content:Text(tt('It moves to Removed. You can restore it from the filter anytime.')),
+    actions:[
+     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Remove'))),
+    ]));
+   if(ok!=true)return;
+  }
   await mutate(()async{
    await db.from('shared_trips').update({
     'archived_at':t['archived_at']==null?DateTime.now().toUtc().toIso8601String():null,
    }).eq('id',widget.tripId);
+  });
+ }
+ Future<void> setCancelled(bool cancel)async{
+  await mutate(()async{
+   // Reopening hands the status back to the automatic rules.
+   await db.from('shared_trips').update({'status':cancel?'cancelled':'planning'}).eq('id',widget.tripId);
   });
  }
  Future<void> setItemRemoved(Map<String,dynamic> item)async{
@@ -464,12 +548,6 @@ class _TripDetailState extends State<TripDetail>{
    await db.from('trip_items').update({
     'archived_at':item['archived_at']==null?DateTime.now().toUtc().toIso8601String():null,
    }).eq('id',item['id']).eq('trip_id',widget.tripId);
-  });
- }
- Future<void> toggleItem(Map<String,dynamic> item)async{
-  await mutate(()async{
-   await db.from('trip_items').update({'done':item['done']!=true})
-    .eq('id',item['id']).eq('trip_id',widget.tripId);
   });
  }
  Future<void> postMessage()async{
@@ -500,8 +578,11 @@ class _TripDetailState extends State<TripDetail>{
     SnackBar(content:Text(tt('Could not open this link.'))));
   }
  }
- String label(Object? user)=>user==db.auth.currentUser?.id?'You':'Partner';
- String _date(Object? raw)=>raw==null?'Unscheduled':raw.toString();
+ String label(Object? user)=>user==db.auth.currentUser?.id?'You':(people?.partnerName??'Partner');
+ String _date(Object? raw){
+  final d=DateTime.tryParse((raw??'').toString());
+  return d==null?'':MaterialLocalizations.of(context).formatMediumDate(d);
+ }
  IconData kindIcon(String kind)=>switch(kind){
   'flight'=>Icons.flight_outlined,
   'stay'=>Icons.hotel_outlined,
@@ -510,57 +591,93 @@ class _TripDetailState extends State<TripDetail>{
   'booking'=>Icons.book_online_outlined,
   _=>Icons.note_alt_outlined,
  };
+ String place(Object? v){
+  final s=(v??'').toString();
+  return Airports.isCode(s)?Airports.label(s):s;
+ }
  Widget itineraryCard(Map<String,dynamic> entry){
   final deleted=entry['archived_at']!=null;
-  final title=entry['title'].toString();
   final start=entry['local_date']==null?'Date not set':
    _date(entry['local_date'])+
    (entry['local_time']!=null?' · '+entry['local_time'].toString().substring(0,5):'');
   final amount=entry['estimated_cost']==null?'':entry['currency'].toString()+
     ' '+entry['estimated_cost'].toString();
-  return Card(elevation:0,child:Padding(padding:const EdgeInsets.all(10),
+  final from=place(entry['location']),to=place(entry['destination']);
+  return Card(elevation:0,child:Padding(padding:const EdgeInsets.fromLTRB(10,8,4,10),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[
      CircleAvatar(radius:18,child:Icon(kindIcon(entry['kind'].toString()),size:20)),
      const SizedBox(width:10),
      Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text(tt(title),style:Theme.of(context).textTheme.titleMedium),
-      Text(tt((tripItemKinds[entry['kind']]??'Travel item')+' · '+start),
+      Text(tt(entry['title'].toString()),style:Theme.of(context).textTheme.titleMedium?.copyWith(
+       decoration:deleted?TextDecoration.lineThrough:null)),
+      Text(tt((tripItemKinds[entry['kind']]??'Travel item'))+' · '+tt(start),
        style:Theme.of(context).textTheme.bodySmall),
      ])),
-     IconButton(onPressed:deleted||busy?null:()=>editItem(entry),
-      tooltip:tt('Edit itinerary item'),icon:const Icon(Icons.edit_outlined)),
+     AnchoredMenuButton<String>(tooltip:tt('More'),
+      onSelected:(v){
+       if(v=='edit'){editItem(entry);}
+       else if(v=='link'){openLink(entry['source_url'].toString());}
+       else if(v=='remove'){setItemRemoved(entry);}
+      },
+      itemBuilder:(_)=>[
+       if(!deleted)iconMenuItem('edit',MenuIcons.edit,'Edit'),
+       if(entry['source_url'].toString().isNotEmpty)iconMenuItem('link',Icons.open_in_new,'Open booking link'),
+       iconMenuItem('remove',deleted?MenuIcons.restore:MenuIcons.remove,deleted?'Restore':'Remove'),
+      ]),
     ]),
-    if(entry['location'].toString().isNotEmpty||entry['destination'].toString().isNotEmpty)
-     Padding(padding:const EdgeInsets.only(top:5),child:Text(
-      tt([if(entry['location'].toString().isNotEmpty)entry['location'].toString(),
-       if(entry['destination'].toString().isNotEmpty)entry['destination'].toString()].join(' → ')))),
-    if(entry['end_date']!=null)Text(tt('Ends / arrives: ')+_date(entry['end_date'])+
-      (entry['end_time']!=null?' · '+entry['end_time'].toString().substring(0,5):'')),
-    if(entry['provider'].toString().isNotEmpty)
-     Text(tt('Provider: ')+entry['provider'].toString()),
-    if(entry['booking_reference'].toString().isNotEmpty)
-     Row(children:[
-      Expanded(child:Text(tt('Reference: ')+entry['booking_reference'].toString())),
-      IconButton(tooltip:tt('Copy booking reference'),icon:const Icon(Icons.copy_outlined),
-       onPressed:()=>Clipboard.setData(ClipboardData(text:entry['booking_reference'].toString()))),
-     ]),
-    if(amount.isNotEmpty)Text(tt('Estimated cost: ')+amount),
-    if(entry['details'].toString().isNotEmpty)
-     Padding(padding:const EdgeInsets.symmetric(vertical:6),
-      child:SelectableText(entry['details'].toString())),
-    if(entry['source_url'].toString().isNotEmpty)
-     TextButton.icon(onPressed:()=>openLink(entry['source_url'].toString()),
-      icon:const Icon(Icons.open_in_new),label:Text(tt('Open booking link'))),
-    Wrap(spacing:5,children:[
-     OutlinedButton.icon(onPressed:deleted||busy?null:()=>toggleItem(entry),
-      icon:Icon(entry['done']==true?Icons.check_circle:Icons.circle_outlined),
-      label:Text(tt(entry['done']==true?tt('Done'):tt('Mark done')))),
-     TextButton.icon(onPressed:busy?null:()=>setItemRemoved(entry),
-      icon:Icon(deleted?Icons.restore_outlined:Icons.archive_outlined),
-      label:Text(tt(deleted?tt('Restore'):tt('Remove')))),
-    ]),
+    Padding(padding:const EdgeInsetsDirectional.only(start:46,end:8),child:Column(
+     crossAxisAlignment:CrossAxisAlignment.start,children:[
+     if(from.isNotEmpty||to.isNotEmpty)
+      Text(tt([if(from.isNotEmpty)from,if(to.isNotEmpty)to].join(' → '))),
+     if(entry['end_date']!=null)Text(tt('Ends / arrives: ')+_date(entry['end_date'])+
+       (entry['end_time']!=null?' · '+entry['end_time'].toString().substring(0,5):'')),
+     if(entry['provider'].toString().isNotEmpty)Text(tt(entry['provider'].toString())),
+     if(entry['booking_reference'].toString().isNotEmpty)
+      Row(children:[
+       Expanded(child:Text(tt('Reference: ')+entry['booking_reference'].toString())),
+       IconButton(tooltip:tt('Copy booking reference'),icon:const Icon(Icons.copy_outlined,size:18),
+        onPressed:()=>Clipboard.setData(ClipboardData(text:entry['booking_reference'].toString()))),
+      ]),
+     if(amount.isNotEmpty)Text(tt('Cost: ')+amount),
+     if(entry['details'].toString().isNotEmpty)
+      Padding(padding:const EdgeInsets.only(top:4),
+       child:SelectableText(entry['details'].toString())),
+    ])),
    ])));
+ }
+
+ Widget summary(Map<String,dynamic> t){
+  final theme=Theme.of(context);
+  final st=TripRules.status(t,DateTime.now());
+  final from=place(t['origin']),to=place(t['destination']);
+  final p=people;
+  final who=t['traveler_id']==null?'Both of us':
+   t['traveler_id']==p?.me?'Me':(p?.partnerName??'Partner');
+  final pax=TripRules.passengers(t).map(tt).join(OneSpacePhrases.arabic?'، ':', ');
+  final start=t['start_on'],end=t['end_on'];
+  Widget chip(IconData icon,String text)=>Chip(
+   avatar:Icon(icon,size:16),label:Text(tt(text)),visualDensity:VisualDensity.compact);
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   if(from.isNotEmpty||to.isNotEmpty)Padding(padding:const EdgeInsets.only(top:4,bottom:6),
+    child:Row(children:[
+     Icon(tripModeIcon(t['travel_mode']?.toString()),color:theme.colorScheme.primary),
+     const SizedBox(width:8),
+     Expanded(child:Text(tt([if(from.isNotEmpty)from,if(to.isNotEmpty)to]
+      .join(t['trip_type']=='one_way'?'  →  ':'  ⇄  ')),style:theme.textTheme.titleMedium)),
+    ])),
+   Wrap(spacing:6,runSpacing:4,children:[
+    chip(st=='cancelled'?Icons.block:st=='completed'?Icons.task_alt:st=='traveling'?Icons.luggage
+     :st=='booked'?Icons.confirmation_number_outlined:Icons.edit_note,tripStages[st]??'Planning'),
+    if(start!=null)chip(Icons.event_outlined,_date(start)+(end!=null&&t['trip_type']!='one_way'?' – '+_date(end):'')),
+    if(t['flexible_dates']==true)chip(Icons.date_range_outlined,'Flexible dates'),
+    chip(Icons.group_outlined,tt(who)+(pax.isEmpty?'':' · '+pax)),
+    if(t['visibility']=='private')chip(Icons.lock_outline,'Only me'),
+   ]),
+   if(start!=null&&st!='completed'&&st!='cancelled')Padding(padding:const EdgeInsets.only(top:6),
+    child:Text(tt(TripRules.countdownLabel(DateTime.tryParse(start.toString()),DateTime.now())),
+     style:theme.textTheme.titleSmall?.copyWith(color:theme.colorScheme.primary))),
+  ]);
  }
 
  @override Widget build(BuildContext context){
@@ -568,63 +685,81 @@ class _TripDetailState extends State<TripDetail>{
   final active=items.where((i)=>i['archived_at']==null).toList();
   final shown=items.where((i)=>showRemoved||i['archived_at']==null).toList();
   final amounts=TripRules.sumByCurrency(active);
+  final isFlight=(t?['travel_mode']??'flight')=='flight';
+  final st=t==null?'planning':TripRules.status(t,DateTime.now());
   return Scaffold(
-   appBar:AppBar(title:Text(tt('Trip details')),actions:[
-    if(t!=null&&t['space_id']!=null)CreateFromThisButton(kind:LinkKind.trip,id:widget.tripId,spaceId:t['space_id'].toString(),title:t['title'].toString(),date:DateTime.tryParse(t['start_on']?.toString()??''),shared:t['visibility']!='private',stripKey:_links),
-    if(t!=null)RecordActionHistoryButton(
-     kind:'trip',recordId:widget.tripId),
-    if(t!=null)IconButton(tooltip:tt('Edit trip'),icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
-    if(t!=null)IconButton(tooltip:t['archived_at']==null?tt('Remove trip'):tt('Restore trip'),
-     icon:Icon(t['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined),
-     onPressed:busy?null:setTripRemoved),
+   appBar:AppBar(title:Text(tt('Trip')),actions:[
+    if(t!=null)ItemMenu(kind:'trip',recordId:widget.tripId,title:t['title']?.toString(),
+     statusActions:[
+      if(t['archived_at']==null&&st!='cancelled'&&st!='completed')
+       ItemMenuAction(tt('Cancel trip'),MenuIcons.cancel,()=>setCancelled(true)),
+      if(t['archived_at']==null&&st=='cancelled')
+       ItemMenuAction(tt('Reopen'),MenuIcons.reopen,()=>setCancelled(false)),
+     ],
+     onOpen:editTrip,
+     moreActions:[
+      if(isFlight)ItemMenuAction(tt('Search on Google Flights'),Icons.travel_explore,
+       ()=>openLink(tripGoogleFlights(t).toString())),
+      ItemMenuAction(tt('Add a travel checklist'),Icons.checklist_outlined,
+       ()=>TripPreparationSection.addChecklist(context,widget.tripId)),
+      if(t['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
+       ()=>createFromThis(context,kind:LinkKind.trip,id:widget.tripId,
+        spaceId:t['space_id'].toString(),title:t['title'].toString(),
+        date:DateTime.tryParse(t['start_on']?.toString()??''),
+        shared:t['visibility']!='private',onLinked:()=>_links.currentState?.reload())),
+     ],
+     removed:t['archived_at']!=null,
+     onRemove:busy?null:setTripRemoved),
    ]),
    body:loading?const Center(child:CircularProgressIndicator()):
    t==null?Center(child:Text(tt(error??'Trip not available'))):RefreshIndicator(
     onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsetsDirectional.fromSTEB(16,14,16,32),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,10,16,32),children:[
      Text(tt(t['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
-     const SizedBox(height:6),
-     Text(tt((tripStages[t['status']]??'Planning')+' · '+
-       (t['visibility']=='private'?'Only me':'Both of us'))),
-     if((t['origin']??'').toString().isNotEmpty||(t['destination']??'').toString().isNotEmpty)
-      Text(tt([if((t['origin']??'').toString().isNotEmpty)t['origin'].toString(),
-        if((t['destination']??'').toString().isNotEmpty)t['destination'].toString()].join(' → '))),
-     if(t['start_on']!=null)Text(tt('Departure: ')+_date(t['start_on'])),
-     if(t['end_on']!=null)Text(tt('Return: ')+_date(t['end_on'])),
-     if(t['start_on']!=null)Text(
-       tt(TripRules.countdownLabel(DateTime.tryParse(t['start_on'].toString()),DateTime.now()))),
+     summary(t),
      if((t['notes']??'').toString().isNotEmpty)
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
        child:SelectableText(t['notes'].toString()))),
-     const Divider(height:26),
-     TripFlightOptionsSection(tripId:widget.tripId,trip:t),
-     const Divider(height:26),
-     Wrap(spacing:10,runSpacing:6,
-      alignment:WrapAlignment.spaceBetween,crossAxisAlignment:WrapCrossAlignment.center,
-      children:[
-       Text(tt('Itinerary (')+active.length.toString()+')',
-        style:Theme.of(context).textTheme.titleLarge),
-       TextButton.icon(onPressed:()=>editItem(),icon:const Icon(Icons.add),
-        label:Text(tt('Add item'))),
-      ]),
-     Text(tt('Local times match the booking and do not convert between time zones.'),
+     const SizedBox(height:12),
+     TripDocumentsSection(tripId:widget.tripId,itineraryItems:items),
+     if(isFlight)...[
+      const SizedBox(height:12),
+      Card(elevation:0,clipBehavior:Clip.antiAlias,child:ExpansionTile(
+       key:PageStorageKey('flights-${widget.tripId}-$flightBooked'),
+       initiallyExpanded:flightsOpen??!flightBooked,
+       onExpansionChanged:(v)=>flightsOpen=v,
+       leading:Icon(flightBooked?Icons.check_circle:Icons.travel_explore,
+        color:flightBooked?const Color(0xFF2E7D32):null),
+       title:Text(tt('Flights'),style:Theme.of(context).textTheme.titleLarge),
+       subtitle:Text(tt(flightBooked?'Booked · tap to see the options':'Search, save and compare')),
+       childrenPadding:const EdgeInsets.fromLTRB(12,0,12,12),
+       children:[TripFlightOptionsSection(tripId:widget.tripId,trip:t)])),
+     ],
+     const Divider(height:30),
+     Row(children:[
+      Expanded(child:Text(tt('Itinerary (')+active.length.toString()+')',
+       style:Theme.of(context).textTheme.titleLarge)),
+      if(items.any((i)=>i['archived_at']!=null))IconButton(
+       tooltip:tt(showRemoved?'Hide removed':'Show removed'),isSelected:showRemoved,
+       icon:const Icon(Icons.delete_outline),selectedIcon:const Icon(Icons.delete),
+       onPressed:()=>setState(()=>showRemoved=!showRemoved)),
+      FilledButton.tonalIcon(onPressed:()=>editItem(),icon:const Icon(Icons.add),
+       label:Text(tt('Add'))),
+     ]),
+     Text(tt('Local times, exactly as on the booking.'),
       style:Theme.of(context).textTheme.bodySmall),
-     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
-      value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
-     if(shown.isEmpty)Card(child:Padding(padding:EdgeInsets.all(18),
+     const SizedBox(height:6),
+     if(shown.isEmpty)Card(elevation:0,child:Padding(padding:const EdgeInsets.all(18),
        child:Text(tt('Add a flight, stay, activity or reservation to build the journey.')))),
      for(final entry in shown)itineraryCard(entry),
      if(amounts.isNotEmpty)...[
       const SizedBox(height:10),
-      Text(tt('Estimated costs'),style:Theme.of(context).textTheme.titleMedium),
-      Text(tt(TripRules.formatTotals(amounts))),
+      Text(tt('Costs so far: ')+tt(TripRules.formatTotals(amounts)),
+       style:Theme.of(context).textTheme.titleSmall),
      ],
-     const Divider(height:30),
      TripPreparationSection(tripId:widget.tripId),
-     const Divider(height:30),
-     TripDocumentsSection(tripId:widget.tripId,itineraryItems:items),
      const Divider(height:30),
      Text(tt('Trip conversation'),style:Theme.of(context).textTheme.titleLarge),
      const SizedBox(height:8),
@@ -640,22 +775,10 @@ class _TripDetailState extends State<TripDetail>{
      const SizedBox(height:10),
      TextField(controller:message,maxLength:3000,minLines:2,maxLines:4,
       decoration:InputDecoration(labelText:tt('Share a thought'),
-       border:OutlineInputBorder())),
+       border:const OutlineInputBorder())),
      Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(
       onPressed:busy?null:postMessage,
       icon:const Icon(Icons.send_outlined),label:Text(tt('Send')))),
-     const Divider(height:28),
-     ListTile(leading:const Icon(Icons.history),title:Text(tt('Change history')),
-      trailing:Icon(showHistory?Icons.expand_less:Icons.expand_more),
-      onTap:()=>setState(()=>showHistory=!showHistory)),
-     if(showHistory)...[
-      if(history.isEmpty)Text(tt('No changes recorded yet.')),
-      for(final event in history)ListTile(
-       dense:true,
-       title:Text(tt((event['record_kind']??'Item').toString()+' edited by '+
-         label(event['changed_by']))),
-       subtitle:Text(tt((event['changed_at']??'').toString().replaceFirst('T',' ').split('.').first))),
-     ],
      if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     ])),
    );

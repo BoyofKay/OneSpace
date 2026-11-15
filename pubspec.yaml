@@ -80,6 +80,7 @@ flutter:
   # R60: brand mark (launcher icons live in android/app/src/main/res).
   assets:
     - assets/branding/mark.png
+    - assets/airports.txt
 
   # To add assets to your application, add an assets section, like this:
   # assets:

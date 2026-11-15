@@ -17,6 +17,11 @@ void main() {
         ShareDestination.experience);
     expect(ShareSuggestions.forShare(share('https://www.booking.com/hotel/x')).first,
         ShareDestination.trip);
+    expect(ShareSuggestions.forShare(share(
+        'RUH to PHL https://www.google.com/travel/flights/booking?tfs=abc')).first,
+        ShareDestination.flightOption);
+    expect(ShareSuggestions.kindOf(share('https://www.skyscanner.net/transport/flights/ruh/phl/')),
+        ShareContentKind.flight);
     expect(ShareSuggestions.kindOf(share('https://maps.app.goo.gl/xyz')),
         ShareContentKind.maps);
   });

@@ -8,6 +8,7 @@ import '../sharing/share_grant_watcher.dart';
 import 'note_draft_rules.dart';
 import 'note_photos_panel.dart';
 import 'note_references_panel.dart';
+import 'note_format_bar.dart';
 import '../mentions/rich_note_mention_button.dart';
 import 'dart:async';
 import 'package:onespace/l10n/phrases.dart';
@@ -181,9 +182,8 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
        alignment:AlignmentDirectional.centerStart,
        child:RichNoteMentionButton(
         spaceId:widget.spaceId,controller:editor)),
-      quill.QuillSimpleToolbar(
-       controller:editor,
-       config:const quill.QuillSimpleToolbarConfig()),
+      // R68: friendly formatting bar (words under every button).
+      NoteFormatBar(controller:editor),
      ],
      const SizedBox(height:8),
      Container(
