@@ -1,0 +1,55 @@
+name: Build OneSpace for iPhone (unsigned)
+
+# R63: proves the iOS app compiles (Swift channels, plugins, Info.plist).
+# Signing and TestFlight need Ahmed's Apple Developer account — see docs/IOS_SETUP.md.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'release/READY_TO_BUILD.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onespace-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Firebase config (optional)
+        env:
+          IOS_GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "$IOS_GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
+            echo "Firebase config added."
+          else
+            echo "No iOS Firebase config yet — push stays off; the app still builds."
+          fi
+      - name: Build (no code signing)
+        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
+      - name: Package
+        run: |
+          cd build/ios/iphoneos
+          zip -qry OneSpace-unsigned.zip Runner.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OneSpace-ios-unsigned-${{ github.run_number }}
+          path: build/ios/iphoneos/OneSpace-unsigned.zip
+          retention-days: 14

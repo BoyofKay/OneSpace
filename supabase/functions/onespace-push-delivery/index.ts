@@ -97,6 +97,9 @@ Deno.serve(async(req)=>{
      },
      data:{type:task.summary?"summary":"notification",notification_id:task.notification_id},
      android:{priority:"high",notification:{tag:clip(task.tag,64,task.notification_id)}},
+     // R63: iPhone — sound, and a newer push for the same item replaces the older one.
+     apns:{headers:{"apns-priority":"10","apns-collapse-id":clip(task.tag,64,task.notification_id)},
+      payload:{aps:{sound:"default","thread-id":clip(task.tag,64,"onespace")}}},
     }}),
    });
    if(response.ok){result="sent";sent++;}
