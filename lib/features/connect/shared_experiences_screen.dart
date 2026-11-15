@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/editor_scaffold.dart';
@@ -31,7 +32,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  final db=Supabase.instance.client;
  String? space,error;
  bool loading=true,showArchived=false,opened=false,busy=false,mutualOnly=false;
- String kind='all',status='all',search='';
+ String kind='all',status='open',search='';
  int suggestionOffset=0;
  List<Map<String,dynamic>> rows=[],interests=[];
  RealtimeChannel? _changes;
@@ -91,12 +92,17 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
           style:Theme.of(ctx).textTheme.headlineSmall)),
         ]),
         const SizedBox(height:18),
-        Wrap(spacing:8,runSpacing:6,children:[
-         FilledButton.icon(onPressed:(){Navigator.pop(ctx);planSuggestion(pick);},
-          icon:const Icon(Icons.event_available_outlined),label:const Text('Plan together')),
-         OutlinedButton.icon(onPressed:()=>refresh(()=>offset++),
-          icon:const Icon(Icons.shuffle),label:const Text('Another idea')),
-         TextButton(onPressed:(){Navigator.pop(ctx);open(pick);},child:const Text('View')),
+        // R57: three small chips on one line.
+        Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+         ActionChip(avatar:const Icon(Icons.event_available_outlined,size:18),
+          label:const Text('Plan'),visualDensity:VisualDensity.compact,
+          onPressed:(){Navigator.pop(ctx);planSuggestion(pick);}),
+         ActionChip(avatar:const Icon(Icons.shuffle,size:18),
+          label:const Text('Another'),visualDensity:VisualDensity.compact,
+          onPressed:()=>refresh(()=>offset++)),
+         ActionChip(avatar:const Icon(Icons.open_in_new,size:18),
+          label:const Text('View'),visualDensity:VisualDensity.compact,
+          onPressed:(){Navigator.pop(ctx);open(pick);}),
         ]),
        ])),
       ])));
@@ -348,7 +354,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  Future<void> edit([Map<String,dynamic>? row])async{
   if(space==null)return;
   final result=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>ExperienceEditor(spaceId:space!,original:row)));
+   builder:(_)=>ExperienceEditor(spaceId:space!,original:row,initialKind:widget.collection)));
   if(result==true&&mounted)await load();
  }
  Future<void> open(Map<String,dynamic> row)async{
@@ -357,13 +363,13 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   if(mounted)await load();
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'progress',label:'Progress',options:{'all':'All',...experienceStates},selected:status,defaultValue:'all'),if(widget.collection==null)FilterGroupSpec(id:'kind',label:'Category',options:{'all':'All',...experienceTypes},selected:kind,defaultValue:'all'),FilterGroupSpec(id:'picks',label:'Picks',options:const {'all':'All','mutual':'Both interested'},selected:mutualOnly?'mutual':'all',defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'progress',label:'Show',options:const {'open':'Still to enjoy','suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed','all':'All'},selected:status,defaultValue:'open'),FilterGroupSpec(id:'picks',label:'Picks',options:const {'all':'All','mutual':'Both interested'},selected:mutualOnly?'mutual':'all',defaultValue:'all')];
 
  @override Widget build(BuildContext context){
   final scheme=Theme.of(context).colorScheme;
   final filtered=rows.where((r)=>
    RecordCollectionSearchRules.inHistory(r,showArchived)&&
-   (kind=='all'||r['category']==kind)&&(status=='all'||r['status']==status)&&
+   (kind=='all'||r['category']==kind)&&(status=='all'||(status=='open'?r['status']!='enjoyed':r['status']==status))&&
    (!mutualOnly||ExperienceInterestRules.mutuallyInterested(interests,r['id']))&&
    RecordCollectionSearchRules.matches(r,search,
     fields:const ['title','platform','description'])).toList();
@@ -374,9 +380,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
      groups:_filterGroups(),
-      onApply:(v)=>setState((){status=v['progress']!;kind=v['kind']??kind;mutualOnly=v['picks']=='mutual';}),
+      onApply:(v)=>setState((){status=v['progress']!;mutualOnly=v['picks']=='mutual';}),
      ),
-   ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;status='all';kind=widget.collection??'all';mutualOnly=false;}))),
+   ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;status='open';kind=widget.collection??'all';mutualOnly=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     heroTag:'add-experience',
     onPressed:()=>edit(),icon:const Icon(Icons.add),
@@ -417,7 +423,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
            const SizedBox(height:6),
            Text(e.value,maxLines:2,textAlign:TextAlign.center,
             style:Theme.of(context).textTheme.labelLarge),
-           Text('${rows.where((r)=>r['category']==e.key&&r['archived_at']==null).length}',
+           Text('${rows.where((r)=>r['category']==e.key&&r['archived_at']==null&&r['status']!='enjoyed').length} to enjoy',
             style:Theme.of(context).textTheme.labelSmall),
           ])))),
      ])),
@@ -486,8 +492,10 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
 }
 
 class ExperienceEditor extends StatefulWidget{
- const ExperienceEditor({super.key,required this.spaceId,this.original});
+ const ExperienceEditor({super.key,required this.spaceId,this.original,this.initialKind});
  final String spaceId;final Map<String,dynamic>? original;
+ /// R57: adding from inside a watchlist starts in that watchlist.
+ final String? initialKind;
  @override State<ExperienceEditor> createState()=>_ExperienceEditorState();
 }
 class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTracker<ExperienceEditor>{
@@ -506,7 +514,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
   description=TextEditingController(text:(r['description']??'').toString());
   platform=TextEditingController(text:(r['platform']??'').toString());
   url=TextEditingController(text:(r['source_url']??'').toString());
-  kind=(r['category']??'movie').toString();status=(r['status']??'suggested').toString();
+  kind=(r['category']??widget.initialKind??'movie').toString();status=(r['status']??'suggested').toString();
   planned=DateTime.tryParse((r['planned_on']??'').toString());
   enjoyed=DateTime.tryParse((r['enjoyed_on']??'').toString());
  }
@@ -546,42 +554,58 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    catch(_){if(mounted)setState(()=>error='Could not save experience.');}
    finally{if(mounted)setState(()=>saving=false);}
  }
- @override Widget build(BuildContext context)=>EditorScaffold(title:widget.original==null?'Add new experience':'Edit experience',
+ Map<String,String> get words=>switch(kind){
+  'movie'=>{'title':'Movie title','platform':'Where to watch','hint':'Netflix, cinema…'},
+  'show'=>{'title':'Show title','platform':'Where to watch','hint':'Netflix, Shahid…'},
+  'music'=>{'title':'Song, album or playlist','platform':'App','hint':'Spotify, Anghami…'},
+  'book'=>{'title':'Book or article','platform':'Author or source','hint':''},
+  'game'=>{'title':'Game','platform':'Console or app','hint':'PlayStation, phone…'},
+  _=>{'title':'What is it?','platform':'Where','hint':''},
+ };
+ @override Widget build(BuildContext context){
+  final w=words;
+  return EditorScaffold(title:widget.original==null?'Add experience':'Edit experience',
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
-   body:ListView(padding:const EdgeInsets.all(16),children:[
-   TextField(controller:title,maxLength:160,decoration:const InputDecoration(labelText:'Title *')),
-   DropdownButtonFormField<String>(initialValue:kind,
-    decoration:const InputDecoration(labelText:'Type'),
-    items:[for(final e in experienceTypes.entries)DropdownMenuItem(value:e.key,child:Text(e.value))],
-    onChanged:(v)=>setState(()=>kind=v??kind)),
-   TextField(controller:description,maxLength:5000,maxLines:4,
-    decoration:const InputDecoration(labelText:'Why this one? Details or ideas')),
-   PartnerMentionButton(spaceId:widget.spaceId,controller:description),
-   const SizedBox(height:10),
-   DropdownButtonFormField<String>(initialValue:status,
-    decoration:const InputDecoration(labelText:'Progress'),
-    items:[for(final e in experienceStates.entries)
-     DropdownMenuItem(value:e.key,child:Text(e.value))],
-    onChanged:(v)=>setState(()=>status=v??status)),
-   ListTile(leading:const Icon(Icons.event_outlined),
-    title:const Text('Plan a date together'),subtitle:Text(format(planned)),
-    trailing:IconButton(tooltip:'Clear planned date',
-     onPressed:planned==null?null:()=>setState(()=>planned=null),
-     icon:const Icon(Icons.close)),
-    onTap:()=>choose(true)),
-   ListTile(leading:const Icon(Icons.check_circle_outline),
-    title:const Text('Date enjoyed'),subtitle:Text(format(enjoyed)),
-    trailing:IconButton(tooltip:'Clear enjoyed date',
-     onPressed:enjoyed==null?null:()=>setState(()=>enjoyed=null),
-     icon:const Icon(Icons.close)),
-    onTap:()=>choose(false)),
+   meta:MetaStrip(value:MetaValues(date:planned),showVisibility:false,showBelongs:false,
+    dateLabel:'Plan a date',onChanged:(v)=>setState(()=>planned=v.date)),
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+   ChoiceRow<String>(label:'Watchlist',options:experienceTypes,selected:kind,
+    icons:{for(final k in experienceTypes.keys)k:switch(k){
+     'movie'=>Icons.movie_creation_outlined,'show'=>Icons.live_tv_outlined,
+     'music'=>Icons.queue_music_outlined,'book'=>Icons.menu_book_outlined,
+     'game'=>Icons.sports_esports_outlined,_=>Icons.explore_outlined}},
+    onSelected:(v){if(v!=null)setState(()=>kind=v);}),
+   TextField(controller:title,maxLength:160,autofocus:widget.original==null,
+    textCapitalization:TextCapitalization.sentences,
+    decoration:InputDecoration(labelText:'${w['title']} *',border:const OutlineInputBorder())),
+   const SizedBox(height:6),
    TextField(controller:platform,maxLength:100,
-    decoration:const InputDecoration(labelText:'Platform (optional)')),
+    decoration:InputDecoration(labelText:w['platform'],hintText:w['hint']!.isEmpty?null:w['hint'],
+     prefixIcon:const Icon(Icons.live_tv_outlined),border:const OutlineInputBorder())),
+   const SizedBox(height:10),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
-    decoration:const InputDecoration(labelText:'Link (optional)')),
-   if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    decoration:const InputDecoration(labelText:'Link',prefixIcon:Icon(Icons.link),
+     border:OutlineInputBorder())),
+   const SizedBox(height:10),
+   ChoiceRow<String>(label:'Progress',options:experienceStates,selected:status,
+    icons:const {'suggested':Icons.lightbulb_outline,'planned':Icons.event_available_outlined,
+     'enjoyed':Icons.task_alt},
+    onSelected:(v){if(v!=null)setState((){
+     status=v;
+     if(v=='enjoyed')enjoyed??=DateTime.now();
+    });}),
+   if(status=='enjoyed')DateField(label:'Enjoyed on',value:enjoyed,
+    onChanged:(v)=>setState(()=>enjoyed=v)),
+   TextField(controller:description,maxLength:5000,minLines:2,maxLines:6,
+    decoration:const InputDecoration(labelText:'Why this one?',alignLabelWithHint:true,
+     border:OutlineInputBorder())),
+   Align(alignment:Alignment.centerLeft,
+    child:PartnerMentionButton(spaceId:widget.spaceId,controller:description)),
+   if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
+    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
+ }
 }
 
 class ExperienceDetail extends StatefulWidget{
