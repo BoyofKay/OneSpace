@@ -33,7 +33,7 @@ class OneSpaceStrings {
     'rememberIntro': 'A home for our calendar, to-dos, notes and everything coming up.',
     'rememberCalendarTitle': 'Shared calendar',
     'rememberCalendarSubtitle': 'Appointments, events and occasions',
-    'rememberTodosTitle': 'To-do list',
+    'rememberTodosTitle': 'To-do lists',
     'rememberTodosSubtitle': 'Things we need to get done',
     'rememberNotesTitle': 'Notes',
     'rememberNotesSubtitle': 'Details worth keeping',

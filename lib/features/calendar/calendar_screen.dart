@@ -306,14 +306,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if(mounted)_refreshExtras();
     },
   ));
-)async{
-    final id=_spaceId;
-    if(id==null)return;
-    final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
-      builder:(_)=>OccasionEditor(
-        spaceId:id,initialDate:_selected,initialKind:kind)));
-    if(saved==true&&mounted)_refreshExtras();
-  }
 
   Future<void> _loadCalendarNames(String id) async {
     try {

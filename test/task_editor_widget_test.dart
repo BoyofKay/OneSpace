@@ -3,21 +3,19 @@ import 'package:material_ui/material_ui.dart';
 import 'package:onespace/features/plans/task_editor_sheet.dart';
 
 void main() {
-  testWidgets('Creating a task closes the sheet without disposing input early',
+  testWidgets('Creating a list on its page saves its items and closes',
       (tester) async {
     TaskDraft? saved;
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: Builder(builder: (context) => FilledButton(
-          onPressed: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
+          onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
             builder: (_) => TaskEditorSheet(
               members: const {'my-user': 'Me', 'partner-user': 'Partner'},
               currentUserId: 'my-user',
               onSave: (draft) async { saved = draft; },
             ),
-          ),
+          )),
           child: const Text('Open task editor'),
         )),
       ),
@@ -26,13 +24,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('taskTitleInput')), findsOneWidget);
+    // Save stays off until the required name is filled.
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Save')).onPressed, isNull);
     await tester.enterText(find.byKey(const Key('taskTitleInput')),
         'Book weekend travel');
-    await tester.ensureVisible(find.byKey(const Key('taskSaveButton')));
-    await tester.tap(find.byKey(const Key('taskSaveButton')));
+    await tester.enterText(find.widgetWithText(TextField, "What's on the list?"),
+        'Passports\nTickets\n\n');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
 
     expect(saved?.title, 'Book weekend travel');
+    expect(saved?.items, ['Passports', 'Tickets']);
     expect(saved?.visibility, TaskVisibility.shared);
     expect(find.byKey(const Key('taskTitleInput')), findsNothing);
     expect(tester.takeException(), isNull);
@@ -53,16 +56,14 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: Builder(builder: (context) => FilledButton(
-        onPressed: () => showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
+        onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
           builder: (_) => TaskEditorSheet(
             existing: task,
             members: const {'my-user': 'Me', 'partner-user': 'Partner'},
             currentUserId: 'my-user',
             onSave: (draft) async { saved = draft; },
           ),
-        ),
+        )),
         child: const Text('Edit task'),
       ))),
     ));
@@ -72,8 +73,8 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('taskTitleInput')),
         'Updated task');
-    await tester.ensureVisible(find.byKey(const Key('taskSaveButton')));
-    await tester.tap(find.byKey(const Key('taskSaveButton')));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
 
     expect(saved?.title, 'Updated task');

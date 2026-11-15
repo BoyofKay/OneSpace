@@ -1,3 +1,6 @@
+import '../../core/record_list_top_actions.dart';
+import '../../core/editor_scaffold.dart';
+import '../../core/collection_history_screen.dart';
 import '../../core/status_look.dart';
 import 'dart:async';
 
@@ -41,6 +44,15 @@ class _PlansScreenState extends State<PlansScreen> {
   // Only mount per-cycle realtime streams for an expanded checklist.
   final Set<String> _expandedLists = <String>{};
   TaskScope _scope = TaskScope.all;
+  String _query = '';
+  List<FilterGroupSpec> _filterGroups()=>[
+    FilterGroupSpec(id:'status',label:'Lists',options:const {'open':'Open','completed':'Completed','cancelled':'Cancelled','all':'All'},
+      selected:_filter.name,defaultValue:'open'),
+    FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},
+      selected:_scope.name,defaultValue:'all'),
+    FilterGroupSpec(id:'due',label:'Due',options:const {'any':'Any time','today':'Today or overdue'},
+      selected:_todayOnly?'today':'any',defaultValue:'any'),
+  ];
   bool _loadingSpace = true;
   bool _busy = false;
   String? _error;
@@ -172,10 +184,8 @@ class _PlansScreenState extends State<PlansScreen> {
   Future<void> _taskEditor({SharedTask? existing}) async {
     final spaceId = _spaceId;
     if (_busy || spaceId == null || !mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    // R55: a full page (no bottom sheet), starting with the list's items.
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
       builder: (_) => TaskEditorSheet(
         existing: existing,
         members: _memberNames,
@@ -191,6 +201,12 @@ class _PlansScreenState extends State<PlansScreen> {
               'status': 'open',
               'visibility': draft.visibility.name,
             }).select('id').single();
+            if (draft.items.isNotEmpty) {
+              await _client.from('task_checklist_items').insert([
+                for (final item in draft.items)
+                  {'task_id': created['id'], 'title': item},
+              ]);
+            }
             if (mounted) setState(() => _expandedLists.add(created['id'].toString()));
           } else {
             final rows = await _client.from('tasks')
@@ -204,7 +220,7 @@ class _PlansScreenState extends State<PlansScreen> {
           }
         },
       ),
-    );
+    ));
   }
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
@@ -261,52 +277,38 @@ class _PlansScreenState extends State<PlansScreen> {
     ].join('-');
     final due=task.status==TaskStatus.open && task.targetDate!=null &&
       task.targetDate!.compareTo(day)<=0;
-    return matchingStatus && matchingScope && (!_todayOnly||due);
+    final matchingQuery = _query.isEmpty || task.title.toLowerCase().contains(_query);
+    return matchingStatus && matchingScope && matchingQuery && (!_todayOnly||due);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:AppBar(title:const Text('To-do and Checklists'),actions:[
-       IconButton(tooltip:'Filters',icon:const Icon(Icons.tune_outlined),
-        onPressed:()=>showModalBottomSheet<void>(context:context,
-         showDragHandle:true,builder:(_)=>StatefulBuilder(
-          builder:(ctx,rebuild)=>SafeArea(child:Padding(
-           padding:const EdgeInsets.all(18),child:Column(
-            mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,
-            children:[
-             Text('Filters',style:Theme.of(ctx).textTheme.titleLarge),
-             const SizedBox(height:12),
-             const Text('Visibility'),
-             Wrap(spacing:8,children:[
-              for(final v in TaskScope.values)ChoiceChip(
-               label:Text(v==TaskScope.all?'All visible':v.name),
-               selected:_scope==v,
-               onSelected:(_){setState(()=>_scope=v);rebuild((){});}),
-             ]),
-             const SizedBox(height:12),
-             const Text('List status'),
-             Wrap(spacing:8,children:[
-              for(final v in TaskFilter.values)ChoiceChip(
-               label:Text(v.name),selected:_filter==v,
-               onSelected:(_){setState(()=>_filter=v);rebuild((){});}),
-             ]),
-             const SizedBox(height:12),
-             SwitchListTile(title:const Text('Due today / overdue'),
-              value:_todayOnly,
-              onChanged:(v){setState(()=>_todayOnly=v);rebuild((){});}),
-            ]))))),
-       ),
-      ]),
+      appBar:AppBar(title:const Text('To-do lists'),actions:[
+       RecordListTopActions(
+        historyKinds:const ['task'],historyTitle:'To-do lists',
+        showHistory:false,onToggleHistory:(){},allowRemoved:false,
+        groups:_filterGroups(),
+        onApply:(v)=>setState((){
+         _filter=TaskFilter.values.byName(v['status']!);
+         _scope=TaskScope.values.byName(v['who']!);
+         _todayOnly=v['due']=='today';
+        })),
+      ],bottom:filterShowingBar(_filterGroups(),removed:false,onClear:()=>setState((){
+        _filter=TaskFilter.open;_scope=TaskScope.all;_todayOnly=false;}))),
+      floatingActionButton:_spaceId==null||_me.isEmpty?null:
+        AddFab(label:'New list',onPressed:_busy?null:()=>_taskEditor()),
       body:RefreshIndicator(
       onRefresh: _loadSpace,
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20,16,20,96),
         children: [
-          const Text('To-do and Checklists',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(tr(context, 'tasksSubtitle')), 
+          TextField(
+            onChanged:(v)=>setState(()=>_query=v.trim().toLowerCase()),
+            decoration:const InputDecoration(
+              prefixIcon:Icon(Icons.search),
+              labelText:'Search lists',
+              border:OutlineInputBorder())),
           const SizedBox(height: 14),
           if (_error != null) ...[
             Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -329,12 +331,6 @@ class _PlansScreenState extends State<PlansScreen> {
           else if (_spaceId == null)
             _emptySpace()
           else ...[
-            FilledButton.icon(
-              onPressed: _busy ? null : () => _taskEditor(),
-              icon: const Icon(Icons.add),
-              label:const Text('Create checklist'),
-            ),
-            const SizedBox(height: 16),
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: _tasksStream,
               builder: (context, snapshot) {
@@ -452,12 +448,15 @@ class _PlansScreenState extends State<PlansScreen> {
       createdBy: task.createdBy,
       userId: _me,
     );
+    // R55: only what helps decide what to do next; no "Shared · Normal priority" noise.
     final details = <String>[
-      task.visibility == TaskVisibility.private ? tr(context, 'private') : tr(context, 'shared'),
-      '${tr(context, task.priority.name)} ${tr(context, 'priority')}',
+      if (task.visibility == TaskVisibility.private) 'Only me',
       if (task.assignedTo != null)
-        'Assigned: ${_displayName(task.assignedTo!)}',
-      if (task.targetDate != null) 'Target ${task.targetDate}',
+        task.assignedTo == _me ? 'For me' : 'For ${_displayName(task.assignedTo!)}',
+      if (task.targetDate != null) 'Due ${task.targetDate}',
+      if (task.recurrence != 'none') 'Repeats',
+      if (task.priority == TaskPriority.high)
+        tr(context, task.priority.name),
       if (cancelled) tr(context, 'cancelled'),
       if (!canEdit) tr(context, 'viewOnly'),
     ];
@@ -476,7 +475,7 @@ class _PlansScreenState extends State<PlansScreen> {
        }),
        leading:StatusLook.mark(task.status.name)??const Icon(Icons.format_list_bulleted_outlined),
        title:Text(task.title,style:StatusLook.title(context,task.status.name)),
-       subtitle:Text(details.join(' • ')),
+       subtitle:details.isEmpty?null:Text(details.join(' · ')),
        trailing:!canEdit?const Icon(Icons.lock_outline):
         PopupMenuButton<String>(
          tooltip:'List actions',
@@ -485,15 +484,18 @@ class _PlansScreenState extends State<PlansScreen> {
           if(choice=='cancel'){_cancelTask(task);}
           if(choice=='complete'){_changeStatus(task,TaskStatus.completed);}
           if(choice=='reopen'){_changeStatus(task,TaskStatus.open);}
+          if(choice=='log'){openChangeLog(context,kind:'task',recordId:task.id,recordTitle:task.title);}
          },
          itemBuilder:(_)=>[
-          const PopupMenuItem(value:'edit',child:Text('Edit list')),
           if(!cancelled&&!completed)
-           const PopupMenuItem(value:'complete',child:Text('Mark list complete')),
+           const PopupMenuItem(value:'complete',child:Text('Mark complete')),
           if(!cancelled)
            const PopupMenuItem(value:'cancel',child:Text('Cancel list')),
           if(cancelled||completed)
            const PopupMenuItem(value:'reopen',child:Text('Reopen list')),
+          const PopupMenuDivider(),
+          const PopupMenuItem(value:'edit',child:Text('Edit')),
+          const PopupMenuItem(value:'log',child:Text('Change log')),
          ]),
        childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
        children:[

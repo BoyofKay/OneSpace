@@ -1,11 +1,10 @@
+import '../../core/linked_items.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'task_recurrence_rules.dart';
 import 'checklist_schedule.dart';
 import 'checklist_readout_sheet.dart';
-import '../notes/related_notes_panel.dart';
-import '../../core/record_action_history_view.dart';
 
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
@@ -218,8 +217,8 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
        Row(children:[
         Icon(Icons.checklist_rounded,size:17,color:colors.primary),
         const SizedBox(width:5),
-        Expanded(child:Text(done.toString()+' of '+items.length.toString()+' items')),
-        RecordActionHistoryButton(kind:'task',recordId:widget.taskId),
+        Expanded(child:Text(items.isEmpty?'No items yet':'$done of ${items.length} done',
+         style:Theme.of(context).textTheme.titleSmall)),
         IconButton(
          tooltip:'Listen to checklist',
          icon:const Icon(Icons.record_voice_over_outlined),
@@ -233,8 +232,6 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
        if(contextLoaded&&!scheduled)Text('Not scheduled today ('+currentDay+'). Subtasks remain available to edit.'),
        if(contextLoaded&&scheduled&&widget.recurrence!='none')
         Text('Current occurrence: '+currentDay),
-       if(items.isNotEmpty)Text('Your progress · Shared checklists keep each partner\'s ticks separate',
-        style:Theme.of(context).textTheme.bodySmall),
        if(items.isNotEmpty)LinearProgressIndicator(
         value:done/items.length,minHeight:5),
        if(checkData.hasError)Text('Checkmarks could not synchronize.',
@@ -256,18 +253,17 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
          scrollController:inputScroll,maxLength:240,
          onSubmitted:(_)=>add(),
          decoration:const InputDecoration(
-          hintText:'Add subtask',counterText:'',
+          hintText:'Add an item',counterText:'',
           prefixIcon:Icon(Icons.add_task_outlined)))),
-        IconButton(tooltip:'Add subtask',
+        IconButton(tooltip:'Add item',
          onPressed:busy?null:add,icon:const Icon(Icons.add_circle_outline)),
        ]),
-       if(items.isEmpty)const Text('No subitems yet. Enter a subtask below, then tap +.'),
        if(items.length<itemsData.data!.where((i)=>i['archived_at']==null).length)
         Text('Some older subitems could not be displayed. They are still saved.',
          style:TextStyle(color:colors.error)),
        if(error!=null)Text(error!,style:TextStyle(color:colors.error)),
-       const SizedBox(height:10),
-       RelatedNotesPanel(sourceKind:'task',sourceId:widget.taskId),
+       const SizedBox(height:6),
+       LinkedItemsStrip(kind:LinkKind.task,id:widget.taskId),
       ]);
      });
    });
