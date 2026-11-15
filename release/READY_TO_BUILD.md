@@ -1,42 +1,33 @@
-# R48 — Notifications 2.0 and brand line in the top bar
+# R49–R52 — Today 2.0, global patterns, creation 2.0, share-in tray
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.418 (R46 + R47).
+Previous signed preview: 0.1.419 (R48).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.418
-- Content pushes in the recipient's language ("Kay sent you a hug"),
-  using the name the recipient calls their partner.
-- Plain Activity chat messages, trip messages and experience comments
-  notify: at most one push per item per 10 minutes, "+N more".
-- Meaningful partner changes push: new to-do / Activity / memory /
-  reminder for you, moved dates, status changes, assigned to you,
-  removed and restored. Minor edits stay silent.
-- Quiet hours for partner-triggered pushes with one wake-up summary;
-  no push for notifications already opened in the app.
-- Tapping a push opens the exact item (Activity conversation, reminder
-  with Done/Snooze, gesture pop-up, event, to-do, trip, occasion,
-  experience, memory). Newer pushes replace older ones per item.
-- Notification list shows the push wording and age; slider filter icon.
-- Brand line "Two of us, One Space" under the OneSpace name in the top
-  bar, splash and sign-in; removed from the Today body.
+## Included since 0.1.419
+- R49 Today 2.0: saved copy + one server call, greeting, hero with How
+  we live (Undo, partner push, journey memory), travelling, good time to
+  talk, Since you were away, always-visible sections, all shortcuts.
+- R50: drop-down filter panel with Removed status, change log page with
+  people/action chips and Restore, Archive -> Remove wording, Add new /
+  Edit headers, Completed/Cancelled recorded in history.
+- R51: new Activity as a full draft page with purpose starters; Quick add.
+- R52: Save to OneSpace with Items to sort first and content-based
+  suggestions; Items to sort tray; Today badge and attention row.
 
-## Database and backend
+## Database
 - Applied live before this build (additive, non-destructive):
-  0109 r48_notifications_2 (+ two small recorded follow-ups).
-- Edge Function onespace-push-delivery v5 deployed (reads the new
-  title/body/tag; older app versions still receive readable pushes).
+  0110 r49_today_2, 0111 r50_history_outcomes (+allow_completed),
+  0112 r52_items_to_sort.
 
 ## Verification
-- "Verify OneSpace iteration" (analyze + tests) must succeed on the
-  R48 branch before merge. This pipeline repeats analyze + tests,
-  compiles, validates Firebase, package ID and signing certificate.
+- "Verify OneSpace iteration" passed on r49, r50, r51 and r52 branches.
 
 ## Two-phone validation
-Follow docs/R48_NOTIFICATIONS_QA.md (12 steps).
+Follow docs/R49_R52_QA.md (13 steps).
 
-Controlled R48 signed preview candidate, November 15, 2026.
+Controlled R49-R52 signed preview candidate, November 15, 2026.

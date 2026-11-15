@@ -29,6 +29,7 @@ const historySources = <String, (String table, String titleColumn)>{
   'experience': ('shared_experiences', 'title'),
   'trip': ('shared_trips', 'title'),
   'contact': ('saved_contacts', 'label'),
+  'sort_item': ('items_to_sort', 'title'),
 };
 
 /// Chip groups (spec 2.4). Database actions map onto the words people use.

@@ -12,6 +12,7 @@ import 'core/weather_unit_preference.dart';
 import 'core/back_exit_policy.dart';
 import 'features/search/global_search_screen.dart';
 import 'features/share_in/share_intake_screen.dart';
+import 'features/share_in/items_to_sort_screen.dart';
 import 'features/share_in/share_intake_rules.dart';
 import 'features/world/phone_contact_bridge.dart';
 import 'features/world/saved_contact_editor.dart';
@@ -399,6 +400,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
             onSelected:(choice){
               if(choice=='settings')open(const OneSpaceSettingsScreen());
               if(choice=='search')open(const GlobalSearchScreen());
+              if(choice=='sort')open(const ItemsToSortScreen());
               if(choice=='language')open(Scaffold(
                 appBar:AppBar(title:const Text('Language')),
                 body:const SafeArea(child:ProfileSettingsScreen(
@@ -408,6 +410,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
               PopupMenuItem(value:'settings',child:ListTile(
                 leading:Icon(Icons.settings_outlined),
                 title:Text('Settings'))),
+              PopupMenuItem(value:'sort',child:ListTile(
+                leading:Icon(Icons.inbox_outlined),
+                title:Text('Items to sort'))),
               PopupMenuItem(value:'search',child:ListTile(
                 leading:Icon(Icons.search_outlined),
                 title:Text('Search our space'))),

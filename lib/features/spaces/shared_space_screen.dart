@@ -27,6 +27,7 @@ import '../search/global_search_screen.dart';
 import '../world/world_contacts_screen.dart';
 import 'today_talk_window.dart';
 import '../quick_add/quick_add_sheet.dart';
+import '../share_in/items_to_sort_screen.dart';
 import '../../core/partner_time_zones.dart';
 import '../../core/performance_timings.dart';
 import '../../theme/appearance_settings_screen.dart';
@@ -88,6 +89,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   int sinceAwayTotal=0;
   bool sinceAwayCollapsed=false;
   int lettersBadge=0;
+  int itemsToSort=0;
   List<StatedSchedule> schedulesMine=const [];
   List<StatedSchedule> schedulesPartner=const [];
   String? myZone;
@@ -418,6 +420,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       sinceAwayCollapsed=newest!=null&&seenBefore!=null&&!newest.isAfter(seenBefore);
       final badges=data['badges'] is Map?data['badges'] as Map:const {};
       lettersBadge=(badges['letters'] as num?)?.toInt()??0;
+      itemsToSort=(badges['items_to_sort'] as num?)?.toInt()??0;
       schedulesMine=[for(final x in schedules)if(x['is_me']==true)StatedSchedule.fromJson(x)];
       schedulesPartner=[for(final x in schedules)if(x['is_me']!=true)StatedSchedule.fromJson(x)];
       myZone=schedules.where((x)=>x['is_me']==true)
@@ -958,8 +961,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     ]);
   }
 
-  /// Tools that later iterations add (R52: Items to sort).
-  List<_Shortcut> _extraTools()=>const [];
+  /// R52: the share-in tray, with a count when something waits.
+  List<_Shortcut> _extraTools()=>[
+    _Shortcut('Items to sort',Icons.inbox_outlined,
+      ()=>_push(const ItemsToSortScreen()),badge:itemsToSort),
+  ];
 
   Widget _shortcutTile(_Shortcut tile,Color color){
     final colors=Theme.of(context).colorScheme;
@@ -1102,6 +1108,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               onOpenCheckins:widget.onOpenCheckins,
               onOpenReminder:_openReminder,
               onSnooze:_snoozeFocus,
+              leading:[
+                if(itemsToSort>0)ListTile(
+                  dense:true,
+                  contentPadding:const EdgeInsets.symmetric(horizontal:4),
+                  leading:const Icon(Icons.inbox_outlined),
+                  title:Text('$itemsToSort item${itemsToSort==1?'':'s'} to sort'),
+                  subtitle:const Text('Saved from other apps'),
+                  trailing:const Icon(Icons.chevron_right),
+                  onTap:()=>_push(const ItemsToSortScreen())),
+              ],
             ),
             TodayCalendarSection(entries:nearEvents,
               onOpen:widget.onOpenCalendar ?? () {},
