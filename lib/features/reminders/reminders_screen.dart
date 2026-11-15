@@ -1,5 +1,7 @@
+import '../../core/item_menu.dart';
+import '../../core/status_look.dart';
+import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
-import '../../core/collection_history_screen.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -241,6 +243,38 @@ class _RemindersScreenState extends State<RemindersScreen> {
   await Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder:(_)=>screen));
  }
+
+ /// The time block at the start of a reminder card.
+ Widget _timeBadge(DateTime? at,bool alert,bool urgent,bool done){
+  final colors=Theme.of(context).colorScheme;
+  final now=DateTime.now();
+  final today=DateTime(now.year,now.month,now.day);
+  String day='';
+  String time='—';
+  if(at!=null){
+   final d=DateTime(at.year,at.month,at.day);
+   final gap=d.difference(today).inDays;
+   const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+   day=gap==0?'Today':gap==1?'Tomorrow':gap==-1?'Yesterday':
+    '${names[at.weekday-1]} ${at.day} ${months[at.month-1]}';
+   final h=at.hour%12==0?12:at.hour%12;
+   time='$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?'PM':'AM'}';
+  }
+  final tone=done?colors.surfaceContainerHighest:
+   alert?colors.errorContainer:urgent?colors.tertiaryContainer:colors.secondaryContainer;
+  final ink=done?colors.onSurfaceVariant:
+   alert?colors.onErrorContainer:urgent?colors.onTertiaryContainer:colors.onSecondaryContainer;
+  return Container(
+   width:68,padding:const EdgeInsets.symmetric(vertical:6,horizontal:4),
+   decoration:BoxDecoration(color:tone,borderRadius:BorderRadius.circular(10)),
+   child:Column(mainAxisSize:MainAxisSize.min,children:[
+    Text(time,maxLines:1,style:TextStyle(color:ink,fontWeight:FontWeight.w700,fontSize:12.5)),
+    if(day.isNotEmpty)Text(day,maxLines:1,overflow:TextOverflow.ellipsis,
+     style:TextStyle(color:ink,fontSize:11)),
+   ]));
+ }
+
  Widget tile(Map<String,dynamic> r){
   final own=mine(r),shared=r['visibility']=='shared';
   final rows=recipients(r);
@@ -258,25 +292,40 @@ class _RemindersScreenState extends State<RemindersScreen> {
     .compareTo((a['recorded_at']??'').toString()));
   return Card(elevation:0,child:ExpansionTile(
    initiallyExpanded:r['id']==widget.initialReminderId,
+   // R55: time first (red when overdue), title, one short line, one-tap Done.
+   leading:_timeBadge(due,overdue||openMine,r['urgent']==true,allDone),
    title:Text(r['title']?.toString()??'Reminder',
-    style:TextStyle(fontWeight:FontWeight.w600,
-     decoration:allDone?TextDecoration.lineThrough:null)),
+    maxLines:2,overflow:TextOverflow.ellipsis,
+    style:StatusLook.title(context,allDone?'completed':null,
+     const TextStyle(fontWeight:FontWeight.w600))),
    subtitle:Text([
-    if(repeating)ReminderRepeat.describe(r['repeat_rule'])
-    else when(r['due_at']),
-    if(repeating&&openMine)'Due now'
-    else if(repeating&&nextMine!=null&&!closed)'Next '+when(own?['next_alert_at']),
-    shared?'Shared':'Only me',
+    if(repeating)ReminderRepeat.describe(r['repeat_rule']),
+    if(repeating&&openMine)'Due now',
+    if(!shared)'Only me',
     if(r['urgent']==true)'Urgent',
-    if(closed)'Linked item closed · no more alerts',
+    if(closed)'Linked item closed',
     if(r['reminder_intent']=='love_gesture')'Choose when to send',
-    if(overdue)'Overdue',
     if(r['archived_at']!=null)'Removed',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
-   leading:Icon(allDone?Icons.task_alt_outlined:
-    overdue||openMine?Icons.notification_important_outlined:
-    repeating?Icons.repeat:Icons.alarm_outlined,
-    color:overdue||openMine?Theme.of(context).colorScheme.error:null),
+   trailing:Row(mainAxisSize:MainAxisSize.min,children:[
+    if(own!=null&&r['archived_at']==null&&!closed&&
+     (openMine||(!repeating&&own['state']!='done')))IconButton(
+     tooltip:repeating?'Done for this time':'Done',
+     icon:const Icon(Icons.check_circle_outline),
+     onPressed:busy?null:()=>respond(r,'done')),
+    ItemMenu(kind:'reminder',recordId:r['id'].toString(),title:r['title']?.toString(),
+     statusActions:[
+      if(own!=null&&r['archived_at']==null&&!closed)...[
+       ItemMenuAction(repeating?'Done for this time':'Done',Icons.check,()=>respond(r,'done')),
+       ItemMenuAction('Follow-up',Icons.flag_outlined,()=>respond(r,'follow_up')),
+       ItemMenuAction('Snooze',Icons.snooze,()=>respond(r,'snooze')),
+       if(own['state']=='done'&&!repeating)ItemMenuAction('Reopen',Icons.undo,()=>respond(r,'reopen')),
+      ],
+     ],
+     onOpen:r['created_by']==me?()=>editor(existing:r):null,
+     removed:r['archived_at']!=null,
+     onRemove:r['created_by']==me?()=>archive(r):null),
+   ]),
    childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
    children:[
     LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
@@ -318,19 +367,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
       if(own['state']=='done'&&!repeating)TextButton(
        onPressed:busy?null:()=>respond(r,'reopen'),child:const Text('Reopen')),
      ]),
-    if(r['created_by']==me)Wrap(spacing:10,children:[
-     TextButton.icon(onPressed:busy?null:()=>editor(existing:r),
-      icon:const Icon(Icons.edit_outlined),label:const Text('Edit reminder')),
-     TextButton.icon(onPressed:busy?null:()=>archive(r),
-      icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.unarchive_outlined),
-      label:Text(r['archived_at']==null?'Remove':'Restore')),
-    ]),
-    Align(alignment:Alignment.centerRight,
-     child:TextButton.icon(
-      onPressed:()=>openChangeLog(context,kind:'reminder',
-       recordId:r['id'].toString(),recordTitle:r['title']?.toString()),
-      icon:const Icon(Icons.history),
-      label:const Text('Change log'))),
     if(history.isNotEmpty)ExpansionTile(
      title:Text('Outcome history · '+history.length.toString()),
      children:[for(final event in history)ListTile(
@@ -352,6 +388,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
    ],
   ));
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'open':'Open','all':'Open and completed'},selected:showCompleted?'all':'open',defaultValue:'open')];
+
  @override Widget build(BuildContext context){
   final visible=reminders.where((r)=>
    (showArchived||r['archived_at']==null)&&
@@ -366,26 +405,13 @@ class _RemindersScreenState extends State<RemindersScreen> {
       historyKinds:const ['reminder'],historyTitle:'Reminders',
      showHistory:showArchived,
       onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-      hasActiveFilters:showCompleted,
-      onClearFilters:()=>setState((){showCompleted=false;}),
-      filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
-       mainAxisSize:MainAxisSize.min,children:[
-        SwitchListTile(title:const Text('Include completed'),
-         value:showCompleted,onChanged:(v){
-          setState(()=>showCompleted=v);update((){});
-         }),
-        TextButton.icon(onPressed:(){
-         setState(()=>showCompleted=false);update((){});
-        },icon:const Icon(Icons.restart_alt),
-         label:const Text('Reset filters')),
-       ])),
-    ),
-    IconButton(onPressed:()=>load(),tooltip:'Refresh reminders',
-     icon:const Icon(Icons.refresh_outlined)),
-   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
+      groups:_filterGroups(),
+      onApply:(v)=>setState((){showCompleted=v['show']=='all';}),
+     ),
+   ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
-    label:const Text('New reminder')),
+    label:const Text('Add reminder')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,16,16,95),children:[
@@ -433,7 +459,10 @@ class ReminderEditorScreen extends StatefulWidget{
  final Future<void> Function(String id)? onCreated;
  @override State<ReminderEditorScreen> createState()=>_ReminderEditorScreenState();
 }
-class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
+class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormChangeTracker<ReminderEditorScreen>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,details.text,due.toIso8601String(),visibility,audience,urgent,sourceKind,sourceId,repeat.toRule(start:due,timeZone:myZone)].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,details;
  late DateTime due;
@@ -664,11 +693,12 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
   };
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
-  return Scaffold(appBar:AppBar(
-   title:Text(editing?'Edit reminder':'Add new reminder')),
+  return EditorScaffold(title:editing?'Edit reminder':'Add new reminder',
+   isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,details],saving:saving,onSave:save,
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
     TextField(controller:title,maxLength:160,
-     decoration:const InputDecoration(labelText:'Reminder',
+     decoration:const InputDecoration(labelText:'Reminder *',
       border:OutlineInputBorder())),
     const SizedBox(height:10),
     TextField(controller:details,maxLength:4000,minLines:2,maxLines:5,
@@ -740,9 +770,6 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
      'No duplicate item is created.'),
     if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:10),
      child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
-    const SizedBox(height:18),
-    FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),
-     label:Text(saving?'Saving…':editing?'Save changes':'Create reminder')),
    ])),
   );
  }

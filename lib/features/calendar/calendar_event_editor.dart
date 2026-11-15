@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -32,7 +33,10 @@ class CalendarEventEditor extends StatefulWidget {
   State<CalendarEventEditor> createState() => _CalendarEventEditorState();
 }
 
-class _CalendarEventEditorState extends State<CalendarEventEditor> {
+class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChangeTracker<CalendarEventEditor> {
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[_title.text,_details.text,_date.toIso8601String(),_kind,_recurrence,_visibility,_forUser,_allDay,_start.hour,_start.minute,_end.hour,_end.minute].join('|');
+
   final _client = Supabase.instance.client;
   late final TextEditingController _title;
   late final TextEditingController _details;
@@ -209,9 +213,10 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr(context, _editing ? 'editEvent' : 'newEvent'))),
-    body: SafeArea(
+  Widget build(BuildContext context) => EditorScaffold(title:tr(context, _editing ? 'editEvent' : 'newEvent'),
+   isNew:!_editing,isChanged:()=>changed,isComplete:()=>_canEdit && !_archived && _title.text.trim().isNotEmpty,
+   listenTo:[_title,_details],saving:_saving,onSave:_save,
+   body: SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -229,7 +234,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              labelText: tr(context, 'eventTitle'),
+              labelText: requiredLabel(tr(context, 'eventTitle')),
               border: const OutlineInputBorder(),
             ),
           ),
@@ -320,13 +325,6 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
             Text(_error!, style: const TextStyle(color: Colors.red)),
           ],
           const SizedBox(height: 16),
-          if (_canEdit && !_archived)
-            FilledButton.icon(
-              key: const Key('eventSave'),
-              onPressed: _saving ? null : _save,
-              icon: const Icon(Icons.save_outlined),
-              label: Text(tr(context, 'save')),
-            ),
           if (_editing && _canEdit) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(

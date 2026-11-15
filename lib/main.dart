@@ -1,3 +1,4 @@
+import 'features/share_in/shared_file_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
@@ -283,6 +284,20 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       final message=await _incomingShares.invokeMapMethod<String,dynamic>(
        'takePendingShare');
       if(!mounted||message==null)return;
+      // R55: photos and PDFs shared from other apps.
+      if(message['fileError']!=null||message['fileBytes']!=null){
+        final file=SharedFile.fromExternal(message);
+        final space=await CurrentSpaceCache.instance.get();
+        if(!mounted)return;
+        if(file==null||space==null){
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(
+            space==null?'Connect your shared space first.':
+            (message['fileError']?.toString()??'OneSpace accepts photos (JPEG, PNG, WebP, HEIC) and PDFs up to 10 MB.'))));
+          return;
+        }
+        open(SharedFileScreen(spaceId:space,file:file));
+        return;
+      }
       final data=ShareIntakeRules.fromExternal(message);
       if(!data.hasContent)return;
       open(ShareIntakeScreen(shared:data));

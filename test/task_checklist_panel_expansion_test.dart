@@ -54,7 +54,7 @@ void main(){
   await tester.pumpAndSettle();
   expect(find.text('Shop for groceries'),findsOneWidget);
   expect(find.text('Plan dinner'),findsOneWidget);
-  expect(find.text('0 of 2 items'),findsOneWidget);
+  expect(find.text('0 of 2 done'),findsOneWidget);
   expect(tester.takeException(),isNull);
  });
 
@@ -90,7 +90,7 @@ void main(){
   ));
   await tester.tap(find.byType(ExpansionTile));
   await tester.pumpAndSettle();
-  expect(find.text('1 of 2 items'),findsOneWidget);
+  expect(find.text('1 of 2 done'),findsOneWidget);
   expect(tester.takeException(),isNull);
  });
 

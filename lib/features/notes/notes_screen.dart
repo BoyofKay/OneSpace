@@ -1,3 +1,5 @@
+import '../../core/item_menu.dart';
+import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -110,7 +112,10 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  @override
+  /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar:AppBar(title:const Text('Notes'),actions:[
@@ -118,26 +123,11 @@ class _NotesScreenState extends State<NotesScreen> {
         historyKinds:const ['note'],historyTitle:'Notes',
      showHistory:_showArchived,
         onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
-        hasActiveFilters:_scope!='all',
-      onClearFilters:()=>setState((){_scope='all';}),
-        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
-         mainAxisSize:MainAxisSize.min,children:[
-          const Text('Visibility'),
-          Wrap(spacing:8,children:[
-           for(final scope in ['all','shared','private'])
-            ChoiceChip(
-             label:Text(tr(ctx,scope)),selected:_scope==scope,
-             onSelected:(_){
-              setState(()=>_scope=scope);update((){});
-             }),
-          ]),
-          TextButton.icon(onPressed:(){
-           setState(()=>_scope='all');update((){});
-          },icon:const Icon(Icons.restart_alt),
-           label:const Text('Reset filters')),
-         ])),
-       ),
-      ],bottom:_showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>_showArchived=false))):null),
+        groups:_filterGroups(),
+      onApply:(v)=>setState((){_scope=v['who']!;}),
+     ),
+      ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,onClear:()=>setState((){_showArchived=false;_scope='all';}))),
+      floatingActionButton:_spaceId==null?null:AddFab(label:'Add note',onPressed:()=>_openEditor()),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -155,17 +145,11 @@ class _NotesScreenState extends State<NotesScreen> {
           else if (_spaceId == null)
             Text(tr(context, 'noSpace'))
           else ...[
-            FilledButton.icon(
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.note_add_outlined),
-              label: Text(tr(context, 'newNote')),
-            ),
-            const SizedBox(height: 14),
             TextField(
               controller:_search,
               onChanged:(value)=>setState(()=>_query=value),
               decoration:InputDecoration(
-               labelText:'Search your notes',
+               labelText:'Search notes',
                hintText:'Search titles and note text',
                prefixIcon:const Icon(Icons.search),
                suffixIcon:_query.isEmpty?null:IconButton(
@@ -226,7 +210,10 @@ class _NotesScreenState extends State<NotesScreen> {
                           ].join(' • '),
                           maxLines: 2, overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: ItemMenu(kind: 'note', recordId: note['id'].toString(),
+                          title: note['title']?.toString(),
+                          onOpen: () => _openEditor(note: note), openLabel: canEdit ? 'Edit' : 'Open',
+                          table: canEdit ? 'notes' : null, removed: archived, onChanged: _load),
                         onTap: () => _openEditor(note: note),
                       ),
                       if (canShare)

@@ -58,7 +58,7 @@ class _TripPreparationState extends State<TripPreparationSection>{
     for(final row in active)Card(child:ListTile(
      leading:const Icon(Icons.checklist_outlined),
      title:Text(row['title'].toString()),
-     subtitle:Text('Stored in To-do and Checklists · '+row['status'].toString()),
+     subtitle:Text('Stored in To-do lists · '+row['status'].toString()),
      trailing:const Icon(Icons.open_in_new),
      onTap:()=>open(row['id'].toString()))),
     if(snapshot.hasError)const Text('Linked checklists temporarily unavailable.'),

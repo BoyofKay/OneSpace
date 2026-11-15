@@ -9,7 +9,7 @@ class NoteReferenceRules{
   'experience':'shared_experiences',
  };
  static const labels=<String,String>{
-  'task':'To-do and Checklists',
+  'task':'To-do lists',
   'event':'Calendar event',
   'occasion':'Occasion or surprise',
   'experience':'Shared experience',

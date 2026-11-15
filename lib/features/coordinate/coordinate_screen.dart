@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -174,11 +175,15 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.transparent,
+    floatingActionButton: space == null ? null
+        : AddFab(label: 'Start activity', onPressed: create),
+    body: RefreshIndicator(
     onRefresh: load,
     child: ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
       children: [
         Row(children:[
          Expanded(child:Text('Coordinate',
@@ -187,26 +192,8 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           historyKinds:const ['activity'],historyTitle:'Activities',
           showHistory:showArchived,
           onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-          hasActiveFilters:selected!=CoordinateActivityView.active,
-      onClearFilters:()=>setState((){selected=CoordinateActivityView.active;}),
-          filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-           mainAxisSize:MainAxisSize.min,
-           crossAxisAlignment:CrossAxisAlignment.start,children:[
-            const Text('Activity view'),
-            Wrap(spacing:8,runSpacing:5,children:[
-             for(final value in CoordinateActivityView.values)
-              ChoiceChip(label:Text(label(value)),
-               selected:selected==value,
-               onSelected:(_){
-                setState(()=>selected=value);refresh((){});
-               }),
-            ]),
-            TextButton.icon(onPressed:(){
-             setState(()=>selected=CoordinateActivityView.active);
-             refresh((){});
-            },icon:const Icon(Icons.restart_alt),
-             label:const Text('Reset filters')),
-           ])),
+          groups:[FilterGroupSpec(id:'view',label:'Activities',options:{for(final v in CoordinateActivityView.values)v.name:label(v)},selected:selected.name,defaultValue:CoordinateActivityView.active.name)],
+           onApply:(v)=>setState(()=>selected=CoordinateActivityView.values.byName(v['view']!)),
          ),
         ]),
         const SizedBox(height: 3),
@@ -217,12 +204,6 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
               color: Theme.of(context).colorScheme.error)),
           const SizedBox(height: 8),
         ],
-        FilledButton.icon(
-          onPressed: space == null ? null : create,
-          icon: const Icon(Icons.add),
-          label: const Text('New Activity'),
-        ),
-        const SizedBox(height: 12),
         if (loading)
           const Center(child: CircularProgressIndicator())
         else if (space == null)
@@ -242,5 +223,5 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           ),
       ],
     ),
-  );
+  ));
 }

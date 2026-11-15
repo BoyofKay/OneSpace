@@ -1,7 +1,9 @@
+import '../../core/item_menu.dart';
+import 'selfie_studio_screen.dart';
+import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
@@ -14,7 +16,6 @@ import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
 import 'memory_photo_gallery.dart';
-import 'memory_photo_service.dart';
 import 'memory_photo_layout_rules.dart';
 import 'scrapbook_studio_screen.dart';
 
@@ -30,7 +31,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   final _client = Supabase.instance.client;
   final _search = TextEditingController();
   List<Map<String,dynamic>> _photoMetadata = const [];
-  bool _capturing = false;
   String? _spaceId;
   Stream<List<Map<String, dynamic>>>? _stream;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
@@ -129,58 +129,14 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if (mounted && changed == true) await _load();
   }
 
-  /// Camera-first, single-step Daily selfie. The user chooses privacy before
-  /// a memory is created. Cancellation never creates an empty database row.
+  /// R55: Daily selfie opens its own studio (front camera, polaroid
+  /// preview, caption, who can see it, this week's strip).
   Future<void> _dailySelfie()async{
     final space=_spaceId;
-    final user=_client.auth.currentUser?.id;
-    if(space==null||user==null||_capturing)return;
-    final choice=await showModalBottomSheet<String>(context:context,
-     showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
-      mainAxisSize:MainAxisSize.min,children:[
-       const ListTile(title:Text('Add a daily photo'),
-        subtitle:Text('Choose who can see it and where the photo comes from.')),
-       ListTile(leading:const Icon(Icons.photo_camera_outlined),
-        title:const Text('Take a shared selfie'),
-        onTap:()=>Navigator.pop(ctx,'shared_camera')),
-       ListTile(leading:const Icon(Icons.photo_library_outlined),
-        title:const Text('Choose a shared photo'),
-        onTap:()=>Navigator.pop(ctx,'shared_gallery')),
-       ListTile(leading:const Icon(Icons.lock_outline),
-        title:const Text('Take a private selfie'),
-        onTap:()=>Navigator.pop(ctx,'private_camera')),
-       ListTile(leading:const Icon(Icons.collections_outlined),
-        title:const Text('Choose a private photo'),
-        onTap:()=>Navigator.pop(ctx,'private_gallery')),
-      ])));
-    if(choice==null||!mounted)return;
-    setState(()=>_capturing=true);
-    String? createdId;
-    try{
-     final photo=await ImagePicker().pickImage(
-      source:choice.endsWith('camera')?ImageSource.camera:ImageSource.gallery,
-      imageQuality:82,maxWidth:1600,maxHeight:1600);
-     if(photo==null)return;
-     final today=CalendarRules.sqlDate(DateTime.now());
-     final newMemory=await _client.from('memories').insert({
-      'space_id':space,'created_by':user,
-      'title':'Daily selfie · $today','body':'',
-      'memory_date':today,'visibility':choice.startsWith('private')?'private':'shared',
-      'memory_type':'daily_selfie','photo_layout':'polaroid',
-     }).select().single();
-     createdId=newMemory['id'].toString();
-     await MemoryPhotoService(_client).addFiles(createdId,[photo]);
-     if(!mounted)return;
-     await _load();
-     if(mounted)await _edit(existing:newMemory);
-    }on PostgrestException catch(e){
-     if(mounted)setState(()=>_error='Selfie could not be saved: '+e.message+
-      (createdId==null?'':' · The memory was created and can be edited.'));
-    }catch(_){
-     if(mounted)setState(()=>_error=createdId==null?
-      'Unable to capture or save the daily photo.':
-      'Memory created, but the photo upload did not finish. Open it to retry.');
-    }finally{if(mounted)setState(()=>_capturing=false);}
+    if(space==null)return;
+    final saved=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
+      builder:(_)=>SelfieStudioScreen(spaceId:space)));
+    if(saved==true&&mounted)await _load();
   }
 
   bool _matchesSearch(Map<String,dynamic> memory){
@@ -198,33 +154,31 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
    return words.every(content.contains);
   }
 
-  @override
+  /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+
+ @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
       RecordListTopActions(
         historyKinds:const ['memory'],historyTitle:'Memories',
      showHistory:_archived,
         onToggleHistory:()=>setState(()=>_archived=!_archived),
-        hasActiveFilters:_scope!='all',
-      onClearFilters:()=>setState((){_scope='all';}),
-        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
-          mainAxisSize:MainAxisSize.min,
-          crossAxisAlignment:CrossAxisAlignment.start,children:[
-           const Text('Visibility'),
-           Wrap(spacing:8,children:[
-            for(final choice in ['all','shared','private'])
-             ChoiceChip(label:Text(tr(ctx,choice)),selected:_scope==choice,
-              onSelected:(_){
-               setState(()=>_scope=choice);update((){});
-              }),
-           ]),
-           TextButton.icon(onPressed:(){
-            setState(()=>_scope='all');update((){});
-           },icon:const Icon(Icons.restart_alt),
-            label:const Text('Reset filters')),
-          ])),
-      ),
-    ],bottom:_archived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>_archived=false))):null),
+        groups:_filterGroups(),
+      onApply:(v)=>setState((){_scope=v['who']!;}),
+     ),
+    ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
+    floatingActionButton:_spaceId==null?null:AddFabMenu(label:'Add memory',options:[
+      AddFabOption('Story journal',Icons.menu_book_outlined,()=>_edit()),
+      AddFabOption('Daily selfie',Icons.photo_camera_outlined,_dailySelfie),
+      AddFabOption('Scrapbook studio',Icons.auto_stories_outlined,()async{
+        final current=_spaceId;
+        if(current==null)return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(spaceId:current)));
+        if(mounted)await _load();
+      }),
+    ]),
     body: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -249,29 +203,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           else if (_spaceId == null)
             Text(tr(context, 'noSpace'))
           else ...[
-            FilledButton.icon(
-              onPressed: () => _edit(),
-              icon: const Icon(Icons.edit_note),
-              label: Text(tr(context, 'newMemory')),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(onPressed:_capturing?null:_dailySelfie,
-             icon:const Icon(Icons.photo_camera_outlined),
-             label:Text(_capturing?'Saving photo…':'Daily selfie · Camera or Gallery')),
-            const SizedBox(height:8),
-            OutlinedButton.icon(
-              icon:const Icon(Icons.auto_stories_outlined),
-              label:const Text('Scrapbook Studio · Designed pages'),
-              onPressed:() async{
-                final current=_spaceId;
-                if(current==null)return;
-                await Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
-                   spaceId:current)));
-                if(mounted)await _load();
-              },
-            ),
-            if(_capturing)const LinearProgressIndicator(),
             const SizedBox(height: 14),
             TextField(controller:_search,decoration:InputDecoration(
              prefixIcon:const Icon(Icons.search),
@@ -330,7 +261,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           if (!editable) tr(context,'viewOnly'),
                           if (body.isNotEmpty) body.replaceAll('\n',' '),
                         ].join(' • '), maxLines: 3, overflow: TextOverflow.ellipsis),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: ItemMenu(kind: 'memory', recordId: memory['id'].toString(),
+                          title: memory['title']?.toString(),
+                          onOpen: () => _edit(existing: memory), openLabel: editable ? 'Edit' : 'Open',
+                          table: editable ? 'memories' : null,
+                          removed: memory['archived_at'] != null, onChanged: _load),
                         onTap: () => _edit(existing: memory),
                       ),
                       if (ownerShare) Align(
@@ -367,7 +302,10 @@ class MemoryEditorScreen extends StatefulWidget {
   State<MemoryEditorScreen> createState() => _MemoryEditorScreenState();
 }
 
-class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
+class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChangeTracker<MemoryEditorScreen> {
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[_title.text,_body.text,_date,_visibility,_pinned,_memoryType,_photoLayout].join('|');
+
   final _client = Supabase.instance.client;
   late final TextEditingController _title;
   late final TextEditingController _body;
@@ -524,13 +462,12 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr(context,_editing?'editMemory':'newMemory')),
-     actions:[
-      if(_editing)RecordActionHistoryButton(
-       kind:'memory',recordId:widget.existing!['id'].toString()),
-     ]),
-    body: SafeArea(
+  Widget build(BuildContext context) => EditorScaffold(title:tr(context,_editing?'editMemory':'newMemory'),
+   isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
+   listenTo:[_title,_body],saving:_busy,onSave:_save,
+   actions:[if(_editing)RecordActionHistoryButton(
+       kind:'memory',recordId:widget.existing!['id'].toString())],
+   body: SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -540,7 +477,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
             controller: _title, maxLength: 120, readOnly: !_editable,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              labelText: tr(context,'memoryTitle'),
+              labelText: requiredLabel(tr(context,'memoryTitle')),
               border: const OutlineInputBorder(),
             ),
           ),
@@ -607,11 +544,6 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
           if (_error != null) Text(_error!,
             style: TextStyle(color:Theme.of(context).colorScheme.error)),
           const SizedBox(height: 16),
-          if (_editable && !_archived) FilledButton.icon(
-            onPressed: _busy ? null : _save,
-            icon: const Icon(Icons.save_outlined),
-            label: Text(tr(context,'save')),
-          ),
           if (_editing && _editable) ...[
             const SizedBox(height: 10),
             OutlinedButton.icon(

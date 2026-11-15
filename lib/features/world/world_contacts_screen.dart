@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -290,61 +291,44 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      ],
    ));
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'source',label:'Source',options:const {'all':'All','direct':'Saved directly','activity':'From Activities'},selected:sourceFilter,defaultValue:'all')];
+
  @override Widget build(BuildContext context){
    final visible=WorldContactEntry.filtered(
      contacts.where((e)=>e.isDeleted==showDeleted &&
       (sourceFilter=='all'||(sourceFilter=='direct'?e.direct:!e.direct)))
       .toList(),query.text);
    return Scaffold(
-     appBar:AppBar(title:const Text('People & contacts'),actions:[
+     appBar:AppBar(title:const Text('Contact cards'),actions:[
        RecordListTopActions(
-        historyKinds:const ['contact'],historyTitle:'People',
+        historyKinds:const ['contact'],historyTitle:'Contact cards',
      showHistory:showDeleted,
         onToggleHistory:()=>setState(()=>showDeleted=!showDeleted),
-        hasActiveFilters:sourceFilter!='all',
-      onClearFilters:()=>setState((){sourceFilter='all';}),
-        filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-         mainAxisSize:MainAxisSize.min,
-         crossAxisAlignment:CrossAxisAlignment.start,children:[
-          const Text('Contact source'),
-          Wrap(spacing:8,runSpacing:6,children:[
-           for(final entry in const {
-            'all':'All contacts','direct':'Saved directly',
-            'activity':'From Activities',
-           }.entries)ChoiceChip(
-            label:Text(entry.value),selected:sourceFilter==entry.key,
-            onSelected:(_){
-             setState(()=>sourceFilter=entry.key);refresh((){});
-            }),
-          ]),
-          TextButton.icon(onPressed:(){
-           setState(()=>sourceFilter='all');refresh((){});
-          },icon:const Icon(Icons.restart_alt),
-           label:const Text('Reset filters')),
-         ])),
-       ),
-       IconButton(
-        tooltip:'Contact edit history',icon:const Icon(Icons.manage_history),
-        onPressed:()=>showHistory()),
-     ],bottom:showDeleted?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showDeleted=false))):null),
+        groups:_filterGroups(),
+      onApply:(v)=>setState((){sourceFilter=v['source']!;}),
+     ),
+     ],bottom:filterShowingBar(_filterGroups(),removed:showDeleted,onClear:()=>setState((){showDeleted=false;sourceFilter='all';}))),
+     // R55: add at the lower right, import from the phone at the lower left.
+     floatingActionButtonLocation:FloatingActionButtonLocation.endFloat,
+     floatingActionButton:space==null?null:Padding(
+       padding:const EdgeInsets.only(left:32),
+       child:Row(children:[
+         FloatingActionButton.small(heroTag:'import-contacts',
+           tooltip:'Import from phone',onPressed:importFromPhone,
+           child:const Icon(Icons.contacts_outlined)),
+         const Spacer(),
+         AddFab(label:'Add contact card',onPressed:()=>edit()),
+       ])),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
-       padding:const EdgeInsets.all(14),
+       padding:const EdgeInsets.fromLTRB(14,14,14,96),
        children:[
-         Text('People worth remembering',
+         Text('Contact cards',
            style:Theme.of(context).textTheme.titleMedium),
          const SizedBox(height:5),
          Text('Save people directly, or find contacts linked to our Activities.',
            style:Theme.of(context).textTheme.bodySmall),
-         const SizedBox(height:12),
-         FilledButton.tonalIcon(
-           onPressed:space==null?null:()=>edit(),
-           icon:const Icon(Icons.person_add_alt_1_outlined),
-           label:const Text('Remember someone')),
-         const SizedBox(height:8),
-         OutlinedButton.icon(onPressed:space==null?null:importFromPhone,
-          icon:const Icon(Icons.contacts_outlined),
-          label:const Text('Import from phone')),
          const SizedBox(height:12),
          TextField(controller:query,decoration:InputDecoration(
            prefixIcon:const Icon(Icons.search),

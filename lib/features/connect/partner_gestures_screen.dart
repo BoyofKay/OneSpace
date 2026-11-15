@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
@@ -129,7 +130,7 @@ const _options=[
 
 class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  final db=Supabase.instance.client;
- String? spaceId,recipientId,recipientName;
+ String? spaceId,recipientId,recipientName,sendToLabel;
  String? busyKind,error;
  String? lastSent,lastSentAt;
  bool loading=true;
@@ -165,8 +166,20 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      }catch(_){
        // Sending gestures remains available even if history is offline.
      }
+     String? label;
+     try{
+       final mine=await db.from('profiles').select('partner_label,partner_labels')
+        .eq('id',me).maybeSingle();
+       final pet=(mine?['partner_labels'] as List?)?.map((x)=>x.toString().trim())
+        .where((x)=>x.isNotEmpty).toList()??const <String>[];
+       final plain=mine?['partner_label']?.toString().trim()??'';
+       // "your love" for an endearment, the name itself for a plain label.
+       label=pet.isNotEmpty?'your '+pet.first.replaceFirst(RegExp(r'^(my|your)\s+',caseSensitive:false),'')
+        :plain.isNotEmpty?plain:null;
+     }catch(_){}
      if(!mounted)return;
      setState((){
+       sendToLabel=label;
        lastSentAt=latest;
        spaceId=space;recipientId=other;
        recipientName=other==null?null:(names?[other]??'your partner');
@@ -291,36 +304,11 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  }
 
  Future<void> _createCustom([Map<String,dynamic>? original]) async {
-   final name=TextEditingController(text:original?['title']?.toString()??''),
-     body=TextEditingController(text:original?['message']?.toString()??'');
-   var kind=original?['kind']?.toString()??'hug';
    try{
-     final data=await showDialog<Map<String,String?>>(context:context,
-       builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-         title:Text(original==null?'Add new gesture':'Edit gesture'),
-         content:SingleChildScrollView(child:Column(
-           mainAxisSize:MainAxisSize.min,children:[
-             TextField(controller:name,maxLength:60,
-               decoration:const InputDecoration(labelText:'Gesture name')),
-             TextField(controller:body,maxLength:240,minLines:2,maxLines:4,
-               decoration:const InputDecoration(labelText:'Your message')),
-             DropdownButtonFormField<String>(
-               initialValue:kind,decoration:const InputDecoration(labelText:'Theme'),
-               items:[for(final option in _options)
-                 DropdownMenuItem(value:option.id,child:Text(option.title))],
-               onChanged:(v)=>update(()=>kind=v??kind)),
-           ])),
-         actions:[
-           TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
-           FilledButton(onPressed:(){
-             if(name.text.trim().isEmpty||body.text.trim().isEmpty)return;
-             Navigator.pop(ctx,{
-               'title':name.text.trim(),'message':body.text.trim(),
-               'kind':kind,
-             });
-           },child:const Text('Save')),
-         ],
-       )));
+     // R55: a page with Cancel/Save at the bottom, not a pop-up.
+     final data=await Navigator.of(context).push<Map<String,String?>>(
+       MaterialPageRoute(builder:(_)=>GestureEditorPage(
+         original:original,options:{for(final o in _options)o.id:o.title})));
      if(data==null||spaceId==null||recipientId==null)return;
      if(original==null){
        await db.from('gesture_templates').insert({
@@ -339,7 +327,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
        const SnackBar(content:Text('Could not save this gesture.')));
-   }finally{name.dispose();body.dispose();}
+   }
  }
  Future<void> _deleteCustom(String id) async {
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>
@@ -361,94 +349,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        const SnackBar(content:Text('Could not delete gesture.')));
    }
  }
- Future<void> _remindMyself()async{
-   if(spaceId==null||db.auth.currentUser==null)return;
-   var when=LovePromptRules.nextTime(DateTime.now(),9);
-   var category='any';
-   final agreed=await showModalBottomSheet<bool>(
-    context:context,isScrollControlled:true,showDragHandle:true,
-    builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>SafeArea(
-     child:Padding(padding:EdgeInsets.fromLTRB(
-      18,8,18,MediaQuery.viewInsetsOf(ctx).bottom+24),
-      child:Column(mainAxisSize:MainAxisSize.min,
-       crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('Remind myself to send love',
-         style:Theme.of(ctx).textTheme.titleLarge),
-        const SizedBox(height:6),
-        const Text('This reminder goes to you, not your partner. You decide whether and what to send. Suggested hours use your phone time; choose a custom time to fit your schedule.'),
-        const SizedBox(height:12),
-        Wrap(spacing:8,runSpacing:5,children:[
-         for(final slot in const {
-           'morning':'9 AM','after_work':'6 PM',
-           'evening':'9 PM'}.entries)
-          ActionChip(label:Text(slot.value),
-           onPressed:()=>update(()=>when=LovePromptRules.nextTime(
-            DateTime.now(),LovePromptRules.slots[slot.key]!))),
-        ]),
-        const SizedBox(height:9),
-        ListTile(contentPadding:EdgeInsets.zero,
-         leading:const Icon(Icons.alarm_outlined),
-         title:const Text('Remind me on'),
-         subtitle:Text(when.toLocal().toString().substring(0,16)),
-         trailing:const Icon(Icons.edit_calendar_outlined),
-         onTap:()async{
-          final now=DateTime.now();
-          final day=await showDatePicker(context:ctx,initialDate:when,
-           firstDate:DateTime(now.year,now.month,now.day),
-           lastDate:DateTime(2100));
-          if(day==null||!ctx.mounted)return;
-          final time=await showTimePicker(context:ctx,
-           initialTime:TimeOfDay(hour:when.hour,minute:when.minute));
-          if(time!=null)update(()=>when=DateTime(
-           day.year,day.month,day.day,time.hour,time.minute));
-         }),
-        DropdownButtonFormField<String>(
-         initialValue:category,
-         decoration:const InputDecoration(labelText:'Gesture to remember'),
-         items:[
-          const DropdownMenuItem(value:'any',child:Text('Anything thoughtful')),
-          for(final option in _options)DropdownMenuItem(
-           value:option.id,child:Text(option.title)),
-         ],
-         onChanged:(v)=>update(()=>category=v??'any')),
-        const SizedBox(height:12),
-        Row(mainAxisAlignment:MainAxisAlignment.end,children:[
-         TextButton(onPressed:()=>Navigator.pop(ctx,false),
-          child:const Text('Cancel')),
-         const SizedBox(width:8),
-         FilledButton.icon(
-          icon:const Icon(Icons.add_alarm_outlined),
-          onPressed:()=>Navigator.pop(ctx,true),
-          label:const Text('Save reminder')),
-        ]),
-       ])))));
-   if(agreed!=true||!mounted)return;
-   if(!when.isAfter(DateTime.now().add(const Duration(minutes:1)))){
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-     content:Text('Choose a future reminder time.')));
-    return;
-   }
-   try{
-    await db.from('reminders').insert({
-     'space_id':spaceId,
-     'title':category=='any'?'Send a little love':LovePromptRules.label(category),
-     'details':LovePromptRules.message(category),
-     'due_at':when.toUtc().toIso8601String(),
-     'visibility':'private','audience':'me',
-     'reminder_intent':'love_gesture','reminder_gesture_kind':category,
-    });
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-     content:Text('Personal reminder saved. You will choose when to send.')));
-   }on PostgrestException catch(e){
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-     content:Text(e.code=='23505'
-      ?'You already have a reminder for that gesture at this time.'
-      :'Unable to save reminder: '+e.message)));
-   }catch(_){
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-     content:Text('Unable to save the reminder. Try again.')));
-   }
- }
+
  Future<void> _send(_GestureOption option) async {
    if(busyKind!=null||spaceId==null||recipientId==null){return;}
    final messages=pool(option);
@@ -507,11 +408,6 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
            onPressed:_createCustom,
            icon:const Icon(Icons.add_reaction_outlined),
            label:const Text('Create my own gesture')),
-          const SizedBox(height:12),
-          OutlinedButton.icon(
-           onPressed:spaceId==null?null:_remindMyself,
-           icon:const Icon(Icons.alarm_add_outlined),
-           label:const Text('Remind me to send a little love')),
           if(LovePromptRules.lastSentSummary(lastSentAt,DateTime.now())!=null)
            Padding(padding:const EdgeInsets.only(top:6),
             child:Text(LovePromptRules.lastSentSummary(
@@ -525,7 +421,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
          if(error!=null)Text(error!,
            style:TextStyle(color:Theme.of(context).colorScheme.error)),
          if(recipientId!=null)...[
-           if(!widget.manageOnly)Text('Send to '+(recipientName??'your partner'),
+           if(!widget.manageOnly)Text('Send to '+(sendToLabel??recipientName??'your partner'),
              style:Theme.of(context).textTheme.titleSmall),
            if(!widget.manageOnly)const SizedBox(height:12),
            if(!widget.manageOnly)LayoutBuilder(builder:(ctx,size)=>GridView.builder(
@@ -568,4 +464,41 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      )),
    );
  }
+}
+
+
+/// R55: create or edit my own gesture on its own page.
+class GestureEditorPage extends StatefulWidget{
+ const GestureEditorPage({super.key,this.original,required this.options});
+ final Map<String,dynamic>? original;
+ final Map<String,String> options;
+ @override State<GestureEditorPage> createState()=>_GestureEditorPageState();
+}
+
+class _GestureEditorPageState extends State<GestureEditorPage> with FormChangeTracker<GestureEditorPage>{
+ late final TextEditingController name=TextEditingController(text:widget.original?['title']?.toString()??'');
+ late final TextEditingController body=TextEditingController(text:widget.original?['message']?.toString()??'');
+ late String kind=widget.original?['kind']?.toString()??widget.options.keys.first;
+ @override String get signature=>[name.text,body.text,kind].join('|');
+ @override void dispose(){name.dispose();body.dispose();super.dispose();}
+ @override Widget build(BuildContext context)=>EditorScaffold(
+  title:widget.original==null?'Add new gesture':'Edit gesture',
+  isNew:widget.original==null,isChanged:()=>changed,
+  isComplete:()=>name.text.trim().isNotEmpty&&body.text.trim().isNotEmpty,
+  listenTo:[name,body],
+  onSave:()=>Navigator.pop(context,<String,String?>{
+   'title':name.text.trim(),'message':body.text.trim(),'kind':kind}),
+  body:ListView(padding:const EdgeInsets.all(18),children:[
+   TextField(controller:name,maxLength:60,
+    decoration:const InputDecoration(labelText:'Gesture name *',border:OutlineInputBorder())),
+   const SizedBox(height:8),
+   TextField(controller:body,maxLength:240,minLines:3,maxLines:6,
+    decoration:const InputDecoration(labelText:'Your message *',border:OutlineInputBorder())),
+   const SizedBox(height:8),
+   DropdownButtonFormField<String>(
+    initialValue:widget.options.containsKey(kind)?kind:widget.options.keys.first,
+    decoration:const InputDecoration(labelText:'Theme',border:OutlineInputBorder()),
+    items:[for(final o in widget.options.entries)DropdownMenuItem(value:o.key,child:Text(o.value))],
+    onChanged:(v)=>setState(()=>kind=v??kind)),
+  ]));
 }

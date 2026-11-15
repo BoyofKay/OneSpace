@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/onespace_strings.dart';
@@ -76,7 +77,10 @@ class TaskDraft {
     this.targetDate,
     this.recurrence='none',
     this.rule=const {},
+    this.items=const [],
   });
+  /// R55: the list's first items, entered on the new-list page (one per line).
+  final List<String> items;
   final String title;
   final TaskPriority priority;
   final TaskVisibility visibility;
@@ -122,8 +126,12 @@ class TaskEditorSheet extends StatefulWidget {
   State<TaskEditorSheet> createState() => _TaskEditorSheetState();
 }
 
-class _TaskEditorSheetState extends State<TaskEditorSheet> {
+class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracker<TaskEditorSheet> {
   late final TextEditingController _title;
+  final TextEditingController _items = TextEditingController();
+  @override String get signature=>[_title.text,_items.text,_priority,_visibility,_date,_assignedTo,
+    _recurrence,_scheduleMode,_interval.text,_timeZone.text,_monthDays.text,_excludedDates.text,
+    (_weekdays.toList()..sort()).join(','),_skipDaysOff,_skipUsHolidays].join('|');
   late TaskPriority _priority;
   late TaskVisibility _visibility;
   DateTime? _date;
@@ -166,6 +174,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
   @override
   void dispose() {
     _title.dispose();
+    _items.dispose();
     _interval.dispose();_timeZone.dispose();_monthDays.dispose();_excludedDates.dispose();
     super.dispose();
   }
@@ -231,6 +240,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
     setState((){_saving=true;_error=null;});
     try {
       await widget.onSave(TaskDraft(
+        items:[for(final line in _items.text.split('\n'))if(line.trim().isNotEmpty)line.trim().length>200?line.trim().substring(0,200):line.trim()],
         title: title,
         priority: _priority,
         visibility: _visibility,
@@ -250,20 +260,22 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final existing = widget.existing;
-    return SafeArea(
+    return EditorScaffold(
+      title: existing == null ? 'New list' : 'Edit list',
+      isNew: existing == null,
+      isChanged: () => changed,
+      isComplete: () => _title.text.trim().isNotEmpty,
+      listenTo: [_title, _items, _interval, _timeZone, _monthDays, _excludedDates],
+      saving: _saving,
+      onSave: _save,
+      body: SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          20, 8, 20, 24 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(existing==null?'Create checklist':'Edit checklist',
-                style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
               TextField(
                 key: const Key('taskTitleInput'),
                 controller: _title,
@@ -271,12 +283,24 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                 maxLength: 120,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: tr(context, 'taskTitle'),
+                  labelText: 'List name *',
                   border: const OutlineInputBorder(),
                 ),
               ),
               PartnerMentionButton(spaceId:widget.spaceId??'',
                controller:_title,enabled:_visibility==TaskVisibility.shared),
+              if (existing == null) ...[
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _items,
+                  minLines: 3, maxLines: 10,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: "What's on the list?",
+                    hintText: 'One item per line',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder())),
+              ],
               const SizedBox(height: 10),
               Text(tr(context, 'visibility'),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -298,6 +322,52 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                       ? 'privateDescription' : 'sharedDescription'),
                   style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 14),
+              if (_visibility == TaskVisibility.shared) ...[
+                const SizedBox(height: 14),
+                Text(tr(context, 'assignTo'),
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                Wrap(
+                  spacing: 8,
+                  children: <Widget>[
+                    ChoiceChip(
+                      label: const Text('Both of us'),
+                      selected: _assignedTo == null,
+                      onSelected: _saving ? null : (_) =>
+                          setState(() => _assignedTo = null),
+                    ),
+                    for (final member in widget.members.entries)
+                      ChoiceChip(
+                        label: Text(member.key == widget.currentUserId
+                            ? tr(context, 'me') : member.value),
+                        selected: _assignedTo == member.key,
+                        onSelected: _saving ? null :
+                          (_) => setState(() => _assignedTo = member.key),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _saving ? null : _selectDate,
+                icon: const Icon(Icons.event_outlined),
+                label: Text(_date == null ? tr(context, 'optionalDate')
+                    : '${tr(context, 'target')}: ${_date!.year}-'
+                        '${_date!.month.toString().padLeft(2, '0')}-'
+                        '${_date!.day.toString().padLeft(2, '0')}'),
+              ),
+              if (_date != null)
+                TextButton(
+                  onPressed: _saving ? null : () => setState(() => _date = null),
+                  child: Text(tr(context, 'clearDate')),
+                ),
+              const SizedBox(height: 8),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                title: const Text('More options'),
+                subtitle: const Text('Repeat and priority'),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               DropdownButtonFormField<String>(
                initialValue:_scheduleMode,
                decoration:const InputDecoration(
@@ -371,62 +441,15 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                       (_) => setState(() => _priority = value),
                 )).toList(),
               ),
-              if (_visibility == TaskVisibility.shared) ...[
-                const SizedBox(height: 14),
-                Text(tr(context, 'assignTo'),
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-                Wrap(
-                  spacing: 8,
-                  children: <Widget>[
-                    ChoiceChip(
-                      label: const Text('Both of us'),
-                      selected: _assignedTo == null,
-                      onSelected: _saving ? null : (_) =>
-                          setState(() => _assignedTo = null),
-                    ),
-                    for (final member in widget.members.entries)
-                      ChoiceChip(
-                        label: Text(member.key == widget.currentUserId
-                            ? tr(context, 'me') : member.value),
-                        selected: _assignedTo == member.key,
-                        onSelected: _saving ? null :
-                          (_) => setState(() => _assignedTo = member.key),
-                      ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : _selectDate,
-                icon: const Icon(Icons.event_outlined),
-                label: Text(_date == null ? tr(context, 'optionalDate')
-                    : '${tr(context, 'target')}: ${_date!.year}-'
-                        '${_date!.month.toString().padLeft(2, '0')}-'
-                        '${_date!.day.toString().padLeft(2, '0')}'),
-              ),
-              if (_date != null)
-                TextButton(
-                  onPressed: _saving ? null : () => setState(() => _date = null),
-                  child: Text(tr(context, 'clearDate')),
-                ),
+                ]),
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(_error!, style: const TextStyle(color: Colors.red)),
               ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  key: const Key('taskSaveButton'),
-                  onPressed: _saving ? null : _save,
-                  child: Text(tr(context, existing == null
-                      ? 'createTask' : 'saveChanges')),
-                ),
-              ),
             ],
           ),
         ),
       ),
-    );
+    ));
   }
 }

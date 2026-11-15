@@ -1,3 +1,5 @@
+import '../../core/item_menu.dart';
+import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
 import 'dart:async';
@@ -122,6 +124,9 @@ class _TripsScreenState extends State<TripsScreen> {
    builder:(_)=>TripDetail(tripId:trip['id'].toString())));
   if(mounted)await load();
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'when',label:'Trips',options:const {'upcoming':'Upcoming','past':'Past','all':'All'},selected:filter,defaultValue:'upcoming')];
+
  @override Widget build(BuildContext context){
   final now=CalendarRules.day(DateTime.now());
   final visible=trips.where((trip){
@@ -140,29 +145,12 @@ class _TripsScreenState extends State<TripsScreen> {
      historyKinds:const ['trip'],historyTitle:'Trips',
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-     hasActiveFilters:filter!='upcoming',
-      onClearFilters:()=>setState((){filter='upcoming';}),
-     filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-      mainAxisSize:MainAxisSize.min,
-      crossAxisAlignment:CrossAxisAlignment.start,children:[
-       const Text('Trip status'),
-       Wrap(spacing:8,runSpacing:5,children:[
-        for(final pair in const {
-         'upcoming':'Upcoming','past':'Past','all':'All',
-        }.entries)ChoiceChip(
-         selected:filter==pair.key,label:Text(pair.value),
-         onSelected:(_){setState(()=>filter=pair.key);refresh((){});}),
-       ]),
-       TextButton.icon(onPressed:(){
-        setState(()=>filter='upcoming');refresh((){});
-       },icon:const Icon(Icons.restart_alt),label:const Text('Reset filters')),
-      ])),
-    ),
-    IconButton(onPressed:load,tooltip:'Refresh trips',
-     icon:const Icon(Icons.refresh)),
-   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
+     groups:_filterGroups(),
+      onApply:(v)=>setState((){filter=v['when']!;}),
+     ),
+   ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;filter='upcoming';}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
-    icon:const Icon(Icons.add),label:const Text('Plan a trip'),onPressed:()=>edit()),
+    icon:const Icon(Icons.add),label:const Text('Add trip'),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
@@ -198,7 +186,10 @@ class _TripsScreenState extends State<TripsScreen> {
          (trip['end_on']!=null?' – '+trip['end_on'].toString():''),
        if(trip['visibility']=='private')'Only me',
       ].join(' · '),maxLines:4),
-      trailing:const Icon(Icons.chevron_right),onTap:()=>open(trip),
+      trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
+       onOpen:()=>open(trip),openLabel:'Open',table:'shared_trips',
+       removed:trip['archived_at']!=null,onChanged:load),
+      onTap:()=>open(trip),
      )),
    ])));
  }
@@ -214,7 +205,10 @@ class TripEditor extends StatefulWidget {
  final Map<String,String>? prefill;
  @override State<TripEditor> createState()=>_TripEditorState();
 }
-class _TripEditorState extends State<TripEditor> {
+class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEditor> {
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,origin.text,destination.text,notes.text,from,to,status,visibility].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,origin,destination,notes;
  late String status,visibility;
@@ -279,13 +273,14 @@ class _TripEditorState extends State<TripEditor> {
    if(mounted)setState(()=>saving=false);
   }
  }
- @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Add new trip':'Edit trip')),
-  body:ListView(padding:const EdgeInsets.all(16),children:[
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new trip':'Edit trip',
+   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,origin,destination,notes],saving:saving,onSave:save,
+   body:ListView(padding:const EdgeInsets.all(16),children:[
    Text('The journey starts here',style:Theme.of(context).textTheme.titleLarge),
    const SizedBox(height:12),
    TextField(controller:title,maxLength:160,
-    decoration:const InputDecoration(labelText:'Trip name',border:OutlineInputBorder())),
+    decoration:const InputDecoration(labelText:'Trip name *',border:OutlineInputBorder())),
    const SizedBox(height:8),
    TextField(controller:origin,maxLength:160,
     decoration:const InputDecoration(labelText:'Traveling from (optional)',border:OutlineInputBorder())),
@@ -327,9 +322,6 @@ class _TripEditorState extends State<TripEditor> {
     subtitle:const Text('Privacy stays fixed to protect existing travel information.'),
    ),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-   const SizedBox(height:12),
-   FilledButton.icon(onPressed:saving?null:save,
-    icon:const Icon(Icons.save_outlined),label:Text(saving?'Saving…':'Save trip')),
   ]));
 }
 
@@ -572,7 +564,6 @@ class _TripDetailState extends State<TripDetail>{
     if(t!=null&&t['space_id']!=null)CreateFromThisButton(kind:LinkKind.trip,id:widget.tripId,spaceId:t['space_id'].toString(),title:t['title'].toString(),date:DateTime.tryParse(t['start_on']?.toString()??''),shared:t['visibility']!='private',stripKey:_links),
     if(t!=null)RecordActionHistoryButton(
      kind:'trip',recordId:widget.tripId),
-    IconButton(tooltip:'Refresh trip',icon:const Icon(Icons.refresh),onPressed:load),
     if(t!=null)IconButton(tooltip:'Edit trip',icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
     if(t!=null)IconButton(tooltip:t['archived_at']==null?'Remove trip':'Restore trip',
      icon:Icon(t['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined),
