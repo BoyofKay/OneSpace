@@ -94,11 +94,14 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
    debugPrint('OneSpace push integration inactive; in-app alerts remain available.');
   }finally{_initializing=false;}
  }
+ /// R48: a tapped push opens the exact item (the Activity conversation, the
+ /// reminder with its buttons, the gesture pop-up), never just the list.
  void _onOpen(RemoteMessage message){
-  if(!mounted||db.auth.currentUser==null||
-    message.data['type']!='notification')return;
-  Navigator.of(context).push(MaterialPageRoute<void>(
-   builder:(_)=>const NotificationsScreen()));
+  if(!mounted||db.auth.currentUser==null)return;
+  final type=message.data['type'];
+  if(type!='notification'&&type!='summary')return;
+  unawaited(openNotificationById(context,
+   message.data['notification_id']?.toString(),summary:type=='summary'));
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
   if(state==AppLifecycleState.resumed&&_ready&&mounted){

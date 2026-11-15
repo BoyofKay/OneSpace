@@ -1,37 +1,42 @@
-# R46 + R47 — Baseline hygiene and Reminders for real life
+# R48 — Notifications 2.0 and brand line in the top bar
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.417 (R43/R44 era source).
+Previous signed preview: 0.1.418 (R46 + R47).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.417
-- R44 expanded action history and R45 editable/retractable Experience
-  comments (already merged, never shipped in an APK).
-- R46: automatic love gestures retired; Shared Goals removed from the
-  app (data kept); tagline "As a couple, we have One Space"; stale copy
-  removed; Troubleshooting link; Today/Yesterday meeting labels.
-- R47: repeating reminders (daily, weekdays, weekly on days, monthly,
-  yearly, every N, up to 6 times a day, end date), Done for this time,
-  Missed occurrences, quiet hours for partner reminders, Urgent, linked
-  item closed stops alerts, partner local-time hint, reminders in Today
-  Needs attention and Coming up.
+## Included since 0.1.418
+- Content pushes in the recipient's language ("Kay sent you a hug"),
+  using the name the recipient calls their partner.
+- Plain Activity chat messages, trip messages and experience comments
+  notify: at most one push per item per 10 minutes, "+N more".
+- Meaningful partner changes push: new to-do / Activity / memory /
+  reminder for you, moved dates, status changes, assigned to you,
+  removed and restored. Minor edits stay silent.
+- Quiet hours for partner-triggered pushes with one wake-up summary;
+  no push for notifications already opened in the app.
+- Tapping a push opens the exact item (Activity conversation, reminder
+  with Done/Snooze, gesture pop-up, event, to-do, trip, occasion,
+  experience, memory). Newer pushes replace older ones per item.
+- Notification list shows the push wording and age; slider filter icon.
+- Brand line "Two of us, One Space" under the OneSpace name in the top
+  bar, splash and sign-in; removed from the Today body.
 
-## Database
+## Database and backend
 - Applied live before this build (additive, non-destructive):
-  0107 r46_retire_automatic_gestures; 0108 R47 reminders (three
-  recorded migrations). Older app versions keep working.
+  0109 r48_notifications_2 (+ two small recorded follow-ups).
+- Edge Function onespace-push-delivery v5 deployed (reads the new
+  title/body/tag; older app versions still receive readable pushes).
 
 ## Verification
 - "Verify OneSpace iteration" (analyze + tests) must succeed on the
-  R47 branch before merge. This pipeline repeats analyze + tests,
+  R48 branch before merge. This pipeline repeats analyze + tests,
   compiles, validates Firebase, package ID and signing certificate.
 
 ## Two-phone validation
-Follow docs/R46_BASELINE_HYGIENE_QA.md (11 steps) and
-docs/R47_REMINDERS_FOR_REAL_LIFE_QA.md (11 steps).
+Follow docs/R48_NOTIFICATIONS_QA.md (12 steps).
 
-Controlled R46+R47 signed preview candidate, November 15, 2026.
+Controlled R48 signed preview candidate, November 15, 2026.

@@ -12,6 +12,7 @@ import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../memories/scrapbook_studio_screen.dart';
+import '../memories/memories_screen.dart';
 
 /// One stable realtime subscription per signed-in account, not per frame.
 class NotificationBell extends StatefulWidget {
@@ -52,6 +53,91 @@ class _NotificationBellState extends State<NotificationBell> {
  }
 }
 
+/// R48: one place that knows where every notification leads. Used by the
+/// notification list and by tapping a push, so both open the exact item.
+Future<void> openNotificationTarget(BuildContext context,
+  Map<String,dynamic> item) async {
+ final db=Supabase.instance.client;
+ final userId=db.auth.currentUser?.id;
+ if(userId==null)return;
+ if(item['read_at']==null&&item['id']!=null){
+   try{
+     await db.from('space_notifications')
+       .update({'read_at':DateTime.now().toUtc().toIso8601String()})
+       .eq('id',item['id'].toString()).eq('recipient_id',userId);
+   }catch(_){}
+ }
+ if(!context.mounted)return;
+ final type=item['object_kind']?.toString()??'';
+ final kind=item['kind']?.toString()??'';
+ final objectId=item['object_id']?.toString();
+ final Widget screen;
+ if(type=='activity'){
+   final id=(item['activity_id']??objectId)?.toString();
+   if(id==null)return;
+   screen=ActivityScreen(id:id,focusConversation:
+     kind=='message'||kind=='mention'||kind=='reply');
+ }else if(type=='calendar'){
+   screen=CalendarScreen(initialEventId:
+     (item['calendar_event_id']??objectId)?.toString());
+ }else if(type=='scrapbook'){
+   screen=ScrapbookStudioScreen(
+    spaceId:item['space_id'].toString(),
+    memoryId:(item['memory_id']??objectId).toString());
+ }else if(type=='memory'){
+   screen=MemoriesScreen(initialMemoryId:(item['memory_id']??objectId)?.toString());
+ }else if(type=='reminder'){
+   screen=RemindersScreen(initialReminderId:objectId);
+ }else if(type=='task'){
+   screen=PlansScreen(focusTaskId:objectId);
+ }else if(type=='note'){
+   screen=NotesScreen(initialNoteId:objectId);
+ }else if(type=='occasion'){
+   screen=OccasionsScreen(initialPlanId:(item['occasion_id']??objectId)?.toString());
+ }else if(type=='trip'){
+   screen=TripsScreen(initialTripId:(item['trip_id']??objectId)?.toString());
+ }else if(type=='experience'){
+   screen=SharedExperiencesScreen(initialExperienceId:
+     (item['experience_id']??objectId)?.toString());
+ }else if(type=='letter'){
+   screen=const CoupleLettersScreen();
+ }else if(type=='checkin_request'){
+   screen=CheckinsScreen(initialRequestId:objectId);
+ }else if(type=='checkin'){
+   screen=const CheckinsScreen();
+ }else if(type=='gesture'){
+   if(objectId==null)return;
+   await GestureNotificationDialog.show(context,objectId);
+   return;
+ }else{
+   screen=const NotificationsScreen();
+ }
+ await Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>screen));
+}
+
+/// Opens the item behind a push. The push only carries the notification id;
+/// the row is read under the signed-in user's own access rules.
+Future<void> openNotificationById(BuildContext context,String? id,
+  {bool summary=false}) async {
+ if(summary||id==null||id.isEmpty){
+   await Navigator.of(context).push(MaterialPageRoute<void>(
+     builder:(_)=>const NotificationsScreen()));
+   return;
+ }
+ Map<String,dynamic>? row;
+ try{
+   row=await Supabase.instance.client.from('space_notifications')
+     .select().eq('id',id).maybeSingle();
+ }catch(_){}
+ if(!context.mounted)return;
+ if(row==null){
+   await Navigator.of(context).push(MaterialPageRoute<void>(
+     builder:(_)=>const NotificationsScreen()));
+   return;
+ }
+ await openNotificationTarget(context,row);
+}
+
 class NotificationsScreen extends StatefulWidget {
  const NotificationsScreen({super.key});
  @override State<NotificationsScreen> createState()=>_NotificationsScreenState();
@@ -88,52 +174,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
  }
 
  Future<void> _open(Map<String,dynamic> item,String userId) async {
-   if(item['read_at']==null){
-     try{
-       await db.from('space_notifications')
-         .update({'read_at':DateTime.now().toUtc().toIso8601String()})
-         .eq('id',item['id'].toString()).eq('recipient_id',userId);
-     }catch(_){}
-   }
-   if(!mounted)return;
-   final type=item['object_kind']?.toString()??'';
-   final Widget screen;
-   if(type=='activity'){
-     final id=item['activity_id']?.toString();
-     if(id==null)return;
-     screen=ActivityScreen(id:id);
-   }else if(type=='calendar'){
-     screen=CalendarScreen(initialEventId:
-       (item['calendar_event_id']??item['object_id'])?.toString());
-   }else if(type=='scrapbook'){
-     screen=ScrapbookStudioScreen(
-      spaceId:item['space_id'].toString(),
-      memoryId:item['object_id'].toString());
-   }else if(type=='reminder'){
-     screen=RemindersScreen(initialReminderId:item['object_id']?.toString());
-   }else if(type=='task'){
-     screen=PlansScreen(focusTaskId:item['object_id']?.toString());
-   }else if(type=='note'){
-     screen=NotesScreen(initialNoteId:item['object_id']?.toString());
-   }else if(type=='occasion'){
-     screen=OccasionsScreen(initialPlanId:(item['occasion_id']??item['object_id'])?.toString());
-   }else if(type=='trip'){
-     screen=TripsScreen(initialTripId:(item['trip_id']??item['object_id'])?.toString());
-   }else if(type=='experience'){
-     screen=SharedExperiencesScreen(initialExperienceId:
-       (item['experience_id']??item['object_id'])?.toString());
-   }else if(type=='letter'){
-     screen=const CoupleLettersScreen();
-   }else if(type=='checkin_request'){
-     screen=CheckinsScreen(initialRequestId:item['object_id']?.toString());
-   }else if(type=='checkin'){
-     screen=const CheckinsScreen();
-   }else if(type=='gesture'){
-     await GestureNotificationDialog.show(context,
-       item['object_id'].toString());
-     return;
-   }else{return;}
-   Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>screen));
+   await openNotificationTarget(context,item);
  }
 
  @override Widget build(BuildContext context){
@@ -144,7 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      appBar:AppBar(title:const Text('Notifications'),actions:[
       PopupMenuButton<String>(
        tooltip:'Notification filters',
-       icon:Icon(unreadOnly?Icons.filter_alt:Icons.filter_alt_outlined),
+       icon:Badge(isLabelVisible:unreadOnly,smallSize:7,child:const Icon(Icons.tune)),
        initialValue:unreadOnly?'unread':'all',
        onSelected:(choice)=>setState(()=>unreadOnly=choice=='unread'),
        itemBuilder:(_)=>const [
@@ -192,42 +233,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                      leading:kind=='gesture'&&item['object_id']!=null?
                        GestureNotificationIcon(
                          gestureId:item['object_id'].toString()):
-                       Icon(kind=='reminder'&&item['object_kind']=='reminder'?Icons.alarm_outlined:
-                       kind=='scrapbook_invite'?Icons.collections_bookmark_outlined:
-                       kind=='mention'?Icons.alternate_email:
-                       kind=='reply'?Icons.reply:
-                       kind.startsWith('trip_')?Icons.flight_takeoff_outlined:
-                       kind=='occasion_shared'?Icons.card_giftcard_outlined:
-                       kind.startsWith('experience_')?Icons.movie_outlined:
-                       kind=='letter'?Icons.mail_outline:
-                       kind=='gesture'?Icons.favorite_border:
-                       kind.startsWith('checkin_')?Icons.mark_chat_read_outlined:
-                       Icons.event_outlined),
-                     title:Text(item['headline']?.toString()??'Update',
+                       Icon(notificationIcon(item)),
+                     title:Text(
+                       (item['push_title']??item['headline'])?.toString()??'Update',
+                       maxLines:2,overflow:TextOverflow.ellipsis,
                        style:TextStyle(fontWeight:unreadItem?
                          FontWeight.bold:FontWeight.normal)),
-                     subtitle:Text(kind=='reminder'&&item['object_kind']=='reminder'?
-                         'Open to complete, follow up, or snooze':
-                       kind=='scrapbook_invite'?'Open to accept and create scrapbook pages together':
-                       kind=='mention'?'Your partner mentioned you':
-                       kind=='reply'?'Your partner replied':
-                       kind=='letter'?'New letter':
-                       kind=='gesture'?
-                         (item['generated_automatically']==true
-                           ?'Scheduled by your partner'
-                           :'Personally sent by your partner'):
-                       kind=='checkin_request'?'Your partner is checking on you':
-                       kind=='checkin_response'?'Your partner replied':
-                       kind=='checkin_shared'?'Your partner shared their feelings':
-                       kind=='occasion_shared'?'Your partner planned an occasion':
-                       kind=='trip_document'?'Your partner shared a travel document':
-                       kind=='trip_suggestion'?'New shared trip':
-                       kind=='trip_message'?'Your partner wrote about a trip':
-                       kind=='experience_suggestion'?'New experience idea':
-                       kind=='experience_comment'?'Your partner added a thought':
-                       kind=='event'?'New shared event':
-                       kind=='reminder'?'Your partner sent an event reminder':
-                         'Shared update'),
+                     subtitle:Text(
+                       [
+                         (item['push_body']?.toString().trim().isNotEmpty??false)
+                           ?item['push_body'].toString():item['headline']?.toString()??'',
+                         notificationAge(item['created_at']),
+                       ].where((part)=>part.isNotEmpty).join(' · '),
+                       maxLines:3,overflow:TextOverflow.ellipsis),
                      trailing:unreadItem?const Icon(Icons.circle,size:8):null,
                      onTap:()=>_open(item,userId),
                    );
@@ -239,4 +257,54 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      ),
    );
  }
+}
+
+/// Icon for a notification row; follows the item type, then the action.
+IconData notificationIcon(Map<String,dynamic> item){
+ final kind=item['kind']?.toString()??'';
+ final object=item['object_kind']?.toString()??'';
+ final action=item['action']?.toString()??'';
+ if(kind=='change'){
+   if(action=='removed')return Icons.delete_outline;
+   if(action=='restored')return Icons.restore;
+   if(action=='moved')return Icons.event_repeat_outlined;
+   if(action=='assigned')return Icons.assignment_ind_outlined;
+   if(action=='cancelled')return Icons.cancel_outlined;
+   return Icons.check_circle_outline;
+ }
+ if(kind=='message'||kind=='trip_message'||kind=='experience_comment'){
+   return Icons.chat_bubble_outline;
+ }
+ if(kind=='mention')return Icons.alternate_email;
+ if(kind=='reply')return Icons.reply;
+ if(kind=='letter')return Icons.mail_outline;
+ if(kind=='gesture')return Icons.favorite_border;
+ if(kind=='scrapbook_invite')return Icons.collections_bookmark_outlined;
+ if(kind.startsWith('checkin_'))return Icons.mark_chat_read_outlined;
+ switch(object){
+   case 'reminder': return Icons.alarm_outlined;
+   case 'task': return Icons.checklist_outlined;
+   case 'activity': return Icons.forum_outlined;
+   case 'memory': case 'scrapbook': return Icons.photo_album_outlined;
+   case 'trip': return Icons.flight_takeoff_outlined;
+   case 'occasion': return Icons.card_giftcard_outlined;
+   case 'experience': return Icons.movie_outlined;
+ }
+ return Icons.event_outlined;
+}
+
+/// "Just now", "5 min ago", "3 h ago", "Yesterday", "4 days ago", or a date.
+String notificationAge(Object? raw,{DateTime? now}){
+ final at=DateTime.tryParse(raw?.toString()??'')?.toLocal();
+ if(at==null)return '';
+ final current=now??DateTime.now();
+ final gap=current.difference(at);
+ if(gap.inMinutes<1)return 'Just now';
+ if(gap.inMinutes<60)return '${gap.inMinutes} min ago';
+ if(gap.inHours<24)return '${gap.inHours} h ago';
+ final days=DateTime(current.year,current.month,current.day)
+   .difference(DateTime(at.year,at.month,at.day)).inDays;
+ if(days==1)return 'Yesterday';
+ if(days<7)return '$days days ago';
+ return '${at.day}/${at.month}/${at.year}';
 }

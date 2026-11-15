@@ -729,7 +729,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ),
             )
           else const SizedBox(height:16),
-          Text(tr(context,'tagline'),style:Theme.of(context).textTheme.labelMedium),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:12),
           if (issue != null) ...[
