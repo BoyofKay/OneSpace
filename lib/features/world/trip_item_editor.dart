@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../calendar/calendar_rules.dart';
 import '../../core/responsive_field_pair.dart';
 import 'package:onespace/l10n/phrases.dart';
+import 'airports.dart';
+import 'trip_widgets.dart';
 
 const tripItemKinds=<String,String>{
  'flight':'Flight','stay':'Accommodation','transport':'Transport',
@@ -13,15 +15,17 @@ const tripItemKinds=<String,String>{
 };
 
 class TripItemEditor extends StatefulWidget {
- const TripItemEditor({super.key,required this.tripId,this.existing});
+ const TripItemEditor({super.key,required this.tripId,this.existing,this.trip});
  final String tripId;
  final Map<String,dynamic>? existing;
+ /// R67: the trip, to start a new flight from its airports and dates.
+ final Map<String,dynamic>? trip;
  @override State<TripItemEditor> createState()=>_TripItemEditorState();
 }
 
 class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<TripItemEditor> {
  /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[title.text,location.text,destination.text,provider.text,reference.text,link.text,details.text,cost.text,currency.text,kind,localDate,endDate,localTime,endTime,done].join('|');
+ @override String get signature=>[title.text,location.text,destination.text,provider.text,reference.text,link.text,details.text,cost.text,currency.text,kind,localDate,endDate,localTime,endTime,fromCode,toCode].join('|');
 
  final db=Supabase.instance.client;
  late final TextEditingController title,location,destination,provider;
@@ -29,7 +33,8 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
  late String kind;
  DateTime? localDate,endDate;
  TimeOfDay? localTime,endTime;
- bool done=false,saving=false;
+ bool saving=false,titleTouched=false;
+ String? fromCode,toCode;
  String? error;
 
  @override void initState(){
@@ -49,7 +54,25 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
   endDate=DateTime.tryParse((e['end_date']??'').toString());
   localTime=parseLocalTime(e['local_time']);
   endTime=parseLocalTime(e['end_time']);
-  done=e['done']==true;
+  final t=widget.trip??const {};
+  if(widget.existing==null&&(t['travel_mode']??'flight')!='flight')kind='transport';
+  if(widget.existing==null&&kind=='flight'){
+   location.text=(t['origin']??'').toString();
+   destination.text=(t['destination']??'').toString();
+   localDate=DateTime.tryParse((t['start_on']??'').toString());
+  }
+  if(Airports.isCode(location.text))fromCode=location.text;
+  if(Airports.isCode(destination.text))toCode=destination.text;
+  titleTouched=title.text.trim().isNotEmpty;
+  Airports.load().then((_){if(mounted){setState((){});suggestTitle();}});
+ }
+
+ /// R67: a flight's title follows its airports ("RUH → PHL") until typed.
+ void suggestTitle(){
+  if(titleTouched||kind!='flight')return;
+  final a=fromCode??location.text.trim(),b=toCode??destination.text.trim();
+  if(a.isEmpty&&b.isEmpty)return;
+  title.text='${a.isEmpty?'?':a} → ${b.isEmpty?'?':b}';
  }
 
  @override void dispose(){
@@ -116,7 +139,7 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
     'provider':provider.text.trim(),
     'booking_reference':reference.text.trim(),
     'source_url':source,'details':details.text.trim(),
-    'estimated_cost':amount,'currency':code,'done':done,
+    'estimated_cost':amount,'currency':code,
    };
    if(widget.existing==null){
     await db.from('trip_items').insert({...values,'trip_id':widget.tripId});
@@ -178,11 +201,18 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
     icons:const {'flight':Icons.flight_outlined,'stay':Icons.hotel_outlined,
      'transport':Icons.directions_car_outlined,'activity':Icons.local_activity_outlined,
      'booking':Icons.restaurant_outlined,'note':Icons.sticky_note_2_outlined},
-    onSelected:(v){if(!saving&&v!=null)setState(()=>kind=v);}),
+    onSelected:(v){if(!saving&&v!=null){setState(()=>kind=v);suggestTitle();}}),
    TextField(controller:title,maxLength:160,textCapitalization:TextCapitalization.sentences,
+    onChanged:(_)=>titleTouched=true,
     decoration:InputDecoration(labelText:tt('Title *'),hintText:w['title'],border:const OutlineInputBorder())),
    if(!isNote)...[
     FormSection(tt('Where and when')),
+    if(kind=='flight')...[
+     AirportField(label:tt('From airport'),value:fromCode,onChanged:(v)=>setState((){
+      fromCode=v;location.text=v??'';suggestTitle();})),
+     AirportField(label:tt('To airport'),value:toCode,icon:Icons.flight_land_outlined,
+      onChanged:(v)=>setState((){toCode=v;destination.text=v??'';suggestTitle();})),
+    ]else...[
     if(w['from']!.isNotEmpty)Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(
      controller:location,maxLength:240,
      decoration:InputDecoration(labelText:w['from'],prefixIcon:const Icon(Icons.place_outlined),
@@ -191,6 +221,7 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
      controller:destination,maxLength:240,
      decoration:InputDecoration(labelText:w['to'],prefixIcon:const Icon(Icons.flag_outlined),
       border:const OutlineInputBorder()))),
+    ],
     whenChips(w['start']!,localDate,localTime,false),
     if(w['end']!.isNotEmpty)whenChips(w['end']!,endDate,endTime,true),
     Text(tt('Local times, exactly as on the booking.'),style:Theme.of(context).textTheme.bodySmall),
@@ -219,9 +250,6 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
    TextField(controller:details,maxLength:5000,minLines:2,maxLines:6,
     decoration:InputDecoration(labelText:tt('Notes and details'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
-    onChanged:(v)=>setState(()=>done=v))),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));

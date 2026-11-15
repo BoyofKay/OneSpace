@@ -246,16 +246,27 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
  }
 
  @override Widget build(BuildContext context){
-  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  final scheme=Theme.of(context).colorScheme;
+  // R67: documents are the most important part of a trip, so they sit in
+  // their own tinted card near the top, with Attach as the main button.
+  return Card(elevation:0,color:scheme.secondaryContainer.withValues(alpha:.55),
+   shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18),
+    side:BorderSide(color:scheme.secondary.withValues(alpha:.35))),
+   child:Padding(padding:const EdgeInsets.fromLTRB(14,12,14,12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Row(children:[
+    Icon(Icons.folder_special_outlined,color:scheme.secondary),
+    const SizedBox(width:8),
     Expanded(child:Text(tt('Travel documents'),style:Theme.of(context).textTheme.titleLarge)),
-    TextButton.icon(onPressed:busy?null:add,icon:const Icon(Icons.attach_file),
+    IconButton(tooltip:tt(showArchived?'Hide removed':'Show removed'),
+     isSelected:showArchived,
+     icon:const Icon(Icons.delete_outline),selectedIcon:const Icon(Icons.delete),
+     onPressed:()=>setState(()=>showArchived=!showArchived)),
+    FilledButton.tonalIcon(onPressed:busy?null:add,icon:const Icon(Icons.attach_file),
      label:Text(tt('Attach'))),
    ]),
-   Text(tt('Boarding passes, tickets, travel PDFs and photo scans. Files stay private to people who can view this trip.')),
+   Text(tt('Boarding passes, tickets, visas and bookings. Only people who can see this trip can open them.'),
+    style:Theme.of(context).textTheme.bodySmall),
    const SizedBox(height:8),
-   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
-    value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
    if(error!=null)Padding(padding:const EdgeInsets.all(6),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
    if(busy)const LinearProgressIndicator(),
@@ -264,23 +275,21 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
     if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
     final visible=snapshot.data!.where(
      (r)=>showArchived||r['archived_at']==null).toList();
-    if(visible.isEmpty)return Card(child:Padding(
-     padding:EdgeInsets.all(16),
-     child:Text(tt('No travel documents here yet. Attach a PDF or an image.'))));
+    if(visible.isEmpty)return Padding(
+     padding:const EdgeInsets.symmetric(vertical:10),
+     child:Text(tt('No travel documents yet. Attach a PDF or a photo.')));
     return Column(children:[
-     for(final doc in visible)Card(elevation:0,child:ListTile(
-      leading:Icon(doc['mime_type']=='application/pdf'?
-       Icons.picture_as_pdf_outlined:Icons.image_outlined),
+     for(final doc in visible)Card(elevation:0,margin:const EdgeInsets.only(bottom:6),child:ListTile(
+      leading:CircleAvatar(backgroundColor:scheme.surface,child:Icon(doc['mime_type']=='application/pdf'?
+       Icons.picture_as_pdf_outlined:Icons.image_outlined,color:scheme.secondary)),
       title:Text(tt(doc['title'].toString()),maxLines:2),
       subtitle:Text(tt([
        tripDocumentKinds[doc['kind']]??'Document',
        attachedTo(doc),
        if(doc['archived_at']!=null)'Removed',
-       if(doc['file_size'] is num)
-        ((doc['file_size'] as num)/1024).toStringAsFixed(0)+' KB',
-      ].join(' · ')),maxLines:3),
+      ].join(' · ')),maxLines:2),
       onTap:doc['archived_at']!=null?null:()=>view(doc),
-      trailing:PopupMenuButton<String>(
+      trailing:AnchoredMenuButton<String>(
        tooltip:tt('More'),
        onSelected:(choice){
         if(choice=='edit'){edit(doc);}
@@ -295,6 +304,6 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
      )),
     ]);
    }),
-  ]);
+  ])));
  }
 }

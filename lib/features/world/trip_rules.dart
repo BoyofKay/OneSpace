@@ -4,6 +4,37 @@ import '../calendar/calendar_rules.dart';
 class TripRules {
  const TripRules._();
 
+ /// R67: the status is automatic (set by the database); this only mirrors it
+ /// for the screen so a trip shows Traveling/Completed on the right day even
+ /// before the hourly refresh.
+ static String status(Map<String,dynamic> trip,DateTime today){
+  final stored=(trip['status']??'planning').toString();
+  if(stored=='cancelled')return 'cancelled';
+  final day=CalendarRules.day(today);
+  final start=DateTime.tryParse((trip['start_on']??'').toString());
+  final end=DateTime.tryParse((trip['end_on']??'').toString())??start;
+  if(end!=null&&end.isBefore(day))return 'completed';
+  if(start!=null&&!start.isAfter(day))return 'traveling';
+  return stored=='booked'?'booked':'planning';
+ }
+
+ /// Display words for each status.
+ static const statusLabels=<String,String>{
+  'planning':'Planning','booked':'Booked','traveling':'Traveling',
+  'completed':'Past','cancelled':'Cancelled',
+ };
+
+ /// ["2 adults", "1 child"] (empty when nobody is counted).
+ static List<String> passengers(Map<String,dynamic> trip){
+  int n(String k)=>(trip[k] as num?)?.toInt()??0;
+  final a=n('adults'),c=n('children'),i=n('infants');
+  return [
+   if(a>0)'$a ${a==1?'adult':'adults'}',
+   if(c>0)'$c ${c==1?'child':'children'}',
+   if(i>0)'$i ${i==1?'infant':'infants'}',
+  ];
+ }
+
  static int? daysUntil(DateTime? departure,DateTime today){
   if(departure==null)return null;
   return CalendarRules.calendarDaysUntil(
