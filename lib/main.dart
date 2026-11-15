@@ -170,7 +170,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 const Text('OneSpace',style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                const Text('One Life, Two Places'),
+                const Text('As a couple, we have One Space'),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
