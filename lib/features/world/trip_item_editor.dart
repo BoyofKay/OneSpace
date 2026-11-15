@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,7 +17,10 @@ class TripItemEditor extends StatefulWidget {
  @override State<TripItemEditor> createState()=>_TripItemEditorState();
 }
 
-class _TripItemEditorState extends State<TripItemEditor> {
+class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<TripItemEditor> {
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,location.text,destination.text,provider.text,reference.text,link.text,details.text,cost.text,currency.text,kind,localDate,endDate,localTime,endTime,done].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,location,destination,provider;
  late final TextEditingController reference,link,details,cost,currency;
@@ -128,9 +132,10 @@ class _TripItemEditorState extends State<TripItemEditor> {
   }
  }
 
- @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Add new itinerary item':'Edit itinerary item')),
-  body:ListView(padding:const EdgeInsets.all(16),children:[
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new itinerary item':'Edit itinerary item',
+   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,location,destination,provider,reference,link,details,cost,currency],saving:saving,onSave:save,
+   body:ListView(padding:const EdgeInsets.all(16),children:[
    Text('Keep booking details in one place',
     style:Theme.of(context).textTheme.titleLarge),
    const SizedBox(height:4),
@@ -143,7 +148,7 @@ class _TripItemEditorState extends State<TripItemEditor> {
     onChanged:saving?null:(v)=>setState(()=>kind=v??kind)),
    const SizedBox(height:10),
    TextField(controller:title,maxLength:160,
-    decoration:const InputDecoration(labelText:'Title',border:OutlineInputBorder())),
+    decoration:const InputDecoration(labelText:'Title *',border:OutlineInputBorder())),
    const SizedBox(height:10),
    TextField(controller:location,maxLength:240,
     decoration:const InputDecoration(labelText:'From / location (optional)',border:OutlineInputBorder())),
@@ -196,7 +201,5 @@ class _TripItemEditorState extends State<TripItemEditor> {
     value:done,onChanged:(v)=>setState(()=>done=v)),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
    const SizedBox(height:12),
-   FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),
-    label:Text(saving?'Saving…':'Save itinerary item')),
   ]));
 }

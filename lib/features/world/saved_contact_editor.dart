@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,7 +13,10 @@ class SavedContactEditor extends StatefulWidget{
  final ActivityContact? imported;
  @override State<SavedContactEditor> createState()=>_SavedContactEditorState();
 }
-class _SavedContactEditorState extends State<SavedContactEditor>{
+class _SavedContactEditorState extends State<SavedContactEditor> with FormChangeTracker<SavedContactEditor>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[name.text,person.text,phone.text,email.text,address.text,hours.text,notes.text,company.text,role.text,website.text,onlyMe].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController name,person,phone,email,address,hours,notes,company,role,website;
  late bool onlyMe;
@@ -111,10 +115,10 @@ class _SavedContactEditorState extends State<SavedContactEditor>{
  }
  @override Widget build(BuildContext context){
    final fromActivity=widget.existing!=null&&!widget.existing!.direct;
-   return Scaffold(
-     appBar:AppBar(title:Text(widget.existing==null?'Add new contact':
-       'Edit contact')),
-     body:SafeArea(child:ListView(
+   return EditorScaffold(title:widget.existing==null?'Add new contact card':'Edit contact card',
+   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>name.text.trim().isNotEmpty,
+   listenTo:[name,person,phone,email,address,hours,notes,company,role,website],saving:busy,onSave:save,
+   body:SafeArea(child:ListView(
        padding:const EdgeInsets.all(18),children:[
        const Text('Contact card',style:TextStyle(
          fontSize:19,fontWeight:FontWeight.w700)),
@@ -126,7 +130,7 @@ class _SavedContactEditorState extends State<SavedContactEditor>{
          'Save a person or place directly, without creating an Activity.',
          style:Theme.of(context).textTheme.bodySmall),
        const SizedBox(height:16),
-       field(name,'Contact card name'),
+       field(name,'Contact card name *'),
        field(person,'Contact person'),
        field(phone,'Phone number',max:80,type:TextInputType.phone),
        field(email,'Email',max:254,type:TextInputType.emailAddress),
@@ -148,10 +152,6 @@ class _SavedContactEditorState extends State<SavedContactEditor>{
          child:Text(error!,style:TextStyle(
            color:Theme.of(context).colorScheme.error))),
        const SizedBox(height:12),
-       FilledButton.icon(
-         onPressed:busy?null:save,
-         icon:const Icon(Icons.save_outlined),
-         label:Text(busy?'Saving…':'Save contact')),
        const SizedBox(height:30),
      ])),
    );

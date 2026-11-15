@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -62,7 +63,10 @@ class NewActivityScreen extends StatefulWidget {
   @override State<NewActivityScreen> createState() => _NewActivityScreenState();
 }
 
-class _NewActivityScreenState extends State<NewActivityScreen> {
+class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTracker<NewActivityScreen> {
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,details.text,shared,dueOn,purpose].join('|');
+
   final db = Supabase.instance.client;
   late final title = TextEditingController(text: widget.initialTitle);
   late final details = TextEditingController(text: widget.initialDetails.isNotEmpty
@@ -110,9 +114,10 @@ class _NewActivityScreenState extends State<NewActivityScreen> {
 
   @override Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add new Activity')),
-      body: SafeArea(child: ListView(
+    return EditorScaffold(title:'Start activity',
+   isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,
+   listenTo:[title,details],saving:saving,onSave:_save,
+   body: SafeArea(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           TextField(
@@ -122,7 +127,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> {
             textCapitalization: TextCapitalization.sentences,
             style: theme.textTheme.headlineSmall,
             decoration: const InputDecoration(
-              hintText: 'What is this about?', border: InputBorder.none,
+              hintText: 'What is this about? *', border: InputBorder.none,
               counterText: '')),
           Wrap(spacing: 8, runSpacing: 4, children: [
             FilterChip(
@@ -160,15 +165,6 @@ class _NewActivityScreenState extends State<NewActivityScreen> {
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8),
             child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: draft.canSave && !saving ? _save : null,
-            icon: saving ? const SizedBox(width: 18, height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check),
-            label: const Text('Create Activity')),
-          if (!draft.canSave) Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text('Give it a title to save. Leaving now creates nothing.',
-              style: theme.textTheme.bodySmall, textAlign: TextAlign.center)),
         ],
       )),
     );

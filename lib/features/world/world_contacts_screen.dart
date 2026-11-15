@@ -290,6 +290,9 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      ],
    ));
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'source',label:'Source',options:const {'all':'All','direct':'Saved directly','activity':'From Activities'},selected:sourceFilter,defaultValue:'all')];
+
  @override Widget build(BuildContext context){
    final visible=WorldContactEntry.filtered(
      contacts.where((e)=>e.isDeleted==showDeleted &&
@@ -301,32 +304,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
         historyKinds:const ['contact'],historyTitle:'People',
      showHistory:showDeleted,
         onToggleHistory:()=>setState(()=>showDeleted=!showDeleted),
-        hasActiveFilters:sourceFilter!='all',
-      onClearFilters:()=>setState((){sourceFilter='all';}),
-        filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-         mainAxisSize:MainAxisSize.min,
-         crossAxisAlignment:CrossAxisAlignment.start,children:[
-          const Text('Contact source'),
-          Wrap(spacing:8,runSpacing:6,children:[
-           for(final entry in const {
-            'all':'All contacts','direct':'Saved directly',
-            'activity':'From Activities',
-           }.entries)ChoiceChip(
-            label:Text(entry.value),selected:sourceFilter==entry.key,
-            onSelected:(_){
-             setState(()=>sourceFilter=entry.key);refresh((){});
-            }),
-          ]),
-          TextButton.icon(onPressed:(){
-           setState(()=>sourceFilter='all');refresh((){});
-          },icon:const Icon(Icons.restart_alt),
-           label:const Text('Reset filters')),
-         ])),
-       ),
-       IconButton(
-        tooltip:'Contact edit history',icon:const Icon(Icons.manage_history),
-        onPressed:()=>showHistory()),
-     ],bottom:showDeleted?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showDeleted=false))):null),
+        groups:_filterGroups(),
+      onApply:(v)=>setState((){sourceFilter=v['source']!;}),
+     ),
+     ],bottom:filterShowingBar(_filterGroups(),removed:showDeleted,onClear:()=>setState((){showDeleted=false;sourceFilter='all';}))),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
        padding:const EdgeInsets.all(14),

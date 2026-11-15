@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
 import 'dart:async';
 
@@ -288,6 +289,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     builder:(_)=>ExperienceDetail(id:row['id'].toString())));
   if(mounted)await load();
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'progress',label:'Progress',options:{'all':'All',...experienceStates},selected:status,defaultValue:'all'),FilterGroupSpec(id:'kind',label:'Category',options:{'all':'All',...experienceTypes},selected:kind,defaultValue:'all'),FilterGroupSpec(id:'picks',label:'Picks',options:const {'all':'All','mutual':'Both interested'},selected:mutualOnly?'mutual':'all',defaultValue:'all')];
+
  @override Widget build(BuildContext context){
   final scheme=Theme.of(context).colorScheme;
   final filtered=rows.where((r)=>
@@ -308,41 +312,10 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
      historyKinds:const ['experience'],historyTitle:'Shared experiences',
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-     hasActiveFilters:status!='all'||mutualOnly||kind!='all',
-      onClearFilters:()=>setState((){status='all';mutualOnly=false;kind='all';}),
-     filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-      mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,
-      children:[
-       const Text('Status'),
-       Wrap(spacing:8,runSpacing:5,children:[
-        for(final entry in <String,String>{'all':'All',...experienceStates}.entries)
-         ChoiceChip(label:Text(entry.value),selected:status==entry.key,
-          onSelected:(_){setState(()=>status=entry.key);refresh((){});}),
-       ]),
-       const SizedBox(height:10),
-       const Text('Category'),
-       Wrap(spacing:7,runSpacing:5,children:[
-        for(final entry in <String,String>{
-         'all':'All',...experienceTypes,
-        }.entries)ChoiceChip(
-         label:Text(entry.value),selected:kind==entry.key,
-         onSelected:(_){setState(()=>kind=entry.key);refresh((){});}),
-       ]),
-       SwitchListTile(contentPadding:EdgeInsets.zero,
-        title:const Text('Only mutual picks'),
-        subtitle:const Text('Both partners marked Interested'),
-        value:mutualOnly,
-        onChanged:(v){setState(()=>mutualOnly=v);refresh((){});}),
-       TextButton.icon(onPressed:(){
-        setState((){kind='all';status='all';mutualOnly=false;});
-        refresh((){});
-       },icon:const Icon(Icons.restart_alt),
-        label:const Text('Reset filters')),
-      ])),
-    ),
-    IconButton(tooltip:'Experience edit history',
-     icon:const Icon(Icons.history_outlined),onPressed:openHistory),
-   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
+     groups:_filterGroups(),
+      onApply:(v)=>setState((){status=v['progress']!;kind=v['kind']!;mutualOnly=v['picks']=='mutual';}),
+     ),
+   ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;status='all';kind='all';mutualOnly=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),
     label:const Text('Add an experience')),
@@ -494,7 +467,10 @@ class ExperienceEditor extends StatefulWidget{
  final String spaceId;final Map<String,dynamic>? original;
  @override State<ExperienceEditor> createState()=>_ExperienceEditorState();
 }
-class _ExperienceEditorState extends State<ExperienceEditor>{
+class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTracker<ExperienceEditor>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,description.text,platform.text,url.text,kind,status,planned,enjoyed].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,description,platform,url;
  late String kind,status;
@@ -547,10 +523,11 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
    catch(_){if(mounted)setState(()=>error='Could not save experience.');}
    finally{if(mounted)setState(()=>saving=false);}
  }
- @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:Text(widget.original==null?'Add new experience':'Edit experience')),
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.original==null?'Add new experience':'Edit experience',
+   isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,description,platform,url],saving:saving,onSave:save,
    body:ListView(padding:const EdgeInsets.all(16),children:[
-   TextField(controller:title,maxLength:160,decoration:const InputDecoration(labelText:'Title')),
+   TextField(controller:title,maxLength:160,decoration:const InputDecoration(labelText:'Title *')),
    DropdownButtonFormField<String>(initialValue:kind,
     decoration:const InputDecoration(labelText:'Type'),
     items:[for(final e in experienceTypes.entries)DropdownMenuItem(value:e.key,child:Text(e.value))],
@@ -581,8 +558,6 @@ class _ExperienceEditorState extends State<ExperienceEditor>{
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
     decoration:const InputDecoration(labelText:'Link (optional)')),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-   FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save),
-    label:Text(saving?'Saving…':'Save')),
   ]));
 }
 

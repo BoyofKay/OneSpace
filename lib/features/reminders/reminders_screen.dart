@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
 import '../../core/collection_history_screen.dart';
 import 'dart:async';
@@ -352,6 +353,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
    ],
   ));
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'open':'Open','all':'Open and completed'},selected:showCompleted?'all':'open',defaultValue:'open')];
+
  @override Widget build(BuildContext context){
   final visible=reminders.where((r)=>
    (showArchived||r['archived_at']==null)&&
@@ -366,23 +370,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
       historyKinds:const ['reminder'],historyTitle:'Reminders',
      showHistory:showArchived,
       onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-      hasActiveFilters:showCompleted,
-      onClearFilters:()=>setState((){showCompleted=false;}),
-      filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
-       mainAxisSize:MainAxisSize.min,children:[
-        SwitchListTile(title:const Text('Include completed'),
-         value:showCompleted,onChanged:(v){
-          setState(()=>showCompleted=v);update((){});
-         }),
-        TextButton.icon(onPressed:(){
-         setState(()=>showCompleted=false);update((){});
-        },icon:const Icon(Icons.restart_alt),
-         label:const Text('Reset filters')),
-       ])),
-    ),
-    IconButton(onPressed:()=>load(),tooltip:'Refresh reminders',
-     icon:const Icon(Icons.refresh_outlined)),
-   ],bottom:showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showArchived=false))):null),
+      groups:_filterGroups(),
+      onApply:(v)=>setState((){showCompleted=v['show']=='all';}),
+     ),
+   ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
     label:const Text('New reminder')),
@@ -433,7 +424,10 @@ class ReminderEditorScreen extends StatefulWidget{
  final Future<void> Function(String id)? onCreated;
  @override State<ReminderEditorScreen> createState()=>_ReminderEditorScreenState();
 }
-class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
+class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormChangeTracker<ReminderEditorScreen>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,details.text,due.toIso8601String(),visibility,audience,urgent,sourceKind,sourceId,repeat.toRule(start:due,timeZone:myZone)].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,details;
  late DateTime due;
@@ -664,11 +658,12 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
   };
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
-  return Scaffold(appBar:AppBar(
-   title:Text(editing?'Edit reminder':'Add new reminder')),
+  return EditorScaffold(title:editing?'Edit reminder':'Add new reminder',
+   isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,details],saving:saving,onSave:save,
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
     TextField(controller:title,maxLength:160,
-     decoration:const InputDecoration(labelText:'Reminder',
+     decoration:const InputDecoration(labelText:'Reminder *',
       border:OutlineInputBorder())),
     const SizedBox(height:10),
     TextField(controller:details,maxLength:4000,minLines:2,maxLines:5,
@@ -740,9 +735,6 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
      'No duplicate item is created.'),
     if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:10),
      child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
-    const SizedBox(height:18),
-    FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.save_outlined),
-     label:Text(saving?'Saving…':editing?'Save changes':'Create reminder')),
    ])),
   );
  }

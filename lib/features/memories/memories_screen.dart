@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -198,33 +199,20 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
    return words.every(content.contains);
   }
 
-  @override
+  /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+
+ @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
       RecordListTopActions(
         historyKinds:const ['memory'],historyTitle:'Memories',
      showHistory:_archived,
         onToggleHistory:()=>setState(()=>_archived=!_archived),
-        hasActiveFilters:_scope!='all',
-      onClearFilters:()=>setState((){_scope='all';}),
-        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
-          mainAxisSize:MainAxisSize.min,
-          crossAxisAlignment:CrossAxisAlignment.start,children:[
-           const Text('Visibility'),
-           Wrap(spacing:8,children:[
-            for(final choice in ['all','shared','private'])
-             ChoiceChip(label:Text(tr(ctx,choice)),selected:_scope==choice,
-              onSelected:(_){
-               setState(()=>_scope=choice);update((){});
-              }),
-           ]),
-           TextButton.icon(onPressed:(){
-            setState(()=>_scope='all');update((){});
-           },icon:const Icon(Icons.restart_alt),
-            label:const Text('Reset filters')),
-          ])),
-      ),
-    ],bottom:_archived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>_archived=false))):null),
+        groups:_filterGroups(),
+      onApply:(v)=>setState((){_scope=v['who']!;}),
+     ),
+    ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
     body: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -367,7 +355,10 @@ class MemoryEditorScreen extends StatefulWidget {
   State<MemoryEditorScreen> createState() => _MemoryEditorScreenState();
 }
 
-class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
+class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChangeTracker<MemoryEditorScreen> {
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[_title.text,_body.text,_date,_visibility,_pinned,_memoryType,_photoLayout].join('|');
+
   final _client = Supabase.instance.client;
   late final TextEditingController _title;
   late final TextEditingController _body;
@@ -524,13 +515,12 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(tr(context,_editing?'editMemory':'newMemory')),
-     actions:[
-      if(_editing)RecordActionHistoryButton(
-       kind:'memory',recordId:widget.existing!['id'].toString()),
-     ]),
-    body: SafeArea(
+  Widget build(BuildContext context) => EditorScaffold(title:tr(context,_editing?'editMemory':'newMemory'),
+   isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
+   listenTo:[_title,_body],saving:_busy,onSave:_save,
+   actions:[if(_editing)RecordActionHistoryButton(
+       kind:'memory',recordId:widget.existing!['id'].toString())],
+   body: SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -540,7 +530,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
             controller: _title, maxLength: 120, readOnly: !_editable,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              labelText: tr(context,'memoryTitle'),
+              labelText: requiredLabel(tr(context,'memoryTitle')),
               border: const OutlineInputBorder(),
             ),
           ),
@@ -607,11 +597,6 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> {
           if (_error != null) Text(_error!,
             style: TextStyle(color:Theme.of(context).colorScheme.error)),
           const SizedBox(height: 16),
-          if (_editable && !_archived) FilledButton.icon(
-            onPressed: _busy ? null : _save,
-            icon: const Icon(Icons.save_outlined),
-            label: Text(tr(context,'save')),
-          ),
           if (_editing && _editable) ...[
             const SizedBox(height: 10),
             OutlinedButton.icon(

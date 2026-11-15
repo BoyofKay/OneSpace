@@ -110,7 +110,10 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  @override
+  /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar:AppBar(title:const Text('Notes'),actions:[
@@ -118,26 +121,10 @@ class _NotesScreenState extends State<NotesScreen> {
         historyKinds:const ['note'],historyTitle:'Notes',
      showHistory:_showArchived,
         onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
-        hasActiveFilters:_scope!='all',
-      onClearFilters:()=>setState((){_scope='all';}),
-        filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
-         mainAxisSize:MainAxisSize.min,children:[
-          const Text('Visibility'),
-          Wrap(spacing:8,children:[
-           for(final scope in ['all','shared','private'])
-            ChoiceChip(
-             label:Text(tr(ctx,scope)),selected:_scope==scope,
-             onSelected:(_){
-              setState(()=>_scope=scope);update((){});
-             }),
-          ]),
-          TextButton.icon(onPressed:(){
-           setState(()=>_scope='all');update((){});
-          },icon:const Icon(Icons.restart_alt),
-           label:const Text('Reset filters')),
-         ])),
-       ),
-      ],bottom:_showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>_showArchived=false))):null),
+        groups:_filterGroups(),
+      onApply:(v)=>setState((){_scope=v['who']!;}),
+     ),
+      ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,onClear:()=>setState((){_showArchived=false;_scope='all';}))),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(

@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,7 +19,10 @@ class QuillNoteEditorScreen extends StatefulWidget {
  final Map<String,dynamic>? existing;
  @override State<QuillNoteEditorScreen> createState()=>_QuillNoteEditorState();
 }
-class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
+class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChangeTracker<QuillNoteEditorScreen>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,editor.document.toDelta().toJson().toString(),visibility,pinned].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title;
  late final quill.QuillController editor;
@@ -124,23 +128,24 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
  }
  @override Widget build(BuildContext context){
   final isEditingAllowed=canEdit&&!archived;
-  return Scaffold(
-   appBar:AppBar(title:Text(editing?'Edit note':'Add new note'),
-    actions:[
+  return EditorScaffold(title:editing?'Edit note':'Add new note',
+   isNew:!editing,isChanged:()=>changed,isComplete:()=>isEditingAllowed&&title.text.trim().isNotEmpty,
+   listenTo:[title,editor],saving:busy,onSave:save,
+   actions:[
      if(editing)RecordActionHistoryButton(
        kind:'note',recordId:widget.existing!['id'].toString()),
      if(editing&&canEdit)IconButton(
       onPressed:busy?null:archive,
       tooltip:archived?'Restore note':'Remove note',
       icon:Icon(archived?Icons.unarchive_outlined:Icons.archive_outlined)),
-    ]),
+    ],
    body:SafeArea(child:ListView(
     padding:const EdgeInsets.fromLTRB(16,14,16,36),children:[
      if(!isEditingAllowed)const Text('Read-only note',
       style:TextStyle(fontWeight:FontWeight.bold)),
      TextField(controller:title,maxLength:120,
       readOnly:!isEditingAllowed,
-      decoration:const InputDecoration(labelText:'Note title',
+      decoration:const InputDecoration(labelText:'Note title *',
        border:OutlineInputBorder())),
      const SizedBox(height:10),
      if(isEditingAllowed)...[
@@ -191,9 +196,6 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen>{
      if(error!=null)Padding(padding:const EdgeInsets.all(8),
       child:Text(error!,style:TextStyle(
        color:Theme.of(context).colorScheme.error))),
-     FilledButton.icon(onPressed:!isEditingAllowed||busy?null:save,
-      icon:const Icon(Icons.save_outlined),
-      label:Text(busy?'Saving…':'Save rich-text note')),
    ])),
   );
  }

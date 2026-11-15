@@ -187,26 +187,8 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           historyKinds:const ['activity'],historyTitle:'Activities',
           showHistory:showArchived,
           onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-          hasActiveFilters:selected!=CoordinateActivityView.active,
-      onClearFilters:()=>setState((){selected=CoordinateActivityView.active;}),
-          filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-           mainAxisSize:MainAxisSize.min,
-           crossAxisAlignment:CrossAxisAlignment.start,children:[
-            const Text('Activity view'),
-            Wrap(spacing:8,runSpacing:5,children:[
-             for(final value in CoordinateActivityView.values)
-              ChoiceChip(label:Text(label(value)),
-               selected:selected==value,
-               onSelected:(_){
-                setState(()=>selected=value);refresh((){});
-               }),
-            ]),
-            TextButton.icon(onPressed:(){
-             setState(()=>selected=CoordinateActivityView.active);
-             refresh((){});
-            },icon:const Icon(Icons.restart_alt),
-             label:const Text('Reset filters')),
-           ])),
+          groups:[FilterGroupSpec(id:'view',label:'Activities',options:{for(final v in CoordinateActivityView.values)v.name:label(v)},selected:selected.name,defaultValue:CoordinateActivityView.active.name)],
+           onApply:(v)=>setState(()=>selected=CoordinateActivityView.values.byName(v['view']!)),
          ),
         ]),
         const SizedBox(height: 3),

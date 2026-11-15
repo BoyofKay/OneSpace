@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
 import 'dart:async';
@@ -121,6 +122,9 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
    builder:(_)=>OccasionDetail(id:p['id'].toString())));
   if(mounted)await load();
  }
+ /// R55: this screen's filter groups (drawn by the shared panel).
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'upcoming':'Upcoming','private':'Only me','shared':'Both of us','all':'All'},selected:filter,defaultValue:'upcoming')];
+
  @override Widget build(BuildContext context){
   final today=DateTime.now();
   final shown=plans.where((p){
@@ -146,28 +150,10 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      historyKinds:const ['occasion'],historyTitle:'Occasions',
      showHistory:archived,
      onToggleHistory:()=>setState(()=>archived=!archived),
-     hasActiveFilters:filter!='upcoming',
-      onClearFilters:()=>setState((){filter='upcoming';}),
-     filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
-      mainAxisSize:MainAxisSize.min,
-      crossAxisAlignment:CrossAxisAlignment.start,children:[
-       const Text('Occasion view'),
-       Wrap(spacing:8,runSpacing:5,children:[
-        for(final entry in const {
-         'upcoming':'Upcoming','private':'Only me',
-         'shared':'Both of us','all':'All',
-        }.entries)ChoiceChip(
-         label:Text(entry.value),selected:filter==entry.key,
-         onSelected:(_){setState(()=>filter=entry.key);refresh((){});}),
-       ]),
-       TextButton.icon(onPressed:(){
-        setState(()=>filter='upcoming');refresh((){});
-       },icon:const Icon(Icons.restart_alt),label:const Text('Reset filters')),
-      ])),
-    ),
-    IconButton(tooltip:'Refresh',onPressed:load,
-     icon:const Icon(Icons.refresh)),
-   ],bottom:archived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>archived=false))):null),
+     groups:_filterGroups(),
+      onApply:(v)=>setState((){filter=v['show']!;}),
+     ),
+   ],bottom:filterShowingBar(_filterGroups(),removed:archived,onClear:()=>setState((){archived=false;filter='upcoming';}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Plan an occasion')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
@@ -220,7 +206,10 @@ class OccasionEditor extends StatefulWidget{
  final String? initialKind;
  @override State<OccasionEditor> createState()=>_OccasionEditorState();
 }
-class _OccasionEditorState extends State<OccasionEditor>{
+class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<OccasionEditor>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,notes.text,prep.text,saving.text,budget.text,currency.text,honoree.text,kind,status,visibility,date,annual].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,notes,prep,saving,budget,currency,honoree;
  late String kind,status,visibility;
@@ -289,11 +278,12 @@ class _OccasionEditorState extends State<OccasionEditor>{
   catch(_){if(mounted)setState(()=>error='Unable to save occasion.');}
   finally{if(mounted)setState(()=>busy=false);}
  }
- @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Add new occasion':'Edit occasion')),
-  body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,35),children:[
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new occasion':'Edit occasion',
+   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,notes,prep,saving,budget,currency,honoree],saving:busy,onSave:save,
+   body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,35),children:[
    TextField(controller:title,maxLength:160,decoration:const InputDecoration(
-    labelText:'What are we celebrating?',border:OutlineInputBorder())),
+    labelText:'What are we celebrating? *',border:OutlineInputBorder())),
    const SizedBox(height:10),
    TextField(controller:honoree,maxLength:120,
     decoration:const InputDecoration(
@@ -346,8 +336,6 @@ class _OccasionEditorState extends State<OccasionEditor>{
     title:Text(visibility=='private'?'Only me':'Both of us'),
     subtitle:const Text('Privacy is fixed for this plan to protect surprises.')),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-   FilledButton.icon(onPressed:busy?null:save,icon:const Icon(Icons.save_outlined),
-    label:Text(busy?'Saving…':'Save occasion')),
   ]));
 }
 
@@ -357,7 +345,10 @@ class OccasionStepEditor extends StatefulWidget{
  final Map<String,dynamic>? existing;
  @override State<OccasionStepEditor> createState()=>_OccasionStepEditorState();
 }
-class _OccasionStepEditorState extends State<OccasionStepEditor>{
+class _OccasionStepEditorState extends State<OccasionStepEditor> with FormChangeTracker<OccasionStepEditor>{
+ /// R55: current form values; Save turns on only when they change.
+ @override String get signature=>[title.text,cost.text,currency.text,due,done].join('|');
+
  final db=Supabase.instance.client;
  late final TextEditingController title,cost,currency;
  DateTime? due;
@@ -402,11 +393,12 @@ class _OccasionStepEditorState extends State<OccasionStepEditor>{
    catch(_){if(mounted)setState(()=>error='Could not save step.');}
    finally{if(mounted)setState(()=>busy=false);}
  }
- @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Add new preparation step':'Edit preparation step')),
-  body:ListView(padding:const EdgeInsets.all(16),children:[
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new preparation step':'Edit preparation step',
+   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,cost,currency],saving:busy,onSave:save,
+   body:ListView(padding:const EdgeInsets.all(16),children:[
    TextField(controller:title,maxLength:200,
-    decoration:const InputDecoration(labelText:'What needs to happen?',border:OutlineInputBorder())),
+    decoration:const InputDecoration(labelText:'What needs to happen? *',border:OutlineInputBorder())),
    ListTile(title:const Text('Due on'),subtitle:Text(due==null?'No deadline':CalendarRules.sqlDate(due!)),
     onTap:choose,trailing:IconButton(tooltip:'Clear date',icon:const Icon(Icons.clear),
      onPressed:()=>setState(()=>due=null))),
@@ -421,8 +413,6 @@ class _OccasionStepEditorState extends State<OccasionStepEditor>{
    SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Completed'),
     value:done,onChanged:(v)=>setState(()=>done=v)),
    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-   FilledButton.icon(onPressed:busy?null:save,icon:const Icon(Icons.save_outlined),
-    label:Text(busy?'Saving…':'Save step')),
   ]));
 }
 
