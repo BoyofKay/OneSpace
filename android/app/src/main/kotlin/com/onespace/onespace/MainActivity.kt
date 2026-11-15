@@ -334,6 +334,45 @@ class MainActivity : FlutterFragmentActivity() {
         // Export a rendered scrapbook page into Android Photos using scoped
         // storage, then show the native Share sheet. No storage permission,
         // unrestricted file access or private photo URI is exposed.
+        // R59: "Download my data" saves a JSON file to Downloads/OneSpace.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/data_export")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "saveToDownloads") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val bytes = call.argument<ByteArray>("bytes")
+                val name = (call.argument<String>("name") ?: "OneSpace-data")
+                    .replace(Regex("[^a-zA-Z0-9_.-]"), "-").take(80)
+                if (bytes == null || bytes.isEmpty() || bytes.size > 50 * 1024 * 1024) {
+                    result.error("EXPORT_UNAVAILABLE", "Nothing to save, or the file is too large.", null)
+                    return@setMethodCallHandler
+                }
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val fields = ContentValues().apply {
+                            put(MediaStore.Downloads.DISPLAY_NAME, name)
+                            put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                            put(MediaStore.Downloads.RELATIVE_PATH, "Download/OneSpace")
+                            put(MediaStore.Downloads.IS_PENDING, 1)
+                        }
+                        val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, fields)
+                            ?: throw IllegalStateException("Could not create the file")
+                        contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                            ?: throw IllegalStateException("Could not write the file")
+                        contentResolver.update(uri, ContentValues().apply {
+                            put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
+                        result.success("Downloads/OneSpace/$name")
+                    } else {
+                        val dir = getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                            ?: throw IllegalStateException("No downloads folder")
+                        java.io.File(dir, name).writeBytes(bytes)
+                        result.success(java.io.File(dir, name).absolutePath)
+                    }
+                } catch (e: Exception) {
+                    result.error("EXPORT_FAILED", e.message ?: "Could not save the file", null)
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/scrapbook_export")
             .setMethodCallHandler { call, result ->
                 if (call.method != "saveAndShare") {

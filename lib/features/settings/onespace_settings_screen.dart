@@ -4,6 +4,7 @@ import '../connect/partner_gestures_screen.dart';
 import '../../core/current_space_cache.dart';
 import '../hubs/section_hubs.dart';
 import 'personal_days_off_screen.dart';
+import 'account_data_screen.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../theme/appearance_settings_screen.dart';
 import '../../core/weather_unit_preference.dart';
@@ -120,6 +121,16 @@ class OneSpaceSettingsScreen extends StatelessWidget {
                builder:(_)=>const PartnerGesturesScreen(manageOnly:true))),
          ),
        ])),
+       const SizedBox(height:16),
+       Text('Privacy',style:Theme.of(context).textTheme.titleMedium),
+       Card(elevation:0,child:ListTile(
+         leading:const Icon(Icons.shield_outlined),
+         title:const Text('Your data and account'),
+         subtitle:const Text('Download my data · Delete my account'),
+         trailing:const Icon(Icons.chevron_right),
+         onTap:()=>Navigator.of(context).push<void>(MaterialPageRoute<void>(
+           builder:(_)=>const AccountDataScreen())),
+       )),
      ],
    )),
  );
