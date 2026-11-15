@@ -94,7 +94,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
  }
  @override Widget build(BuildContext context)=>Scaffold(
    appBar:AppBar(title:const Text('My days off')),
-   floatingActionButton:FloatingActionButton.extended(
+   floatingActionButton:FloatingActionButton.extended(heroTag:'fab-personal-days-off',
      onPressed:busy?null:()=>_edit(),
      icon:const Icon(Icons.add),
      label:const Text('Day off')),

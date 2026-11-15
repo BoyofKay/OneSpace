@@ -155,7 +155,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
       onApply:(v)=>setState((){filter=v['show']!;}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:archived,onClear:()=>setState((){archived=false;filter='upcoming';}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(
+   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-occasions',
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Add occasion')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),

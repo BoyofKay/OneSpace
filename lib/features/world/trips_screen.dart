@@ -149,7 +149,7 @@ class _TripsScreenState extends State<TripsScreen> {
       onApply:(v)=>setState((){filter=v['when']!;}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;filter='upcoming';}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(
+   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-trips',
     icon:const Icon(Icons.add),label:const Text('Add trip'),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),

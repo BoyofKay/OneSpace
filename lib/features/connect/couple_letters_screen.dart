@@ -77,7 +77,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   @override
   Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:const Text('Letters')),
-    floatingActionButton:spaceId==null?null:FloatingActionButton.extended(
+    floatingActionButton:spaceId==null?null:FloatingActionButton.extended(heroTag:'fab-couple-letters',
       icon:const Icon(Icons.edit_outlined),
       label:const Text('Write'),
       onPressed:compose,
