@@ -44,8 +44,9 @@ Companion documents in this folder:
 | D18 | 15 Nov 2026 | Today: five sections, fixed order: Hero · Since you were away · Needs your attention · Today and the next 7 days · Our space shortcuts. Empty sections show a kind hint ("You're all caught up", "Nothing is waiting on you right now"), never disappear. "A little closer" is a shortcut tile, not a section. Greeting: "Good evening, Ahmed" then "Your space with your [preferred label]". |
 | D19 | 15 Nov 2026 | Shortcuts cover ALL features: 3-column grid grouped by tab — Remember: Calendar, To-do & Checklists, Reminders, Notes, Occasions & surprises, People · Coordinate: Activities · Connect: Letters, A little love, Check-ins, Shared experiences, Memories · World: Trips & journeys · Tools: Items to sort, Search our space. Count badge only when action is needed. |
 | D20 | 15 Nov 2026 | Push batching for chat messages: at most 1 push per item per 10 minutes ("+3 more"); revisit after real use. |
-| D21 | 15 Nov 2026 | Brand line: **"As a couple, we have One Space"** (English in both languages). |
+| D21 | 15 Nov 2026 | Brand line: **"Two of us, One Space"** (English in both languages), shown under the OneSpace name in the top bar on every main screen, on the splash and on sign-in. Replaced the first version "As a couple, we have One Space" at Ahmed's request. |
 | D22 | 15 Nov 2026 | Innovation Lab Session 01 (Today) verdict accepted: keep Awareness/Connection/Action, Agenda vs Attention split, "good time to talk" windows computed ONLY from stated schedules, local-first cached Today (≤0.5 s from saved copy, ≤2 s fresh), notifications need reason/owner/expiry/action, no half-empty records from quick actions, hideable "on this day" memories. Rejected: hidden push previews, private-by-default, invented approval/vote/confirmation items, incomplete-profile nags, manual Busy status, partner confirmation for arrangement changes, renaming tabs, scores of any kind. Default sharing = Shared, with Only-me exceptions. Each Lab session ends with decisions + backlog with acceptance criteria + won't-do list. |
+| D23 | 15 Nov 2026 | R48 push rules (my design within D5/D6/D20, open to change after use): several quick changes to the same item by the partner within **2 minutes** share one push; a notification already opened in the app is not pushed; alerts held by quiet hours arrive as **one wake-up summary** per phone; a newer push about the same item replaces the older one in the tray; push wording uses the name the recipient calls their partner (Profile partner label), else the partner's first name. Minor edits (wording, notes, tags) never push. |
 
 ## C. Won't do (for now)
 - No relationship health/compatibility/mood scores, no streaks.
@@ -60,8 +61,8 @@ Companion documents in this folder:
 | Iteration | Theme | Status |
 |---|---|---|
 | R46 | Baseline hygiene: retire automatic gestures, remove Goals, tagline, stale copy, migration history repair | Merged 15 Nov 2026 (PR #2) |
-| R47 | Reminders for real life: repeat, quiet hours, Urgent, stop when source closes, reminders on Today | Built 15 Nov 2026; first APK with R46+R47 (see R47 notes) |
-| R48 | Notifications 2.0: content push, deep links, every chat message and changes notify, batching | Next |
+| R47 | Reminders for real life: repeat, quiet hours, Urgent, stop when source closes, reminders on Today | Merged 15 Nov 2026 (PR #3); APK 0.1.418 |
+| R48 | Notifications 2.0: content push, deep links, every chat message and changes notify, batching, quiet-hours summary; brand line in the top bar | Built 15 Nov 2026 (see docs/R48_NOTIFICATIONS_QA.md) |
 | R49 | Today 2.0: saved copy, one server call, five-section layout, hero model, catch-up, all shortcuts | |
 | R50 | Global patterns: filter panel, history page with chips, ⋮ menu, status model, icon dictionary, editor headers | |
 | R51 | Creation 2.0: draft pages, purpose starters, Quick add | |

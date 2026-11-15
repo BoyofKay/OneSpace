@@ -1,4 +1,6 @@
 // OneSpace R24 - service-only FCM HTTP v1 delivery.
+// R48: content push. Title/body come from the database in the recipient's
+// language; the tray tag makes a newer push for the same item replace the older one.
 // No app user can invoke this worker; missing credentials fail closed.
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{
  status,headers:{"content-type":"application/json","cache-control":"no-store"}});
@@ -53,7 +55,10 @@ async function dbRpc<T>(url:string,key:string,method:string,args:object):Promise
  }
  return await result.json() as T;
 }
-type Delivery={delivery_id:string,registration_token:string,notification_id:string};
+type Delivery={delivery_id:string,registration_token:string,notification_id:string,
+ title?:string|null,body?:string|null,tag?:string|null,summary?:boolean|null};
+const clip=(v:unknown,max:number,fallback:string)=>{
+ const s=typeof v==="string"?v.trim():"";return s?(s.length>max?s.slice(0,max-1)+"…":s):fallback;};
 Deno.serve(async(req)=>{
  if(req.method!=="POST")return json(405,{error:"POST required"});
  const secret=env("ONESPACE_PUSH_CRON_SECRET");
@@ -86,9 +91,12 @@ Deno.serve(async(req)=>{
     method:"POST",headers:{"content-type":"application/json",Authorization:"Bearer "+access},
     body:JSON.stringify({message:{
      token:task.registration_token,
-     notification:{title:"OneSpace",body:"You have a new update in your shared space."},
-     data:{type:"notification",notification_id:task.notification_id},
-     android:{priority:"high"},
+     notification:{
+      title:clip(task.title,120,"OneSpace"),
+      body:clip(task.body,240,"You have a new update in your shared space."),
+     },
+     data:{type:task.summary?"summary":"notification",notification_id:task.notification_id},
+     android:{priority:"high",notification:{tag:clip(task.tag,64,task.notification_id)}},
     }}),
    });
    if(response.ok){result="sent";sent++;}

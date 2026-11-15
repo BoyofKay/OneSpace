@@ -170,7 +170,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 const Text('OneSpace',style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                const Text('As a couple, we have One Space'),
+                const Text('Two of us, One Space'),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
@@ -380,9 +380,17 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           }),
           tooltip: tr(context, 'backHome'),
         ) : null,
-        title:const Text('OneSpace',
-          maxLines:1,overflow:TextOverflow.ellipsis,
-          style:TextStyle(fontWeight:FontWeight.w800)),
+        title:Column(
+          mainAxisSize:MainAxisSize.min,
+          crossAxisAlignment:CrossAxisAlignment.start,
+          children:[
+            const Text('OneSpace',
+              maxLines:1,overflow:TextOverflow.ellipsis,
+              style:TextStyle(fontWeight:FontWeight.w800)),
+            Text(tr(context,'tagline'),
+              maxLines:1,overflow:TextOverflow.ellipsis,
+              style:Theme.of(context).textTheme.labelSmall),
+          ]),
         actions:[
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(

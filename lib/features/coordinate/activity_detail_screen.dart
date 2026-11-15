@@ -26,8 +26,10 @@ import 'activity_message_identity.dart';
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
 class ActivityScreen extends StatefulWidget {
-  const ActivityScreen({super.key, required this.id});
+  const ActivityScreen({super.key, required this.id, this.focusConversation = false});
   final String id;
+  /// R48: opened from a chat push - scroll to the conversation once loaded.
+  final bool focusConversation;
 
   @override
   State<ActivityScreen> createState() => _ActivityScreenState();
@@ -40,6 +42,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late final Stream<List<Map<String, dynamic>>> activity;
   late final Stream<List<Map<String, dynamic>>> components;
   late final Stream<List<Map<String, dynamic>>> comments;
+  final GlobalKey _conversationKey = GlobalKey();
+  bool _conversationFocused = false;
   late final Stream<List<Map<String, dynamic>>> revisions;
   late final Stream<List<Map<String, dynamic>>> reactions;
   late final Stream<List<Map<String, dynamic>>> decisions;
@@ -1305,11 +1309,23 @@ class _ActivityScreenState extends State<ActivityScreen> {
       }
       if (!messagesSnapshot.hasData) return const LinearProgressIndicator();
       final messages = messagesSnapshot.data!;
+      if (widget.focusConversation && !_conversationFocused) {
+        _conversationFocused = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final target = _conversationKey.currentContext;
+          if (target != null && target.mounted) {
+            Scrollable.ensureVisible(target,
+              duration: const Duration(milliseconds: 350),
+              alignment: 1.0);
+          }
+        });
+      }
       return StreamBuilder<List<Map<String, dynamic>>>(
         stream: components,
         builder: (context, componentSnapshot) {
           final componentItems = componentSnapshot.data ?? const [];
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          return Column(key: _conversationKey,
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 18),
             Text('Conversation', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
