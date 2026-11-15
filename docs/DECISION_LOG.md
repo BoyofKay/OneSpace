@@ -73,6 +73,9 @@ Companion documents in this folder:
 | D47 | 15 Nov 2026 | Ahmed chose: deleting an account keeps SHARED items for the partner (author shown as "Former partner") and removes private items, their files, devices, personal settings and space membership after a 7-day grace period; signing in during the grace period offers "Keep my account". The sign-in is soft-deleted (email/phone anonymised, row kept so shared items keep a valid author). "Download my data" saves a JSON of everything the person created or received (device tokens redacted) to Downloads/OneSpace. Purge runs daily (pg_cron 03:17 UTC → Edge Function onespace-account-purge, worker secret). Settings › Privacy › Your data and account. |
 | D48 | 15 Nov 2026 | Ratings use one StarRating row (five stars share the width, never wrap). The suggestion pop-up's actions are three equal blocks inside the card. App icon = the OneSpace mark from Ahmed's logo (cream background, adaptive + themed icon, Play Store 512 in assets/branding); the mark also shows on the welcome screen and next to the name in the top bar. |
 | D49 | 15 Nov 2026 | Voice, device-only: a mic in the top bar opens Android's speech recognizer (no audio reaches OneSpace). A tested parser (voice_commands.dart) understands: remind me…, take a note…, add X to the Y list, new list…, add an event… (day/time phrases: today, tonight, tomorrow, weekdays, at 5 / 5 pm / 7:30, noon, in N minutes/hours), open <screen>, search for…, what's on today, read my reminders, read my latest note, send a little love, what can I say. Creating opens the item's page pre-filled (nothing saved until Save); adding to an existing list is instant with Undo; anything else asks what it should be. Read aloud (phone text-to-speech, Stop in the bar) is on every ⋮ menu and on a letter. Language follows the app (English/Arabic voices if installed; Arabic phrases come with the Arabic pass). |
+| D50 | 15 Nov 2026 | Logo redrawn as a vector (assets/branding/onespace_mark.svg) so the icon is sharp at every size. Shell: tabs are Today · Remember · Coordinate · Connect · Me. Trips moved inside Coordinate (Activities / Trips tabs). Me holds profile, settings, language, search, items to sort, your data. Top bar = mark, name + tagline, mic, bell, ⋮ (search, items to sort). |
+| D51 | 15 Nov 2026 | Read-aloud buttons removed: someone who needs the app to read is busy, so reading is a voice command ("read the groceries list", "read Kay's last letter", "read the Paris trip", "what's on tomorrow"). |
+| D52 | 15 Nov 2026 | Voice 2.0: OneSpace's own listening sheet replaces Google's pop-up (live words, mic level, spoken answer, keeps listening for "anything else?" until "no", silence or X). About 25 command types in English and Arabic (Egyptian/Gulf/MSA phrasing): create (reminder, note, event, list — opened pre-filled, saved only on Save), add to / check off / read a list, mark a reminder done or snooze it, log today's feeling, send a little-love gesture, read day/week/reminders/latest note/letter/activity/trip, countdowns ("how many days until our anniversary"), next trip, next reunion. Replies in the language spoken. Long-press the app icon → "Voice command". Speech stays on the phone's recognizer. |
 
 ## C. Won't do (for now)
 - No relationship health/compatibility/mood scores, no streaks.
@@ -80,7 +83,7 @@ Companion documents in this folder:
 - No approval/voting workflows; no mutual delete.
 - No AI suggestions on Today until the rule-based version has been used for a month.
 - No customisable dashboard until the fixed layout is tested by both partners.
-- No tab renaming: Today · Remember · Coordinate · Connect · World.
+- No more tab changes: Today · Remember · Coordinate · Connect · Me (D50).
 
 ## D. Iteration plan
 
@@ -100,4 +103,5 @@ Companion documents in this folder:
 | R57 | Editors redesigned: form kit, fixed Shared · Belongs to · Date strip, no dropdowns, purpose-driven sections; reminders/activity/occasion/contacts/check-in/experiences fixes; menu icons | Built 15 Nov 2026 (docs/R57_QA.md) |
 | R59 | Download my data, Delete my account (D47) | Built 15 Nov 2026 (docs/R59_QA.md) |
 | R60 | Star/pop-up fixes, app icon, voice commands + read aloud | Built 15 Nov 2026 (docs/R60_QA.md) |
+| R61 | Vector logo, Me tab, Trips in Coordinate, Voice 2.0 (conversation, Arabic, reading by voice), read-aloud buttons removed | Built 15 Nov 2026 (docs/R61_QA.md) |
 | Later | Search coverage (contacts, checklist items, chat), Calendar session, Trips offline documents, smart love reminders, occasion timing rule (salary month), full Arabic (incl. R49–R55 screens — waiting per Ahmed), settings consolidation, iOS (waiting), AI level 2 | |
