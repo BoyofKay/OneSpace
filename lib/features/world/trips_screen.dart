@@ -135,9 +135,11 @@ class _TripsScreenState extends State<TripsScreen> {
   return Scaffold(
    appBar:AppBar(title:const Text('Trips & journeys'),actions:[
     RecordListTopActions(
+     historyKinds:const ['trip'],historyTitle:'Trips',
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
      hasActiveFilters:filter!='upcoming',
+      onClearFilters:()=>setState((){filter='upcoming';}),
      filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
       mainAxisSize:MainAxisSize.min,
       crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -173,7 +175,7 @@ class _TripsScreenState extends State<TripsScreen> {
     const SizedBox(height:8),
     if(showArchived)Padding(
      padding:const EdgeInsets.only(bottom:8),
-     child:Text('Archived trip history · Restore a trip from its details.',
+     child:Text('Removed trips · Open one to restore it.',
       style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Padding(padding:EdgeInsets.all(24),child:Center(child:CircularProgressIndicator()))
@@ -271,7 +273,7 @@ class _TripEditorState extends State<TripEditor> {
   }
  }
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Plan a trip':'Edit trip')),
+  appBar:AppBar(title:Text(widget.existing==null?'Add new trip':'Edit trip')),
   body:ListView(padding:const EdgeInsets.all(16),children:[
    Text('The journey starts here',style:Theme.of(context).textTheme.titleLarge),
    const SizedBox(height:12),
@@ -563,7 +565,7 @@ class _TripDetailState extends State<TripDetail>{
      kind:'trip',recordId:widget.tripId),
     IconButton(tooltip:'Refresh trip',icon:const Icon(Icons.refresh),onPressed:load),
     if(t!=null)IconButton(tooltip:'Edit trip',icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
-    if(t!=null)IconButton(tooltip:t['archived_at']==null?'Archive trip':'Restore trip',
+    if(t!=null)IconButton(tooltip:t['archived_at']==null?'Remove trip':'Restore trip',
      icon:Icon(t['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined),
      onPressed:busy?null:setTripRemoved),
    ]),

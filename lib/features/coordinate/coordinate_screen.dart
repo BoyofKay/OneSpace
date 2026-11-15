@@ -171,7 +171,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
               ),
             const SizedBox(height: 5),
             Text(
-              '${archived ? 'Archived · ' : ''}'
+              '${archived ? 'Removed · ' : ''}'
               '${stage.replaceAll('_', ' ')}'
               '${emphasis ? ' · $priority priority' : ''}'
               '${due == null ? '' : ' · due $due'}'
@@ -197,7 +197,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
     final shown=CoordinateActivityFilters.visible(inView,view,search,now);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if(showArchived)Text(
-       'Archived Activities · Open an item to restore it.',
+       'Removed Activities · Open one to restore it.',
        style:Theme.of(context).textTheme.bodySmall),
       const SizedBox(height: 10),
       TextField(
@@ -215,7 +215,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           padding: const EdgeInsets.symmetric(vertical: 22),
           child: Text(
             search.isNotEmpty ? 'No matching Activities.' :
-            showArchived ? 'No archived Activities to restore.' :
+            showArchived ? 'No removed Activities to restore.' :
             selected == CoordinateActivityView.active ?
               'Your shared space begins with an idea. Create an Activity above.' :
             selected == CoordinateActivityView.attention ?
@@ -244,6 +244,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           showHistory:showArchived,
           onToggleHistory:()=>setState(()=>showArchived=!showArchived),
           hasActiveFilters:selected!=CoordinateActivityView.active,
+      onClearFilters:()=>setState((){selected=CoordinateActivityView.active;}),
           filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
            mainAxisSize:MainAxisSize.min,
            crossAxisAlignment:CrossAxisAlignment.start,children:[

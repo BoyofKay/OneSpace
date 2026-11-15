@@ -1,20 +1,23 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'collection_history_screen.dart';
+
 /// Server-recorded changes only: who changed which fields, and when.
 /// Never copies private document bodies into another history surface.
 class RecordActionHistoryButton extends StatelessWidget{
  const RecordActionHistoryButton({super.key,required this.kind,
-  required this.recordId});
+  required this.recordId,this.recordTitle});
  final String kind,recordId;
+ final String? recordTitle;
 
+ /// R50 (B-14): an item's change log is the shared history page, filtered
+ /// to this item, with the same people and action chips.
  @override Widget build(BuildContext context)=>IconButton(
-  tooltip:'Record action history',
-  icon:const Icon(Icons.manage_history_outlined),
-  onPressed:()=>showModalBottomSheet<void>(
-   context:context,isScrollControlled:true,showDragHandle:true,
-   builder:(ctx)=>FractionallySizedBox(heightFactor:.78,
-    child:RecordActionHistoryView(kind:kind,recordId:recordId))),
+  tooltip:'Change log',
+  icon:const Icon(Icons.history),
+  onPressed:()=>openChangeLog(context,kind:kind,recordId:recordId,
+   recordTitle:recordTitle),
  );
 }
 class RecordActionHistoryView extends StatefulWidget{

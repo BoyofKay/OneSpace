@@ -298,9 +298,11 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
    return Scaffold(
      appBar:AppBar(title:const Text('People & contacts'),actions:[
        RecordListTopActions(
-        showHistory:showDeleted,
+        historyKinds:const ['contact'],historyTitle:'People',
+     showHistory:showDeleted,
         onToggleHistory:()=>setState(()=>showDeleted=!showDeleted),
         hasActiveFilters:sourceFilter!='all',
+      onClearFilters:()=>setState((){sourceFilter='all';}),
         filters:(_)=>StatefulBuilder(builder:(ctx,refresh)=>Column(
          mainAxisSize:MainAxisSize.min,
          crossAxisAlignment:CrossAxisAlignment.start,children:[

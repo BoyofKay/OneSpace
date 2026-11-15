@@ -840,7 +840,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar:AppBar(title:const Text('Shared calendar'),actions:[
-     IconButton(tooltip:_showArchived?'Hide archived':'Calendar history',
+     IconButton(tooltip:_showArchived?'Hide removed':'Calendar history',
       icon:Icon(_showArchived?Icons.event_available_outlined:Icons.history_outlined),
       onPressed:()=>setState(()=>_showArchived=!_showArchived)),
     ]),

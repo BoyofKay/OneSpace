@@ -194,7 +194,7 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
            title:Text(source['title']?.toString()??'Linked item',
             maxLines:2,overflow:TextOverflow.ellipsis),
            subtitle:Text(NoteReferenceRules.label(kind)+
-            (source['archived_at']!=null?' • Archived':'')),
+            (source['archived_at']!=null?' • Removed':'')),
            onTap:()=>_open(kind,id),
            trailing:widget.canEdit?IconButton(
             tooltip:'Unlink only (keeps original)',

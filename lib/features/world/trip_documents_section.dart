@@ -172,7 +172,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
   }
   final accepted=await showDialog<bool>(context:context,
     builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-     title:const Text('Edit document details'),
+     title:const Text('Edit document'),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       TextFormField(initialValue:title,maxLength:160,onChanged:(v)=>title=v,
        decoration:const InputDecoration(labelText:'Title')),
@@ -266,7 +266,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    ]),
    const Text('Boarding passes, tickets, travel PDFs and photo scans. Files stay private to people who can view this trip.'),
    const SizedBox(height:8),
-   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Show archived documents'),
+   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Show removed documents'),
     value:showArchived,onChanged:(v)=>setState(()=>showArchived=v)),
    if(error!=null)Padding(padding:const EdgeInsets.all(6),
     child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
@@ -287,7 +287,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       subtitle:Text([
        tripDocumentKinds[doc['kind']]??'Document',
        attachedTo(doc),
-       if(doc['archived_at']!=null)'Archived',
+       if(doc['archived_at']!=null)'Removed',
        if(doc['file_size'] is num)
         ((doc['file_size'] as num)/1024).toStringAsFixed(0)+' KB',
       ].join(' · '),maxLines:3),
@@ -301,7 +301,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
        itemBuilder:(_)=>[
         const PopupMenuItem(value:'edit',child:Text('Edit details')),
         PopupMenuItem(value:'archive',child:Text(
-         doc['archived_at']!=null?'Restore':'Archive')),
+         doc['archived_at']!=null?'Restore':'Remove')),
        ],
       ),
      )),

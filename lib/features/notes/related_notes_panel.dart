@@ -94,7 +94,7 @@ class _RelatedNotesPanelState extends State<RelatedNotesPanel>{
          overflow:TextOverflow.ellipsis),
         subtitle:Text(
          (note['visibility']=='private'?'Only me':'Shared')+
-         (note['archived_at']!=null?' · Archived':'')),
+         (note['archived_at']!=null?' · Removed':'')),
         trailing:const Icon(Icons.chevron_right),
         onTap:()=>_openNote(note['id'].toString()),
        ),

@@ -206,12 +206,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
   if(busy||r['created_by']!=me)return;
   final isArchived=r['archived_at']!=null;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-   title:Text(isArchived?'Restore reminder?':'Archive reminder?'),
+   title:Text(isArchived?'Restore reminder?':'Remove reminder?'),
    content:const Text('The reminder and its outcome history stay saved.'),
    actions:[
     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
     FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-     child:Text(isArchived?'Restore':'Archive')),
+     child:Text(isArchived?'Restore':'Remove')),
    ]));
   if(ok!=true)return;
   setState(()=>busy=true);
@@ -270,7 +270,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     if(closed)'Linked item closed · no more alerts',
     if(r['reminder_intent']=='love_gesture')'Choose when to send',
     if(overdue)'Overdue',
-    if(r['archived_at']!=null)'Archived',
+    if(r['archived_at']!=null)'Removed',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
    leading:Icon(allDone?Icons.task_alt_outlined:
     overdue||openMine?Icons.notification_important_outlined:
@@ -321,7 +321,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       icon:const Icon(Icons.edit_outlined),label:const Text('Edit reminder')),
      TextButton.icon(onPressed:busy?null:()=>archive(r),
       icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.unarchive_outlined),
-      label:Text(r['archived_at']==null?'Archive':'Restore')),
+      label:Text(r['archived_at']==null?'Remove':'Restore')),
     ]),
     Align(alignment:Alignment.centerRight,
      child:TextButton.icon(
@@ -364,9 +364,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
   return Scaffold(
    appBar:AppBar(title:const Text('Reminders'),actions:[
     RecordListTopActions(
-      showHistory:showArchived,
+      historyKinds:const ['reminder'],historyTitle:'Reminders',
+     showHistory:showArchived,
       onToggleHistory:()=>setState(()=>showArchived=!showArchived),
       hasActiveFilters:showCompleted,
+      onClearFilters:()=>setState((){showCompleted=false;}),
       filters:(_)=>StatefulBuilder(builder:(ctx,update)=>Column(
        mainAxisSize:MainAxisSize.min,children:[
         SwitchListTile(title:const Text('Include completed'),

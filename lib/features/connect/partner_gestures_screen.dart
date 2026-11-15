@@ -297,7 +297,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    try{
      final data=await showDialog<Map<String,String?>>(context:context,
        builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-         title:Text(original==null?'Create a love gesture':'Edit my gesture'),
+         title:Text(original==null?'Add new gesture':'Edit gesture'),
          content:SingleChildScrollView(child:Column(
            mainAxisSize:MainAxisSize.min,children:[
              TextField(controller:name,maxLength:60,

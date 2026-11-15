@@ -129,7 +129,7 @@ class _TripItemEditorState extends State<TripItemEditor> {
  }
 
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:Text(widget.existing==null?'Add itinerary item':'Edit itinerary item')),
+  appBar:AppBar(title:Text(widget.existing==null?'Add new itinerary item':'Edit itinerary item')),
   body:ListView(padding:const EdgeInsets.all(16),children:[
    Text('Keep booking details in one place',
     style:Theme.of(context).textTheme.titleLarge),

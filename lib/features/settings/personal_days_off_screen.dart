@@ -42,7 +42,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
    try{
      final result=await showDialog<bool>(context:context,
        builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-         title:Text(existing==null?'Add a day off':'Edit day off'),
+         title:Text(existing==null?'Add new day off':'Edit day off'),
          content:SingleChildScrollView(child:Column(
            mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,
            children:[

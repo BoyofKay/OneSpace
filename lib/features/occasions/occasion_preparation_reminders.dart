@@ -127,7 +127,7 @@ class _OccasionPreparationRemindersState
     content:Text('Preparation reminder saved. You can manage it in Remember → Reminders.')));
   }on PostgrestException catch(e){
    if(mounted)setState(()=>error=e.code=='23505'
-    ?'You already have an active reminder for this step. Open it to edit or archive it.'
+    ?'You already have an active reminder for this step. Open it to edit or remove it.'
     :e.message);
   }catch(_){
    if(mounted)setState(()=>error='Could not create the reminder. Try again.');

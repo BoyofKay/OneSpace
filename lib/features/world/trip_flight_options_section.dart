@@ -52,7 +52,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
   var status=(prior?['status']??'considering').toString();
   final result=await showDialog<Map<String,dynamic>>(context:context,
    builder:(ctx)=>StatefulBuilder(builder:(ctx,change)=>AlertDialog(
-    title:Text(prior==null?'Save a possible flight':'Edit flight option'),
+    title:Text(prior==null?'Add new flight option':'Edit flight option'),
     content:SizedBox(width:530,child:SingleChildScrollView(child:Column(
      mainAxisSize:MainAxisSize.min,children:[
       TextFormField(initialValue:title,maxLength:160,
@@ -228,7 +228,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
      label:const Text('Search Google Flights externally'))),
     SwitchListTile(
      contentPadding:EdgeInsets.zero,value:showArchived,
-     title:const Text('Show archived flight options'),
+     title:const Text('Show removed flight options'),
      onChanged:(v)=>setState(()=>showArchived=v)),
     if(snapshot.hasError)const Text('Flight options could not load.'),
     if(!snapshot.hasData)const LinearProgressIndicator(),
@@ -274,7 +274,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
          label:const Text('Add to itinerary')),
        TextButton.icon(onPressed:busy?null:()=>archive(row),
         icon:Icon(row['archived_at']==null?Icons.archive_outlined:Icons.unarchive_outlined),
-        label:Text(row['archived_at']==null?'Archive':'Restore')),
+        label:Text(row['archived_at']==null?'Remove':'Restore')),
       ]),
      ]),
     )),
