@@ -195,7 +195,6 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
        annual:p['annual']==true,today:today),today),
      ].join(' · ')),
      trailing:ItemMenu(kind:'occasion',recordId:p['id'].toString(),title:p['title']?.toString(),
-      readAloud:'${p['title']}. ${p['notes']??''}',
       onOpen:()=>open(p),openLabel:'Open',table:'occasion_plans',
       removed:p['archived_at']!=null,onChanged:load),
      onTap:()=>open(p))),
@@ -552,7 +551,6 @@ class _OccasionDetailState extends State<OccasionDetail>{
   final total=OccasionRules.estimatedByCurrency(current);
   return Scaffold(appBar:AppBar(title:const Text('Occasion plan'),actions:[
     if(p!=null)ItemMenu(kind:'occasion',recordId:widget.id,title:p['title']?.toString(),
-     readAloud:'${p['title']}. ${p['notes']??''}',
      statusActions:[
       if(p['archived_at']==null&&p['status']!='celebrated')
        ItemMenuAction('Mark celebrated',Icons.celebration_outlined,()=>setStage('celebrated')),

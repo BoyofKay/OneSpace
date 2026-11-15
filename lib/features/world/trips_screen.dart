@@ -27,8 +27,10 @@ const tripStages=<String,String>{
 };
 
 class TripsScreen extends StatefulWidget {
- const TripsScreen({super.key,this.initialTripId});
+ const TripsScreen({super.key,this.initialTripId,this.embedded=false});
  final String? initialTripId;
+ /// R61: shown as the "Trips" tab inside Coordinate (no own app bar).
+ final bool embedded;
  @override State<TripsScreen> createState()=>_TripsScreenState();
 }
 class _TripsScreenState extends State<TripsScreen> {
@@ -141,7 +143,8 @@ class _TripsScreenState extends State<TripsScreen> {
    return !past&&trip['status']!='completed'&&trip['status']!='cancelled';
   }).toList();
   return Scaffold(
-   appBar:AppBar(title:const Text('Trips & journeys'),actions:[
+   backgroundColor:widget.embedded?Colors.transparent:null,
+   appBar:widget.embedded?null:AppBar(title:const Text('Trips'),actions:[
     RecordListTopActions(
      historyKinds:const ['trip'],historyTitle:'Trips',
      showHistory:showArchived,
@@ -155,7 +158,20 @@ class _TripsScreenState extends State<TripsScreen> {
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
-    Text('Our journeys',style:Theme.of(context).textTheme.titleLarge),
+    if(widget.embedded)...[
+     Row(children:[
+      Expanded(child:Text('Trips',style:Theme.of(context).textTheme.headlineMedium)),
+      RecordListTopActions(
+       historyKinds:const ['trip'],historyTitle:'Trips',
+       showHistory:showArchived,
+       onToggleHistory:()=>setState(()=>showArchived=!showArchived),
+       groups:_filterGroups(),
+       onApply:(v)=>setState((){filter=v['when']!;})),
+     ]),
+     if(FilterGroupSpec.showing(_filterGroups(),removed:showArchived).isNotEmpty)FilterShowingLine(
+      labels:FilterGroupSpec.showing(_filterGroups(),removed:showArchived),
+      onClear:()=>setState((){showArchived=false;filter='upcoming';})),
+    ]else Text('Our journeys',style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
     Text('From the next reunion to the smallest weekend getaway. Plan it together, one detail at a time.',
       style:Theme.of(context).textTheme.bodyMedium),
@@ -188,7 +204,6 @@ class _TripsScreenState extends State<TripsScreen> {
        if(trip['visibility']=='private')'Only me',
       ].join(' · '),maxLines:4),
       trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
-       readAloud:'${trip['title']}. ${(trip['destination']??'').toString().isEmpty?'':'To ${trip['destination']}. '}${trip['notes']??''}',
        onOpen:()=>open(trip),openLabel:'Open',table:'shared_trips',
        removed:trip['archived_at']!=null,onChanged:load),
       onTap:()=>open(trip),

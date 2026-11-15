@@ -664,7 +664,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (event['archived_at'] != null) tr(context, 'archived'),
             ].join(' • ')),
             trailing:ItemMenu(kind:'event',recordId:event['id'].toString(),
-              readAloud:'${event['title']}. ${event['details']??''}',
               title:event['title']?.toString(),
               onOpen:()=>_openEditor(existing:event),openLabel:canEdit?'Edit':'Open',
               moreActions:[

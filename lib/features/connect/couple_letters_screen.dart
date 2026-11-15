@@ -1,4 +1,3 @@
-import '../../core/voice.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
@@ -352,11 +351,7 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
   Widget build(BuildContext context){
     final letter=fresh??widget.letter;
     return Scaffold(
-      appBar:AppBar(title:const Text('Letter'),actions:[
-        IconButton(tooltip:'Read aloud',icon:const Icon(Icons.volume_up_outlined),
-          onPressed:()=>Voice.speak(context,
-            '${letter['title']??''}. ${letter['body']??''}')),
-      ]),
+      appBar:AppBar(title:const Text('Letter')),
       body:RefreshIndicator(
         onRefresh:load,
         child:ListView(padding:const EdgeInsets.all(18),

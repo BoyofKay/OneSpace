@@ -480,7 +480,7 @@ class _PlansScreenState extends State<PlansScreen> {
        title:Text(task.title,style:StatusLook.title(context,task.status.name)),
        subtitle:details.isEmpty?null:Text(details.join(' · ')),
        trailing:!canEdit?const Icon(Icons.lock_outline):
-        ItemMenu(kind:'task',recordId:task.id,title:task.title,readAloud:task.title,
+        ItemMenu(kind:'task',recordId:task.id,title:task.title,
          statusActions:[
           if(!cancelled&&!completed)ItemMenuAction('Mark complete',MenuIcons.complete,()=>_changeStatus(task,TaskStatus.completed)),
           if(!cancelled&&!completed)ItemMenuAction('Cancel list',MenuIcons.cancel,()=>_cancelTask(task)),
