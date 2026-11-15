@@ -27,7 +27,6 @@ import 'core/performance_timings.dart';
 import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
 import 'features/memories/memories_screen.dart';
-import 'features/goals/goals_screen.dart';
 import 'features/checkins/checkins_screen.dart';
 import 'features/plans/plans_screen.dart';
 import 'features/profile/profile_settings_screen.dart';
@@ -171,7 +170,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 const Text('OneSpace',style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                const Text('One Life. Two Places. One Space.'),
+                const Text('As a couple, we have One Space'),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
@@ -349,7 +348,6 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           onOpenNotes:()=>open(const NotesScreen()),
           onOpenCalendar:()=>open(const CalendarScreen()),
           onOpenMemories:()=>open(const MemoriesScreen()),
-          onOpenGoals:()=>open(const GoalsScreen()),
           onOpenCheckins:()=>open(const CheckinsScreen()),
           onOpenLetters:()=>open(const CoupleLettersScreen()),
           onOpenCoordinate:()=>navigate(2),

@@ -1,6 +1,6 @@
 # OneSpace
 
-**One Life, Two Places.**
+**As a couple, we have One Space.**
 
 A Flutter companion app for couples, whether living together or apart.
 
@@ -15,6 +15,12 @@ A Flutter companion app for couples, whether living together or apart.
 - **World:** Trips & Journeys with shared/private plans, flights, stays, bookings, itinerary, conversation, revisions and countdowns. Saved contacts remain in Remember.
 
 Previous development test content was cleared on 13 November 2026, while two existing login accounts, one shared space and partner memberships remained intact.
+
+**Continuing this project (any assistant): read [docs/DECISION_LOG.md](docs/DECISION_LOG.md) first.**
+
+## R46 — baseline hygiene (15 Nov 2026)
+
+Automatic love gestures are retired (manual gestures and private self-reminders remain), Shared Goals is removed from the app (data kept), the tagline is "As a couple, we have One Space", and the Supabase migration history now records schema files 0095–0105. See [R46 notes and test script](docs/R46_BASELINE_HYGIENE_QA.md).
 
 ## Current foundation preview
 

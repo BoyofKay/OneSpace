@@ -10,7 +10,6 @@ import '../connect/couple_letters_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
-import '../goals/goals_screen.dart';
 import '../memories/memories_screen.dart';
 import '../../core/current_space_cache.dart';
 import 'global_search_rules.dart';
@@ -90,9 +89,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Reminder',db.from('reminders').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Goal',db.from('goals').select('id,title').eq('space_id',id)
-         .isFilter('archived_at',null).ilike('title',pattern)
-         .limit(GlobalSearchRules.maxPerSection)),
        guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
@@ -110,9 +106,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Note',db.from('notes').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Goal',db.from('goals').select('id,title').eq('space_id',id)
-         .isFilter('archived_at',null).ilike('description',pattern)
-         .limit(GlobalSearchRules.maxPerSection)),
        guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
@@ -121,8 +114,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .limit(GlobalSearchRules.maxPerSection)),
      ]);
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
-     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Goal','Memory',
-      'Activity','Calendar','Experience','Note','Goal','Memory','Reminder'];
+     final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Memory',
+      'Activity','Calendar','Experience','Note','Memory','Reminder'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
@@ -161,7 +154,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Travel document':target=TripsScreen(initialTripId:hit.id);break;
      case 'Experience':target=SharedExperiencesScreen(initialExperienceId:hit.id);break;
      case 'Occasion':target=OccasionsScreen(initialPlanId:hit.id);break;
-     case 'Goal':target=GoalsScreen(initialGoalId:hit.id);break;
      case 'Memory':target=MemoriesScreen(initialMemoryId:hit.id);break;
      default:target=const CoupleLettersScreen();
    }
@@ -181,7 +173,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       for(final category in [
        'All','Activity','Calendar','To-do','Note','Letter','Tag',
        'Trip','Experience','Trip item','Travel document','Occasion',
-       'Reminder','Goal','Memory',
+       'Reminder','Memory',
       ])PopupMenuItem(value:category,child:Text(category)),
      ]),
    ]),
@@ -230,7 +222,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
            hit.kind=='To-do'?Icons.checklist_outlined:
            hit.kind=='Reminder'?Icons.alarm_outlined:
            hit.kind=='Note'?Icons.note_outlined:
-           hit.kind=='Goal'?Icons.flag_outlined:
            hit.kind=='Memory'?Icons.photo_library_outlined:
            hit.kind=='Tag'?Icons.sell_outlined:
            hit.kind=='Occasion'?Icons.card_giftcard_outlined:
