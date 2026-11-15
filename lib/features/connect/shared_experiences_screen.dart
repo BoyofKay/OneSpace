@@ -919,10 +919,9 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     TextField(onChanged:(value)=>setState(()=>commentSearch=value),
      decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
       labelText:'Search conversation')),
-    SwitchListTile.adaptive(contentPadding:EdgeInsets.zero,
-     title:const Text('My retracted comments'),
-     subtitle:const Text('Only you can see and restore your retracted comments'),
-     value:showMyRetracted,onChanged:(v)=>setState(()=>showMyRetracted=v)),
+    Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show my removed comments',
+     icon:Icons.delete_outline,help:'Only you can see and restore them',
+     value:showMyRetracted,onChanged:(v)=>setState(()=>showMyRetracted=v))),
     for(final x in ExperienceCommentRules.visible(
      comments,myId,showMyRetracted:showMyRetracted,query:commentSearch))
      Card(elevation:0,child:ListTile(

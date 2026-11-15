@@ -612,8 +612,8 @@ class _OccasionDetailState extends State<OccasionDetail>{
        TextButton.icon(onPressed:()=>editStep(),icon:const Icon(Icons.add),
         label:const Text('Add step')),
       ]),
-     SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Show removed steps'),
-      value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v)),
+     Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+      value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
      if(current.isEmpty)const Text('Add shopping, reservations, surprises or budget milestones.'),
      for(final step in steps.where((s)=>showRemoved||s['archived_at']==null))
       Card(elevation:0,child:Column(children:[
