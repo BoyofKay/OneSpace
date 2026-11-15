@@ -2,19 +2,10 @@ name: Build OneSpace for iPhone (unsigned)
 
 # R63: proves the iOS app compiles (Swift channels, plugins, Info.plist).
 # Signing and TestFlight need Ahmed's Apple Developer account — see docs/IOS_SETUP.md.
+# R65: manual only — Mac runners cost ~10x normal minutes on a private repo.
+# Run it from Actions → "Build OneSpace for iPhone (unsigned)" → Run workflow.
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'ios/**'
-      - '.github/workflows/ios-build.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'ios/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - 'release/READY_TO_BUILD.md'
 
 permissions:
   contents: read
