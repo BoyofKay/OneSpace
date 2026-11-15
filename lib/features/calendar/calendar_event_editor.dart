@@ -15,11 +15,15 @@ class CalendarEventEditor extends StatefulWidget {
     required this.spaceId,
     this.initialDate,
     this.existing,
+    this.initialTitle = '',
+    this.initialDetails = '',
   });
 
   final String spaceId;
   final DateTime? initialDate;
   final Map<String, dynamic>? existing;
+  /// R52: pre-filled from shared content ("Items to sort").
+  final String initialTitle, initialDetails;
 
   @override
   State<CalendarEventEditor> createState() => _CalendarEventEditorState();
@@ -53,8 +57,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> {
   void initState() {
     super.initState();
     final existing = widget.existing;
-    _title = TextEditingController(text: existing?['title'] as String? ?? '');
-    _details = TextEditingController(text: existing?['details'] as String? ?? '');
+    _title = TextEditingController(text: existing?['title'] as String? ?? widget.initialTitle);
+    _details = TextEditingController(text: existing?['details'] as String? ?? widget.initialDetails);
     _date = DateTime.tryParse(existing?['event_date'] as String? ?? '') ??
         widget.initialDate ?? DateTime.now();
     _kind = existing?['kind'] as String? ?? 'event';

@@ -420,9 +420,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
 }
 
 class ReminderEditorScreen extends StatefulWidget{
- const ReminderEditorScreen({super.key,required this.spaceId,this.existing});
+ const ReminderEditorScreen({super.key,required this.spaceId,this.existing,
+  this.initialTitle='',this.initialDetails=''});
  final String spaceId;
  final Map<String,dynamic>? existing;
+ /// R52: pre-filled from shared content ("Items to sort").
+ final String initialTitle,initialDetails;
  @override State<ReminderEditorScreen> createState()=>_ReminderEditorScreenState();
 }
 class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
@@ -439,8 +442,8 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen>{
  @override void initState(){
   super.initState();
   final prior=widget.existing;
-  title=TextEditingController(text:prior?['title']?.toString()??'');
-  details=TextEditingController(text:prior?['details']?.toString()??'');
+  title=TextEditingController(text:prior?['title']?.toString()??widget.initialTitle);
+  details=TextEditingController(text:prior?['details']?.toString()??widget.initialDetails);
   due=DateTime.tryParse(prior?['due_at']?.toString()??'')?.toLocal()
    ??DateTime.now().add(const Duration(hours:1));
   visibility=prior?['visibility']?.toString()??'private';

@@ -6,8 +6,10 @@ class TodayAttentionSection extends StatefulWidget {
   const TodayAttentionSection({super.key, required this.items,
     required this.onOpen, required this.onSnooze,
     this.onOpenPlans,this.onOpenCheckins,this.onOpenReminder,this.loading=false,this.error,
-    this.onRetry});
+    this.onRetry,this.leading=const []});
   final List<TodayAttentionItem> items;
+  /// Rows that come before the action queue, e.g. "3 items to sort" (R52).
+  final List<Widget> leading;
   final void Function(String activityId) onOpen;
   final Future<void> Function(TodayAttentionItem item, int days) onSnooze;
   final VoidCallback? onOpenPlans;
@@ -27,8 +29,9 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
     return TodaySectionCard(
       icon:Icons.notifications_active_outlined,
       title:'Needs your attention',
-      count:items.isEmpty?null:items.length,
+      count:items.isEmpty&&widget.leading.isEmpty?null:items.length+widget.leading.length,
       children:[
+        ...widget.leading,
         if(widget.loading&&items.isEmpty)const ListTile(
           leading:SizedBox(width:20,height:20,child:CircularProgressIndicator(
             strokeWidth:2)),
@@ -38,7 +41,7 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
           title:Text(widget.error!),
           trailing:TextButton(onPressed:widget.onRetry,
             child:const Text('Retry'))),
-        if(items.isEmpty&&!widget.loading&&widget.error==null)
+        if(items.isEmpty&&widget.leading.isEmpty&&!widget.loading&&widget.error==null)
           const TodayEmptyHint('Nothing is waiting on you right now.'),
         for(final item in (showAll?items:items.take(6))) ListTile(
           dense:true,

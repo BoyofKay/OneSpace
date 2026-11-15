@@ -203,9 +203,11 @@ class _TripsScreenState extends State<TripsScreen> {
 }
 
 class TripEditor extends StatefulWidget {
- const TripEditor({super.key,required this.spaceId,this.existing});
+ const TripEditor({super.key,required this.spaceId,this.existing,this.prefill});
  final String spaceId;
  final Map<String,dynamic>? existing;
+ /// R52: fields pre-filled for a new trip (from shared content); never an id.
+ final Map<String,String>? prefill;
  @override State<TripEditor> createState()=>_TripEditorState();
 }
 class _TripEditorState extends State<TripEditor> {
@@ -217,7 +219,7 @@ class _TripEditorState extends State<TripEditor> {
  String? error;
  @override void initState(){
   super.initState();
-  final x=widget.existing??{};
+  final x=widget.existing??widget.prefill??{};
   title=TextEditingController(text:(x['title']??'').toString());
   origin=TextEditingController(text:(x['origin']??'').toString());
   destination=TextEditingController(text:(x['destination']??'').toString());
