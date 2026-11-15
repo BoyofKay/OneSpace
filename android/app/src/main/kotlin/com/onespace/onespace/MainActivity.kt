@@ -57,6 +57,64 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    // R61: in-app listening (live words, no Google pop-up). Audio stays on
+    // the phone's recognizer; only text comes back to OneSpace.
+    private var voiceChannel: MethodChannel? = null
+    private var recognizer: android.speech.SpeechRecognizer? = null
+    private var pendingListenLanguage: String = "en-US"
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private fun sendVoice(method: String, value: Any?) {
+        mainHandler.post { voiceChannel?.invokeMethod(method, value) }
+    }
+    private val micPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startRecognizer(pendingListenLanguage)
+        else sendVoice("onError", "permission")
+    }
+    private fun startRecognizer(language: String) {
+        if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
+            sendVoice("onError", "unavailable"); return
+        }
+        recognizer?.destroy()
+        val r = android.speech.SpeechRecognizer.createSpeechRecognizer(this)
+        recognizer = r
+        r.setRecognitionListener(object : android.speech.RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) { sendVoice("onReady", null) }
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) { sendVoice("onLevel", rmsdB.toDouble()) }
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() { sendVoice("onEnd", null) }
+            override fun onError(error: Int) {
+                sendVoice("onError", when (error) {
+                    android.speech.SpeechRecognizer.ERROR_NO_MATCH,
+                    android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "nothing"
+                    android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "permission"
+                    android.speech.SpeechRecognizer.ERROR_NETWORK,
+                    android.speech.SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "network"
+                    else -> "error$error"
+                })
+            }
+            override fun onResults(results: Bundle?) {
+                val text = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                sendVoice("onFinal", text ?: "")
+            }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val text = partialResults?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (!text.isNullOrBlank()) sendVoice("onPartial", text)
+            }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        val intent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, language)
+            putExtra(android.speech.RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        }
+        r.startListening(intent)
+    }
+
     private val contactsPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -219,15 +277,35 @@ class MainActivity : FlutterFragmentActivity() {
         shareChannel?.invokeMethod("shareAvailable", true)
     }
 
+    // R61: long-press the app icon → "Voice command".
+    private var pendingVoiceLaunch = false
+    private fun captureVoiceLaunch(incoming: Intent?) {
+        if (incoming?.action == "com.onespace.onespace.VOICE") {
+            pendingVoiceLaunch = true
+            sendVoice("launchVoice", null)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         captureShare(intent)
+        captureVoiceLaunch(intent)
+        try {
+            androidx.core.content.pm.ShortcutManagerCompat.pushDynamicShortcut(this,
+                androidx.core.content.pm.ShortcutInfoCompat.Builder(this, "voice")
+                    .setShortLabel(getString(R.string.shortcut_voice_short))
+                    .setLongLabel(getString(R.string.shortcut_voice_long))
+                    .setIcon(androidx.core.graphics.drawable.IconCompat.createWithResource(this, R.mipmap.ic_launcher))
+                    .setIntent(Intent(this, MainActivity::class.java).setAction("com.onespace.onespace.VOICE"))
+                    .build())
+        } catch (_: Exception) { /* launchers without shortcut support */ }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         captureShare(intent)
+        captureVoiceLaunch(intent)
     }
 
     // R60: voice commands use Android's own speech recognizer screen; the
@@ -287,6 +365,14 @@ class MainActivity : FlutterFragmentActivity() {
         // No listening or microphone access is involved in this channel.
         checklistVoice = TextToSpeech(applicationContext) { status ->
             checklistVoiceReady = status == TextToSpeech.SUCCESS
+            checklistVoice?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+                override fun onDone(utteranceId: String?) {
+                    if (checklistVoice?.isSpeaking != true) sendVoice("onSpeechDone", null)
+                }
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) { sendVoice("onSpeechDone", null) }
+            })
         }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/checklist_speech")
             .setMethodCallHandler { call, result ->
@@ -348,8 +434,29 @@ class MainActivity : FlutterFragmentActivity() {
         // Export a rendered scrapbook page into Android Photos using scoped
         // storage, then show the native Share sheet. No storage permission,
         // unrestricted file access or private photo URI is exposed.
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/voice")
-            .setMethodCallHandler { call, result ->
+        voiceChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/voice")
+        voiceChannel?.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        pendingListenLanguage = call.argument<String>("language") ?: "en-US"
+                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+                            PackageManager.PERMISSION_GRANTED) startRecognizer(pendingListenLanguage)
+                        else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                        result.success(true)
+                        return@setMethodCallHandler
+                    }
+                    "stop" -> { recognizer?.stopListening(); result.success(null); return@setMethodCallHandler }
+                    "cancel" -> { recognizer?.cancel(); result.success(null); return@setMethodCallHandler }
+                    "takeLaunch" -> {
+                        result.success(pendingVoiceLaunch)
+                        pendingVoiceLaunch = false
+                        return@setMethodCallHandler
+                    }
+                    "available" -> {
+                        result.success(android.speech.SpeechRecognizer.isRecognitionAvailable(this))
+                        return@setMethodCallHandler
+                    }
+                }
                 if (call.method != "listen") {
                     result.notImplemented()
                     return@setMethodCallHandler
@@ -552,6 +659,8 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     override fun onDestroy() {
+        recognizer?.destroy()
+        recognizer = null
         checklistVoice?.stop()
         checklistVoice?.shutdown()
         checklistVoice = null
