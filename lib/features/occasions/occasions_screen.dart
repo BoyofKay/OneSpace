@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
@@ -15,7 +16,6 @@ import '../mentions/partner_mention_button.dart';
 import 'occasion_budget_workspace.dart';
 import 'occasion_preparation_reminders.dart';
 import '../notes/related_notes_panel.dart';
-import '../../core/record_action_history_view.dart';
 import '../../core/responsive_field_pair.dart';
 
 const occasionKinds=<String,String>{
@@ -282,65 +282,63 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   catch(_){if(mounted)setState(()=>error='Unable to save occasion.');}
   finally{if(mounted)setState(()=>busy=false);}
  }
- @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new occasion':'Edit occasion',
-   isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
+ @override Widget build(BuildContext context){
+  final editing=widget.existing!=null;
+  final stages={for(final e in occasionStages.entries)
+   if(!['celebrated','cancelled'].contains(e.key)||e.key==status)e.key:e.value};
+  return EditorScaffold(title:editing?'Edit occasion':'Add occasion',
+   isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,notes,prep,saving,budget,currency,honoree],saving:busy,onSave:save,
-   body:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,35),children:[
-   TextField(controller:title,maxLength:160,decoration:const InputDecoration(
-    labelText:'What are we celebrating? *',border:OutlineInputBorder())),
+   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+    enabled:!editing,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+   ChoiceRow<String>(label:'Type',options:occasionKinds,selected:kind,
+    icons:const {'birthday':Icons.cake_outlined,'anniversary':Icons.favorite_border,
+     'holiday':Icons.celebration_outlined,'celebration':Icons.emoji_events_outlined,'other':Icons.star_outline},
+    onSelected:(v){if(v!=null)setState(()=>kind=v);}),
+   TextField(controller:title,maxLength:160,autofocus:!editing,textCapitalization:TextCapitalization.sentences,
+    decoration:const InputDecoration(labelText:'What are we celebrating? *',
+     hintText:'Kay’s birthday, our anniversary…',border:OutlineInputBorder())),
    const SizedBox(height:10),
-   TextField(controller:honoree,maxLength:120,
-    decoration:const InputDecoration(
-     labelText:'Who are we celebrating? (optional)',
-     hintText:'My partner, our anniversary, Mom…',
+   TextField(controller:honoree,maxLength:120,textCapitalization:TextCapitalization.words,
+    decoration:const InputDecoration(labelText:'For whom',
      prefixIcon:Icon(Icons.person_outline),border:OutlineInputBorder())),
-   const SizedBox(height:10),
-   DropdownButtonFormField<String>(initialValue:kind,
-    decoration:const InputDecoration(labelText:'Occasion type',border:OutlineInputBorder()),
-    items:[for(final e in occasionKinds.entries)
-     DropdownMenuItem(value:e.key,child:Text(e.value))],
-    onChanged:(v)=>setState(()=>kind=v??kind)),
-   ListTile(leading:const Icon(Icons.event_outlined),
-    title:const Text('Occasion date'),subtitle:Text(CalendarRules.sqlDate(date)),onTap:chooseDate),
-   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Repeat every year'),
-    value:annual,onChanged:(v)=>setState(()=>annual=v)),
-   DropdownButtonFormField<String>(initialValue:status,
-    decoration:const InputDecoration(labelText:'Progress',border:OutlineInputBorder()),
-    items:[for(final e in occasionStages.entries)
-     DropdownMenuItem(value:e.key,child:Text(e.value))],
-    onChanged:(v)=>setState(()=>status=v??status)),
-   const SizedBox(height:12),
+   const FormSection('When'),
+   DateField(label:'Date',required:true,value:date,first:DateTime(1900),last:DateTime(2100),
+    onChanged:(v){if(v!=null)setState(()=>date=v);}),
+   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Every year',icon:Icons.event_repeat,
+    value:annual,onChanged:(v)=>setState(()=>annual=v))),
+   const SizedBox(height:14),
+   ChoiceRow<String>(label:'Progress',options:stages,selected:status,
+    onSelected:(v){if(v!=null)setState(()=>status=v);}),
+   const FormSection('Getting ready'),
    ResponsiveFieldPair(firstFlex:1,
     first:TextField(controller:prep,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Prepare days ahead',border:OutlineInputBorder())),
+     decoration:const InputDecoration(labelText:'Start preparing (days before)',border:OutlineInputBorder())),
     second:TextField(controller:saving,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Start saving days ahead',border:OutlineInputBorder())),
+     decoration:const InputDecoration(labelText:'Start saving (days before)',border:OutlineInputBorder())),
    ),
    const SizedBox(height:12),
    ResponsiveFieldPair(
     first:TextField(controller:budget,
      keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     decoration:const InputDecoration(labelText:'Budget (optional)',border:OutlineInputBorder())),
+     decoration:const InputDecoration(labelText:'Budget',border:OutlineInputBorder())),
     second:TextField(controller:currency,maxLength:3,
      textCapitalization:TextCapitalization.characters,
      decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
    ),
    const SizedBox(height:12),
-   TextField(controller:notes,maxLength:5000,minLines:3,maxLines:5,
+   TextField(controller:notes,maxLength:5000,minLines:3,maxLines:6,
     decoration:const InputDecoration(labelText:'Gift ideas, plans or wishes',
-     border:OutlineInputBorder())),
-   PartnerMentionButton(spaceId:widget.spaceId,controller:notes,
-    enabled:visibility=='shared'),
-   if(widget.existing==null)SwitchListTile(
-    contentPadding:EdgeInsets.zero,value:visibility=='private',
-    title:const Text('Only me'),
-    subtitle:const Text('Keep surprises private. Turn off to plan together.'),
-    onChanged:(v)=>setState(()=>visibility=v?'private':'shared'))
-   else ListTile(leading:Icon(visibility=='private'?Icons.lock_outline:Icons.people_outline),
-    title:Text(visibility=='private'?'Only me':'Both of us'),
-    subtitle:const Text('Privacy is fixed for this plan to protect surprises.')),
-   if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+     alignLabelWithHint:true,border:OutlineInputBorder())),
+   if(visibility=='shared')Align(alignment:Alignment.centerLeft,
+    child:PartnerMentionButton(spaceId:widget.spaceId,controller:notes,enabled:true)),
+   Text(editing?'Who can see it stays as it was created, to protect surprises.'
+    :'Tip: keep surprises Only me.',style:Theme.of(context).textTheme.bodySmall),
+   if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
+    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
+ }
 }
 
 class OccasionStepEditor extends StatefulWidget{
@@ -397,15 +395,17 @@ class _OccasionStepEditorState extends State<OccasionStepEditor> with FormChange
    catch(_){if(mounted)setState(()=>error='Could not save step.');}
    finally{if(mounted)setState(()=>busy=false);}
  }
- @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add new preparation step':'Edit preparation step',
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add preparation step':'Edit preparation step',
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,cost,currency],saving:busy,onSave:save,
-   body:ListView(padding:const EdgeInsets.all(16),children:[
-   TextField(controller:title,maxLength:200,
-    decoration:const InputDecoration(labelText:'What needs to happen? *',border:OutlineInputBorder())),
-   ListTile(title:const Text('Due on'),subtitle:Text(due==null?'No deadline':CalendarRules.sqlDate(due!)),
-    onTap:choose,trailing:IconButton(tooltip:'Clear date',icon:const Icon(Icons.clear),
-     onPressed:()=>setState(()=>due=null))),
+   meta:MetaStrip(value:MetaValues(date:due),showVisibility:false,showBelongs:false,dateLabel:'Due date',
+    onChanged:(v)=>setState(()=>due=v.date)),
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+   TextField(controller:title,maxLength:200,autofocus:widget.existing==null,
+    textCapitalization:TextCapitalization.sentences,
+    decoration:const InputDecoration(labelText:'What needs to happen? *',
+     hintText:'Book the restaurant, order the cake…',border:OutlineInputBorder())),
+   const SizedBox(height:6),
    ResponsiveFieldPair(
     first:TextField(controller:cost,
      keyboardType:const TextInputType.numberWithOptions(decimal:true),
@@ -414,9 +414,11 @@ class _OccasionStepEditorState extends State<OccasionStepEditor> with FormChange
      textCapitalization:TextCapitalization.characters,
      decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
    ),
-   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Completed'),
-    value:done,onChanged:(v)=>setState(()=>done=v)),
-   if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+   const SizedBox(height:6),
+   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Done',icon:Icons.task_alt,value:done,
+    onChanged:(v)=>setState(()=>done=v))),
+   if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
+    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
 }
 
@@ -514,6 +516,11 @@ class _OccasionDetailState extends State<OccasionDetail>{
     builder:(_)=>OccasionStepEditor(planId:widget.id,existing:row)));
   if(done==true&&mounted)await load();
  }
+ Future<void> setStage(String stage)async{
+  await change(()async{
+   await db.from('occasion_plans').update({'status':stage}).eq('id',widget.id);
+  });
+ }
  Future<void> setArchived()async{
   final p=plan;if(p==null)return;
   await change(()async{
@@ -543,12 +550,22 @@ class _OccasionDetailState extends State<OccasionDetail>{
    annual:p['annual']==true,today:DateTime.now());
   final total=OccasionRules.estimatedByCurrency(current);
   return Scaffold(appBar:AppBar(title:const Text('Occasion plan'),actions:[
-    if(p!=null&&p['space_id']!=null)CreateFromThisButton(kind:LinkKind.occasion,id:widget.id,spaceId:p['space_id'].toString(),title:p['title'].toString(),date:DateTime.tryParse(p['occasion_on']?.toString()??''),shared:p['visibility']!='private',stripKey:_links),
-    if(p!=null)RecordActionHistoryButton(kind:'occasion',recordId:widget.id),
-    if(p!=null)IconButton(tooltip:'Edit occasion',onPressed:editPlan,icon:const Icon(Icons.edit_outlined)),
-    if(p!=null)IconButton(tooltip:p['archived_at']==null?'Remove':'Restore',
-      onPressed:busy?null:setArchived,icon:Icon(p['archived_at']==null?
-       Icons.archive_outlined:Icons.restore_outlined)),
+    if(p!=null)ItemMenu(kind:'occasion',recordId:widget.id,title:p['title']?.toString(),
+     statusActions:[
+      if(p['archived_at']==null&&p['status']!='celebrated')
+       ItemMenuAction('Mark celebrated',Icons.celebration_outlined,()=>setStage('celebrated')),
+      if(p['archived_at']==null&&(p['status']=='celebrated'||p['status']=='cancelled'))
+       ItemMenuAction('Reopen',Icons.undo,()=>setStage('planning')),
+     ],
+     onOpen:editPlan,
+     moreActions:[
+      if(p['space_id']!=null)ItemMenuAction('Create from this',Icons.add_link,
+       ()=>createFromThis(context,kind:LinkKind.occasion,id:widget.id,
+        spaceId:p['space_id'].toString(),title:p['title'].toString(),
+        date:DateTime.tryParse(p['occasion_on']?.toString()??''),
+        shared:p['visibility']!='private',onLinked:()=>_links.currentState?.reload())),
+     ],
+     removed:p['archived_at']!=null,onRemove:busy?null:setArchived),
    ]),
    body:loading?const Center(child:CircularProgressIndicator()):
     p==null?Center(child:Text(error??'Not available')):RefreshIndicator(

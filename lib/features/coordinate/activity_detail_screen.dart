@@ -1505,7 +1505,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final priority = item['priority']?.toString() ?? 'normal';
     final stage = item['stage']?.toString() ?? 'exploring';
     final due = item['due_on']?.toString();
-    final archived=item['archived_at']!=null;
     return Column(children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         PopupMenuButton<String>(
@@ -1548,21 +1547,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
             onPressed: () => changeField(item, 'due_on', null)),
         IconButton(tooltip: 'Add an item', icon: const Icon(Icons.add_circle_outline),
           onPressed: chooseAdd),
-        ItemMenu(kind:'activity',recordId:item['id'].toString(),
-          title:item['title']?.toString(),
-          statusActions:[
-            if(!archived && stage!='completed')
-              ItemMenuAction('Mark completed',Icons.task_alt,()=>_finishActivity(item)),
-            if(!archived && stage!='cancelled')
-              ItemMenuAction('Cancel activity',Icons.block,()=>recordDecision('cancelled')),
-            if(!archived && (stage=='cancelled'||stage=='completed'||stage=='on_hold'))
-              ItemMenuAction('Reopen',Icons.undo,()=>recordDecision('reopened')),
-          ],
-          moreActions:[
-            ItemMenuAction('Edit history',Icons.edit_note,()=>showActivityHistory(item)),
-          ],
-          removed:archived,
-          onRemove:()=>_setActivityArchived(item,!archived)),
       ]),
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -1638,15 +1622,31 @@ class _ActivityScreenState extends State<ActivityScreen> {
           title: Text(item['title']?.toString() ?? 'Activity',
               maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
-            if (item['space_id'] != null) CreateFromThisButton(
-              kind: LinkKind.activity, id: widget.id,
-              spaceId: item['space_id'].toString(),
-              title: item['title']?.toString() ?? 'Activity',
-              date: DateTime.tryParse(item['due_on']?.toString() ?? ''),
-              shared: item['visibility'] != 'private', stripKey: _links),
-            IconButton(tooltip: 'Edit title and details',
-              onPressed: () => editActivity(item),
-              icon: const Icon(Icons.edit_outlined)),
+            Builder(builder: (_) {
+              final stage = item['stage']?.toString() ?? 'exploring';
+              final archived = item['archived_at'] != null;
+              final finished = stage == 'completed' || stage == 'cancelled' || stage == 'on_hold';
+              return ItemMenu(kind: 'activity', recordId: widget.id,
+                title: item['title']?.toString(),
+                statusActions: [
+                  if (!archived && !finished)
+                    ItemMenuAction('Mark completed', Icons.task_alt, () => _finishActivity(item)),
+                  if (!archived && finished)
+                    ItemMenuAction('Reopen', Icons.undo, () => recordDecision('reopened')),
+                ],
+                onOpen: () => editActivity(item),
+                moreActions: [
+                  if (item['space_id'] != null) ItemMenuAction('Create from this', Icons.add_link,
+                    () => createFromThis(context, kind: LinkKind.activity, id: widget.id,
+                      spaceId: item['space_id'].toString(),
+                      title: item['title']?.toString() ?? 'Activity',
+                      date: DateTime.tryParse(item['due_on']?.toString() ?? ''),
+                      shared: item['visibility'] != 'private',
+                      onLinked: () => _links.currentState?.reload())),
+                ],
+                removed: archived,
+                onRemove: () => _setActivityArchived(item, !archived));
+            }),
           ]),
         body:Column(children:[
           Expanded(child:ListView(
