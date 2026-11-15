@@ -63,7 +63,7 @@ class ItemMenu extends StatelessWidget {
     if (t == null) return;
     if (!removed) {
       final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-        title: Text('Remove ${title == null || title!.isEmpty ? tt('this item') : '“$title”'}?'),
+        title: Text(tt('Remove ${title == null || title!.isEmpty ? tt('this item') : '“$title”'}?')),
         content: Text(tt('It moves to Removed. You can restore it from the filter anytime.')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tt('Cancel'))),

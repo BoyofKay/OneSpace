@@ -512,8 +512,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       },onConflict:'user_id,source,object_id');
       if(!mounted)return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:Text('Hidden from your Today feed until '
-          '${CalendarRules.sqlDate(until)}.')));
+        content:Text(tt('Hidden from your Today feed until '
+          '${CalendarRules.sqlDate(until)}.'))));
       await _load();
     } catch(_){
       if(mounted) {
@@ -676,7 +676,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       contentPadding:const EdgeInsets.symmetric(horizontal:4),
       leading:const Icon(Icons.auto_awesome_outlined),
       title:Text(tt(memory['title']?.toString()??'A memory')),
-      subtitle:Text('On this day · $years year${years==1?'':'s'} ago'),
+      subtitle:Text(tt('On this day · $years year${years==1?'':'s'} ago')),
       onTap:()=>_push(MemoriesScreen(initialMemoryId:id)),
       trailing:IconButton(
         tooltip:tt('Hide this memory from Today'),

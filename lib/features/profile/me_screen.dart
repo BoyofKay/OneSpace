@@ -6,6 +6,7 @@ import '../notifications/push_registration_gate.dart';
 import '../settings/account_data_screen.dart';
 import '../settings/onespace_settings_screen.dart';
 import '../support/support_screens.dart';
+import '../support/whats_new.dart';
 import 'profile_settings_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -86,6 +87,9 @@ class _MeScreenState extends State<MeScreen> {
         tile(Icons.forum_outlined, 'Your messages', 'What you sent us and its status',
           () => _open(const MySupportRequestsScreen())),
         const Divider(height: 1),
+        tile(Icons.new_releases_outlined, "What's new", 'The latest changes in OneSpace',
+          () => WhatsNew.show(context)),
+        const Divider(height: 1),
         tile(Icons.privacy_tip_outlined, 'About and privacy', 'What we keep, what we never do',
           () => _open(const AboutPrivacyScreen())),
       ])),
@@ -107,7 +111,7 @@ class _MeScreenState extends State<MeScreen> {
         onPressed: () => showTroubleshooting(context),
         icon: const Icon(Icons.speed_outlined, size: 18),
         label: Text(tt('Troubleshooting')))),
-      Center(child: Text('OneSpace ${AppInfo.version}', style: theme.textTheme.bodySmall)),
+      Center(child: Text(tt('OneSpace ${AppInfo.version}'), style: theme.textTheme.bodySmall)),
     ]);
   }
 }

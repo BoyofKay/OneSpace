@@ -2,6 +2,8 @@
 // tt('English') looks up here; anything missing stays English.
 
 const Map<String, String> arPhrases = {
+  "What's new": 'ما الجديد',
+  'The latest changes in OneSpace': 'آخر التغييرات في OneSpace',
   'About and privacy': 'عن التطبيق والخصوصية',
   'What we keep, what we never do': 'ما نحفظه، وما لا نفعله أبدًا',
   // R64: help & support, themes.

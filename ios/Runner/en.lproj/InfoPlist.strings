@@ -1,0 +1,8 @@
+"CFBundleDisplayName" = "OneSpace";
+"NSMicrophoneUsageDescription" = "OneSpace uses the microphone for voice messages you choose to send.";
+"NSSpeechRecognitionUsageDescription" = "OneSpace turns what you say into commands. Speech is processed by Apple, on the phone when supported.";
+"NSPhotoLibraryUsageDescription" = "Choose photos to share privately with your partner in OneSpace.";
+"NSPhotoLibraryAddUsageDescription" = "Save scrapbook pages and shared photos to your library.";
+"NSCameraUsageDescription" = "Take photos and daily selfies to share privately with your partner.";
+"NSFaceIDUsageDescription" = "Unlock OneSpace with Face ID.";
+"NSContactsUsageDescription" = "Add a contact card from OneSpace to your Contacts when you ask.";

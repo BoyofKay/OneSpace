@@ -1,0 +1,8 @@
+"CFBundleDisplayName" = "OneSpace";
+"NSMicrophoneUsageDescription" = "يستخدم OneSpace الميكروفون للرسائل الصوتية التي تختار إرسالها.";
+"NSSpeechRecognitionUsageDescription" = "يحوّل OneSpace ما تقوله إلى أوامر. تعالج Apple الكلام، على الهاتف عندما يكون ذلك مدعومًا.";
+"NSPhotoLibraryUsageDescription" = "اختر صورًا لمشاركتها بخصوصية مع شريكك في OneSpace.";
+"NSPhotoLibraryAddUsageDescription" = "احفظ صفحات الألبوم والصور المشتركة في مكتبتك.";
+"NSCameraUsageDescription" = "التقط صورًا وسيلفي يوميًا لمشاركتها بخصوصية مع شريكك.";
+"NSFaceIDUsageDescription" = "افتح OneSpace ببصمة الوجه.";
+"NSContactsUsageDescription" = "أضف بطاقة اتصال من OneSpace إلى جهات اتصالك عندما تطلب ذلك.";

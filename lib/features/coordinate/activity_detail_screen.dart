@@ -1234,8 +1234,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ],
             if (steps.isNotEmpty) ...[
               Row(children: [
-                Expanded(child: Text('Next steps · ${steps.where(
-                    (i) => (i['payload'] as Map?)?['status'] != 'done').length} open',
+                Expanded(child: Text(tt('Next steps · ${steps.where(
+                    (i) => (i['payload'] as Map?)?['status'] != 'done').length)} open',
                   style: Theme.of(context).textTheme.titleMedium)),
                 IconButton(tooltip: tt('Add step'),
                   onPressed: () => openEditor('step'),
@@ -1676,8 +1676,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
             decisionSection(item['space_id']?.toString()),
             conversation(item['space_id']?.toString()),
             const SizedBox(height: 12),
-            Text('Created by ${author(item['created_by']?.toString(),item['space_id']?.toString())}'
-                ' · ${when(item['created_at'])}',
+            Text(tt('Created by ${author(item['created_by']?.toString(),item['space_id']?.toString())}'
+                ' · ${when(item['created_at'])}'),
                 style: Theme.of(context).textTheme.labelSmall),
           ],
           )),
