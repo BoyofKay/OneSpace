@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -266,14 +267,15 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
         'Tags: '+(p['other_tags'] as List).join(', '),
       ].join(' · ')),
       trailing:widget.editable?PopupMenuButton<String>(
-       tooltip:'Photo options',
+       tooltip:'More',
        onSelected:(v){if(v=='caption'){editCaption(p);}
         else if(v=='tags'){editTags(p);}
         else if(v=='archive'){toggleArchive(p);}},
        itemBuilder:(_)=>[
-        const PopupMenuItem(value:'caption',child:Text('Edit caption')),
-        const PopupMenuItem(value:'tags',child:Text('People, place & tags')),
-        PopupMenuItem(value:'archive',child:Text(p['archived_at']==null?'Remove':'Restore')),
+        iconMenuItem('caption',MenuIcons.edit,'Edit caption'),
+        iconMenuItem('tags',Icons.sell_outlined,'People, place & tags'),
+        p['archived_at']==null?iconMenuItem('archive',MenuIcons.remove,'Remove')
+         :iconMenuItem('archive',MenuIcons.restore,'Restore'),
        ]):null),
     if(busy)const LinearProgressIndicator(),
     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),

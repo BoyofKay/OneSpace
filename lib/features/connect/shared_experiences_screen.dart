@@ -930,7 +930,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
        (ExperienceCommentRules.isRetracted(x)?' · Retracted':'')),
       subtitle:Text(x['body'].toString()),
       trailing:ExperienceCommentRules.isAuthor(x,myId)?
-       PopupMenuButton<String>(tooltip:'Comment actions',
+       PopupMenuButton<String>(tooltip:'More',
         onSelected:(action){
          if(action=='edit')editComment(x);
          if(action=='archive')changeCommentArchive(x);
@@ -942,11 +942,10 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
         },
         itemBuilder:(_)=>[
          if(ExperienceCommentRules.canEdit(x,myId))
-          const PopupMenuItem(value:'edit',child:Text('Edit')),
-         PopupMenuItem(value:'archive',child:Text(
-          ExperienceCommentRules.isRetracted(x)?'Restore':'Retract')),
-         const PopupMenuItem(value:'history',
-          child:Text('Comment action history')),
+          iconMenuItem('edit',MenuIcons.edit,'Edit'),
+         ExperienceCommentRules.isRetracted(x)?iconMenuItem('archive',MenuIcons.restore,'Restore')
+          :iconMenuItem('archive',MenuIcons.remove,'Remove'),
+         iconMenuItem('history',MenuIcons.changeLog,'Change log'),
         ]):null)),
     TextField(controller:comment,maxLength:2000,maxLines:3,
      decoration:const InputDecoration(labelText:'Share your thoughts')),

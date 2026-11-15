@@ -1,6 +1,6 @@
+import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/editor_scaffold.dart';
-import '../../core/collection_history_screen.dart';
 import '../../core/status_look.dart';
 import 'dart:async';
 
@@ -477,26 +477,13 @@ class _PlansScreenState extends State<PlansScreen> {
        title:Text(task.title,style:StatusLook.title(context,task.status.name)),
        subtitle:details.isEmpty?null:Text(details.join(' · ')),
        trailing:!canEdit?const Icon(Icons.lock_outline):
-        PopupMenuButton<String>(
-         tooltip:'List actions',
-         onSelected:(choice){
-          if(choice=='edit'){_taskEditor(existing:task);}
-          if(choice=='cancel'){_cancelTask(task);}
-          if(choice=='complete'){_changeStatus(task,TaskStatus.completed);}
-          if(choice=='reopen'){_changeStatus(task,TaskStatus.open);}
-          if(choice=='log'){openChangeLog(context,kind:'task',recordId:task.id,recordTitle:task.title);}
-         },
-         itemBuilder:(_)=>[
-          if(!cancelled&&!completed)
-           const PopupMenuItem(value:'complete',child:Text('Mark complete')),
-          if(!cancelled)
-           const PopupMenuItem(value:'cancel',child:Text('Cancel list')),
-          if(cancelled||completed)
-           const PopupMenuItem(value:'reopen',child:Text('Reopen list')),
-          const PopupMenuDivider(),
-          const PopupMenuItem(value:'edit',child:Text('Edit')),
-          const PopupMenuItem(value:'log',child:Text('Change log')),
-         ]),
+        ItemMenu(kind:'task',recordId:task.id,title:task.title,
+         statusActions:[
+          if(!cancelled&&!completed)ItemMenuAction('Mark complete',MenuIcons.complete,()=>_changeStatus(task,TaskStatus.completed)),
+          if(!cancelled&&!completed)ItemMenuAction('Cancel list',MenuIcons.cancel,()=>_cancelTask(task)),
+          if(cancelled||completed)ItemMenuAction('Reopen list',MenuIcons.reopen,()=>_changeStatus(task,TaskStatus.open)),
+         ],
+         onOpen:()=>_taskEditor(existing:task)),
        childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
        children:[
         if(_expandedLists.contains(task.id)) TaskChecklistPanel(

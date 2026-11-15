@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:typed_data';
@@ -279,15 +280,15 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
       ].join(' · '),maxLines:3),
       onTap:doc['archived_at']!=null?null:()=>view(doc),
       trailing:PopupMenuButton<String>(
-       tooltip:'Document options',
+       tooltip:'More',
        onSelected:(choice){
         if(choice=='edit'){edit(doc);}
         else if(choice=='archive'){toggleArchive(doc);}
        },
        itemBuilder:(_)=>[
-        const PopupMenuItem(value:'edit',child:Text('Edit details')),
-        PopupMenuItem(value:'archive',child:Text(
-         doc['archived_at']!=null?'Restore':'Remove')),
+        iconMenuItem('edit',MenuIcons.edit,'Edit'),
+        doc['archived_at']!=null?iconMenuItem('archive',MenuIcons.restore,'Restore')
+         :iconMenuItem('archive',MenuIcons.remove,'Remove'),
        ],
       ),
      )),
