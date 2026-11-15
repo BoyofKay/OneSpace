@@ -88,7 +88,9 @@ class MetaRules {
 class MetaStrip extends StatelessWidget {
   const MetaStrip({super.key, required this.value, required this.onChanged, this.people,
     this.showVisibility = true, this.showBelongs = true, this.showDate = true,
-    this.dateLabel = 'Date', this.withTime = false});
+    this.dateLabel = 'Date', this.withTime = false, this.enabled = true});
+  /// false = shown but not changeable (e.g. who can see a saved reminder).
+  final bool enabled;
   final MetaValues value;
   final ValueChanged<MetaValues> onChanged;
   final SpacePeople? people;
@@ -114,7 +116,7 @@ class MetaStrip extends StatelessWidget {
     final me = people?.me ?? '';
     final loc = MaterialLocalizations.of(context);
     final chips = <Widget>[
-      if (showVisibility) _MenuChip<bool>(
+      if (showVisibility) _MenuChip<bool>(enabled: enabled,
         icon: value.shared ? Icons.people_outline : Icons.lock_outline,
         label: value.shared ? 'Shared' : 'Only me',
         tooltip: 'Who can see it',
@@ -122,7 +124,7 @@ class MetaStrip extends StatelessWidget {
         icons: const {true: Icons.people_outline, false: Icons.lock_outline},
         selected: value.shared,
         onSelected: (v) => onChanged(MetaRules.setShared(value, v, me))),
-      if (showBelongs) _MenuChip<String>(
+      if (showBelongs) _MenuChip<String>(enabled: enabled,
         icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
         label: MetaRules.belongsLabel(value.belongsTo, people),
         tooltip: 'Belongs to',
@@ -159,7 +161,9 @@ class MetaStrip extends StatelessWidget {
 
 class _MenuChip<T> extends StatelessWidget {
   const _MenuChip({required this.icon, required this.label, required this.tooltip,
-    required this.options, required this.selected, required this.onSelected, this.icons = const {}});
+    required this.options, required this.selected, required this.onSelected, this.icons = const {},
+    this.enabled = true});
+  final bool enabled;
   final IconData icon;
   final String label, tooltip;
   final Map<T, String> options;
@@ -167,7 +171,10 @@ class _MenuChip<T> extends StatelessWidget {
   final T selected;
   final ValueChanged<T> onSelected;
   @override
-  Widget build(BuildContext context) => PopupMenuButton<T>(
+  Widget build(BuildContext context) => !enabled
+    ? Tooltip(message: '$tooltip (set when it was created)',
+        child: Chip(avatar: Icon(icon, size: 18), label: Text(label)))
+    : PopupMenuButton<T>(
     tooltip: tooltip,
     initialValue: selected,
     onSelected: onSelected,
@@ -350,4 +357,23 @@ class FormSection extends StatelessWidget {
     padding: const EdgeInsets.only(top: 6, bottom: 10),
     child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(
       color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700)));
+}
+
+/// A yes/no option as one chip (Urgent, Flexible dates, Every year…).
+class OptionChip extends StatelessWidget {
+  const OptionChip({super.key, required this.label, required this.value,
+    required this.onChanged, this.icon, this.help});
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final IconData? icon;
+  final String? help;
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: help ?? label,
+    child: FilterChip(
+      avatar: icon == null ? null : Icon(icon, size: 18),
+      label: Text(label),
+      selected: value,
+      onSelected: onChanged));
 }

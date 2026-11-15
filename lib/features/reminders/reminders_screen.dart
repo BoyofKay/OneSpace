@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import '../../core/status_look.dart';
 import '../../core/editor_scaffold.dart';
@@ -100,6 +101,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
  }
  List<Map<String,dynamic>> recipients(Map<String,dynamic> r)=>
   List<Map<String,dynamic>>.from(r['reminder_recipients'] as List? ??const []);
+ /// R57: a one-off reminder is completed (and leaves the Open list) once I
+ /// marked it done — or, when it was not sent to me, once everyone did.
+ /// Repeating reminders stay open: "done" there means "done this time".
+ bool completed(Map<String,dynamic> r){
+  if(ReminderRepeat.fromRule(r['repeat_rule'],
+    start:DateTime.tryParse(r['due_at']?.toString()??'')?.toLocal()??DateTime.now()).repeats){
+   return false;
+  }
+  final m=mine(r);
+  if(m!=null)return m['state']=='done';
+  final all=recipients(r);
+  return all.isNotEmpty&&all.every((x)=>x['state']=='done');
+ }
  Map<String,dynamic>? mine(Map<String,dynamic> r){
   for(final row in recipients(r)){if(row['recipient_id']==me)return row;}
   return null;
@@ -307,13 +321,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     if(r['reminder_intent']=='love_gesture')'Choose when to send',
     if(r['archived_at']!=null)'Removed',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
-   trailing:Row(mainAxisSize:MainAxisSize.min,children:[
-    if(own!=null&&r['archived_at']==null&&!closed&&
-     (openMine||(!repeating&&own['state']!='done')))IconButton(
-     tooltip:repeating?'Done for this time':'Done',
-     icon:const Icon(Icons.check_circle_outline),
-     onPressed:busy?null:()=>respond(r,'done')),
-    ItemMenu(kind:'reminder',recordId:r['id'].toString(),title:r['title']?.toString(),
+   trailing:ItemMenu(kind:'reminder',recordId:r['id'].toString(),title:r['title']?.toString(),
      statusActions:[
       if(own!=null&&r['archived_at']==null&&!closed)...[
        ItemMenuAction(repeating?'Done for this time':'Done',Icons.check,()=>respond(r,'done')),
@@ -325,7 +333,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
      onOpen:r['created_by']==me?()=>editor(existing:r):null,
      removed:r['archived_at']!=null,
      onRemove:r['created_by']==me?()=>archive(r):null),
-   ]),
    childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
    children:[
     LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
@@ -355,18 +362,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
        icon:const Icon(Icons.link),
        label:Text(r['reminder_intent']=='love_gesture'
         ?'Open A little love':'Open related item'))),
-    if(own!=null&&r['archived_at']==null&&!closed)Wrap(
-     spacing:7,runSpacing:3,children:[
-      OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'done'),
-       icon:const Icon(Icons.check),
-       label:Text(repeating?'Done for this time':'Done')),
-      OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'follow_up'),
-       icon:const Icon(Icons.flag_outlined),label:const Text('Follow-up')),
-      OutlinedButton.icon(onPressed:busy?null:()=>respond(r,'snooze'),
-       icon:const Icon(Icons.snooze),label:const Text('Snooze')),
-      if(own['state']=='done'&&!repeating)TextButton(
-       onPressed:busy?null:()=>respond(r,'reopen'),child:const Text('Reopen')),
-     ]),
     if(history.isNotEmpty)ExpansionTile(
      title:Text('Outcome history · '+history.length.toString()),
      children:[for(final event in history)ListTile(
@@ -389,12 +384,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
   ));
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'open':'Open','all':'Open and completed'},selected:showCompleted?'all':'open',defaultValue:'open')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'open':'Open','done':'Completed'},selected:showCompleted?'done':'open',defaultValue:'open')];
 
  @override Widget build(BuildContext context){
   final visible=reminders.where((r)=>
-   (showArchived||r['archived_at']==null)&&
-   (showCompleted||recipients(r).any((x)=>x['state']!='done'))&&
+   (showArchived?r['archived_at']!=null:r['archived_at']==null)&&
+   (showArchived||completed(r)==showCompleted)&&
    (searchText.isEmpty||
     (r['title']??'').toString().toLowerCase().contains(searchText)||
     (r['details']??'').toString().toLowerCase().contains(searchText))
@@ -406,7 +401,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
      showHistory:showArchived,
       onToggleHistory:()=>setState(()=>showArchived=!showArchived),
       groups:_filterGroups(),
-      onApply:(v)=>setState((){showCompleted=v['show']=='all';}),
+      onApply:(v)=>setState((){showCompleted=v['show']=='done';}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-reminders',
@@ -437,7 +432,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
      if(!loading&&space==null)const Text('Connect a shared space first.'),
      if(!loading&&space!=null&&visible.isEmpty)
       const Padding(padding:EdgeInsets.all(40),
-       child:Center(child:Text('No reminders in this view. Tap New reminder.'))),
+       child:Center(child:Text('No reminders in this view.'))),
      for(final r in visible)tile(r),
    ])),
   );
@@ -473,6 +468,17 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
  ReminderRepeat repeat=const ReminderRepeat();
  String myZone='UTC';
  String? partnerZone,partnerName;
+ SpacePeople? people;
+ /// R57: audience ↔ "Belongs to" in the shared strip.
+ MetaValues get meta=>MetaValues(shared:visibility=='shared',
+  belongsTo:audience=='both'?null:audience=='me'?people?.me??'me':people?.partnerId??'partner');
+ void setMeta(MetaValues v){
+  setState((){
+   visibility=v.shared?'shared':'private';
+   audience=v.belongsTo==null?'both':v.belongsTo==(people?.me??'me')?'me':'partner';
+   if(!v.shared)audience='me';
+  });
+ }
  @override void initState(){
   super.initState();
   final prior=widget.existing;
@@ -488,6 +494,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   urgent=prior?['urgent']==true;
   loadLinks();
   loadZones();
+  SpacePeople.load().then((p){if(mounted)setState(()=>people=p);});
  }
  /// Repeating schedules are stored in a fixed IANA zone (this phone's), so a
  /// daylight-saving change never moves the alarm. The partner's zone is only
@@ -547,16 +554,15 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   final unit=repeat.preset=='daily'?'day':repeat.preset=='weekly'?'week':
    repeat.preset=='monthly'?'month':'year';
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   DropdownButtonFormField<String>(
-    initialValue:repeat.preset,isExpanded:true,
-    decoration:const InputDecoration(labelText:'Repeat',
-     prefixIcon:Icon(Icons.repeat),border:OutlineInputBorder()),
-    items:[for(final p in ReminderRepeat.presets)
-     DropdownMenuItem(value:p,child:Text(ReminderRepeat.presetLabels[p]!))],
-    onChanged:saving?null:(v)=>setState((){
+   ChoiceRow<String>(label:'Repeat',
+    options:{for(final p in ReminderRepeat.presets)p:switch(p){
+     'none'=>'Once','daily'=>'Daily','weekdays'=>'Weekdays',
+     'weekly'=>'Weekly','monthly'=>'Monthly',_=>'Yearly'}},
+    selected:repeat.preset,
+    onSelected:(v){if(!saving)setState((){
      repeat=repeat.copyWith(preset:v??'none',interval:1,
       weekdays:v=='weekly'?{due.weekday}:null);
-    })),
+    });}),
    if(repeat.repeats&&repeat.preset!='weekdays')Row(children:[
     const Text('Every'),
     IconButton(onPressed:interval>1?()=>setState(()=>
@@ -689,18 +695,43 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   final options={
    for(final item in eligible)
     item['kind'].toString()+':'+item['id'].toString():
-      item['kind'].toString()+' · '+item['title'].toString(),
+      item['title'].toString()+' · '+(item['kind']=='task'?'To-do list':item['kind']=='calendar'?'Calendar':'Occasion'),
   };
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
-  return EditorScaffold(title:editing?'Edit reminder':'Add new reminder',
+  return EditorScaffold(title:editing?'Edit reminder':'Add reminder',
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,details],saving:saving,onSave:save,
+   meta:MetaStrip(value:meta,people:people,showDate:false,enabled:!editing,
+    onChanged:(v){
+     setMeta(v);
+     final key=sourceKind==null?null:sourceKind!+':'+sourceId!;
+     if(v.shared&&key!=null&&links.any((x)=>x['id']==sourceId&&x['visibility']=='private')){
+      setState((){sourceKind=null;sourceId=null;});
+     }
+    }),
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
-    TextField(controller:title,maxLength:160,
-     decoration:const InputDecoration(labelText:'Reminder *',
-      border:OutlineInputBorder())),
-    const SizedBox(height:10),
+    TextField(controller:title,maxLength:160,autofocus:!editing,
+     textCapitalization:TextCapitalization.sentences,
+     decoration:const InputDecoration(labelText:'What to remember *',
+      hintText:'Call the clinic, take the vitamins…',border:OutlineInputBorder())),
+    DateField(label:repeat.repeats?'Starts':'Remind me at',value:due,withTime:true,required:true,
+     first:DateTime.now(),onChanged:(v){if(v!=null)setState(()=>due=v);}),
+    if(partnerTimeHint()!=null)Padding(
+     padding:const EdgeInsets.only(bottom:12),
+     child:Row(children:[
+      const Icon(Icons.public,size:18),const SizedBox(width:6),
+      Expanded(child:Text(partnerTimeHint()!,style:Theme.of(context).textTheme.bodySmall)),
+     ])),
+    repeatSection(),
+    const SizedBox(height:6),
+    if(visibility=='shared'&&audience!='me')Padding(
+     padding:const EdgeInsets.only(bottom:14),
+     child:Align(alignment:Alignment.centerLeft,child:OptionChip(
+      label:'Urgent',icon:Icons.priority_high,value:urgent,
+      help:'Alerts even during your partner\'s sleep hours. Without it, alerts wait until they wake up.',
+      onChanged:saving?null:(v)=>setState(()=>urgent=v)))),
+    const FormSection('More details'),
     TextField(controller:details,maxLength:4000,minLines:2,maxLines:5,
      decoration:const InputDecoration(labelText:'Details / instructions',
       border:OutlineInputBorder())),
@@ -709,74 +740,20 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
      child:PartnerMentionButton(
       spaceId:widget.spaceId,controller:details,
       enabled:!saving)),
-    const SizedBox(height:14),
-    OutlinedButton.icon(onPressed:saving?null:pickDue,
-     icon:const Icon(Icons.event_outlined),
-     label:Text((repeat.repeats?'Starts · ':'Remind at · ')+_when(due))),
-    if(partnerTimeHint()!=null)Padding(
-     padding:const EdgeInsets.only(top:6),
-     child:Row(children:[
-      const Icon(Icons.public,size:18),const SizedBox(width:6),
-      Expanded(child:Text(partnerTimeHint()!)),
-     ])),
-    const SizedBox(height:14),
-    repeatSection(),
-    const SizedBox(height:16),
-    if(!editing)...[
-     SwitchListTile(
-      title:const Text('Shared with partner'),
-      subtitle:const Text('Private reminders stay visible only to you.'),
-      value:visibility=='shared',onChanged:saving?null:(v)=>setState((){
-       visibility=v?'shared':'private';audience=v?'both':'me';
-       if(visibility=='shared'&&selected!=null&&
-        !options.containsKey(selected)){sourceKind=null;sourceId=null;}
-      })),
-     if(visibility=='shared')...[
-      const Text('Who should receive the alert?'),
-      Wrap(spacing:7,children:[
-       for(final v in ['both','me','partner'])ChoiceChip(
-        label:Text(v=='both'?'Both of us':v=='me'?'Only me':'Partner'),
-        selected:audience==v,onSelected:(_)=>setState(()=>audience=v)),
-      ]),
-     ],
-    ]else Text('Visibility: '+visibility+' · Recipients: '+audience),
-    if(visibility=='shared'&&audience!='me')SwitchListTile(
-     contentPadding:EdgeInsets.zero,
-     secondary:const Icon(Icons.priority_high),
-     title:const Text('Urgent'),
-     subtitle:const Text('Alerts even during your partner\'s sleep hours. '
-      'Without it, alerts wait until they wake up.'),
-     value:urgent,onChanged:saving?null:(v)=>setState(()=>urgent=v)),
-    const SizedBox(height:12),
+    const SizedBox(height:10),
     if(loadingLinks)const LinearProgressIndicator(),
-    DropdownButtonFormField<String>(
-     key:ValueKey(visibility+':'+selected.toString()),
-     initialValue:selected!=null&&options.containsKey(selected)?selected:null,
-     isExpanded:true,
-     decoration:const InputDecoration(labelText:'Related item (optional)',
-      border:OutlineInputBorder()),
-     items:[
-      const DropdownMenuItem(value:'none',child:Text('No linked item')),
-      for(final item in options.entries)
-       DropdownMenuItem(value:item.key,
-        child:Text(item.value,overflow:TextOverflow.ellipsis)),
-     ],
-     onChanged:editing||saving?null:(v)=>setState((){
-      if(v==null||v=='none'){sourceKind=null;sourceId=null;}
+    if(!editing)ChoicePickerField<String>(label:'About an item (optional)',
+     icon:Icons.link,noneLabel:'Not linked',options:options,
+     selected:selected!=null&&options.containsKey(selected)?selected:null,
+     onSelected:(v)=>setState((){
+      if(v==null){sourceKind=null;sourceId=null;}
       else{final parts=v.split(':');sourceKind=parts.first;sourceId=parts.last;}
-     })),
-    const SizedBox(height:6),
-    const Text('Choose an existing checklist, Calendar entry or Occasion. '
-     'No duplicate item is created.'),
+     }))
+    else if(selected!=null&&options[selected]!=null)ListTile(contentPadding:EdgeInsets.zero,
+     leading:const Icon(Icons.link),title:Text(options[selected]!)),
     if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:10),
      child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
    ])),
   );
- }
- String _when(DateTime dt){
-  final d=CalendarRules.sqlDate(dt);
-  final h=dt.hour%12==0?12:dt.hour%12;
-  return d+' · '+h.toString()+':'+dt.minute.toString().padLeft(2,'0')+
-   (dt.hour>=12?' PM':' AM');
  }
 }
