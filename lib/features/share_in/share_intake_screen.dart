@@ -1,3 +1,4 @@
+import '../../core/form_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -272,13 +273,11 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
         if (loading) const LinearProgressIndicator(),
         if (activities.isEmpty && !loading)
           const Text('There are no Activities yet. Choose "New Activity" instead.')
-        else if (activities.isNotEmpty) DropdownButtonFormField<String>(
-          initialValue: selectedActivity, isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Activity', border: OutlineInputBorder()),
-          items: [for (final a in activities) DropdownMenuItem(value: a['id'].toString(),
-            child: Text('${a['title']}${a['visibility'] == 'private' ? ' · Only me' : ''}',
-              overflow: TextOverflow.ellipsis))],
-          onChanged: (v) => setState(() => selectedActivity = v)),
+        else if (activities.isNotEmpty) ChoicePickerField<String>(label: 'Activity', required: true, icon: Icons.hub_outlined,
+          options: {for (final a in activities) a['id'].toString():
+            '${a['title']}${a['visibility'] == 'private' ? ' · Only me' : ''}'},
+          selected: selectedActivity,
+          onSelected: (v) => setState(() => selectedActivity = v)),
         if (url.text.trim().isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(children: [
@@ -301,21 +300,16 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       if (d == ShareDestination.giftIdea) ...[
         if (occasions.isEmpty && !loading)
           const Text('There is no upcoming occasion yet. Plan one in Occasions first.')
-        else if (occasions.isNotEmpty) DropdownButtonFormField<String>(
-          initialValue: selectedOccasion, isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Occasion', border: OutlineInputBorder()),
-          items: [for (final o in occasions) DropdownMenuItem(value: o['id'].toString(),
-            child: Text('${o['title']}${o['occasion_on'] == null ? '' : ' · ${o['occasion_on']}'}',
-              overflow: TextOverflow.ellipsis))],
-          onChanged: (v) => setState(() => selectedOccasion = v)),
+        else if (occasions.isNotEmpty) ChoicePickerField<String>(label: 'Occasion', required: true, icon: Icons.card_giftcard_outlined,
+          options: {for (final o in occasions) o['id'].toString():
+            '${o['title']}${o['occasion_on'] == null ? '' : ' · ${o['occasion_on']}'}'},
+          selected: selectedOccasion,
+          onSelected: (v) => setState(() => selectedOccasion = v)),
         Text('Saved as a gift idea in that occasion\'s plan.', style: theme.textTheme.bodySmall),
       ],
       if (d == ShareDestination.experience) ...[
-        DropdownButtonFormField<String>(initialValue: category,
-          decoration: const InputDecoration(labelText: 'Experience type', border: OutlineInputBorder()),
-          items: [for (final e in experienceTypes.entries)
-            DropdownMenuItem(value: e.key, child: Text(e.value))],
-          onChanged: (v) => setState(() => category = v ?? category)),
+        ChoiceRow<String>(label: 'Watchlist', options: experienceTypes, selected: category,
+          onSelected: (v) => setState(() => category = v ?? category)),
         Text('Shared experiences are visible to both of you.', style: theme.textTheme.bodySmall),
       ],
       if (d == ShareDestination.reminder || d == ShareDestination.event || d == ShareDestination.trip)

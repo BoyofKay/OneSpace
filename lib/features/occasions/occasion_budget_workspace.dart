@@ -37,11 +37,10 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
   if(old.plan['id']!=widget.plan['id'])_attach();
  }
  Future<void> edit([Map<String,dynamic>? row,String initial='planned'])async{
-  await showModalBottomSheet<bool>(context:context,isScrollControlled:true,
-   showDragHandle:true,
+  await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
    builder:(_)=>OccasionBudgetItemEditor(plan:widget.plan,
     existing:row,initialStatus:initial,
-    markPurchase:row!=null&&initial=='purchased'));
+    markPurchase:row!=null&&initial=='purchased')));
  }
  Future<void> setStage(Map<String,dynamic> item,String stage)async{
   if(busy)return;

@@ -1,3 +1,5 @@
+import '../../core/editor_scaffold.dart';
+import '../../core/form_kit.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/responsive_field_pair.dart';
@@ -109,6 +111,7 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
    if(mounted)setState(()=>error='Could not save this item. Try again.');
   }finally{if(mounted)setState(()=>busy=false);}
  }
+ // Kept for callers; the form uses DateField.
  Future<void> pickArrival()async{
   final now=DateTime.now();
   final day=await showDatePicker(context:context,
@@ -116,114 +119,94 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor>{
    firstDate:DateTime(now.year-2),lastDate:DateTime(now.year+10));
   if(day!=null&&mounted)setState(()=>arrival=day);
  }
+ String get _signature=>[title.text,qty.text,price.text,paid.text,currency.text,notes.text,url.text,
+  merchant.text,orderNumber.text,trackingUrl.text,returnReason.text,arrival,rating,preference,orderStatus,status].join('|');
+ late final String _start=_signature;
+
  @override Widget build(BuildContext context){
   final theme=Theme.of(context);
-  return SafeArea(child:Padding(
-   padding:EdgeInsets.fromLTRB(18,8,18,MediaQuery.viewInsetsOf(context).bottom+18),
-   child:SingleChildScrollView(child:Column(
-    crossAxisAlignment:CrossAxisAlignment.stretch,mainAxisSize:MainAxisSize.min,
-    children:[
-     Row(children:[
-      Icon(Icons.card_giftcard_outlined,color:theme.colorScheme.primary),
-      const SizedBox(width:8),
-      Expanded(child:Text(widget.existing==null?
-       'Add a meaningful item':'Edit purchase or wish',
-       style:theme.textTheme.titleLarge)),
-     ]),
-     const SizedBox(height:12),
-     TextField(controller:title,maxLength:200,
-      decoration:const InputDecoration(labelText:'Item or experience')),
-     if(widget.markPurchase)Padding(padding:const EdgeInsets.only(bottom:10),
-      child:Text('Record the final amount paid. This moves the item from reserved to spent.',
+  final occasionDay=DateTime.tryParse(widget.plan['occasion_on']?.toString()??'');
+  return EditorScaffold(
+   title:widget.markPurchase?'Record the purchase':widget.existing==null?'Add gift or item':'Edit gift or item',
+   isNew:widget.existing==null||widget.markPurchase,
+   isChanged:()=>_signature!=_start,
+   isComplete:()=>title.text.trim().isNotEmpty,
+   listenTo:[title,qty,price,paid,currency,notes,url,merchant,orderNumber,trackingUrl,returnReason],
+   saving:busy,onSave:save,
+   body:ListView(padding:const EdgeInsets.all(18),children:[
+     if(widget.markPurchase)Padding(padding:const EdgeInsets.only(bottom:12),
+      child:Text('Enter what you actually paid. The item moves from reserved to spent.',
        style:theme.textTheme.bodyMedium)),
-     DropdownButtonFormField<String>(initialValue:status,
-      decoration:const InputDecoration(labelText:'Planning state'),
-      items:[for(final e in occasionItemStages.entries)
-       DropdownMenuItem(value:e.key,child:Text(e.value))],
-      onChanged:(v)=>setState(()=>status=v??status)),
-     const SizedBox(height:10),
+     TextField(controller:title,maxLength:200,autofocus:widget.existing==null,
+      textCapitalization:TextCapitalization.sentences,
+      decoration:const InputDecoration(labelText:'Gift, item or experience *',border:OutlineInputBorder())),
+     ChoiceRow<String>(label:'Stage',options:occasionItemStages,selected:status,
+      icons:const {'wish':Icons.lightbulb_outline,'shortlisted':Icons.compare_arrows,
+       'planned':Icons.bookmark_border,'purchased':Icons.shopping_bag_outlined,'cancelled':Icons.block},
+      onSelected:(v)=>setState(()=>status=v??status)),
+     Text('Wishlist and Considering are free to explore. Reserved counts against the budget; Purchased uses what you paid.',
+      style:theme.textTheme.bodySmall),
+     const FormSection('Cost'),
      ResponsiveFieldPair(firstFlex:1,
       first:TextField(controller:qty,keyboardType:TextInputType.number,
-       decoration:const InputDecoration(labelText:'Quantity')),
+       decoration:const InputDecoration(labelText:'Quantity',border:OutlineInputBorder())),
       second:TextField(controller:currency,maxLength:3,
        textCapitalization:TextCapitalization.characters,
-       decoration:const InputDecoration(labelText:'Currency'))),
+       decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder()))),
      const SizedBox(height:10),
      ResponsiveFieldPair(
       first:TextField(controller:price,
        keyboardType:const TextInputType.numberWithOptions(decimal:true),
-       decoration:const InputDecoration(labelText:'Estimated unit price')),
+       decoration:const InputDecoration(labelText:'Estimated price (each)',border:OutlineInputBorder())),
       second:TextField(controller:paid,
        keyboardType:const TextInputType.numberWithOptions(decimal:true),
-       decoration:const InputDecoration(labelText:'Actual unit price'))),
-     const SizedBox(height:10),
-     TextField(controller:url,maxLength:1800,
-      decoration:const InputDecoration(labelText:'Product link (optional)')),
+       decoration:InputDecoration(labelText:widget.markPurchase?'Paid (each) *':'Paid (each)',
+        border:const OutlineInputBorder()))),
+     const FormSection('Where to get it'),
      TextField(controller:merchant,maxLength:140,
-      decoration:const InputDecoration(labelText:'Retailer / merchant (e.g. Amazon, Walmart)')),
-     const SizedBox(height:8),
-     OutlinedButton.icon(onPressed:busy?null:pickArrival,
-      icon:const Icon(Icons.local_shipping_outlined),
-      label:Text(arrival==null?'Estimated delivery date (optional)':
-       'Estimated delivery: ${arrival!.year}-${arrival!.month.toString().padLeft(2,'0')}-${arrival!.day.toString().padLeft(2,'0')}')),
-     if(arrival!=null)TextButton(onPressed:()=>setState(()=>arrival=null),
-      child:const Text('Clear estimated delivery')),
-     if(arrival!=null&&widget.plan['occasion_on']!=null&&
-       arrival!.isAfter(DateTime.tryParse(widget.plan['occasion_on'].toString())??
-        DateTime(2100)))
-       const Text('Delivery is after the occasion date!',
-        style:TextStyle(color:Colors.red)),
-     const SizedBox(height:8),
-     Text('Your preference: ${preference==null?'Not rated':preference.toString()+'/5'}'),
-     Wrap(spacing:3,children:[
-      for(var value=1;value<=5;value++)ChoiceChip(
-        label:Text(value.toString()),selected:preference==value,
-        onSelected:(_)=>setState(()=>preference=preference==value?null:value)),
-      ]),
-      const SizedBox(height:8),
-      DropdownButtonFormField<double?>(
-       initialValue:rating,
-       decoration:const InputDecoration(labelText:'Retailer rating (out of 5)'),
-       items:[const DropdownMenuItem<double?>(value:null,child:Text('Not rated')),
-        for(final n in [1.0,2.0,3.0,3.5,4.0,4.5,5.0])
-         DropdownMenuItem<double?>(value:n,child:Text(n.toString()))],
-       onChanged:(v)=>setState(()=>rating=v)),
-      const SizedBox(height:8),
-      DropdownButtonFormField<String>(
-       initialValue:orderStatus,
-       decoration:const InputDecoration(labelText:'Order / delivery status'),
-       items:const [
-        DropdownMenuItem(value:'not_ordered',child:Text('Not ordered')),
-        DropdownMenuItem(value:'ordered',child:Text('Ordered')),
-        DropdownMenuItem(value:'shipped',child:Text('Shipped')),
-        DropdownMenuItem(value:'delivered',child:Text('Delivered')),
-        DropdownMenuItem(value:'return_requested',child:Text('Return requested')),
-        DropdownMenuItem(value:'returned',child:Text('Returned')),
-        DropdownMenuItem(value:'cancelled',child:Text('Cancelled order'))],
-       onChanged:(v)=>setState(()=>orderStatus=v??orderStatus)),
-      if(orderStatus!='not_ordered')...[
-       TextField(controller:orderNumber,maxLength:160,
-        decoration:const InputDecoration(labelText:'Order number (optional)')),
-       TextField(controller:trackingUrl,maxLength:1800,
-        decoration:const InputDecoration(labelText:'Carrier tracking link (optional)')),
-      ],
-      if(orderStatus=='return_requested'||orderStatus=='returned')
-       TextField(controller:returnReason,maxLength:600,maxLines:2,
-        decoration:const InputDecoration(labelText:'Return reason / alternatives needed')),
+      decoration:const InputDecoration(labelText:'Shop',hintText:'Amazon, Walmart…',
+       prefixIcon:Icon(Icons.storefront_outlined),border:OutlineInputBorder())),
+     const SizedBox(height:10),
+     TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
+      decoration:const InputDecoration(labelText:'Product link',prefixIcon:Icon(Icons.link),
+       border:OutlineInputBorder())),
+     const SizedBox(height:10),
+     ChoiceRow<int>(label:'How much we like it',
+      options:const {0:'—',1:'1',2:'2',3:'3',4:'4',5:'5'},selected:preference??0,
+      onSelected:(v)=>setState(()=>preference=v==null||v==0?null:v)),
+     ChoicePickerField<double>(label:'Shop rating',icon:Icons.star_outline,noneLabel:'Not rated',
+      options:{for(final n in [1.0,2.0,3.0,3.5,4.0,4.5,5.0])n:'$n out of 5'},
+      selected:rating,onSelected:(v)=>setState(()=>rating=v)),
+     const FormSection('Order and delivery'),
+     ChoicePickerField<String>(label:'Order status',icon:Icons.local_shipping_outlined,
+      options:const {'not_ordered':'Not ordered','ordered':'Ordered','shipped':'Shipped',
+       'delivered':'Delivered','return_requested':'Return requested','returned':'Returned',
+       'cancelled':'Order cancelled'},
+      selected:orderStatus,onSelected:(v)=>setState(()=>orderStatus=v??orderStatus)),
+     if(orderStatus!='not_ordered')...[
+      TextField(controller:orderNumber,maxLength:160,
+       decoration:const InputDecoration(labelText:'Order number',border:OutlineInputBorder())),
       const SizedBox(height:10),
-     TextField(controller:notes,maxLength:2500,maxLines:3,
-      decoration:const InputDecoration(labelText:'Why this item? Notes, ideas, vendor details')),
-     const SizedBox(height:7),
-     Text('Wishlist items are free to explore. Reserved items reduce available budget. Purchased items use actual spending.',
-      style:theme.textTheme.bodySmall),
+      TextField(controller:trackingUrl,maxLength:1800,keyboardType:TextInputType.url,
+       decoration:const InputDecoration(labelText:'Tracking link',border:OutlineInputBorder())),
+      const SizedBox(height:10),
+     ],
+     DateField(label:'Expected delivery',value:arrival,
+      first:DateTime(DateTime.now().year-2),last:DateTime(DateTime.now().year+10),
+      onChanged:(v)=>setState(()=>arrival=v)),
+     if(arrival!=null&&occasionDay!=null&&arrival!.isAfter(occasionDay))Padding(
+      padding:const EdgeInsets.only(bottom:10),
+      child:Text('Arrives after the occasion date.',style:TextStyle(color:theme.colorScheme.error))),
+     if(orderStatus=='return_requested'||orderStatus=='returned')Padding(
+      padding:const EdgeInsets.only(bottom:10),
+      child:TextField(controller:returnReason,maxLength:600,minLines:2,maxLines:4,
+       decoration:const InputDecoration(labelText:'Why return it? Alternatives?',border:OutlineInputBorder()))),
+     const FormSection('Notes'),
+     TextField(controller:notes,maxLength:2500,minLines:2,maxLines:5,
+      decoration:const InputDecoration(labelText:'Why this one? Ideas, details',
+       alignLabelWithHint:true,border:OutlineInputBorder())),
      if(error!=null)Padding(padding:const EdgeInsets.only(top:9),
       child:Text(error!,style:TextStyle(color:theme.colorScheme.error))),
-     const SizedBox(height:14),
-     FilledButton.icon(onPressed:busy?null:save,
-      icon:const Icon(Icons.save_outlined),
-      label:Text(busy?'Saving…':'Save item')),
-    ]),
-   ),
-  ));
+   ]));
  }
 }
