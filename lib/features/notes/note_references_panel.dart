@@ -6,6 +6,7 @@ import '../plans/plans_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../connect/shared_experiences_screen.dart';
 import 'note_reference_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A note may point to real OneSpace objects, not duplicate their contents.
 /// The backend validates both note and source RLS at insertion and read time.
@@ -58,10 +59,10 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
    builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,
     children:[
      Padding(padding:const EdgeInsets.all(12),
-      child:Text('Link something in OneSpace',
+      child:Text(tt('Link something in OneSpace'),
        style:Theme.of(ctx).textTheme.titleLarge)),
      for(final entry in NoteReferenceRules.labels.entries)
-      ListTile(title:Text(entry.value),
+      ListTile(title:Text(tt(entry.value)),
        leading:Icon(switch(entry.key){
         'task'=>Icons.checklist_outlined,
         'event'=>Icons.event_outlined,
@@ -93,12 +94,12 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
     builder:(ctx)=>FractionallySizedBox(heightFactor:.68,
      child:SafeArea(child:Column(children:[
       Padding(padding:const EdgeInsets.all(14),
-       child:Text('Choose ${NoteReferenceRules.label(kind).toLowerCase()}',
+       child:Text('${tt('Choose')} ${NoteReferenceRules.label(kind).toLowerCase()}',
         style:Theme.of(ctx).textTheme.titleLarge)),
       Expanded(child:ListView.builder(itemCount:options.length,
        itemBuilder:(ctx,index){
         final item=options[index];
-        return ListTile(title:Text(item['title'].toString()),
+        return ListTile(title:Text(tt(item['title'].toString())),
          trailing:const Icon(Icons.add_link_outlined),
          onTap:()=>Navigator.pop(ctx,item));
        })),
@@ -133,8 +134,8 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
     .eq('id',id).eq('space_id',widget.spaceId).maybeSingle();
    if(!mounted)return;
    if(!NoteReferenceRules.canOpen(source)){
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-     content:Text('This item is no longer available to your account.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+     content:Text(tt('This item is no longer available to your account.'))));
     return;
    }
    final Widget destination=switch(kind){
@@ -146,8 +147,8 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
    await Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder:(_)=>destination));
   }catch(_){
-   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Could not open the linked item.')));
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Could not open the linked item.'))));
   }
  }
  @override Widget build(BuildContext context){
@@ -156,22 +157,22 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
    Row(children:[
     Icon(Icons.hub_outlined,color:colors.primary),
     const SizedBox(width:8),
-    Expanded(child:Text('Linked OneSpace items',
+    Expanded(child:Text(tt('Linked OneSpace items'),
      style:Theme.of(context).textTheme.titleMedium)),
     if(widget.canEdit)TextButton.icon(onPressed:busy?null:_link,
-     icon:const Icon(Icons.add_link),label:const Text('Link item')),
+     icon:const Icon(Icons.add_link),label:Text(tt('Link item'))),
    ]),
-   const Text('Keep the original item up to date. Links are checked against its visibility before opening.'),
+   Text(tt('Keep the original item up to date. Links are checked against its visibility before opening.')),
    if(busy)const LinearProgressIndicator(),
-   if(error!=null)Text(error!,style:TextStyle(color:colors.error)),
+   if(error!=null)Text(tt(error!),style:TextStyle(color:colors.error)),
    StreamBuilder<List<Map<String,dynamic>>>(
     stream:stream,builder:(ctx,snapshot){
-     if(snapshot.hasError)return const Text('Links are temporarily unavailable.');
+     if(snapshot.hasError)return Text(tt('Links are temporarily unavailable.'));
      if(!snapshot.hasData)return const LinearProgressIndicator();
      final refs=snapshot.data!;
-     if(refs.isEmpty)return const Padding(
+     if(refs.isEmpty)return Padding(
       padding:EdgeInsets.symmetric(vertical:8),
-      child:Text('No related items linked yet.'));
+      child:Text(tt('No related items linked yet.')));
      return FutureBuilder<Map<String,Map<String,dynamic>>>(
       future:_resolve(refs),builder:(ctx,details){
        if(!details.hasData)return const LinearProgressIndicator();
@@ -191,13 +192,13 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
             'occasion'=>Icons.card_giftcard_outlined,
             _=>Icons.movie_outlined,
            }),
-           title:Text(source['title']?.toString()??'Linked item',
+           title:Text(tt(source['title']?.toString()??'Linked item'),
             maxLines:2,overflow:TextOverflow.ellipsis),
-           subtitle:Text(NoteReferenceRules.label(kind)+
-            (source['archived_at']!=null?' • Removed':'')),
+           subtitle:Text(tt(NoteReferenceRules.label(kind)+
+            (source['archived_at']!=null?' • Removed':''))),
            onTap:()=>_open(kind,id),
            trailing:widget.canEdit?IconButton(
-            tooltip:'Unlink only (keeps original)',
+            tooltip:tt('Unlink only (keeps original)'),
             onPressed:busy?null:()=>_unlink(link['id'].toString()),
             icon:const Icon(Icons.link_off_outlined)):
              const Icon(Icons.chevron_right),

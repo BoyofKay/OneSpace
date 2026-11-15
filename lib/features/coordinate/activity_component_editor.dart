@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../calendar/calendar_rules.dart';
 import 'activity_countdown_rules.dart';
 import 'activity_contact.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Type-specific inputs produce a reusable structured JSON payload.
 /// The Activity itself requires only a title and details; everything below
@@ -270,8 +271,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(widget.existing == null ? 'Add ${kind[0].toUpperCase()}${kind.substring(1)}'
-                : 'Edit ${kind[0].toUpperCase()}${kind.substring(1)}',
+            Text(tt(widget.existing == null ? 'Add ${kind[0].toUpperCase()}${kind.substring(1)}'
+                : 'Edit ${kind[0].toUpperCase()}${kind.substring(1)}'),
               style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 14),
             input(title, kind == 'spec' ? 'Specification name (e.g., Voltage)' :
@@ -284,8 +285,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
             if (kind == 'voice') ...[
               input(details, 'Caption (optional)', max: 1500, lines: 2),
               const SizedBox(height: 5),
-              Text('Only the title and caption can be edited. '
-                'The recording itself remains unchanged.',
+              Text(tt('Only the title and caption can be edited. '
+                'The recording itself remains unchanged.'),
                 style: Theme.of(context).textTheme.bodySmall),
             ] else if (kind == 'contact') ...[
               input(contactPerson, 'Person to contact (optional)', max: 180),
@@ -300,55 +301,55 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
                 keyboardType: TextInputType.streetAddress),
               const SizedBox(height: 12),
               input(contactHours, 'Working hours', max: 800, lines: 3,
-                hint: 'Mon–Fri 9:00 AM–5:00 PM'),
+                hint: tt('Mon–Fri 9:00 AM–5:00 PM')),
               const SizedBox(height: 12),
               input(details, 'Notes / best time to reach them', max: 3000, lines: 3),
               const SizedBox(height: 5),
-              Text('Add whichever fields you know. Hours are recorded as provided.',
+              Text(tt('Add whichever fields you know. Hours are recorded as provided.'),
                 style: Theme.of(context).textTheme.bodySmall),
             ] else if (isDated) ...[
               OutlinedButton.icon(
                 onPressed: chooseDate,
                 icon: const Icon(Icons.calendar_today_outlined),
-                label: Text(value.text.isEmpty ? 'Choose a date' : value.text),
+                label: Text(tt(value.text.isEmpty ? 'Choose a date' : value.text)),
               ),
               if (kind == 'reminder')
-                const Text('Appears in Today and Remember. Phone alerts are not yet enabled.'),
+                Text(tt('Appears in Today and Remember. Phone alerts are not yet enabled.')),
               if(kind=='countdown')...[
                 SwitchListTile(
                   contentPadding:EdgeInsets.zero,
-                  title:const Text('Repeat every year'),
-                  subtitle:const Text('For birthdays and annual celebrations'),
+                  title:Text(tt('Repeat every year')),
+                  subtitle:Text(tt('For birthdays and annual celebrations')),
                   value:_repeatYearly,
                   onChanged:(next)=>setState(()=>_repeatYearly=next)),
                 input(details,'What makes this moment special? (optional)',
                   max:1000,lines:2),
-                const Text('Milestones use calendar dates, so both '
-                  'partners see the same date in different time zones.'),
+                Text(tt('Milestones use calendar dates, so both '
+                  'partners see the same date in different time zones.')),
               ],
             ] else if (kind == 'image') ...[
-              const Text('This photo remains private to authorized partners.'),
+              Text(tt('This photo remains private to authorized partners.')),
               const SizedBox(height: 12),
               input(details, 'Photo caption', max: 4000, lines: 3),
             ] else if (kind == 'tag') ...[
-              const Text('Reuse a saved tag or create a new one.'),
+              Text(tt('Reuse a saved tag or create a new one.')),
               const SizedBox(height:8),
-              input(value,'Tag',max:50,hint:'e.g. Health, Travel, Home'),
+              input(value,'Tag',max:50,hint:tt('e.g. Health, Travel, Home')),
               if(tagsLoading)const LinearProgressIndicator(),
               if(existingTags.isNotEmpty)...[
                 const SizedBox(height:6),
-                Text('Saved tags',style:Theme.of(context).textTheme.labelLarge),
+                Text(tt('Saved tags'),style:Theme.of(context).textTheme.labelLarge),
                 Wrap(spacing:6,runSpacing:5,children:[
                   for(final tag in existingTags.where((tag)=>
                      value.text.trim().isEmpty||
                      tag.toLowerCase().contains(value.text.trim().toLowerCase())))
                     ActionChip(
                       avatar:const Icon(Icons.sell_outlined,size:15),
-                      label:Text(tag),onPressed:()=>_chooseTag(tag)),
+                      label:Text(tt(tag)),onPressed:()=>_chooseTag(tag)),
                 ]),
               ],
             ] else if (kind == 'price') ...[
-              const Text('Capture the amount and currency observed for this option.'),
+              Text(tt('Capture the amount and currency observed for this option.')),
             ] else ...[
               input(value,
                 kind == 'link' ? 'Website URL' :
@@ -358,7 +359,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
                 kind == 'note' ? 'Full note' :
                 kind == 'step' ? 'Step instructions (optional)' :
                 kind == 'option' ? 'Why this is an option (optional)' :
-                kind == 'mention' ? 'Person or message' : 'Details',
+                kind == 'mention' ? tt('Person or message') : tt('Details'),
                 max: kind == 'note' ? 4000 : 1600,
                 lines: ['note','step','option'].contains(kind) ? 4 : 1,
                 keyboardType: kind == 'price'
@@ -389,11 +390,11 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
             ],
             if (error != null) ...[
               const SizedBox(height: 10),
-              Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(tt(error!), style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],
             const SizedBox(height: 12),
             FilledButton.icon(onPressed: save,
-              icon: const Icon(Icons.check), label: const Text('Save')),
+              icon: const Icon(Icons.check), label: Text(tt('Save'))),
           ],
         ),
       ),

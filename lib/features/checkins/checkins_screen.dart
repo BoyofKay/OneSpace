@@ -14,6 +14,7 @@ import '../sharing/share_grant_watcher.dart';
 import '../connection/connection_rules.dart';
 import 'checkin_request_rules.dart';
 import 'checkin_acknowledgement_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Each person may make one personal check-in per local calendar date. The
 /// partner can view shared entries, but only the author can edit their entry.
@@ -202,8 +203,8 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
         .eq('space_id',space);
       final peer=people.where((p)=>p['user_id']!=me).firstOrNull;
       if(peer==null||!mounted){
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:Text('Connect your partner before sending a check-in.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:Text(tt('Connect your partner before sending a check-in.'))));
         return;
       }
       // R55: a page with Cancel/Send at the bottom, not a pop-up.
@@ -216,14 +217,14 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
           'recipient_id':peer['user_id'],'note':note.trim(),
         });
         if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content:Text('Your check-in was sent.')));
+          SnackBar(content:Text(tt('Your check-in was sent.'))));
       }
     }on PostgrestException catch(e){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content:Text('Check-in could not be sent: '+e.message)));
+        SnackBar(content:Text(tt('Check-in could not be sent: ')+e.message)));
     }catch(_){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content:Text('Could not send check-in. Please retry.')));
+        SnackBar(content:Text(tt('Could not send check-in. Please retry.'))));
     }
   }
 
@@ -255,7 +256,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       }
     }catch(_){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content:Text('Could not save your acknowledgment. Try again.')));
+        SnackBar(content:Text(tt('Could not save your acknowledgment. Try again.'))));
     }finally{
       if(mounted)setState(()=>_ackBusy=false);
     }
@@ -275,7 +276,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
   Widget _detail(String label,String value)=>Padding(
     padding:const EdgeInsets.symmetric(vertical:7),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text(label,style:Theme.of(context).textTheme.labelMedium),
+      Text(tt(label),style:Theme.of(context).textTheme.labelMedium),
       const SizedBox(height:5),
       SelectableText(value,style:Theme.of(context).textTheme.bodyMedium),
     ]),
@@ -285,14 +286,14 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
     final me=_client.auth.currentUser?.id;
     return StreamBuilder<List<Map<String,dynamic>>>(
       stream:_requests,builder:(ctx,snapshot){
-        if(snapshot.hasError)return const Text(
-          'Could not load partner check-ins. Pull down to retry.');
+        if(snapshot.hasError)return Text(
+          tt('Could not load partner check-ins. Pull down to retry.'));
         if(!snapshot.hasData)return const Center(
           child:CircularProgressIndicator());
         final rows=snapshot.data!;
-        if(rows.isEmpty)return const Card(elevation:0,child:Padding(
+        if(rows.isEmpty)return Card(elevation:0,child:Padding(
           padding:EdgeInsets.all(14),
-          child:Text('No conversations yet. Check on each other anytime.')));
+          child:Text(tt('No conversations yet. Check on each other anytime.'))));
         final now=DateTime.now();
         final needs=CheckinRequestRules.count(rows,'to_answer',me,now);
         final waiting=CheckinRequestRules.count(rows,'waiting',me,now);
@@ -307,21 +308,21 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
             .join(' ').contains(term)).take(60);
         return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
           Padding(padding:const EdgeInsets.symmetric(vertical:8),
-            child:Text('A gentle way to connect. You choose when to reply.',
+            child:Text(tt('A gentle way to connect. You choose when to reply.'),
               style:Theme.of(context).textTheme.bodySmall)),
-          Text('To answer: $needs · Sent: $waiting · History: $history',
+          Text('${tt('To answer')}: $needs · ${tt('Sent')}: $waiting · ${tt('History')}: $history',
            style:Theme.of(context).textTheme.bodySmall),
           const SizedBox(height:8),
           TextField(
            onChanged:(value)=>setState(()=>_conversationSearch=value),
-           decoration:const InputDecoration(
+           decoration:InputDecoration(
             prefixIcon:Icon(Icons.search),
-            labelText:'Search check-in conversations',
-            hintText:'Messages, topics and responses')),
+            labelText:tt('Search check-in conversations'),
+            hintText:tt('Messages, topics and responses'))),
           const SizedBox(height:7),
-          if(visible.isEmpty)const Padding(
+          if(visible.isEmpty)Padding(
            padding:EdgeInsets.symmetric(vertical:16),
-           child:Text('Nothing in this part of your check-in history.'))
+           child:Text(tt('Nothing in this part of your check-in history.')))
           else for(final item in visible)Card(
             key:ValueKey('request-${item['id']}'),
             elevation:0,clipBehavior:Clip.antiAlias,
@@ -333,9 +334,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                 Icons.history_toggle_off_outlined:
                item['sender_id']==me?
                 Icons.send_outlined:Icons.mark_email_unread_outlined),
-              title:Text(item['sender_id']==me?
+              title:Text(tt(item['sender_id']==me?
                 'You checked on ${_partnerName??'your partner'}':
-                '${_partnerName??'Your partner'} checked on you',
+                '${_partnerName??'Your partner'} checked on you'),
                 style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w700)),
               subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                 if(CheckinRequestRules.canRespond(item,me,now))Container(
@@ -343,7 +344,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                   padding:const EdgeInsets.symmetric(horizontal:8,vertical:2),
                   decoration:BoxDecoration(color:Theme.of(context).colorScheme.primaryContainer,
                     borderRadius:BorderRadius.circular(20)),
-                  child:Text('Waiting for your answer',style:Theme.of(context).textTheme.labelSmall?.copyWith(
+                  child:Text(tt('Waiting for your answer'),style:Theme.of(context).textTheme.labelSmall?.copyWith(
                     color:Theme.of(context).colorScheme.onPrimaryContainer,fontWeight:FontWeight.w700))),
                 if((item['note']?.toString()??'').isNotEmpty)Text('“${item['note']}”',
                   maxLines:2,overflow:TextOverflow.ellipsis,
@@ -351,15 +352,15 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                 if(item['response_mood']!=null)Text('Felt ${_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1].toLowerCase()}',
                   style:Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color:_moodColor((item['response_mood'] as num).toInt()),fontWeight:FontWeight.w600)),
-                Text(_dateTime(item['requested_at'])+' · '+CheckinRequestRules.label(item,now)+
+                Text(tt(_dateTime(item['requested_at'])+' · '+CheckinRequestRules.label(item,now)+
                   (CheckinRequestRules.status(item,now)==CheckinRequestRules.pending?
-                   ' · '+CheckinRequestRules.expiryHint(item,now):''),
+                   ' · '+CheckinRequestRules.expiryHint(item,now):'')),
                   style:Theme.of(context).textTheme.labelSmall),
               ]),
               trailing:ItemMenu(kind:'checkin_request',recordId:item['id'].toString(),
                 statusActions:[
                   if(CheckinRequestRules.canRespond(item,me,now))
-                    ItemMenuAction('Respond',Icons.reply_outlined,()=>_respond(item)),
+                    ItemMenuAction(tt('Respond'),Icons.reply_outlined,()=>_respond(item)),
                 ]),
               childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
               expandedAlignment:Alignment.centerLeft,
@@ -368,20 +369,20 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                 if(item['response_mood']!=null)ListTile(
                   contentPadding:EdgeInsets.zero,
                   leading:const Icon(Icons.favorite_outline),
-                  title:Text('How they felt · '+_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1]),
-                  subtitle:Text('Answered '+_dateTime(item['responded_at'])),
+                  title:Text(tt('How they felt · ')+_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1]),
+                  subtitle:Text(tt('Answered ')+_dateTime(item['responded_at'])),
                 ),
                 if((item['response_message']?.toString()??'').isNotEmpty)
-                  _detail('What’s on their mind',
+                  _detail(tt('What’s on their mind'),
                     item['response_message'].toString()),
                 if((item['response_topic']?.toString()??'').isNotEmpty)
-                  _detail('Something to talk about',
+                  _detail(tt('Something to talk about'),
                     item['response_topic'].toString()),
                 if(item['responded_at']!=null&&
                   CheckinAcknowledgementRules.canAcknowledge(item,me))...[
                   const Divider(height:22),
                   Row(children:[
-                   Expanded(child:Text('Reply with a gesture',
+                   Expanded(child:Text(tt('Reply with a gesture'),
                     style:Theme.of(context).textTheme.labelMedium)),
                    for(final entry in CheckinAcknowledgementRules.labels.entries)
                     IconButton(
@@ -394,11 +395,11 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                      onPressed:_ackBusy?null:()async{
                       final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
                        icon:Icon(_ackIcon(entry.key,true)),
-                       title:Text(entry.value),
-                       content:const Text('Send this to your partner?'),
+                       title:Text(tt(entry.value)),
+                       content:Text(tt('Send this to your partner?')),
                        actions:[
-                        TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-                        FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Send')),
+                        TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+                        FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Send'))),
                        ]));
                       if(ok==true)await _acknowledge(item,entry.key);
                      }),
@@ -411,7 +412,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                   child:Row(children:[
                    const Icon(Icons.favorite_outline,size:19),
                    const SizedBox(width:8),
-                   Expanded(child:Text('Your partner: '+
+                   Expanded(child:Text(tt('Your partner: ')+
                     (CheckinAcknowledgementRules.label(
                       CheckinAcknowledgementRules.forRequest(
                        _ackRows,item['id'])?['kind'])??'Acknowledged'))),
@@ -421,12 +422,12 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                     child:FilledButton.icon(
                       onPressed:()=>_respond(item),
                       icon:const Icon(Icons.reply_outlined),
-                      label:const Text('Respond to your love'))),
+                      label:Text(tt('Respond to your love')))),
                 if(CheckinRequestRules.status(item,now)==
                   CheckinRequestRules.expired)
-                  const Padding(padding:EdgeInsets.only(top:8),
-                   child:Text('This invitation has expired. Your history is '
-                    'preserved, and either partner can start a new check-in.')),
+                  Padding(padding:EdgeInsets.only(top:8),
+                   child:Text(tt('This invitation has expired. Your history is '
+                    'preserved, and either partner can start a new check-in.'))),
               ],
             ),
           ),
@@ -436,10 +437,10 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
   }
 
   List<FilterGroupSpec> _filterGroups()=>[
-    if(_tabs.index==0)FilterGroupSpec(id:'talks',label:'Check-ins',
+    if(_tabs.index==0)FilterGroupSpec(id:'talks',label:tt('Check-ins'),
       options:const {'all':'All','to_answer':'To answer','waiting':'Sent','history':'Past'},
       selected:_requestFilter,defaultValue:'all')
-    else FilterGroupSpec(id:'who',label:'Who can see',
+    else FilterGroupSpec(id:'who',label:tt('Who can see'),
       options:const {'all':'All','shared':'Shared','private':'Only me'},
       selected:_filter,defaultValue:'all'),
   ];
@@ -462,14 +463,14 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
     ])),
     floatingActionButton:_space==null?null:_tabs.index==0
       ?AddFab(label:'Check on ${_partnerName??'your partner'}',onPressed:_askPartner,heroTag:'fab-checkin')
-      :AddFab(label:'Record my feeling',onPressed:()=>_edit(),heroTag:'fab-feeling'),
+      :AddFab(label:tt('Record my feeling'),onPressed:()=>_edit(),heroTag:'fab-feeling'),
     body:_loading
       ?const Center(child:CircularProgressIndicator())
       :_space==null?Center(child:Text(tr(context,'noSpace')))
       :TabBarView(controller:_tabs,children:[
         RefreshIndicator(onRefresh:_load,child:ListView(
           padding:const EdgeInsets.fromLTRB(16,12,16,96),children:[
-          if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+          if(_error!=null)Text(tt(_error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
           if(FilterGroupSpec.showing(_filterGroups()).isNotEmpty)FilterShowingLine(
             labels:FilterGroupSpec.showing(_filterGroups()),
             onClear:()=>setState(()=>_requestFilter='all')),
@@ -482,9 +483,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
             onClear:()=>setState(()=>_filter='all')),
           TextField(
             onChanged:(value)=>setState(()=>_journalSearch=value),
-            decoration:const InputDecoration(
+            decoration:InputDecoration(
               prefixIcon:Icon(Icons.search),
-              labelText:'Search feelings journal',
+              labelText:tt('Search feelings journal'),
               border:OutlineInputBorder())),
           const SizedBox(height:10),
           _journal(),
@@ -528,22 +529,22 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
           title:Text('${own?'You':_partnerName??'Your partner'} · ${_moodWords[mood-1]}',
             style:theme.textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w700)),
           subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            if(message.isNotEmpty)Text(message,maxLines:2,overflow:TextOverflow.ellipsis,
+            if(message.isNotEmpty)Text(tt(message),maxLines:2,overflow:TextOverflow.ellipsis,
               style:theme.textTheme.bodyMedium),
-            Text([
+            Text(tt([
               date==null?entry['checkin_date']?.toString()??'':
                 MaterialLocalizations.of(context).formatMediumDate(date),
               if(private)'Only me',
-            ].join(' · '),style:theme.textTheme.labelSmall),
+            ].join(' · ')),style:theme.textTheme.labelSmall),
           ]),
           trailing:own?ItemMenu(kind:'checkin',recordId:entry['id'].toString(),
             title:entry['checkin_date']?.toString(),onOpen:()=>_edit(entry)):null,
           childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
           expandedCrossAxisAlignment:CrossAxisAlignment.stretch,
           children:[
-            if(message.isNotEmpty)_detail('What’s on my mind',message),
+            if(message.isNotEmpty)_detail(tt('What’s on my mind'),message),
             if((entry['gratitude']?.toString()??'').isNotEmpty)
-              _detail('Something I’m grateful for',entry['gratitude'].toString()),
+              _detail(tt('Something I’m grateful for'),entry['gratitude'].toString()),
             if(own&&private)Align(
               alignment:AlignmentDirectional.centerEnd,
               child:PrivateShareButton(
@@ -567,17 +568,17 @@ class _CheckinRequestPageState extends State<CheckinRequestPage> {
   @override Widget build(BuildContext context)=>EditorScaffold(
     title:'Check on ${widget.partnerName??'your partner'}',
     isNew:true,isChanged:()=>note.text.trim().isNotEmpty,isComplete:()=>true,
-    listenTo:[note],saveLabel:'Send',
+    listenTo:[note],saveLabel:tt('Send'),
     onSave:()=>Navigator.pop(context,note.text),
     body:ListView(padding:const EdgeInsets.all(18),children:[
-      Text('A gentle invitation to share how they feel. They choose whether and when to answer. '
-        'It stays open for seven days, then quietly moves to Past without reminders.',
+      Text(tt('A gentle invitation to share how they feel. They choose whether and when to answer. '
+        'It stays open for seven days, then quietly moves to Past without reminders.'),
         style:Theme.of(context).textTheme.bodyMedium),
       const SizedBox(height:16),
       TextField(controller:note,maxLength:500,minLines:3,maxLines:6,
-        decoration:const InputDecoration(
-          labelText:'Personal message (optional)',
-          hintText:'How are you doing, my love?',
+        decoration:InputDecoration(
+          labelText:tt('Personal message (optional)'),
+          hintText:tt('How are you doing, my love?'),
           border:OutlineInputBorder())),
     ]));
 }
@@ -661,14 +662,14 @@ class _CheckinEditorState extends State<CheckinEditor> {
 
   @override
   Widget build(BuildContext context)=>EditorScaffold(
-    title:widget.existing==null?'Record my feeling':'Edit my feeling',
+    title:widget.existing==null?tt('Record my feeling'):tt('Edit my feeling'),
     isNew:widget.existing==null,
     isChanged:()=>_signature!=_start,
     isComplete:()=>_canEdit,
     listenTo:[_message,_gratitude],saving:_saving,onSave:_save,
     missingHint:null,
     meta:MetaStrip(value:MetaValues(shared:_visibility=='shared',date:_date),
-      showBelongs:false,dateLabel:'Day',enabled:widget.existing==null&&_canEdit&&!_saving,
+      showBelongs:false,dateLabel:tt('Day'),enabled:widget.existing==null&&_canEdit&&!_saving,
       onChanged:(v)=>setState((){
         _visibility=v.shared?'shared':'private';
         final now=DateTime.now();
@@ -680,20 +681,20 @@ class _CheckinEditorState extends State<CheckinEditor> {
       MoodPicker(value:_mood,onChanged:!_canEdit||_saving?null:(m)=>setState(()=>_mood=m)),
       TextField(controller:_message,readOnly:!_canEdit,
         maxLength:2000,minLines:3,maxLines:6,textCapitalization:TextCapitalization.sentences,
-        decoration:const InputDecoration(
-          labelText:'What’s on your mind?',alignLabelWithHint:true,
+        decoration:InputDecoration(
+          labelText:tt('What’s on your mind?'),alignLabelWithHint:true,
           border:OutlineInputBorder())),
       const SizedBox(height:10),
       TextField(controller:_gratitude,readOnly:!_canEdit,maxLength:500,
         minLines:1,maxLines:3,textCapitalization:TextCapitalization.sentences,
-        decoration:const InputDecoration(
-          labelText:'Something I’m grateful for',
+        decoration:InputDecoration(
+          labelText:tt('Something I’m grateful for'),
           prefixIcon:Icon(Icons.favorite_border),
           border:OutlineInputBorder())),
-      if(widget.existing!=null)Text('The day and who can see it were set when it was recorded.',
+      if(widget.existing!=null)Text(tt('The day and who can see it were set when it was recorded.'),
         style:Theme.of(context).textTheme.bodySmall),
       if(_error!=null)Padding(padding:const EdgeInsets.only(top:10),
-        child:Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+        child:Text(tt(_error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
     ])),
   );
 }
@@ -742,10 +743,10 @@ class _PartnerCheckinReplyScreenState extends State<PartnerCheckinReplyScreen> {
    }
  }
  @override Widget build(BuildContext context)=>EditorScaffold(
-   title:'Answer the check-in',isNew:true,isChanged:()=>mind.text.isNotEmpty||topic.text.isNotEmpty||mood!=3,isComplete:()=>true,
-   listenTo:[mind,topic],saving:saving,onSave:_save,saveLabel:'Send',missingHint:null,
+   title:tt('Answer the check-in'),isNew:true,isChanged:()=>mind.text.isNotEmpty||topic.text.isNotEmpty||mood!=3,isComplete:()=>true,
+   listenTo:[mind,topic],saving:saving,onSave:_save,saveLabel:tt('Send'),missingHint:null,
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
-     Text('Your partner wants to know how you are doing.',
+     Text(tt('Your partner wants to know how you are doing.'),
        style:Theme.of(context).textTheme.titleMedium),
      if((widget.request['note']?.toString()??'').isNotEmpty)Card(elevation:0,
        color:Theme.of(context).colorScheme.primaryContainer,
@@ -757,17 +758,17 @@ class _PartnerCheckinReplyScreenState extends State<PartnerCheckinReplyScreen> {
      MoodPicker(value:mood,onChanged:saving?null:(m)=>setState(()=>mood=m)),
      TextField(controller:mind,maxLength:2000,minLines:3,maxLines:6,
        textCapitalization:TextCapitalization.sentences,
-       decoration:const InputDecoration(labelText:'What’s on your mind?',
+       decoration:InputDecoration(labelText:tt('What’s on your mind?'),
          alignLabelWithHint:true,border:OutlineInputBorder())),
      const SizedBox(height:10),
      TextField(controller:topic,maxLength:1000,minLines:2,maxLines:4,
        textCapitalization:TextCapitalization.sentences,
-       decoration:const InputDecoration(
-         labelText:'Something we should talk about?',
+       decoration:InputDecoration(
+         labelText:tt('Something we should talk about?'),
          prefixIcon:Icon(Icons.forum_outlined),
          border:OutlineInputBorder())),
-     Text('Only your partner sees your answer.',style:Theme.of(context).textTheme.bodySmall),
-     if(error!=null)Padding(padding:const EdgeInsets.only(top:10),child:Text(error!,
+     Text(tt('Only your partner sees your answer.'),style:Theme.of(context).textTheme.bodySmall),
+     if(error!=null)Padding(padding:const EdgeInsets.only(top:10),child:Text(tt(error!),
        style:TextStyle(color:Theme.of(context).colorScheme.error))),
    ])),
  );

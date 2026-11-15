@@ -3,6 +3,7 @@ import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A research shortlist for comparing possible flights before booking.
 /// Prices are manually saved snapshots; not real-time airline availability.
@@ -53,66 +54,66 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
   var notes=(prior?['notes']??'').toString();
   var status=(prior?['status']??'considering').toString();
   final result=await Navigator.of(context).push<Map<String,dynamic>>(MaterialPageRoute<Map<String,dynamic>>(fullscreenDialog:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,change)=>EditorPage(
-    title:Text(prior==null?'Add new flight option':'Edit flight option'),
+    title:Text(tt(prior==null?tt('Add new flight option'):tt('Edit flight option'))),
     content:SizedBox(width:530,child:SingleChildScrollView(child:Column(
      mainAxisSize:MainAxisSize.min,children:[
       TextFormField(initialValue:title,maxLength:160,
-       onChanged:(v)=>title=v,decoration:const InputDecoration(labelText:'Option name *')),
+       onChanged:(v)=>title=v,decoration:InputDecoration(labelText:tt('Option name *'))),
       TextFormField(initialValue:provider,maxLength:140,
-       onChanged:(v)=>provider=v,decoration:const InputDecoration(labelText:'Website / search source')),
+       onChanged:(v)=>provider=v,decoration:InputDecoration(labelText:tt('Website / search source'))),
       TextFormField(initialValue:airline,maxLength:140,
-       onChanged:(v)=>airline=v,decoration:const InputDecoration(labelText:'Airline')),
+       onChanged:(v)=>airline=v,decoration:InputDecoration(labelText:tt('Airline'))),
       TextFormField(initialValue:origin,maxLength:180,onChanged:(v)=>origin=v,
-       decoration:const InputDecoration(labelText:'From / departure airport')),
+       decoration:InputDecoration(labelText:tt('From / departure airport'))),
       TextFormField(initialValue:destination,maxLength:180,onChanged:(v)=>destination=v,
-       decoration:const InputDecoration(labelText:'To / destination airport')),
+       decoration:InputDecoration(labelText:tt('To / destination airport'))),
       Wrap(spacing:8,children:[
        OutlinedButton.icon(
-        icon:const Icon(Icons.event),label:Text('Depart: '+date(departure?.toIso8601String().substring(0,10))),
+        icon:const Icon(Icons.event),label:Text(tt('Depart: ')+date(departure?.toIso8601String().substring(0,10))),
         onPressed:()async{
          final d=await showDatePicker(context:ctx,initialDate:departure??DateTime.now(),
           firstDate:DateTime(2020),lastDate:DateTime(2100));
          if(d!=null)change(()=>departure=d);
         }),
        OutlinedButton.icon(
-        icon:const Icon(Icons.event),label:Text('Return: '+date(arrival?.toIso8601String().substring(0,10))),
+        icon:const Icon(Icons.event),label:Text(tt('Return: ')+date(arrival?.toIso8601String().substring(0,10))),
         onPressed:()async{
          final d=await showDatePicker(context:ctx,initialDate:arrival??departure??DateTime.now(),
           firstDate:DateTime(2020),lastDate:DateTime(2100));
          if(d!=null)change(()=>arrival=d);
         }),
       ]),
-      Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Flexible dates',
+      Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Flexible dates'),
        icon:Icons.date_range_outlined,value:flexible,onChanged:(v)=>change(()=>flexible=v))),
       TextFormField(initialValue:stops,
        keyboardType:TextInputType.number,onChanged:(v)=>stops=v,
-       decoration:const InputDecoration(labelText:'Number of stops (optional)')),
+       decoration:InputDecoration(labelText:tt('Number of stops (optional)'))),
       TextFormField(initialValue:baggage,maxLines:2,maxLength:800,
-       onChanged:(v)=>baggage=v,decoration:const InputDecoration(
-        labelText:'Cabin / checked baggage and seat details')),
+       onChanged:(v)=>baggage=v,decoration:InputDecoration(
+        labelText:tt('Cabin / checked baggage and seat details'))),
       TextFormField(initialValue:price,
        keyboardType:const TextInputType.numberWithOptions(decimal:true),
-       onChanged:(v)=>price=v,decoration:const InputDecoration(
-        labelText:'Saved price (optional; not live)')),
+       onChanged:(v)=>price=v,decoration:InputDecoration(
+        labelText:tt('Saved price (optional; not live)'))),
       TextFormField(initialValue:currency,maxLength:3,
-       onChanged:(v)=>currency=v,decoration:const InputDecoration(labelText:'Currency (USD/SAR)')),
-      Align(alignment:Alignment.centerLeft,child:Text('My preference',style:Theme.of(ctx).textTheme.labelLarge)),
+       onChanged:(v)=>currency=v,decoration:InputDecoration(labelText:tt('Currency (USD/SAR)'))),
+      Align(alignment:Alignment.centerLeft,child:Text(tt('My preference'),style:Theme.of(ctx).textTheme.labelLarge)),
       StarRating(value:score,onChanged:(v)=>change(()=>score=v)),
       const SizedBox(height:10),
       TextFormField(initialValue:link,maxLength:1800,
        keyboardType:TextInputType.url,
-       onChanged:(v)=>link=v,decoration:const InputDecoration(
-        labelText:'Google Flights / airline / booking URL')),
-      ChoiceRow<String>(label:'Decision',
+       onChanged:(v)=>link=v,decoration:InputDecoration(
+        labelText:tt('Google Flights / airline / booking URL'))),
+      ChoiceRow<String>(label:tt('Decision'),
        options:const {'considering':'Considering','proposed':'Proposed','booked':'Booked','rejected':'Not selected'},
        icons:const {'considering':Icons.help_outline,'proposed':Icons.thumb_up_outlined,
         'booked':Icons.confirmation_number_outlined,'rejected':Icons.block},
        selected:status,onSelected:(v)=>change(()=>status=v??status)),
       TextFormField(initialValue:notes,maxLength:2200,maxLines:3,
-       onChanged:(v)=>notes=v,decoration:const InputDecoration(labelText:'Pros, cons and notes')),
+       onChanged:(v)=>notes=v,decoration:InputDecoration(labelText:tt('Pros, cons and notes'))),
     ]))),
     actions:[
-     TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
+     TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('Cancel'))),
      FilledButton(onPressed:(){
       if(title.trim().isEmpty){Navigator.pop(ctx,{'error':'Give this option a title.'});return;}
       final numeric=price.trim().isEmpty?null:double.tryParse(price.trim());
@@ -138,7 +139,7 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
        'price':numeric,'currency':code,'preference_score':score,
        'booking_link':link.trim(),'status':status,'notes':notes.trim(),
       });
-     },child:const Text('Save option')),
+     },child:Text(tt('Save option'))),
     ],
    ))));
   if(result==null||!mounted)return;
@@ -173,11 +174,11 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
  Future<void> toItinerary(Map<String,dynamic> row)async{
   if(row['status']!='booked')return;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-   title:const Text('Add booked flight to itinerary?'),
-   content:const Text('This copies the saved booking details into your trip. It does not purchase a ticket or check in.'),
+   title:Text(tt('Add booked flight to itinerary?')),
+   content:Text(tt('This copies the saved booking details into your trip. It does not purchase a ticket or check in.')),
    actions:[
-    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-    FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Add itinerary item')),
+    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+    FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Add itinerary item'))),
    ]));
   if(ok!=true)return;
   await action(()async{
@@ -210,22 +211,22 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
    }
    return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
     Row(children:[
-     Expanded(child:Text('Flight research & comparison',
+     Expanded(child:Text(tt('Flight research & comparison'),
       style:Theme.of(context).textTheme.titleLarge)),
      TextButton.icon(onPressed:busy?null:()=>editor(),
-      icon:const Icon(Icons.add),label:const Text('Save option')),
+      icon:const Icon(Icons.add),label:Text(tt('Save option'))),
     ]),
-    const Text('Compare links, price snapshots, stops, baggage and flexible travel dates before booking.'),
+    Text(tt('Compare links, price snapshots, stops, baggage and flexible travel dates before booking.')),
     Align(alignment:Alignment.centerLeft,child:TextButton.icon(
      onPressed:()=>open('https://www.google.com/travel/flights'),
      icon:const Icon(Icons.open_in_new),
-     label:const Text('Search Google Flights externally'))),
-    Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+     label:Text(tt('Search Google Flights externally')))),
+    Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
      value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
-    if(snapshot.hasError)const Text('Flight options could not load.'),
+    if(snapshot.hasError)Text(tt('Flight options could not load.')),
     if(!snapshot.hasData)const LinearProgressIndicator(),
-    if(snapshot.hasData&&shown.isEmpty)const Card(child:Padding(
-     padding:EdgeInsets.all(16),child:Text('Save several flight ideas to compare price, baggage and dates.'))),
+    if(snapshot.hasData&&shown.isEmpty)Card(child:Padding(
+     padding:EdgeInsets.all(16),child:Text(tt('Save several flight ideas to compare price, baggage and dates.')))),
     for(final row in shown)Card(child:Padding(
      padding:const EdgeInsets.all(11),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -235,59 +236,59 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
          if(v==true){picked.add(row['id'].toString());}
          else{picked.remove(row['id'].toString());}
         })),
-       Expanded(child:Text(row['title'].toString(),
+       Expanded(child:Text(tt(row['title'].toString()),
         style:Theme.of(context).textTheme.titleMedium)),
        IconButton(onPressed:busy?null:()=>editor(row),
-        icon:const Icon(Icons.edit_outlined),tooltip:'Edit flight option'),
+        icon:const Icon(Icons.edit_outlined),tooltip:tt('Edit flight option')),
       ]),
-      Text([
+      Text(tt([
        if((row['provider']??'').toString().isNotEmpty)row['provider'].toString(),
        if((row['airline']??'').toString().isNotEmpty)row['airline'].toString(),
        if(row['price']!=null)row['currency'].toString()+' '+row['price'].toString(),
        if(row['preference_score']!=null)'My score '+row['preference_score'].toString()+'/5',
-      ].join(' · ')),
+      ].join(' · '))),
       if(row['departure_on']!=null)
-       Text('Depart '+date(row['departure_on'])+
+       Text(tt('Depart ')+date(row['departure_on'])+
         (row['return_on']==null?'':' · Return '+date(row['return_on']))),
-      if(row['flexible_dates']==true)const Text('Flexible dates considered'),
-      if(row['stops']!=null)Text('Stops: '+row['stops'].toString()),
+      if(row['flexible_dates']==true)Text(tt('Flexible dates considered')),
+      if(row['stops']!=null)Text(tt('Stops: ')+row['stops'].toString()),
       if((row['baggage_details']??'').toString().isNotEmpty)
-       Text('Baggage: '+row['baggage_details'].toString()),
-      Text('Status: '+row['status'].toString().replaceAll('_',' ')),
+       Text(tt('Baggage: ')+row['baggage_details'].toString()),
+      Text(tt('Status: ')+row['status'].toString().replaceAll('_',' ')),
       if((row['notes']??'').toString().isNotEmpty)
-       Text(row['notes'].toString(),maxLines:3,overflow:TextOverflow.ellipsis),
+       Text(tt(row['notes'].toString()),maxLines:3,overflow:TextOverflow.ellipsis),
       Wrap(spacing:8,children:[
        if((row['booking_link']??'').toString().isNotEmpty)
         TextButton.icon(onPressed:()=>open(row['booking_link'].toString()),
-         icon:const Icon(Icons.link),label:const Text('Open link')),
+         icon:const Icon(Icons.link),label:Text(tt('Open link'))),
        if(row['status']=='booked')
         TextButton.icon(onPressed:busy?null:()=>toItinerary(row),
          icon:const Icon(Icons.flight_takeoff_outlined),
-         label:const Text('Add to itinerary')),
+         label:Text(tt('Add to itinerary'))),
        TextButton.icon(onPressed:busy?null:()=>archive(row),
         icon:Icon(row['archived_at']==null?Icons.archive_outlined:Icons.unarchive_outlined),
-        label:Text(row['archived_at']==null?'Remove':'Restore')),
+        label:Text(tt(row['archived_at']==null?tt('Remove'):tt('Restore')))),
       ]),
      ]),
     )),
     if(selected.isNotEmpty)Card(child:Padding(padding:const EdgeInsets.all(12),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Compare '+selected.length.toString()+' possible flights',
+      Text(tt('Compare ')+selected.length.toString()+' possible flights',
        style:Theme.of(context).textTheme.titleMedium),
       for(final row in selected)ListTile(
        dense:true,contentPadding:EdgeInsets.zero,
-       title:Text(row['title'].toString()),
-       subtitle:Text([
+       title:Text(tt(row['title'].toString())),
+       subtitle:Text(tt([
         if(row['price']!=null)row['currency'].toString()+' '+row['price'].toString(),
         if(row['preference_score']!=null)'Preference '+row['preference_score'].toString()+'/5',
         if(row['stops']!=null)row['stops'].toString()+' stops',
-       ].join(' · '))),
+       ].join(' · ')))),
       for(final entry in priceRanges.entries)Text(
-       entry.key+' price range: '+(entry.value.reduce((a,b)=>a<b?a:b)).toStringAsFixed(2)+
-       ' – '+(entry.value.reduce((a,b)=>a>b?a:b)).toStringAsFixed(2)),
-      const Text('These are competing options, not a combined purchase total. Prices are saved snapshots, not live quotes.'),
+       tt(entry.key+' price range: '+(entry.value.reduce((a,b)=>a<b?a:b)).toStringAsFixed(2)+
+       ' – '+(entry.value.reduce((a,b)=>a>b?a:b)).toStringAsFixed(2))),
+      Text(tt('These are competing options, not a combined purchase total. Prices are saved snapshots, not live quotes.')),
      ]))),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(busy)const LinearProgressIndicator(),
    ]);
   },

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R50 (spec 2.4, backlog B-14): the one history page every screen uses.
 /// "Who did what, when", newest first, with quick filter chips: people,
@@ -133,12 +134,12 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
       await db.from(source.$1).update({'archived_at': null})
           .eq('id', row['record_id'].toString());
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restored.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('Restored.'))));
       await _load();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not restore this item.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(tt('Could not restore this item.'))));
       }
     }
   }
@@ -168,16 +169,16 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
     }).toList();
     Widget chip(String label, bool selected, VoidCallback onTap) => Padding(
       padding: const EdgeInsets.only(right: 6),
-      child: ChoiceChip(label: Text(label), selected: selected,
+      child: ChoiceChip(label: Text(tt(label)), selected: selected,
           onSelected: (_) => onTap()));
     return Scaffold(
-      appBar: AppBar(title: Text(widget.recordTitle == null
-          ? '${widget.title} · change log' : 'Change log')),
+      appBar: AppBar(title: Text(tt(widget.recordTitle == null
+          ? '${widget.title} · change log' : tt('Change log')))),
       body: Column(children: [
         if (widget.recordTitle != null) Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Align(alignment: Alignment.centerLeft,
-            child: Text(widget.recordTitle!, style: theme.textTheme.titleMedium))),
+            child: Text(tt(widget.recordTitle!), style: theme.textTheme.titleMedium))),
         SizedBox(height: 52, child: ListView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -195,10 +196,10 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
           ? const Center(child: CircularProgressIndicator())
           : error != null
             ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(error!), TextButton(onPressed: _load, child: const Text('Retry'))]))
+                Text(tt(error!)), TextButton(onPressed: _load, child: Text(tt('Retry')))]))
             : shown.isEmpty
-              ? const Center(child: Padding(padding: EdgeInsets.all(24),
-                  child: Text('Nothing here yet. Changes appear as either of you works.',
+              ? Center(child: Padding(padding: EdgeInsets.all(24),
+                  child: Text(tt('Nothing here yet. Changes appear as either of you works.'),
                     textAlign: TextAlign.center)))
               : RefreshIndicator(onRefresh: _load, child: ListView.separated(
                   itemCount: shown.length,
@@ -213,14 +214,14 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
                     final canRestore = r['action'] == 'archived' && removedNow.contains(id);
                     return ListTile(
                       leading: CircleAvatar(radius: 18,
-                        child: Text(_initials(r['actor_id']?.toString()),
+                        child: Text(tt(_initials(r['actor_id']?.toString())),
                           style: theme.textTheme.labelMedium)),
                       title: Text('$label · $title', maxLines: 2, overflow: TextOverflow.ellipsis),
-                      subtitle: Text([if (fields.isNotEmpty) fields, _when(r['happened_at'])]
-                          .join('\n')),
+                      subtitle: Text(tt([if (fields.isNotEmpty) fields, _when(r['happened_at'])]
+                          .join('\n'))),
                       isThreeLine: fields.isNotEmpty,
                       trailing: canRestore ? TextButton(
-                        onPressed: () => _restore(r), child: const Text('Restore')) : null,
+                        onPressed: () => _restore(r), child: Text(tt('Restore'))) : null,
                     );
                   })),
         ),
@@ -233,5 +234,5 @@ class _CollectionHistoryScreenState extends State<CollectionHistoryScreen> {
 Future<void> openChangeLog(BuildContext context, {required String kind,
     required String recordId, String? recordTitle}) =>
   Navigator.of(context).push<void>(MaterialPageRoute<void>(
-    builder: (_) => CollectionHistoryScreen(kinds: [kind], title: 'Change log',
+    builder: (_) => CollectionHistoryScreen(kinds: [kind], title: tt('Change log'),
         recordId: recordId, recordTitle: recordTitle ?? '')));

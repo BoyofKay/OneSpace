@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'memory_photo_service.dart';
 import 'memory_photo_layout_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A private, RLS-backed gallery. The layout changes presentation only.
 class MemoryPhotoGallery extends StatefulWidget{
@@ -52,10 +53,10 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
     insetPadding:const EdgeInsets.all(12),child:Stack(children:[
      InteractiveViewer(minScale:.8,maxScale:5,
       child:Image.network(url,fit:BoxFit.contain,
-       errorBuilder:(_,__,___)=>const Padding(
-        padding:EdgeInsets.all(20),child:Text('Image unavailable.')))),
+       errorBuilder:(_,__,___)=>Padding(
+        padding:EdgeInsets.all(20),child:Text(tt('Image unavailable.'))))),
      Positioned(right:4,top:4,child:IconButton(
-      icon:const Icon(Icons.close),tooltip:'Close',onPressed:()=>Navigator.pop(ctx))),
+      icon:const Icon(Icons.close),tooltip:tt('Close'),onPressed:()=>Navigator.pop(ctx))),
     ]),
    ));
   }catch(_){if(mounted)setState(()=>error='Could not open photo. Check your connection and access.');}
@@ -66,7 +67,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   try{
    final count=await service.addFromGallery(widget.memoryId,startOrder:currentCount);
    if(count>0&&mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content:Text('Added '+count.toString()+' photo'+(count==1?'':'s')+'.')));
+    content:Text(tt('Added ')+count.toString()+' photo'+(count==1?'':'s')+'.')));
   }on FormatException catch(e){if(mounted)setState(()=>error=e.message);}
   on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
   catch(_){if(mounted)setState(()=>error='Some photos could not be added. Check the gallery and retry.');}
@@ -78,7 +79,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   try{
    final count=await service.addFromCamera(widget.memoryId,startOrder:currentCount);
    if(count>0&&mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Camera photo saved.')));
+    SnackBar(content:Text(tt('Camera photo saved.'))));
   }on FormatException catch(e){if(mounted)setState(()=>error=e.message);}
   on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
   catch(_){if(mounted)setState(()=>error='Camera capture could not be saved.');}
@@ -96,13 +97,13 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   var caption=(p['caption']??'').toString();
   final ok=await showDialog<bool>(context:context,
    builder:(ctx)=>AlertDialog(
-    title:const Text('Photo caption'),
+    title:Text(tt('Photo caption')),
     content:TextFormField(initialValue:caption,maxLength:500,
      minLines:2,maxLines:5,onChanged:(v)=>caption=v,
-     decoration:const InputDecoration(labelText:'A memory in words')),
+     decoration:InputDecoration(labelText:tt('A memory in words'))),
     actions:[
-     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save')),
+     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save'))),
     ],
    ));
   if(ok!=true)return;
@@ -115,23 +116,23 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   String place=(photo['place_tag']??'').toString();
   String tags=(photo['other_tags'] as List? ?? const []).join(', ');
   final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-   title:const Text('Photo details & searchable tags'),
+   title:Text(tt('Photo details & searchable tags')),
    content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
     TextFormField(initialValue:people,maxLength:1200,
-     decoration:const InputDecoration(labelText:'People in photo',
-      helperText:'Separate names with commas'),
+     decoration:InputDecoration(labelText:tt('People in photo'),
+      helperText:tt('Separate names with commas')),
      onChanged:(v)=>people=v),
     TextFormField(initialValue:place,maxLength:160,
-     decoration:const InputDecoration(labelText:'Where was this taken?'),
+     decoration:InputDecoration(labelText:tt('Where was this taken?')),
      onChanged:(v)=>place=v),
     TextFormField(initialValue:tags,maxLength:1200,
-     decoration:const InputDecoration(labelText:'Other tags',
-      helperText:'Places, events, themes — comma separated'),
+     decoration:InputDecoration(labelText:tt('Other tags'),
+      helperText:tt('Places, events, themes — comma separated')),
      onChanged:(v)=>tags=v),
    ])),
    actions:[
-    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-    FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save tags')),
+    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+    FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save tags'))),
    ]));
   if(save!=true)return;
   List<String> parse(String value)=>value.split(',')
@@ -165,7 +166,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
    future:_sign(path),builder:(ctx,snapshot){
     if(snapshot.hasError)return SizedBox(height:height,child:Center(
      child:TextButton.icon(onPressed:()=>_refresh(path),
-      icon:const Icon(Icons.refresh),label:const Text('Retry private photo'))));
+      icon:const Icon(Icons.refresh),label:Text(tt('Retry private photo')))));
     if(!snapshot.hasData)return SizedBox(height:height,child:
      const Center(child:CircularProgressIndicator()));
     return ClipRRect(borderRadius:BorderRadius.circular(12),
@@ -173,7 +174,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
       width:double.infinity,fit:BoxFit.cover,
       errorBuilder:(_,__,___)=>SizedBox(height:height,child:Center(
        child:TextButton.icon(onPressed:()=>_refresh(path),
-        icon:const Icon(Icons.refresh),label:const Text('Refresh photo'))))));
+        icon:const Icon(Icons.refresh),label:Text(tt('Refresh photo')))))));
    }));
  }
  Widget _layout(List<Map<String,dynamic>> active){
@@ -197,7 +198,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
       _photo(active[i],height:145),
       if((active[i]['caption']??'').toString().isNotEmpty)
        Padding(padding:const EdgeInsets.only(top:5),child:Text(
-        active[i]['caption'].toString(),maxLines:2,overflow:TextOverflow.ellipsis)),
+        tt(active[i]['caption'].toString()),maxLines:2,overflow:TextOverflow.ellipsis)),
      ]))))),
   ]);
   if(layout=='overlap'){
@@ -224,7 +225,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
  }
  @override Widget build(BuildContext context){
   return StreamBuilder<List<Map<String,dynamic>>>(stream:photos,builder:(ctx,snapshot){
-   if(snapshot.hasError)return const Text('Unable to load private memory photos.');
+   if(snapshot.hasError)return Text(tt('Unable to load private memory photos.'));
    final rows=List<Map<String,dynamic>>.from(snapshot.data??[]);
    rows.sort((a,b){
     final x=(a['display_order'] as num?)?.toInt()??0;
@@ -236,28 +237,28 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     const Divider(height:26),
     Row(children:[
-     Expanded(child:Text('Photos & scrapbook',style:Theme.of(context).textTheme.titleLarge)),
+     Expanded(child:Text(tt('Photos & scrapbook'),style:Theme.of(context).textTheme.titleLarge)),
      if(widget.editable)IconButton(
       onPressed:busy?null:()=>capture(rows.length),
-      icon:const Icon(Icons.photo_camera_outlined),tooltip:'Take photo'),
+      icon:const Icon(Icons.photo_camera_outlined),tooltip:tt('Take photo')),
      if(widget.editable)TextButton.icon(onPressed:busy?null:()=>add(rows.length),
       icon:const Icon(Icons.add_photo_alternate_outlined),
-      label:const Text('Gallery')),
+      label:Text(tt('Gallery'))),
     ]),
     const SizedBox(height:5),
     if(!snapshot.hasData)const Center(child:CircularProgressIndicator()),
-    if(active.isEmpty&&snapshot.hasData)const Padding(padding:EdgeInsets.all(8),
-     child:Text('Add daily selfies, a favorite memory, or several photos for a collage.')),
+    if(active.isEmpty&&snapshot.hasData)Padding(padding:EdgeInsets.all(8),
+     child:Text(tt('Add daily selfies, a favorite memory, or several photos for a collage.'))),
     if(active.isNotEmpty)_layout(active),
     if(widget.editable)SwitchListTile(contentPadding:EdgeInsets.zero,
-     title:const Text('Show removed photos'),value:showRemoved,
+     title:Text(tt('Show removed photos')),value:showRemoved,
      onChanged:(v)=>setState(()=>showRemoved=v)),
     for(final p in rows.where((p)=>showRemoved||p['archived_at']==null))
      ListTile(contentPadding:EdgeInsets.zero,
       leading:Icon(p['archived_at']==null?Icons.photo_outlined:Icons.archive_outlined),
-      title:Text((p['caption']??'').toString().isEmpty?'Photo':'Photo · '+p['caption'].toString(),
+      title:Text(tt((p['caption']??'').toString().isEmpty?'Photo':'Photo · '+p['caption'].toString()),
        maxLines:2,overflow:TextOverflow.ellipsis),
-      subtitle:Text([
+      subtitle:Text(tt([
        p['created_by']==db.auth.currentUser?.id?'Added by you':'Added by partner',
        if((p['people_tags'] as List? ??const []).isNotEmpty)
         'People: '+(p['people_tags'] as List).join(', '),
@@ -265,9 +266,9 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
         'Place: '+p['place_tag'].toString(),
        if((p['other_tags'] as List? ??const []).isNotEmpty)
         'Tags: '+(p['other_tags'] as List).join(', '),
-      ].join(' · ')),
+      ].join(' · '))),
       trailing:widget.editable?PopupMenuButton<String>(
-       tooltip:'More',
+       tooltip:tt('More'),
        onSelected:(v){if(v=='caption'){editCaption(p);}
         else if(v=='tags'){editTags(p);}
         else if(v=='archive'){toggleArchive(p);}},
@@ -278,7 +279,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
          :iconMenuItem('archive',MenuIcons.restore,'Restore'),
        ]):null),
     if(busy)const LinearProgressIndicator(),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
    ]);
   });
  }

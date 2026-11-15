@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../calendar/calendar_rules.dart';
 import 'activity_detail_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Purpose starters for a new Activity (spec 2.1). Each fills the details with
 /// a short, editable outline so the Activity starts with the right shape.
@@ -129,10 +130,10 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
 
   @override Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return EditorScaffold(title:'Start activity',
+    return EditorScaffold(title:tt('Start activity'),
    isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,
    listenTo:[title,details],saving:saving,onSave:_save,
-   meta:MetaStrip(value:MetaValues(shared:shared,date:dueOn),showBelongs:false,dateLabel:'Due date',
+   meta:MetaStrip(value:MetaValues(shared:shared,date:dueOn),showBelongs:false,dateLabel:tt('Due date'),
     enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;})),
    body: SafeArea(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -143,16 +144,16 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
             style: theme.textTheme.headlineSmall,
-            decoration: const InputDecoration(
-              hintText: 'What is this about? *', border: InputBorder.none,
+            decoration: InputDecoration(
+              hintText: tt('What is this about? *'), border: InputBorder.none,
               counterText: '')),
           const SizedBox(height: 18),
-          Text('What is it for?', style: theme.textTheme.labelLarge),
+          Text(tt('What is it for?'), style: theme.textTheme.labelLarge),
           const SizedBox(height: 6),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final p in ActivityPurpose.values) ChoiceChip(
               avatar: Icon(p.icon, size: 18),
-              label: Text(p.label),
+              label: Text(tt(p.label)),
               selected: purpose == p,
               onSelected: (_) => setState(() => purpose = purpose == p ? null : p)),
           ]),
@@ -161,12 +162,12 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
             child: Card(elevation: 0, color: theme.colorScheme.surfaceContainerHighest,
               child: Padding(padding: const EdgeInsets.all(12), child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Starts with these steps', style: theme.textTheme.labelLarge),
+                  Text(tt('Starts with these steps'), style: theme.textTheme.labelLarge),
                   const SizedBox(height: 4),
                   for (final step in purpose!.steps) Row(children: [
                     const Icon(Icons.radio_button_unchecked, size: 16),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(step)),
+                    Expanded(child: Text(tt(step))),
                   ]),
                 ])))),
           const SizedBox(height: 14),
@@ -175,11 +176,11 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
             minLines: 5, maxLines: 14, maxLength: 12000,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              labelText: 'Details', alignLabelWithHint: true,
+              labelText: tt('Details'), alignLabelWithHint: true,
               hintText: purpose?.outline,
               border: const OutlineInputBorder())),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8),
-            child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
+            child: Text(tt(error!), style: TextStyle(color: theme.colorScheme.error))),
           const SizedBox(height: 12),
         ],
       )),

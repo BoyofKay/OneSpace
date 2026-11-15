@@ -8,6 +8,7 @@ import '../../core/current_space_cache.dart';
 import '../../core/record_list_top_actions.dart';
 import 'share_intake_screen.dart';
 import 'share_suggestions.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R52 (spec 4.3): "Items to sort", the tray for things saved quickly from
 /// other apps. Private to the person who saved it unless switched to Shared.
@@ -51,12 +52,12 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
     try {
       await db.from('items_to_sort').update(change).eq('id', item['id'].toString());
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt(done))));
       await _load();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not save the change. Try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(tt('Could not save the change. Try again.'))));
       }
     }
   }
@@ -75,12 +76,12 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
       final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No app could open this file.')));
+            SnackBar(content: Text(tt('No app could open this file.'))));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open the file. Please retry.')));
+            SnackBar(content: Text(tt('Could not open the file. Please retry.'))));
       }
     }
   }
@@ -110,33 +111,33 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
     final theme = Theme.of(context);
     final me = db.auth.currentUser?.id;
     return Scaffold(
-      appBar: AppBar(title: const Text('Items to sort'), actions: [
+      appBar: AppBar(title: Text(tt('Items to sort')), actions: [
         RecordListTopActions(
           showHistory: showRemoved,
           onToggleHistory: () { setState(() => showRemoved = !showRemoved); _load(); },
-          historyKinds: const ['sort_item'], historyTitle: 'Items to sort'),
+          historyKinds: const ['sort_item'], historyTitle: tt('Items to sort')),
       ]),
       floatingActionButton: FloatingActionButton.extended(heroTag: 'add-sort-item',
-        onPressed: _add, icon: const Icon(Icons.add), label: const Text('Add item')),
+        onPressed: _add, icon: const Icon(Icons.add), label: Text(tt('Add item'))),
       body: RefreshIndicator(onRefresh: _load, child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
         children: [
           TextField(
             onChanged: (v) => setState(() => query = v),
-            decoration: const InputDecoration(prefixIcon: Icon(Icons.search),
-              labelText: 'Search items to sort', border: OutlineInputBorder())),
+            decoration: InputDecoration(prefixIcon: Icon(Icons.search),
+              labelText: tt('Search items to sort'), border: OutlineInputBorder())),
           const SizedBox(height: 10),
           if (showRemoved) FilterShowingLine(labels: const ['Removed'],
             onClear: () { setState(() => showRemoved = false); _load(); }),
           if (loading) const Padding(padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()))
           else if (error != null) Padding(padding: const EdgeInsets.all(24),
-            child: Column(children: [Text(error!),
-              TextButton(onPressed: _load, child: const Text('Retry'))]))
+            child: Column(children: [Text(tt(error!)),
+              TextButton(onPressed: _load, child: Text(tt('Retry')))]))
           else if (items.isEmpty) Padding(padding: const EdgeInsets.all(28),
-            child: Text(showRemoved ? 'Nothing removed.'
+            child: Text(tt(showRemoved ? 'Nothing removed.'
                 : 'Nothing to sort. Share a link, a note or a product from any app '
-                  'and choose "Save to Items to sort".',
+                  'and choose "Save to Items to sort".'),
               textAlign: TextAlign.center, style: theme.textTheme.bodyMedium))
           else for (final item in items.where(_matches)) Card(
             elevation: 0,
@@ -144,10 +145,10 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
             child: Padding(padding: const EdgeInsets.fromLTRB(14, 10, 4, 8), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Expanded(child: Text(item['title']?.toString() ?? 'Saved item',
+                  Expanded(child: Text(tt(item['title']?.toString() ?? 'Saved item'),
                     style: theme.textTheme.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis)),
                   PopupMenuButton<String>(
-                    tooltip: 'More',
+                    tooltip: tt('More'),
                     onSelected: (choice) {
                       switch (choice) {
                         case 'share': _update(item, {'visibility': 'shared'}, 'Now visible to both of you.');
@@ -173,34 +174,34 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
                     ]),
                 ]),
                 if ((item['link']?.toString() ?? '').isNotEmpty)
-                  Text(item['link'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
+                  Text(tt(item['link'].toString()), maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
                 if (item['file_path'] != null) Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: ActionChip(
                     avatar: Icon(item['file_mime'] == 'application/pdf'
                         ? Icons.picture_as_pdf_outlined : Icons.image_outlined, size: 18),
-                    label: Text(item['file_name']?.toString() ??
-                        (item['file_mime'] == 'application/pdf' ? 'PDF' : 'Photo'),
+                    label: Text(tt(item['file_name']?.toString() ??
+                        (item['file_mime'] == 'application/pdf' ? 'PDF' : 'Photo')),
                       overflow: TextOverflow.ellipsis),
                     onPressed: () => _openFile(item))),
                 if ((item['note']?.toString() ?? '').isNotEmpty)
-                  Padding(padding: const EdgeInsets.only(top: 2), child: Text(item['note'].toString(),
+                  Padding(padding: const EdgeInsets.only(top: 2), child: Text(tt(item['note'].toString()),
                     maxLines: 3, overflow: TextOverflow.ellipsis)),
                 const SizedBox(height: 6),
                 Row(children: [
                   Icon(item['visibility'] == 'shared' ? Icons.people_outline : Icons.lock_outline,
                     size: 16, color: theme.colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Expanded(child: Text([
+                  Expanded(child: Text(tt([
                     item['visibility'] == 'shared' ? 'Shared' : 'Only me',
                     _age(item['created_at']),
                     if (ShareSuggestions.isStale(
                         DateTime.tryParse(item['created_at']?.toString() ?? '') ?? DateTime.now(),
                         DateTime.now())) 'still want this?',
-                  ].join(' · '), style: theme.textTheme.bodySmall)),
+                  ].join(' · ')), style: theme.textTheme.bodySmall)),
                   if (item['archived_at'] == null) FilledButton.tonal(
-                    onPressed: () => _sort(item), child: const Text('Sort')),
+                    onPressed: () => _sort(item), child: Text(tt('Sort'))),
                 ]),
               ]))),
         ],

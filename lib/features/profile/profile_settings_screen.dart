@@ -10,6 +10,7 @@ import '../../core/device_time_zone.dart';
 import '../../core/device_weather_service.dart';
 import '../../core/shared_weather.dart';
 import '../../core/weather_city_picker.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
@@ -121,8 +122,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   Widget _timeRow(String label,String kind,TimeOfDay? value)=>
     ListTile(
       contentPadding:EdgeInsets.zero,
-      title:Text(label),
-      trailing:Text(value?.format(context)??'Not set'),
+      title:Text(tt(label)),
+      trailing:Text(tt(value?.format(context)??'Not set')),
       onTap:()=>_chooseTime(kind),
     );
 
@@ -224,22 +225,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     TextField(
                       controller: current,
                       obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Current password'),
+                      decoration: InputDecoration(labelText: tt('Current password')),
                     ),
                     TextField(
                       controller: next,
                       obscureText: true,
-                      decoration: const InputDecoration(labelText: 'New password (8+ characters)'),
+                      decoration: InputDecoration(labelText: tt('New password (8+ characters)')),
                     ),
                     TextField(
                       controller: confirmation,
                       obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Confirm new password'),
+                      decoration: InputDecoration(labelText: tt('Confirm new password')),
                     ),
                     if (dialogError != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
-                        child: Text(dialogError!,
+                        child: Text(tt(dialogError!),
                             style: const TextStyle(color: Colors.red)),
                       ),
                   ],
@@ -248,7 +249,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               actions: [
                 TextButton(
                   onPressed: busy ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(tt('Cancel')),
                 ),
                 FilledButton(
                   onPressed: busy
@@ -292,7 +293,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             }
                           }
                         },
-                  child: const Text('Update'),
+                  child: Text(tt('Update')),
                 ),
               ],
             ),
@@ -361,9 +362,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       padding: const EdgeInsets.all(20),
       children: [
         if(!widget.settingsOnly)...[
-          Text('My profile',style:Theme.of(context).textTheme.headlineMedium),
+          Text(tt('My profile'),style:Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height:8),
-          Text(_client.auth.currentUser?.email??'Signed in'),
+          Text(tt(_client.auth.currentUser?.email??'Signed in')),
           const SizedBox(height:16),
           TextField(controller:_name,maxLength:80,
             textCapitalization:TextCapitalization.words,
@@ -372,13 +373,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           const SizedBox(height:10),
         ],
         if(widget.settingsOnly)...[
-          Text(widget.section=='labels'?'Preferred names':
+          Text(tt(widget.section=='labels'?'Preferred names':
             widget.section=='schedule'?'Schedule & days off':
-            widget.section=='language'?'Language':'Weather city',
+            widget.section=='language'?'Language':'Weather city'),
             style:Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height:6),
-          const Text('These settings belong to your account. '
-            'Your partner can choose different preferences.'),
+          Text(tt('These settings belong to your account. '
+            'Your partner can choose different preferences.')),
           const SizedBox(height:16),
         if(widget.section=='language')...[
         DropdownButtonFormField<String>(
@@ -387,9 +388,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             labelText: tr(context, 'language'),
             border: OutlineInputBorder(),
           ),
-          items: const [
-            DropdownMenuItem(value: 'en', child: Text('English')),
-            DropdownMenuItem(value: 'ar', child: Text('العربية (Arabic)')),
+          items: [
+            DropdownMenuItem(value: 'en', child: Text(tt('English'))),
+            DropdownMenuItem(value: 'ar', child: Text(tt('العربية (Arabic)'))),
           ],
           onChanged: (value) {
             if (value != null) setState(() => _language = value);
@@ -400,28 +401,28 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         if(widget.section=='labels')...[
         TextField(
           controller:_partnerLabel,maxLength:60,
-          decoration:const InputDecoration(
-            labelText:'Preferred name for partner',
+          decoration:InputDecoration(
+            labelText:tt('Preferred name for partner'),
             border:OutlineInputBorder(),
           ),
         ),
-        Text('Personal names for your partner',
+        Text(tt('Personal names for your partner'),
           style:Theme.of(context).textTheme.titleSmall),
-        Text('OneSpace can vary these affectionate names when greeting you.',
+        Text(tt('OneSpace can vary these affectionate names when greeting you.'),
           style:Theme.of(context).textTheme.bodySmall),
         Wrap(spacing:6,runSpacing:4,children:[
           for(final label in _partnerLabels)
-            InputChip(label:Text(label),onDeleted:()=>setState(()=>
+            InputChip(label:Text(tt(label)),onDeleted:()=>setState(()=>
               _partnerLabels.remove(label))),
         ]),
         Row(children:[
           Expanded(child:TextField(
             controller:_labelEntry,maxLength:60,
-            decoration:const InputDecoration(
-              hintText:'e.g. My sunshine',counterText:''))),
+            decoration:InputDecoration(
+              hintText:tt('e.g. My sunshine'),counterText:''))),
           IconButton(
             icon:const Icon(Icons.add_circle_outline),
-            tooltip:'Add a preferred name',
+            tooltip:tt('Add a preferred name'),
             onPressed:(){
               final value=_labelEntry.text.trim();
               if(value.isEmpty||_partnerLabels.length>=15)return;
@@ -435,13 +436,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         const SizedBox(height:12),
         ],
         if(widget.section=='schedule')...[
-        Text('Your daily schedule',
+        Text(tt('Your daily schedule'),
           style:Theme.of(context).textTheme.titleMedium),
-        Text('Working days',style:Theme.of(context).textTheme.labelLarge),
+        Text(tt('Working days'),style:Theme.of(context).textTheme.labelLarge),
         Wrap(spacing:7,runSpacing:4,children:[
           for(var i=0;i<7;i++)
             ChoiceChip(
-              label:Text(const ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]),
+              label:Text(tt(const ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i])),
               selected:_workDays.contains(i==0?7:i),
               onSelected:(value)=>setState((){
                 final day=i==0?7:i;
@@ -451,26 +452,26 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ),
         ]),
         const SizedBox(height:9),
-        _timeRow('Work starts','start',_workStart),
-        _timeRow('Work ends','end',_workEnd),
-        _timeRow('Bedtime','bed',_bedTime),
-        _timeRow('Wake-up','wake',_wakeTime),
+        _timeRow(tt('Work starts'),'start',_workStart),
+        _timeRow(tt('Work ends'),'end',_workEnd),
+        _timeRow(tt('Bedtime'),'bed',_bedTime),
+        _timeRow(tt('Wake-up'),'wake',_wakeTime),
         const SizedBox(height: 18),
         ],
         if(widget.section=='weather')...[
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.schedule_outlined),
-          title: const Text('Time zone — automatic from this phone'),
-          subtitle: Text(_timeZone ?? 'Using phone time; zone not synced yet'),
+          title: Text(tt('Time zone — automatic from this phone')),
+          subtitle: Text(tt(_timeZone ?? 'Using phone time; zone not synced yet')),
         ),
         const SizedBox(height: 8),
         Card(elevation:0,child:Padding(
           padding:const EdgeInsets.all(12),
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Text('Weather city',style:Theme.of(context).textTheme.titleMedium),
+            Text(tt('Weather city'),style:Theme.of(context).textTheme.titleMedium),
             const SizedBox(height:5),
-            Text(_city==null?'No city selected yet':_city!),
+            Text(tt(_city==null?'No city selected yet':_city!)),
             const SizedBox(height:8),
             if(_shareCityWeather)
               Text('${_temperature?.toStringAsFixed(0)??'—'}°C · '
@@ -485,19 +486,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               FilledButton.icon(
                 onPressed:_weatherBusy?null:_chooseWeatherCity,
                 icon:const Icon(Icons.search),
-                label:Text(_city==null?'Choose a city':'Change city'),
+                label:Text(tt(_city==null?tt('Choose a city'):tt('Change city'))),
               ),
               if(_shareCityWeather)
                 OutlinedButton.icon(
                   onPressed:_weatherBusy?null:_stopWeatherSharing,
                   icon:const Icon(Icons.visibility_off_outlined),
-                  label:const Text('Stop monitoring'),
+                  label:Text(tt('Stop monitoring')),
                 ),
             ]),
             if(_weatherBusy)const LinearProgressIndicator(),
             const SizedBox(height:8),
-            Text('Your phone\'s GPS is not used. You choose the city '
-              'to monitor and share with your partner.',
+            Text(tt('Your phone\'s GPS is not used. You choose the city '
+              'to monitor and share with your partner.'),
               style:Theme.of(context).textTheme.bodySmall),
           ]),
         )),
@@ -505,11 +506,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ], // end preferences-only fields
         if (_error != null) ...[
           const SizedBox(height: 14),
-          Text(_error!, style: const TextStyle(color: Colors.red)),
+          Text(tt(_error!), style: const TextStyle(color: Colors.red)),
         ],
         if (_status != null) ...[
           const SizedBox(height: 14),
-          Text(_status!, style: const TextStyle(color: Color(0xFF167E81))),
+          Text(tt(_status!), style: const TextStyle(color: Color(0xFF167E81))),
         ],
         const SizedBox(height: 22),
         FilledButton(
@@ -522,8 +523,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.lock_outline),
-          title: const Text('Change password'),
-          subtitle: const Text('Update your own sign-in password'),
+          title: Text(tt('Change password')),
+          subtitle: Text(tt('Update your own sign-in password')),
           trailing: const Icon(Icons.chevron_right),
           onTap: _changePassword,
         ),
@@ -545,7 +546,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           child: TextButton.icon(
             onPressed: _showPerformanceDiagnostics,
             icon: const Icon(Icons.speed_outlined, size: 18),
-            label: const Text('Troubleshooting'),
+            label: Text(tt('Troubleshooting')),
           ),
         ),
         ],

@@ -2,6 +2,7 @@ import '../../core/item_menu.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'today_attention_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 class TodayAttentionSection extends StatefulWidget {
   const TodayAttentionSection({super.key, required this.items,
@@ -29,21 +30,21 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
     final now = DateTime.now();
     return TodaySectionCard(
       icon:Icons.notifications_active_outlined,
-      title:'Needs your attention',
+      title:tt('Needs your attention'),
       count:items.isEmpty&&widget.leading.isEmpty?null:items.length+widget.leading.length,
       children:[
         ...widget.leading,
-        if(widget.loading&&items.isEmpty)const ListTile(
+        if(widget.loading&&items.isEmpty)ListTile(
           leading:SizedBox(width:20,height:20,child:CircularProgressIndicator(
             strokeWidth:2)),
-          title:Text('Checking for actions that need you…')),
+          title:Text(tt('Checking for actions that need you…'))),
         if(widget.error!=null)ListTile(
           leading:const Icon(Icons.error_outline),
-          title:Text(widget.error!),
+          title:Text(tt(widget.error!)),
           trailing:TextButton(onPressed:widget.onRetry,
-            child:const Text('Retry'))),
+            child:Text(tt('Retry')))),
         if(items.isEmpty&&widget.leading.isEmpty&&!widget.loading&&widget.error==null)
-          const TodayEmptyHint('Nothing is waiting on you right now.'),
+          TodayEmptyHint(tt('Nothing is waiting on you right now.')),
         for(final item in (showAll?items:items.take(6))) ListTile(
           dense:true,
           contentPadding:const EdgeInsets.symmetric(horizontal:4),
@@ -54,8 +55,8 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
             item.isReminder?Icons.alarm_outlined:
             item.daysUntil(now)!=null&&item.daysUntil(now)!<0?
               Icons.error_outline:Icons.flag_outlined),
-          title:Text(item.title,maxLines:2),
-          subtitle:Text(item.reason??item.relativeLabel(now)),
+          title:Text(tt(item.title),maxLines:2),
+          subtitle:Text(tt(item.reason??item.relativeLabel(now))),
           onTap:(){
             if(item.source=='reminder'){widget.onOpenReminder?.call(item.id);}
             else if(item.source=='checkin'){widget.onOpenCheckins?.call();}
@@ -63,7 +64,7 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
             else if(item.activityId.isNotEmpty){widget.onOpen(item.activityId);}
           },
           trailing:PopupMenuButton<int>(
-            tooltip:'Snooze for me',
+            tooltip:tt('Snooze for me'),
             icon:const Icon(Icons.snooze_outlined,size:20),
             onSelected:(days)=>widget.onSnooze(item,days),
             itemBuilder:(_)=>[
@@ -75,7 +76,7 @@ class _TodayAttentionSectionState extends State<TodayAttentionSection> {
         ),
         if(items.length>6)TextButton(
           onPressed:()=>setState(()=>showAll=!showAll),
-          child:Text(showAll?'Show fewer':'Show all ${items.length}')),
+          child:Text(tt(showAll?tt('Show fewer'):'Show all ${items.length}'))),
       ],
     );
   }
@@ -112,27 +113,27 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
    final theme=Theme.of(context);
    return TodaySectionCard(
      icon:Icons.calendar_month_outlined,
-     title:'Today and the next 7 days',
-     trailing:IconButton(tooltip:'Open shared calendar',
+     title:tt('Today and the next 7 days'),
+     trailing:IconButton(tooltip:tt('Open shared calendar'),
        onPressed:widget.onOpen,icon:const Icon(Icons.open_in_new,size:20)),
      children:[
        ...widget.leading,
        if(entries.isEmpty)...[
-         const TodayEmptyHint('A free day. Nothing planned for the next 7 days.'),
+         TodayEmptyHint(tt('A free day. Nothing planned for the next 7 days.')),
          Align(alignment:Alignment.centerLeft,child:TextButton.icon(
            onPressed:widget.onOpen,icon:const Icon(Icons.add),
-           label:const Text('Add to the calendar'))),
+           label:Text(tt('Add to the calendar')))),
        ]else...[
          Padding(padding:const EdgeInsets.fromLTRB(4,4,4,0),
-           child:Text('Today',style:theme.textTheme.labelLarge)),
-         if(todays.isEmpty)const TodayEmptyHint('Nothing planned for today.'),
+           child:Text(tt('Today'),style:theme.textTheme.labelLarge)),
+         if(todays.isEmpty)TodayEmptyHint(tt('Nothing planned for today.')),
          for(final entry in (showAllToday?todays:todays.take(3)))_row(entry),
          if(todays.length>3)TextButton(
            onPressed:()=>setState(()=>showAllToday=!showAllToday),
-           child:Text(showAllToday?'Show fewer':'Show all ${todays.length} for today')),
+           child:Text(tt(showAllToday?tt('Show fewer'):'Show all ${todays.length} for today'))),
          for(final day in days.keys)...[
            Padding(padding:const EdgeInsets.fromLTRB(4,10,4,0),
-             child:Text(_dayLabel(day,today),style:theme.textTheme.labelLarge)),
+             child:Text(tt(_dayLabel(day,today)),style:theme.textTheme.labelLarge)),
            for(final entry in days[day]!)_row(entry),
          ],
        ],
@@ -163,15 +164,15 @@ class _TodayCalendarSectionState extends State<TodayCalendarSection> {
        entry.source=='todo'?Icons.checklist_outlined:
        entry.source=='component'||entry.source=='reminder'?Icons.alarm_outlined:
        Icons.event_outlined),
-     title:Text(entry.title,maxLines:1,overflow:TextOverflow.ellipsis),
-     subtitle:Text((overdue?'Overdue · ':'')+
+     title:Text(tt(entry.title),maxLines:1,overflow:TextOverflow.ellipsis),
+     subtitle:Text(tt((overdue?tt('Overdue · '):'')+
        (entry.source.startsWith('occasion')?'Occasion':
         entry.source=='trip'?'Trip':entry.source=='trip_item'?'Trip item':
         entry.source=='experience'?'Together time':
         entry.source=='todo'?'To-do':entry.source=='activity'?'Activity':
         entry.source=='component'?'Activity item':
         entry.source=='reminder'?(entry.kind=='repeating_reminder'?'Repeating reminder':'Reminder'):
-        'Calendar'),
+        'Calendar')),
        style:overdue?TextStyle(color:Theme.of(context).colorScheme.error):null),
      onTap:(){
        if(entry.reminderId!=null&&widget.onOpenReminder!=null){
@@ -213,7 +214,7 @@ class TodaySectionCard extends StatelessWidget {
           Row(children:[
             Icon(icon,size:20,color:theme.colorScheme.primary),
             const SizedBox(width:8),
-            Expanded(child:Text(count==null?title:'$title ($count)',
+            Expanded(child:Text(tt(count==null?title:'$title ($count)'),
               style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700))),
             if(trailing!=null)trailing!,
           ]),
@@ -231,6 +232,6 @@ class TodayEmptyHint extends StatelessWidget {
   final String text;
   @override Widget build(BuildContext context)=>Padding(
     padding:const EdgeInsets.fromLTRB(4,6,4,6),
-    child:Text(text,style:Theme.of(context).textTheme.bodyMedium?.copyWith(
+    child:Text(tt(text),style:Theme.of(context).textTheme.bodyMedium?.copyWith(
       color:Theme.of(context).colorScheme.onSurfaceVariant)));
 }

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
 import '../calendar/calendar_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Workdays off are shared calendar dates; optional local sleep overrides
 /// apply only to the specified night-before and morning-of.
@@ -74,13 +75,13 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
  }
  Future<void> _remove(Map<String,dynamic> row)async{
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>
-     AlertDialog(title:const Text('Remove this day off?'),
-       content:const Text('Your usual schedule will apply again.'),
+     AlertDialog(title:Text(tt('Remove this day off?')),
+       content:Text(tt('Your usual schedule will apply again.')),
        actions:[
          TextButton(onPressed:()=>Navigator.pop(ctx,false),
-           child:const Text('Keep')),
+           child:Text(tt('Keep'))),
          FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-           child:const Text('Remove')),
+           child:Text(tt('Remove'))),
        ]));
    if(yes!=true)return;
    try{
@@ -93,30 +94,30 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
    }
  }
  @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:const Text('My days off')),
+   appBar:AppBar(title:Text(tt('My days off'))),
    floatingActionButton:FloatingActionButton.extended(heroTag:'fab-personal-days-off',
      onPressed:busy?null:()=>_edit(),
      icon:const Icon(Icons.add),
-     label:const Text('Day off')),
+     label:Text(tt('Day off'))),
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
-     const Text('Exceptions to my usual working days',
+     Text(tt('Exceptions to my usual working days'),
        style:TextStyle(fontSize:18,fontWeight:FontWeight.w600)),
      const SizedBox(height:6),
-     const Text('Days off appear on our shared calendar and skip the after-work ritual. Your normal sleep and notification schedule remains in Settings.'),
-     if(error!=null)Text(error!,
+     Text(tt('Days off appear on our shared calendar and skip the after-work ritual. Your normal sleep and notification schedule remains in Settings.')),
+     if(error!=null)Text(tt(error!),
        style:TextStyle(color:Theme.of(context).colorScheme.error)),
      if(busy)const Center(child:CircularProgressIndicator()),
-     if(!busy&&days.isEmpty)const Padding(padding:EdgeInsets.all(25),
-       child:Text('No days off added. Tap Day off to create one.')),
+     if(!busy&&days.isEmpty)Padding(padding:EdgeInsets.all(25),
+       child:Text(tt('No days off added. Tap Day off to create one.'))),
      for(final day in days)Card(elevation:0,child:ListTile(
        leading:const Icon(Icons.event_available_outlined),
-       title:Text(day['label']?.toString()??'Day off'),
-       subtitle:Text([
+       title:Text(tt(day['label']?.toString()??'Day off')),
+       subtitle:Text(tt([
          day['off_date'].toString(),
-       ].join(' · ')),
+       ].join(' · '))),
        onTap:()=>_edit(day),
        trailing:IconButton(
-         tooltip:'Remove day off',icon:const Icon(Icons.delete_outline),
+         tooltip:tt('Remove day off'),icon:const Icon(Icons.delete_outline),
          onPressed:()=>_remove(day)),
      )),
      const SizedBox(height:90),
@@ -138,15 +139,15 @@ class _DayOffEditorPageState extends State<DayOffEditorPage>{
  late final label=TextEditingController(text:widget.label);
  @override void dispose(){label.dispose();super.dispose();}
  @override Widget build(BuildContext context)=>EditorScaffold(
-   title:widget.isNew?'Add day off':'Edit day off',isNew:widget.isNew,
+   title:widget.isNew?tt('Add day off'):tt('Edit day off'),isNew:widget.isNew,
    isChanged:()=>label.text!=widget.label||!DateUtils.isSameDay(date,widget.date),
-   isComplete:()=>true,listenTo:[label],saveLabel:'Save day off',
+   isComplete:()=>true,listenTo:[label],saveLabel:tt('Save day off'),
    onSave:()=>Navigator.pop(context,(date,label.text.trim())),
    body:ListView(padding:const EdgeInsets.all(18),children:[
      Card(elevation:0,child:ListTile(
        leading:const Icon(Icons.event_outlined),
-       title:Text(MaterialLocalizations.of(context).formatFullDate(date)),
-       subtitle:Text(requiredLabel('Date')),
+       title:Text(tt(MaterialLocalizations.of(context).formatFullDate(date))),
+       subtitle:Text(tt(requiredLabel(tt('Date')))),
        trailing:const Icon(Icons.edit_calendar_outlined),
        onTap:()async{
          final picked=await showDatePicker(context:context,initialDate:date,
@@ -155,9 +156,9 @@ class _DayOffEditorPageState extends State<DayOffEditorPage>{
        })),
      const SizedBox(height:12),
      TextField(controller:label,maxLength:120,
-       decoration:const InputDecoration(labelText:'Name or reason (optional)',
+       decoration:InputDecoration(labelText:tt('Name or reason (optional)'),
          border:OutlineInputBorder())),
-     Text('This date appears on both calendars.',
+     Text(tt('This date appears on both calendars.'),
        style:Theme.of(context).textTheme.bodySmall),
    ]));
 }

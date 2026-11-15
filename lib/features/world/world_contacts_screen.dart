@@ -12,6 +12,7 @@ import '../coordinate/activity_detail_screen.dart';
 import 'saved_contact_editor.dart';
 import 'phone_contact_bridge.dart';
 import 'world_contact_entry.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Searchable, collapsible contact cards. A direct contact is never an Activity.
 class WorldContactsScreen extends StatefulWidget{
@@ -89,12 +90,12 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
    if(saved==true&&mounted)await load();
   }on PlatformException catch(e){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content:Text(e.code=='CONTACT_PERMISSION_DENIED'?
+    SnackBar(content:Text(tt(e.code=='CONTACT_PERMISSION_DENIED'?
      'To import a contact, allow Contacts permission in Android Settings.':
-     'Could not import the selected contact.')));
+     'Could not import the selected contact.'))));
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Contact import is unavailable on this device.')));
+    SnackBar(content:Text(tt('Contact import is unavailable on this device.'))));
   }
  }
  Future<void> saveToPhone(WorldContactEntry item)async{
@@ -102,10 +103,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
    await PhoneContactBridge.saveToPhone(item.contact);
   }on PlatformException catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Could not open your phone Contacts app.')));
+    SnackBar(content:Text(tt('Could not open your phone Contacts app.'))));
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Saving to phone is unavailable on this device.')));
+    SnackBar(content:Text(tt('Saving to phone is unavailable on this device.'))));
   }
  }
  Future<void> openUri(Uri uri)async{
@@ -113,11 +114,11 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      if(!await launchUrl(uri,mode:LaunchMode.externalApplication)){
        await Clipboard.setData(ClipboardData(text:uri.toString()));
        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content:Text('No compatible app. Link copied.')));
+         SnackBar(content:Text(tt('No compatible app. Link copied.'))));
      }
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Cannot open that action.')));
+       SnackBar(content:Text(tt('Cannot open that action.'))));
    }
  }
  Future<void> maps(String address)async{
@@ -133,17 +134,17 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  Future<void> removal(WorldContactEntry item,bool remove)async{
    final confirm=await showDialog<bool>(context:context,builder:(ctx)=>
      AlertDialog(
-       title:Text(remove?'Move contact to Recently deleted?':'Restore contact?'),
-       content:Text(remove
+       title:Text(tt(remove?tt('Move contact to Recently deleted?'):tt('Restore contact?'))),
+       content:Text(tt(remove
          ?'This contact is recoverable. The original data and edit history '
            'are kept; standalone contacts are eligible for retention review '
            '30 days after removal.'
-         :'Make this contact visible again without losing its history.'),
+         :'Make this contact visible again without losing its history.')),
        actions:[
          TextButton(onPressed:()=>Navigator.pop(ctx,false),
-           child:const Text('Cancel')),
+           child:Text(tt('Cancel'))),
          FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-           child:Text(remove?'Remove':'Restore')),
+           child:Text(tt(remove?tt('Remove'):tt('Restore')))),
        ]));
    if(confirm!=true)return;
    try{
@@ -158,10 +159,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      if(mounted)await load();
    }on PostgrestException catch(e){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(content:Text('Could not change this contact: '+e.message)));
+       SnackBar(content:Text(tt('Could not change this contact: ')+e.message)));
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Could not update contact.')));
+       SnackBar(content:Text(tt('Could not update contact.'))));
    }
  }
  String creator(WorldContactEntry item){
@@ -201,10 +202,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      if(!mounted)return;
      await Navigator.of(context).push<void>(MaterialPageRoute<void>(
        builder:(_)=>Scaffold(
-         appBar:AppBar(title:Text(source==null?
-           'Contact edit history':'Contact history')),
+         appBar:AppBar(title:Text(tt(source==null?
+           'Contact edit history':'Contact history'))),
          body:entries.isEmpty?
-           const Center(child:Text('No edits, removals or restorations yet.')):
+           Center(child:Text(tt('No edits, removals or restorations yet.'))):
            ListView.builder(
              padding:const EdgeInsets.all(14),
              itemCount:entries.length,
@@ -216,19 +217,19 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
                  leading:Icon(x['change_kind']=='removed'?
                    Icons.delete_outline:x['change_kind']=='restored'?
                    Icons.restore:Icons.edit_note),
-                 title:Text((x['change_kind']?.toString()??'edited')+
-                   ' · '+(x['new_label']?.toString()??x['old_label']?.toString()??'Contact')),
-                 subtitle:Text((x['type']?.toString()??'')+' · '+
+                 title:Text(tt((x['change_kind']?.toString()??'edited')+
+                   ' · '+(x['new_label']?.toString()??x['old_label']?.toString()??'Contact'))),
+                 subtitle:Text(tt((x['type']?.toString()??'')+' · '+
                    (date?.toString().split('.').first??'Time unavailable')+
                    ' · '+(x['changed_by']==db.auth.currentUser?.id?
-                     'You':'Partner')),
+                     'You':'Partner'))),
                ));
              },
            ),
        )));
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Contact history could not be loaded.')));
+       SnackBar(content:Text(tt('Contact history could not be loaded.'))));
    }
  }
  Widget card(WorldContactEntry item){
@@ -240,18 +241,18 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
        ListTile(
          leading:Icon(item.direct?
            Icons.person_outline:Icons.contacts_outlined),
-         title:Text(item.label,
+         title:Text(tt(item.label),
            style:Theme.of(context).textTheme.titleMedium),
-         subtitle:Text(deleted?'Recently deleted':
-           item.direct?'Saved contact':'From shared Activity'),
+         subtitle:Text(tt(deleted?'Recently deleted':
+           item.direct?'Saved contact':'From shared Activity')),
          onTap:()=>setState((){
            if(isOpen){expanded.remove(key);}else{expanded.add(key);}
          }),
          trailing:ItemMenu(kind:'contact',recordId:item.id,title:item.label,
            onOpen:deleted?null:()=>edit(item),
            moreActions:[
-             if(!deleted)ItemMenuAction('Save to phone',Icons.contact_phone_outlined,()=>saveToPhone(item)),
-             if(!item.direct)ItemMenuAction('Open the Activity',Icons.open_in_new,()=>openOrigin(item)),
+             if(!deleted)ItemMenuAction(tt('Save to phone'),Icons.contact_phone_outlined,()=>saveToPhone(item)),
+             if(!item.direct)ItemMenuAction(tt('Open the Activity'),Icons.open_in_new,()=>openOrigin(item)),
            ],
            removed:deleted,onRemove:()=>removal(item,!deleted)),
        ),
@@ -261,22 +262,22 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
              onPhone:openUri,onEmail:openUri,onMap:maps),
            if(item.contact.note.isNotEmpty)...[
              const Divider(height:20),
-             Text('Notes',style:Theme.of(context).textTheme.labelLarge),
+             Text(tt('Notes'),style:Theme.of(context).textTheme.labelLarge),
              const SizedBox(height:4),
              SelectableText(item.contact.note),
            ],
            const SizedBox(height:10),
-           if(item.direct)Text('Created by '+creator(item),
+           if(item.direct)Text(tt('Created by ')+creator(item),
              style:Theme.of(context).textTheme.labelSmall)
            else TextButton(
              onPressed:()=>openOrigin(item),
-             child:Text('From: '+item.activityTitle)),
+             child:Text(tt('From: ')+item.activityTitle)),
          ])),
      ],
    ));
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'source',label:'Source',options:const {'all':'All','direct':'Saved directly','activity':'From Activities'},selected:sourceFilter,defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'source',label:tt('Source'),options:const {'all':'All','direct':'Saved directly','activity':'From Activities'},selected:sourceFilter,defaultValue:'all')];
 
  @override Widget build(BuildContext context){
    final visible=WorldContactEntry.filtered(
@@ -284,9 +285,9 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
       (sourceFilter=='all'||(sourceFilter=='direct'?e.direct:!e.direct)))
       .toList(),query.text);
    return Scaffold(
-     appBar:AppBar(title:const Text('Contact cards'),actions:[
+     appBar:AppBar(title:Text(tt('Contact cards')),actions:[
        RecordListTopActions(
-        historyKinds:const ['contact'],historyTitle:'Contact cards',
+        historyKinds:const ['contact'],historyTitle:tt('Contact cards'),
      showHistory:showDeleted,
         onToggleHistory:()=>setState(()=>showDeleted=!showDeleted),
         groups:_filterGroups(),
@@ -295,38 +296,38 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      ],bottom:filterShowingBar(_filterGroups(),removed:showDeleted,onClear:()=>setState((){showDeleted=false;sourceFilter='all';}))),
      // R57: one add button; "Import from phone" is one of its choices
      // (it brings a phone contact in — the opposite of Save to phone).
-     floatingActionButton:space==null?null:AddFabMenu(label:'Add contact card',options:[
-       AddFabOption('New contact card',Icons.person_add_alt_outlined,()=>edit()),
-       AddFabOption('Import from phone',Icons.contacts_outlined,importFromPhone),
+     floatingActionButton:space==null?null:AddFabMenu(label:tt('Add contact card'),options:[
+       AddFabOption(tt('New contact card'),Icons.person_add_alt_outlined,()=>edit()),
+       AddFabOption(tt('Import from phone'),Icons.contacts_outlined,importFromPhone),
      ]),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
        padding:const EdgeInsets.fromLTRB(14,14,14,96),
        children:[
-         Text('Contact cards',
+         Text(tt('Contact cards'),
            style:Theme.of(context).textTheme.titleMedium),
          const SizedBox(height:5),
-         Text('Save people directly, or find contacts linked to our Activities.',
+         Text(tt('Save people directly, or find contacts linked to our Activities.'),
            style:Theme.of(context).textTheme.bodySmall),
          const SizedBox(height:12),
          TextField(controller:query,decoration:InputDecoration(
            prefixIcon:const Icon(Icons.search),
-           labelText:'Search contact cards',hintText:'Names, phones, places or notes',
+           labelText:tt('Search contact cards'),hintText:tt('Names, phones, places or notes'),
            border:const OutlineInputBorder(),
            suffixIcon:query.text.isEmpty?null:IconButton(
-             icon:const Icon(Icons.clear),tooltip:'Clear',
+             icon:const Icon(Icons.clear),tooltip:tt('Clear'),
              onPressed:query.clear))),
          const SizedBox(height:8),
          if(showDeleted)Padding(
           padding:const EdgeInsets.only(bottom:8),
-          child:Text('Recently deleted contacts · Restore an item to keep it.',
+          child:Text(tt('Recently deleted contacts · Restore an item to keep it.'),
            style:Theme.of(context).textTheme.bodySmall)),
          if(loading)const Center(child:CircularProgressIndicator())
-         else if(error!=null)Text(error!,
+         else if(error!=null)Text(tt(error!),
            style:TextStyle(color:Theme.of(context).colorScheme.error))
-         else if(space==null)const Text('Connect your shared space first.')
-         else if(visible.isEmpty)Text(showDeleted?
-           'No recently deleted contacts.':'No contacts match this view.')
+         else if(space==null)Text(tt('Connect your shared space first.'))
+         else if(visible.isEmpty)Text(tt(showDeleted?
+           'No recently deleted contacts.':'No contacts match this view.'))
          else for(final item in visible)card(item),
        ],
      )),

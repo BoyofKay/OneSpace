@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../plans/plans_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Use the unified Remember checklists instead of creating a second
 /// trip-specific checklist system or overwriting recurring personal routines.
@@ -51,28 +52,28 @@ class _TripPreparationState extends State<TripPreparationSection>{
    final saved=List<Map<String,dynamic>>.from(snapshot.data??const []);
    final active=saved.where((e)=>e['status']!='cancelled').toList();
    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text('Travel-ready checklists',style:Theme.of(context).textTheme.titleLarge),
+    Text(tt('Travel-ready checklists'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:4),
-    const Text('Generate checklists in Remember. Edit every item and tick your own progress independently.'),
+    Text(tt('Generate checklists in Remember. Edit every item and tick your own progress independently.')),
     const SizedBox(height:10),
     for(final row in active)Card(child:ListTile(
      leading:const Icon(Icons.checklist_outlined),
-     title:Text(row['title'].toString()),
-     subtitle:Text('Stored in To-do lists · '+row['status'].toString()),
+     title:Text(tt(row['title'].toString())),
+     subtitle:Text(tt('Stored in To-do lists · ')+row['status'].toString()),
      trailing:const Icon(Icons.open_in_new),
      onTap:()=>open(row['id'].toString()))),
-    if(snapshot.hasError)const Text('Linked checklists temporarily unavailable.'),
+    if(snapshot.hasError)Text(tt('Linked checklists temporarily unavailable.')),
     if(!snapshot.hasData)const LinearProgressIndicator(),
     const SizedBox(height:8),
     Wrap(spacing:8,runSpacing:7,children:[
      for(final t in templates.entries)
       OutlinedButton.icon(
        icon:Icon(t.value.$2),
-       label:Text(t.value.$1),
+       label:Text(tt(t.value.$1)),
        onPressed:busy||saved.any((e)=>e['trip_template_key']==t.key)?null:
         ()=>create(t.key)),
     ]),
-    if(error!=null)Text(error!,style:TextStyle(
+    if(error!=null)Text(tt(error!),style:TextStyle(
      color:Theme.of(context).colorScheme.error)),
     if(busy)const LinearProgressIndicator(),
    ]);

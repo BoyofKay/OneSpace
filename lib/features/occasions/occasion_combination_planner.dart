@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Compare and save alternative gift bundles without triggering purchases.
 class OccasionCombinationPlanner extends StatefulWidget {
@@ -46,9 +47,9 @@ class _CombinationState extends State<OccasionCombinationPlanner>{
   final unpriced=comparable.where((i)=>i['unit_price']==null).length;
   return SafeArea(child:ListView(padding:EdgeInsets.fromLTRB(
    16,10,16,MediaQuery.viewInsetsOf(context).bottom+24),children:[
-   Text('Build a proposed gift list',style:Theme.of(context).textTheme.titleLarge),
+   Text(tt('Build a proposed gift list'),style:Theme.of(context).textTheme.titleLarge),
    const SizedBox(height:8),
-   const Text('Try different combinations before deciding. No orders or budget reservations are created.'),
+   Text(tt('Try different combinations before deciding. No orders or budget reservations are created.')),
    const SizedBox(height:12),
    for(final item in valid)Card(child:CheckboxListTile(
     value:selected.contains(item['id'].toString()),
@@ -56,33 +57,33 @@ class _CombinationState extends State<OccasionCombinationPlanner>{
      if(v==true){selected.add(item['id'].toString());}
      else{selected.remove(item['id'].toString());}
     }),
-    title:Text(item['title']?.toString()??'Option'),
-    subtitle:Text([
+    title:Text(tt(item['title']?.toString()??'Option')),
+    subtitle:Text(tt([
      if((item['merchant']??'').toString().isNotEmpty)item['merchant'].toString(),
      if(item['unit_price']!=null)(item['currency']??currency).toString()+' '+cost(item).toStringAsFixed(2),
      if(item['estimated_delivery']!=null)'Arrives '+item['estimated_delivery'].toString(),
      if(item['preference_score']!=null)'My score '+item['preference_score'].toString()+'/5',
-    ].join(' · ')),
+    ].join(' · '))),
    )),
    const Divider(),
-   Text('Selected: '+chosen.length.toString(),style:Theme.of(context).textTheme.titleMedium),
-   Text('Estimated total: '+currency+' '+total.toStringAsFixed(2),
+   Text(tt('Selected: ')+chosen.length.toString(),style:Theme.of(context).textTheme.titleMedium),
+   Text(tt('Estimated total: ')+currency+' '+total.toStringAsFixed(2),
     style:Theme.of(context).textTheme.headlineSmall),
-   if(budget!=null)Text('Budget less selection: '+currency+' '+(budget-total).toStringAsFixed(2),
+   if(budget!=null)Text(tt('Budget less selection: ')+currency+' '+(budget-total).toStringAsFixed(2),
     style:TextStyle(color:total>budget?Theme.of(context).colorScheme.error:null)),
-   if(foreign>0)Text(foreign.toString()+' items use other currencies and are excluded. No exchange rate is assumed.'),
-   if(unpriced>0)Text(unpriced.toString()+' items have no price; total is incomplete.'),
-   if(late)Text('Delivery warning: a selected option arrives after the occasion.',
+   if(foreign>0)Text(tt(foreign.toString()+' items use other currencies and are excluded. No exchange rate is assumed.')),
+   if(unpriced>0)Text(tt(unpriced.toString()+' items have no price; total is incomplete.')),
+   if(late)Text(tt('Delivery warning: a selected option arrives after the occasion.'),
     style:TextStyle(color:Theme.of(context).colorScheme.error)),
    const SizedBox(height:12),
-   TextField(controller:name,maxLength:120,decoration:const InputDecoration(
-    labelText:'Proposed combination name',border:OutlineInputBorder())),
-   TextField(controller:notes,maxLength:1000,maxLines:2,decoration:const InputDecoration(
-    labelText:'Comparison notes (optional)',border:OutlineInputBorder())),
-   if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+   TextField(controller:name,maxLength:120,decoration:InputDecoration(
+    labelText:tt('Proposed combination name'),border:OutlineInputBorder())),
+   TextField(controller:notes,maxLength:1000,maxLines:2,decoration:InputDecoration(
+    labelText:tt('Comparison notes (optional)'),border:OutlineInputBorder())),
+   if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
    FilledButton.icon(onPressed:saving||selected.isEmpty?null:save,
     icon:const Icon(Icons.bookmark_add_outlined),
-    label:Text(saving?'Saving…':'Save proposed list')),
+    label:Text(tt(saving?tt('Saving…'):tt('Save proposed list')))),
   ]));
  }
 }

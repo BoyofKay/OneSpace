@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'task_recurrence_rules.dart';
 import 'checklist_schedule.dart';
 import 'checklist_readout_sheet.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A to-do is a list container; its subitems own the checkboxes.
 class TaskChecklistPanel extends StatefulWidget{
@@ -192,7 +193,7 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
   final colors=Theme.of(context).colorScheme;
   return StreamBuilder<List<Map<String,dynamic>>>(stream:itemsStream,
    builder:(ctx,itemsData){
-    if(itemsData.hasError)return const Text('Checklist temporarily unavailable.');
+    if(itemsData.hasError)return Text(tt('Checklist temporarily unavailable.'));
     if(!itemsData.hasData)return const LinearProgressIndicator();
     // A single malformed legacy child should not crash every checklist.
     final items=itemsData.data!.where((i)=>
@@ -217,46 +218,46 @@ class _TaskChecklistPanelState extends State<TaskChecklistPanel>{
        Row(children:[
         Icon(Icons.checklist_rounded,size:17,color:colors.primary),
         const SizedBox(width:5),
-        Expanded(child:Text(items.isEmpty?'No items yet':'$done of ${items.length} done',
+        Expanded(child:Text(tt(items.isEmpty?tt('No items yet'):'$done of ${items.length} done'),
          style:Theme.of(context).textTheme.titleSmall)),
         if(widget.recurrence!='none')Chip(
          avatar:const Icon(Icons.repeat,size:15),
-         label:Text(ChecklistSchedule.mode(widget.rule,widget.recurrence).replaceAll('_',' '))),
+         label:Text(tt(ChecklistSchedule.mode(widget.rule,widget.recurrence).replaceAll('_',' ')))),
        ]),
        if(!contextLoaded)const LinearProgressIndicator(),
-       if(contextLoaded&&!scheduled)Text('Not scheduled today ('+currentDay+'). Subtasks remain available to edit.'),
+       if(contextLoaded&&!scheduled)Text(tt('Not scheduled today (')+currentDay+'). Subtasks remain available to edit.'),
        if(contextLoaded&&scheduled&&widget.recurrence!='none')
-        Text('Current occurrence: '+currentDay),
+        Text(tt('Current occurrence: ')+currentDay),
        if(items.isNotEmpty)LinearProgressIndicator(
         value:done/items.length,minHeight:5),
-       if(checkData.hasError)Text('Checkmarks could not synchronize.',
+       if(checkData.hasError)Text(tt('Checkmarks could not synchronize.'),
         style:TextStyle(color:colors.error)),
        for(final item in items)CheckboxListTile(
         dense:true,contentPadding:EdgeInsets.zero,
         value:checkMap[item['id'].toString()]?['completed']==true,
         onChanged:!widget.canComplete||busy||!contextLoaded||!scheduled?null:
          (v)=>toggle(item,v==true,checkMap[item['id'].toString()]),
-        title:Text(item['title'].toString(),
+        title:Text(tt(item['title'].toString()),
          style:TextStyle(decoration:
           checkMap[item['id'].toString()]?['completed']==true?
            TextDecoration.lineThrough:null)),
         secondary:widget.canManage?IconButton(
-         tooltip:'Remove item',icon:const Icon(Icons.close,size:18),
+         tooltip:tt('Remove item'),icon:const Icon(Icons.close,size:18),
          onPressed:busy?null:()=>archive(item)):null),
        if(widget.canManage)Row(children:[
         Expanded(child:TextField(controller:input,
          scrollController:inputScroll,maxLength:240,
          onSubmitted:(_)=>add(),
-         decoration:const InputDecoration(
-          hintText:'Add an item',counterText:'',
+         decoration:InputDecoration(
+          hintText:tt('Add an item'),counterText:'',
           prefixIcon:Icon(Icons.add_task_outlined)))),
-        IconButton(tooltip:'Add item',
+        IconButton(tooltip:tt('Add item'),
          onPressed:busy?null:add,icon:const Icon(Icons.add_circle_outline)),
        ]),
        if(items.length<itemsData.data!.where((i)=>i['archived_at']==null).length)
-        Text('Some older subitems could not be displayed. They are still saved.',
+        Text(tt('Some older subitems could not be displayed. They are still saved.'),
          style:TextStyle(color:colors.error)),
-       if(error!=null)Text(error!,style:TextStyle(color:colors.error)),
+       if(error!=null)Text(tt(error!),style:TextStyle(color:colors.error)),
        const SizedBox(height:6),
        LinkedItemsStrip(kind:LinkKind.task,id:widget.taskId),
       ]);

@@ -20,6 +20,7 @@ import 'calendar_rules.dart';
 import 'holiday_calendar_service.dart';
 import '../occasions/occasions_screen.dart';
 import '../../theme/appearance_settings_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Date-based calendar MVP. RLS filters all server queries; yearly events are
 /// calculated locally without moving birthdays across timezones.
@@ -44,7 +45,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _showArchived = false;
   /// R55 filter: who can see (all / shared / private).
   String _who = 'all';
-  List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',
+  List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:tt('Who can see'),
     options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_who,defaultValue:'all')];
   String _view='month';
   Map<String,String> _people=const {};
@@ -287,13 +288,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _holidayTile(HolidayDay day)=>Card(elevation:0,child:ListTile(
     leading:Icon(Icons.celebration_outlined,
       color:Theme.of(context).colorScheme.tertiary),
-    title:Text(day.name),
-    subtitle:Text(HolidayCatalog.label(day.country)+' · Regional holiday · '+day.source),
+    title:Text(tt(day.name)),
+    subtitle:Text(tt(HolidayCatalog.label(day.country)+' · Regional holiday · '+day.source)),
   ));
   Widget _occasionTile(Map<String,dynamic> row)=>Card(elevation:0,child:ListTile(
     leading:Icon(Icons.cake_outlined,color:Theme.of(context).colorScheme.primary),
-    title:Text(row['title'].toString()),
-    subtitle:Text('Personal occasion · '+
+    title:Text(tt(row['title'].toString())),
+    subtitle:Text(tt('Personal occasion · ')+
      ((row['honoree_name']??'').toString().isEmpty?'':row['honoree_name'].toString()+' · ')+
      (row['visibility']=='private'?'Only me':'Both of us')+
      (row['annual']==true?' · Annual':'')),
@@ -348,8 +349,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _offTile(Map<String,dynamic> item)=>Card(elevation:0,
     child:ListTile(
       leading:const Icon(Icons.weekend_outlined),
-      title:Text(item['label']?.toString()??'Day off'),
-      subtitle:Text('Day off · '+
+      title:Text(tt(item['label']?.toString()??'Day off')),
+      subtitle:Text(tt('Day off · ')+
         (_people[item['user_id']?.toString()]??'Partner')),
     ));
 
@@ -380,18 +381,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Column(children:[
       Row(children:[
         IconButton(
-          tooltip:'Previous week',
+          tooltip:tt('Previous week'),
           icon:const Icon(Icons.chevron_left),
           onPressed:(){setState(()=>
             _selected=_selected.subtract(const Duration(days:7)));
             _refreshExtras();},
         ),
         Expanded(child:Text(
-          CalendarRules.sqlDate(days.first)+' — '+
-            CalendarRules.sqlDate(days.last),
+          tt(CalendarRules.sqlDate(days.first)+' — '+
+            CalendarRules.sqlDate(days.last)),
           textAlign:TextAlign.center)),
         IconButton(
-          tooltip:'Next week',
+          tooltip:tt('Next week'),
           icon:const Icon(Icons.chevron_right),
           onPressed:(){setState(()=>
             _selected=_selected.add(const Duration(days:7)));
@@ -401,11 +402,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
       for(final date in days)
         Card(elevation:0,child:Column(children:[
           ListTile(
-            title:Text(MaterialLocalizations.of(context).formatMediumDate(date)),
+            title:Text(tt(MaterialLocalizations.of(context).formatMediumDate(date))),
             subtitle:Text(
-              (_entriesOn(date).length+_tasksOn(date).length+
+              tt((_entriesOn(date).length+_tasksOn(date).length+
                 _holidaysOn(date).length+_occasionsOn(date).length).toString()+
-              ' shared calendar items and due dates'),
+              ' shared calendar items and due dates')),
             trailing:const Icon(Icons.chevron_right),
             onTap:(){setState((){
               _selected=date;
@@ -419,8 +420,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           for(final task in _tasksOn(date))ListTile(
             dense:true,
             leading:const Icon(Icons.checklist),
-            title:Text(task['title']?.toString()??'To-do'),
-            subtitle:const Text('Due date'),
+            title:Text(tt(task['title']?.toString()??'To-do')),
+            subtitle:Text(tt('Due date')),
             onTap:widget.onOpenPlans,
           ),
         ])),
@@ -437,7 +438,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final partner=members.where((row)=>row['user_id']!=me).firstOrNull;
       if(partner==null){
         if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content:Text('Connect your partner first.')));
+          SnackBar(content:Text(tt('Connect your partner first.'))));
         return;
       }
       await _client.from('calendar_partner_reminders').insert({
@@ -446,17 +447,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
         'recipient_id':partner['user_id'].toString(),
       });
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content:Text('Reminder sent to your partner.')));
+        SnackBar(content:Text(tt('Reminder sent to your partner.'))));
     }on PostgrestException catch(e){
       if(!mounted)return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:Text(e.code=='23505'
+        content:Text(tt(e.code=='23505'
           ?'You already reminded your partner about this event today.'
-          :'Could not send the reminder. Please try again.'),
+          :'Could not send the reminder. Please try again.')),
       ));
     }catch(_){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content:Text('Could not send the reminder.')));
+        SnackBar(content:Text(tt('Could not send the reminder.'))));
     }
   }
 
@@ -467,12 +468,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       padding:const EdgeInsets.fromLTRB(16,0,16,20),
       child:Column(mainAxisSize:MainAxisSize.min,
         crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text(event['title']?.toString()??'Event',
+        Text(tt(event['title']?.toString()??'Event'),
           style:Theme.of(ctx).textTheme.titleMedium),
         const SizedBox(height:8),
         LinkedItemsStrip(kind:LinkKind.event,id:event['id'].toString()),
         const SizedBox(height:6),
-        Text('Nothing shows here until something is linked, for example with Create from this.',
+        Text(tt('Nothing shows here until something is linked, for example with Create from this.'),
           style:Theme.of(ctx).textTheme.bodySmall),
       ]))));
 
@@ -495,7 +496,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await Clipboard.setData(ClipboardData(text:body));
       if(mounted){
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content:Text('No email app available. Event copied.')));
+          SnackBar(content:Text(tt('No email app available. Event copied.'))));
       }
     }
   }
@@ -522,7 +523,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             Expanded(
               child: Text(
-                MaterialLocalizations.of(context).formatMonthYear(_month),
+                tt(MaterialLocalizations.of(context).formatMonthYear(_month)),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
@@ -539,7 +540,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
         Row(children: [
           for (final label in weekdays)
-            Expanded(child: Center(child: Text(label,
+            Expanded(child: Center(child: Text(tt(label),
               style: Theme.of(context).textTheme.labelSmall))),
         ]),
         const SizedBox(height: 8),
@@ -647,8 +648,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child:Icon(event['kind']=='occasion'
                 ?Icons.celebration_outlined:Icons.event_outlined,size:19),
             ),
-            title: Text(event['title'] as String? ?? ''),
-            subtitle: Text([
+            title: Text(tt(event['title'] as String? ?? '')),
+            subtitle: Text(tt([
               tr(context,event['kind'] as String? ?? 'event'),
               if (upcoming && countdown.isNotEmpty) countdown,
               if (!upcoming && sourceDate != null)
@@ -662,22 +663,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (visibility == 'private') tr(context, 'private'),
               if (!canEdit) tr(context, 'viewOnly'),
               if (event['archived_at'] != null) tr(context, 'archived'),
-            ].join(' • ')),
+            ].join(' • '))),
             trailing:ItemMenu(kind:'event',recordId:event['id'].toString(),
               title:event['title']?.toString(),
               onOpen:()=>_openEditor(existing:event),openLabel:canEdit?'Edit':'Open',
               moreActions:[
-                if(event['space_id']!=null)ItemMenuAction('Create from this',Icons.add_link,
+                if(event['space_id']!=null)ItemMenuAction(tt('Create from this'),Icons.add_link,
                   ()=>createFromThis(context,
                     kind:LinkKind.event,id:event['id'].toString(),
                     spaceId:event['space_id'].toString(),
                     title:event['title']?.toString()??'Event',
                     date:DateTime.tryParse(event['event_date']?.toString()??''),
                     shared:event['visibility']!='private')),
-                ItemMenuAction('Linked items',Icons.link,()=>_showLinked(event)),
-                ItemMenuAction('Share by email',Icons.mail_outline,()=>_emailEvent(event)),
+                ItemMenuAction(tt('Linked items'),Icons.link,()=>_showLinked(event)),
+                ItemMenuAction(tt('Share by email'),Icons.mail_outline,()=>_emailEvent(event)),
                 if(visibility=='shared'&&event['archived_at']==null)
-                  ItemMenuAction('Remind partner now',Icons.notifications_active_outlined,
+                  ItemMenuAction(tt('Remind partner now'),Icons.notifications_active_outlined,
                     ()=>_remindPartner(event)),
               ],
               table:canEdit?'space_events':null,
@@ -707,7 +708,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(CalendarRules.sqlDate(_selected),
+        Text(tt(CalendarRules.sqlDate(_selected)),
           style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 6),
         if (events.isEmpty && tasks.isEmpty && off.isEmpty&&holiday.isEmpty&&occasion.isEmpty)
@@ -720,7 +721,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           elevation: 0,
           child: ListTile(
             leading: const Icon(Icons.checklist_outlined),
-            title: Text(task['title'] as String? ?? ''),
+            title: Text(tt(task['title'] as String? ?? '')),
             subtitle: Text(tr(context, 'taskDue')),
             trailing: const Icon(Icons.chevron_right),
             onTap: widget.onOpenPlans,
@@ -742,16 +743,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Row(children:[
         IconButton(
-          tooltip:'Previous day',icon:const Icon(Icons.chevron_left),
+          tooltip:tt('Previous day'),icon:const Icon(Icons.chevron_left),
           onPressed:(){setState(()=>
             _selected=_selected.subtract(const Duration(days:1)));
             _refreshExtras();}),
         Expanded(child:Text(
-          MaterialLocalizations.of(context).formatMediumDate(_selected),
+          tt(MaterialLocalizations.of(context).formatMediumDate(_selected)),
           textAlign:TextAlign.center,
           style:Theme.of(context).textTheme.titleMedium)),
         IconButton(
-          tooltip:'Next day',icon:const Icon(Icons.chevron_right),
+          tooltip:tt('Next day'),icon:const Icon(Icons.chevron_right),
           onPressed:(){setState(()=>
             _selected=_selected.add(const Duration(days:1)));
             _refreshExtras();}),
@@ -760,13 +761,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
         for(final d in off)_offTile(d),
         for(final d in holiday)_holidayTile(d),
         for(final d in occasion)_occasionTile(d),
-        Text('All day & deadlines',
+        Text(tt('All day & deadlines'),
           style:Theme.of(context).textTheme.titleSmall),
         for(final event in allDay)_eventTile(event),
         for(final task in tasks)Card(elevation:0,child:ListTile(
           leading:const Icon(Icons.checklist_outlined),
-          title:Text(task['title']?.toString()??'To-do'),
-          subtitle:const Text('Due date'),
+          title:Text(tt(task['title']?.toString()??'To-do')),
+          subtitle:Text(tt('Due date')),
           onTap:widget.onOpenPlans)),
         const SizedBox(height:12),
       ],
@@ -775,7 +776,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           SizedBox(width:54,child:Padding(
             padding:const EdgeInsets.only(top:10),
             child:Text(
-              hour.toString().padLeft(2,'0')+':00',
+              tt(hour.toString().padLeft(2,'0')+':00'),
               style:Theme.of(context).textTheme.labelSmall))),
           Expanded(child:Container(
             constraints:const BoxConstraints(minHeight:38),
@@ -789,8 +790,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           )),
         ]),
       if(events.isEmpty&&tasks.isEmpty&&off.isEmpty&&holiday.isEmpty&&occasion.isEmpty)
-        const Padding(padding:EdgeInsets.all(12),
-          child:Text('Nothing scheduled on this day.')),
+        Padding(padding:EdgeInsets.all(12),
+          child:Text(tt('Nothing scheduled on this day.'))),
     ]);
   }
 
@@ -798,16 +799,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar:AppBar(title:const Text('Calendar'),actions:[
+    appBar:AppBar(title:Text(tt('Calendar')),actions:[
      RecordListTopActions(
-      historyKinds:const ['event'],historyTitle:'Calendar',
+      historyKinds:const ['event'],historyTitle:tt('Calendar'),
       showHistory:_showArchived,
       onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
       groups:_filterGroups(),
       onApply:(v)=>setState(()=>_who=v['who']!)),
     ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,
       onClear:()=>setState((){_showArchived=false;_who='all';}))),
-    floatingActionButton:_spaceId==null?null:AddFab(label:'Add event',onPressed:()=>_openEditor()),
+    floatingActionButton:_spaceId==null?null:AddFab(label:tt('Add event'),onPressed:()=>_openEditor()),
     body:RefreshIndicator(
     onRefresh: _load,
     child: ListView(
@@ -821,7 +822,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         const SeasonalThemePreview(compact:true),
         const SizedBox(height: 12),
         if (_error != null) ...[
-          Text(_error!, style:TextStyle(color:Theme.of(context).colorScheme.error)),
+          Text(tt(_error!), style:TextStyle(color:Theme.of(context).colorScheme.error)),
           TextButton.icon(
             onPressed: _load,
             icon: const Icon(Icons.refresh),
@@ -839,13 +840,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
           const SizedBox(height: 12),
           // Regional holidays are managed in Settings > Preferences.
           if(_holidayError!=null)Padding(padding:const EdgeInsets.all(8),
-            child:Text(_holidayError!,style:Theme.of(context).textTheme.bodySmall)),
+            child:Text(tt(_holidayError!),style:Theme.of(context).textTheme.bodySmall)),
           const SizedBox(height: 12),
           SegmentedButton<String>(
-            segments:const [
-              ButtonSegment(value:'month',label:Text('Month')),
-              ButtonSegment(value:'week',label:Text('Week')),
-              ButtonSegment(value:'day',label:Text('Day')),
+            segments:[
+              ButtonSegment(value:'month',label:Text(tt('Month'))),
+              ButtonSegment(value:'week',label:Text(tt('Week'))),
+              ButtonSegment(value:'day',label:Text(tt('Day'))),
             ],
             selected:{_view},
             onSelectionChanged:(value){

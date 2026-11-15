@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth_redirect.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Signed-out password recovery. Email delivery depends on Supabase Auth settings.
 class ForgotPasswordScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Password recovery')),
+      appBar: AppBar(title: Text(tt('Password recovery'))),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -78,33 +79,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  _sent ? 'Check your email' : 'Forgot your password?',
+                  tt(_sent ? 'Check your email' : 'Forgot your password?'),
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(_sent
+                Text(tt(_sent
                     ? 'If that email address has an account, follow the '
                         'recovery link. Open the link on this Android device '
                         'to return to OneSpace.'
-                    : 'We will send a recovery link to your account email.'),
+                    : 'We will send a recovery link to your account email.')),
                 const SizedBox(height: 22),
                 if (!_sent)
                   TextField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const [AutofillHints.email],
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: 'Email address',
+                      labelText: tt('Email address'),
                     ),
                   ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(
-                    _error!,
+                    tt(_error!),
                     style: const TextStyle(color: Colors.red),
                   ),
                 ],
@@ -112,11 +113,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 if (!_sent)
                   FilledButton(
                     onPressed: _sending ? null : _requestReset,
-                    child: Text(_sending ? 'Sending...' : 'Send recovery link'),
+                    child: Text(tt(_sending ? tt('Sending...') : tt('Send recovery link'))),
                   ),
                 OutlinedButton(
                   onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
-                  child: const Text('Back to sign in'),
+                  child: Text(tt('Back to sign in')),
                 ),
               ],
             ),
@@ -170,7 +171,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await Supabase.instance.client.auth.signOut();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated. Please sign in.')),
+        SnackBar(content: Text(tt('Password updated. Please sign in.'))),
       );
     } on AuthException catch (e) {
       if (mounted) {
@@ -196,7 +197,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Set a new password')),
+      appBar: AppBar(title: Text(tt('Set a new password'))),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -205,19 +206,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               padding: const EdgeInsets.all(24),
               shrinkWrap: true,
               children: [
-                const Text(
-                  'Secure your OneSpace account',
+                Text(
+                  tt('Secure your OneSpace account'),
                   style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                const Text('Choose a new password to finish account recovery.'),
+                Text(tt('Choose a new password to finish account recovery.')),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _password,
                   obscureText: true,
                   autofillHints: const [AutofillHints.newPassword],
-                  decoration: const InputDecoration(
-                    labelText: 'New password (8+ characters)',
+                  decoration: InputDecoration(
+                    labelText: tt('New password (8+ characters)'),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -225,23 +226,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 TextField(
                   controller: _confirmation,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm new password',
+                  decoration: InputDecoration(
+                    labelText: tt('Confirm new password'),
                     border: OutlineInputBorder(),
                   ),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  Text(tt(_error!), style: const TextStyle(color: Colors.red)),
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _busy ? null : _updatePassword,
-                  child: Text(_busy ? 'Updating...' : 'Update password'),
+                  child: Text(tt(_busy ? tt('Updating...') : tt('Update password'))),
                 ),
                 TextButton(
                   onPressed: _busy ? null : _cancel,
-                  child: const Text('Cancel recovery and sign out'),
+                  child: Text(tt('Cancel recovery and sign out')),
                 ),
               ],
             ),

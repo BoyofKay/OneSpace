@@ -7,6 +7,7 @@ import '../settings/account_data_screen.dart';
 import '../settings/onespace_settings_screen.dart';
 import '../share_in/items_to_sort_screen.dart';
 import 'profile_settings_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R61: the "Me" tab (bottom right): my profile, settings, language and
 /// my data — everything that is about me rather than about us.
@@ -37,24 +38,24 @@ class _MeScreenState extends State<MeScreen> {
 
   void _open(Widget page) => Navigator.of(context).push<void>(MaterialPageRoute<void>(builder: (_) => page));
 
-  Widget _page(String title, Widget body) => Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(child: body));
+  Widget _page(String title, Widget body) => Scaffold(appBar: AppBar(title: Text(tt(title))), body: SafeArea(child: body));
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final email = Supabase.instance.client.auth.currentUser?.email ?? '';
     Widget tile(IconData icon, String title, String subtitle, VoidCallback onTap) => ListTile(
-      leading: Icon(icon), title: Text(title), subtitle: Text(subtitle),
+      leading: Icon(icon), title: Text(tt(title)), subtitle: Text(tt(subtitle)),
       trailing: const Icon(Icons.chevron_right), onTap: onTap);
     return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 32), children: [
       Row(children: [
         CircleAvatar(radius: 30, backgroundColor: theme.colorScheme.primaryContainer,
-          child: Text(name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+          child: Text(tt(name.isEmpty ? '?' : name.characters.first.toUpperCase()),
             style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.onPrimaryContainer))),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(name.isEmpty ? tr(context, 'profile') : name, style: theme.textTheme.titleLarge),
-          if (email.isNotEmpty) Text(email, style: theme.textTheme.bodySmall),
+          Text(tt(name.isEmpty ? tr(context, 'profile') : name), style: theme.textTheme.titleLarge),
+          if (email.isNotEmpty) Text(tt(email), style: theme.textTheme.bodySmall),
         ])),
       ]),
       const SizedBox(height: 16),

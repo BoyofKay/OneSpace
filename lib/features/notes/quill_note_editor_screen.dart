@@ -10,6 +10,7 @@ import 'note_photos_panel.dart';
 import 'note_references_panel.dart';
 import '../mentions/rich_note_mention_button.dart';
 import 'dart:async';
+import 'package:onespace/l10n/phrases.dart';
 
 /// OneSpace Notes 2.0: real rich-text editing, native selection/copy/paste,
 /// lists, headings, links and basic formatting, not markdown-in-text fields.
@@ -130,18 +131,18 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
  }
  @override Widget build(BuildContext context){
   final isEditingAllowed=canEdit&&!archived;
-  return EditorScaffold(title:editing?'Edit note':'Add note',
+  return EditorScaffold(title:editing?tt('Edit note'):tt('Add note'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>isEditingAllowed&&title.text.trim().isNotEmpty,
    listenTo:[title,editor],saving:busy,onSave:save,
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
      enabled:!editing&&!busy,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
    body:SafeArea(child:ListView(
     padding:const EdgeInsets.fromLTRB(16,14,16,36),children:[
-     if(!isEditingAllowed)const Text('Read-only note',
+     if(!isEditingAllowed)Text(tt('Read-only note'),
       style:TextStyle(fontWeight:FontWeight.bold)),
      TextField(controller:title,maxLength:120,autofocus:!editing,
       readOnly:!isEditingAllowed,textCapitalization:TextCapitalization.sentences,
-      decoration:const InputDecoration(labelText:'Title *',
+      decoration:InputDecoration(labelText:tt('Title *'),
        border:OutlineInputBorder())),
      const SizedBox(height:10),
      if(isEditingAllowed)...[
@@ -173,14 +174,14 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
        spaceId:widget.spaceId,
        noteVisibility:visibility,
        canEdit:isEditingAllowed),
-     ]else Text('Save the note first, then add photos and links.',
+     ]else Text(tt('Save the note first, then add photos and links.'),
       style:Theme.of(context).textTheme.bodySmall),
      const SizedBox(height:10),
-     Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Pin to the top',
+     Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Pin to the top'),
       icon:Icons.push_pin_outlined,value:pinned,
       onChanged:isEditingAllowed?(v)=>setState(()=>pinned=v):null)),
      if(error!=null)Padding(padding:const EdgeInsets.all(8),
-      child:Text(error!,style:TextStyle(
+      child:Text(tt(error!),style:TextStyle(
        color:Theme.of(context).colorScheme.error))),
    ])),
   );

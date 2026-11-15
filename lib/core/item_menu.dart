@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'collection_history_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// One extra action shown in an [ItemMenu] (for example "Mark done").
 class ItemMenuAction {
@@ -62,11 +63,11 @@ class ItemMenu extends StatelessWidget {
     if (t == null) return;
     if (!removed) {
       final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-        title: Text('Remove ${title == null || title!.isEmpty ? 'this item' : '“$title”'}?'),
-        content: const Text('It moves to Removed. You can restore it from the filter anytime.'),
+        title: Text('Remove ${title == null || title!.isEmpty ? tt('this item') : '“$title”'}?'),
+        content: Text(tt('It moves to Removed. You can restore it from the filter anytime.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tt('Cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tt('Remove'))),
         ]));
       if (ok != true || !context.mounted) return;
     }
@@ -76,15 +77,15 @@ class ItemMenu extends StatelessWidget {
         'archived_at': removed ? null : DateTime.now().toUtc().toIso8601String(),
       }).eq('id', recordId).select('id');
       if (rows.isEmpty) {
-        messenger.showSnackBar(const SnackBar(content: Text('Only the person who added it can change this.')));
+        messenger.showSnackBar(SnackBar(content: Text(tt('Only the person who added it can change this.'))));
         return;
       }
-      messenger.showSnackBar(SnackBar(content: Text(removed ? 'Restored.' : 'Removed.')));
+      messenger.showSnackBar(SnackBar(content: Text(tt(removed ? tt('Restored.') : tt('Removed.')))));
       onChanged?.call();
     } on PostgrestException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Could not update: ${e.message}')));
+      messenger.showSnackBar(SnackBar(content: Text('${tt('Could not update')}: ${e.message}')));
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Could not update. Please retry.')));
+      messenger.showSnackBar(SnackBar(content: Text(tt('Could not update. Please retry.'))));
     }
   }
 
@@ -94,34 +95,34 @@ class ItemMenu extends StatelessWidget {
     for (var i = 0; i < statusActions.length; i++) {
       entries.add(PopupMenuItem(value: 's$i', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
-          leading: Icon(statusActions[i].icon), title: Text(statusActions[i].label))));
+          leading: Icon(statusActions[i].icon), title: Text(tt(statusActions[i].label)))));
     }
     if (statusActions.isNotEmpty) entries.add(const PopupMenuDivider());
     if (onOpen != null) {
       entries.add(PopupMenuItem(value: 'open', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
-          leading: Icon(openLabel == 'Open' ? Icons.open_in_new : MenuIcons.edit), title: Text(openLabel))));
+          leading: Icon(openLabel == 'Open' ? Icons.open_in_new : MenuIcons.edit), title: Text(tt(openLabel)))));
     }
     for (var i = 0; i < moreActions.length; i++) {
       entries.add(PopupMenuItem(value: 'm$i', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
-          leading: Icon(moreActions[i].icon), title: Text(moreActions[i].label))));
+          leading: Icon(moreActions[i].icon), title: Text(tt(moreActions[i].label)))));
     }
     if (table != null || onRemove != null) {
       entries.add(PopupMenuItem(value: 'remove', child: ListTile(
           dense: true, contentPadding: EdgeInsets.zero,
           leading: Icon(removed ? MenuIcons.restore : MenuIcons.remove),
-          title: Text(removed ? 'Restore' : 'Remove'))));
+          title: Text(tt(removed ? tt('Restore') : tt('Remove'))))));
     }
-    entries.add(const PopupMenuItem(value: 'log', child: ListTile(
+    entries.add(PopupMenuItem(value: 'log', child: ListTile(
         dense: true, contentPadding: EdgeInsets.zero,
-        leading: Icon(MenuIcons.changeLog), title: Text('Change log'))));
+        leading: Icon(MenuIcons.changeLog), title: Text(tt('Change log')))));
     // R58: the position is measured once, when tapped. PopupMenuButton
     // re-measures its anchor on every layout while the menu is open, which
     // crashed ("RenderBox was not laid out") on pages that rebuild live
     // underneath the menu, such as an Activity.
     return Builder(builder: (anchor) => IconButton(
-      tooltip: 'More',
+      tooltip: tt('More'),
       icon: const Icon(Icons.more_vert),
       onPressed: () async {
         final box = anchor.findRenderObject() as RenderBox?;
@@ -169,7 +170,7 @@ class MenuIcons {
 PopupMenuItem<T> iconMenuItem<T>(T value, IconData icon, String label) => PopupMenuItem<T>(
   value: value,
   child: ListTile(dense: true, contentPadding: EdgeInsets.zero,
-    leading: Icon(icon), title: Text(label)));
+    leading: Icon(icon), title: Text(tt(label))));
 
 /// Opens a menu at [anchor]'s current position, measured once.
 Future<T?> showAnchoredMenu<T>(BuildContext anchor, List<PopupMenuEntry<T>> items) async {

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'checklist_readout_rules.dart';
 import 'checklist_speech_bridge.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Read-only listening view: does not check off items on someone's behalf.
 /// This is an opt-in, foreground-only operation on the phone.
@@ -86,20 +87,20 @@ class _ChecklistReadoutSheetState extends State<ChecklistReadoutSheet>
     Row(children:[
      const Icon(Icons.record_voice_over_outlined),
      const SizedBox(width:8),
-     Expanded(child:Text('Listen to checklist',
+     Expanded(child:Text(tt('Listen to checklist'),
       style:theme.textTheme.titleLarge)),
-     IconButton(tooltip:'Close voice readout',
+     IconButton(tooltip:tt('Close voice readout'),
       onPressed:()=>Navigator.of(context).pop(),
       icon:const Icon(Icons.close)),
     ]),
-    Text(widget.listTitle,style:theme.textTheme.titleMedium),
+    Text(tt(widget.listTitle),style:theme.textTheme.titleMedium),
     const SizedBox(height:6),
-    const Text('Uses your phone’s speech engine, which may require internet for some voices. No microphone, recording, or automatic completion.'),
+    Text(tt('Uses your phone’s speech engine, which may require internet for some voices. No microphone, recording, or automatic completion.')),
     const SizedBox(height:10),
     SegmentedButton<bool>(
-     segments:const [
-      ButtonSegment(value:true,label:Text('Still to do')),
-      ButtonSegment(value:false,label:Text('All items')),
+     segments:[
+      ButtonSegment(value:true,label:Text(tt('Still to do'))),
+      ButtonSegment(value:false,label:Text(tt('All items'))),
      ],
      selected:{remainingOnly},
      onSelectionChanged:(values)async{
@@ -107,13 +108,13 @@ class _ChecklistReadoutSheetState extends State<ChecklistReadoutSheet>
       if(mounted)setState((){remainingOnly=values.first;at=0;});
      }),
     const SizedBox(height:10),
-    Text('${stepsNow.length} item(s) to read'),
+    Text('${stepsNow.length} ${tt('item(s) to read')}'),
     if(stepsNow.isEmpty)
-     const Padding(padding:EdgeInsets.symmetric(vertical:10),
-      child:Text('No items in this selection.')),
+     Padding(padding:EdgeInsets.symmetric(vertical:10),
+      child:Text(tt('No items in this selection.'))),
     const SizedBox(height:8),
     Row(children:[
-     const Text('Voice speed'),
+     Text(tt('Voice speed')),
      Expanded(child:Slider(value:speed,min:0.75,max:1.25,
       divisions:2,label:'${speed.toStringAsFixed(2)}×',
       onChanged:(v)=>setState(()=>speed=v))),
@@ -124,33 +125,33 @@ class _ChecklistReadoutSheetState extends State<ChecklistReadoutSheet>
       ChecklistReadoutRules.script(listTitle:widget.listTitle,
        lines:stepsNow,remainingOnly:remainingOnly)),
      icon:const Icon(Icons.play_arrow_outlined),
-     label:const Text('Read this checklist aloud'),
+     label:Text(tt('Read this checklist aloud')),
     ),
     if(stepsNow.isNotEmpty)...[
      const SizedBox(height:12),
-     Text('Step ${safeIndex+1} of ${stepsNow.length}',
+     Text('${tt('Step')} ${safeIndex+1} ${tt('of')} ${stepsNow.length}',
       style:theme.textTheme.labelLarge),
      Card(child:Padding(padding:const EdgeInsets.all(16),
-      child:Text(stepsNow[safeIndex],style:theme.textTheme.titleMedium))),
+      child:Text(tt(stepsNow[safeIndex]),style:theme.textTheme.titleMedium))),
      Row(children:[
-      IconButton(tooltip:'Previous step',icon:const Icon(Icons.skip_previous),
+      IconButton(tooltip:tt('Previous step'),icon:const Icon(Icons.skip_previous),
        onPressed:working||safeIndex==0?null:()=>move(safeIndex-1)),
       Expanded(child:OutlinedButton.icon(
        onPressed:working?null:()=>move(safeIndex),
        icon:const Icon(Icons.replay_outlined),
-       label:const Text('Read this step'))),
-      IconButton(tooltip:'Next step',icon:const Icon(Icons.skip_next),
+       label:Text(tt('Read this step')))),
+      IconButton(tooltip:tt('Next step'),icon:const Icon(Icons.skip_next),
        onPressed:working||safeIndex>=stepsNow.length-1?null:
         ()=>move(safeIndex+1)),
      ]),
     ],
     if(reading)TextButton.icon(
      onPressed:stop,icon:const Icon(Icons.stop_circle_outlined),
-     label:const Text('Stop reading')),
-    if(error!=null)Text(error!,style:TextStyle(
+     label:Text(tt('Stop reading'))),
+    if(error!=null)Text(tt(error!),style:TextStyle(
      color:theme.colorScheme.error)),
     const SizedBox(height:8),
-    Text('Your progress stays unchanged. Mark items complete in the checklist when ready.',
+    Text(tt('Your progress stays unchanged. Mark items complete in the checklist when ready.'),
      style:theme.textTheme.bodySmall),
    ]),
   ));

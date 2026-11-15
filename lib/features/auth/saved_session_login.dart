@@ -7,6 +7,7 @@ import 'auth_language_switcher.dart';
 import 'device_unlock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/first_name.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// One restored Supabase session: the user's password OR OS verification can
 /// reopen it. No password, refresh token, or biometric template is saved here.
@@ -123,12 +124,12 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
               const Icon(Icons.favorite_rounded,
                   color: Color(0xFF167E81), size: 54),
               const SizedBox(height: 10),
-              const Text('OneSpace', textAlign: TextAlign.center,
+              Text(tt('OneSpace'), textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               const SizedBox(height: 5),
               Text(tr(context,'tagline'),textAlign:TextAlign.center),
               const SizedBox(height: 12),
-              Text(_firstName==null||_firstName!.isEmpty?tr(context,'welcome'):'Welcome back, $_firstName', style: const TextStyle(
+              Text(tt(_firstName==null||_firstName!.isEmpty?tr(context,'welcome'):'Welcome back, $_firstName'), style: const TextStyle(
                   fontSize: 23, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(tr(context, 'savedSessionHelp'),
@@ -189,7 +190,7 @@ class _SavedSessionLoginState extends State<SavedSessionLogin> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                Text(tt(_error!), style: const TextStyle(color: Colors.red)),
               ],
               const SizedBox(height: 8),
               Text(tr(context, 'pinOrBiometric'),

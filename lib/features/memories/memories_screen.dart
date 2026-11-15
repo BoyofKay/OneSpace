@@ -18,6 +18,7 @@ import '../sharing/share_grant_watcher.dart';
 import 'memory_photo_gallery.dart';
 import 'memory_photo_layout_rules.dart';
 import 'scrapbook_studio_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 class MemoriesScreen extends StatefulWidget {
   const MemoriesScreen({super.key,this.initialMemoryId});
@@ -155,23 +156,23 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   }
 
   /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
 
  @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
       RecordListTopActions(
-        historyKinds:const ['memory'],historyTitle:'Memories',
+        historyKinds:const ['memory'],historyTitle:tt('Memories'),
      showHistory:_archived,
         onToggleHistory:()=>setState(()=>_archived=!_archived),
         groups:_filterGroups(),
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
     ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
-    floatingActionButton:_spaceId==null?null:AddFabMenu(label:'Add memory',options:[
-      AddFabOption('Story journal',Icons.menu_book_outlined,()=>_edit()),
-      AddFabOption('Daily selfie',Icons.photo_camera_outlined,_dailySelfie),
-      AddFabOption('Scrapbook studio',Icons.auto_stories_outlined,()async{
+    floatingActionButton:_spaceId==null?null:AddFabMenu(label:tt('Add memory'),options:[
+      AddFabOption(tt('Story journal'),Icons.menu_book_outlined,()=>_edit()),
+      AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
+      AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
         final current=_spaceId;
         if(current==null)return;
         await Navigator.of(context).push<void>(
@@ -190,7 +191,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           Text(tr(context, 'memoriesSubtitle')),
           const SizedBox(height: 12),
           if (_error != null) ...[
-            Text(_error!, style: TextStyle(color:Theme.of(context).colorScheme.error)),
+            Text(tt(_error!), style: TextStyle(color:Theme.of(context).colorScheme.error)),
             TextButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh),
@@ -206,10 +207,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             const SizedBox(height: 14),
             TextField(controller:_search,decoration:InputDecoration(
              prefixIcon:const Icon(Icons.search),
-             labelText:'Search memories',hintText:'People, places and photo tags',
+             labelText:tt('Search memories'),hintText:tt('People, places and photo tags'),
              border:const OutlineInputBorder(),
              suffixIcon:_search.text.isEmpty?null:IconButton(
-              tooltip:'Clear search',onPressed:_search.clear,
+              tooltip:tt('Clear search'),onPressed:_search.clear,
               icon:const Icon(Icons.clear)))),
             const SizedBox(height: 12),
             StreamBuilder<List<Map<String,dynamic>>>(
@@ -254,13 +255,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                             ? Icons.collections_bookmark_outlined :
                               (memory['pinned'] == true
                             ? Icons.push_pin : Icons.auto_stories_outlined)),
-                        title: Text(memory['title'] as String? ?? ''),
-                        subtitle: Text([
+                        title: Text(tt(memory['title'] as String? ?? '')),
+                        subtitle: Text(tt([
                           date,
                           tr(context,visibility),
                           if (!editable) tr(context,'viewOnly'),
                           if (body.isNotEmpty) body.replaceAll('\n',' '),
-                        ].join(' • '), maxLines: 3, overflow: TextOverflow.ellipsis),
+                        ].join(' • ')), maxLines: 3, overflow: TextOverflow.ellipsis),
                         trailing: ItemMenu(kind: 'memory', recordId: memory['id'].toString(),
                           title: memory['title']?.toString(),
                           onOpen: () => _edit(existing: memory), openLabel: editable ? 'Edit' : 'Open',
@@ -281,7 +282,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               },
             ),
             const SizedBox(height: 18),
-            Text('Open a memory to add photos, choose a collage layout and write captions.',
+            Text(tt('Open a memory to add photos, choose a collage layout and write captions.'),
               style: Theme.of(context).textTheme.bodySmall),
           ],
         ],
@@ -412,7 +413,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
 
   @override
   Widget build(BuildContext context) => EditorScaffold(
-   title:_editing?'Edit memory':'New story',
+   title:_editing?tt('Edit memory'):tt('New story'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body],saving:_busy,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),showBelongs:false,showDate:false,
@@ -423,17 +424,17 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
         children: [
           if (!_editable) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(tr(context,'viewOnly'))),
           if (_archived) Padding(padding: const EdgeInsets.only(bottom: 10),
-            child: Text('Removed · restore it from the ⋮ menu', style: Theme.of(context).textTheme.bodySmall)),
+            child: Text(tt('Removed · restore it from the ⋮ menu'), style: Theme.of(context).textTheme.bodySmall)),
           TextField(
             controller: _title, maxLength: 120, readOnly: !_editable, autofocus: !_editing,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Give it a title *',
-              hintText: 'Our first winter walk…',
+            decoration: InputDecoration(
+              labelText: tt('Give it a title *'),
+              hintText: tt('Our first winter walk…'),
               border: OutlineInputBorder(),
             ),
           ),
-          DateField(label: 'When did it happen?', required: true, value: _date,
+          DateField(label: tt('When did it happen?'), required: true, value: _date,
             first: DateTime(1950), last: DateTime.now(),
             onChanged: (v) { if (v != null && _editable && !_busy) setState(() => _date = v); }),
           TextField(
@@ -441,17 +442,17 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
             readOnly: !_editable,
             maxLines: 14, minLines: 6, maxLength: 20000,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'The story',
-              hintText: 'What happened, how it felt, what you want to remember…',
+            decoration: InputDecoration(
+              labelText: tt('The story'),
+              hintText: tt('What happened, how it felt, what you want to remember…'),
               border: OutlineInputBorder(), alignLabelWithHint: true,
             ),
           ),
-          Align(alignment: Alignment.centerLeft, child: OptionChip(label: 'Pin to the top',
+          Align(alignment: Alignment.centerLeft, child: OptionChip(label: tt('Pin to the top'),
             icon: Icons.push_pin_outlined, value: _pinned,
             onChanged: !_editable || _busy ? null : (v) => setState(() => _pinned = v))),
-          const FormSection('Photos'),
-          ChoiceRow<String>(label: 'Layout', options: const {
+          FormSection(tt('Photos')),
+          ChoiceRow<String>(label: tt('Layout'), options: const {
               'grid': 'Grid', 'feature': 'One large', 'polaroid': 'Polaroids', 'overlap': 'Stack'},
             icons: const {'grid': Icons.grid_view, 'feature': Icons.view_agenda_outlined,
               'polaroid': Icons.photo_outlined, 'overlap': Icons.layers_outlined},
@@ -460,13 +461,13 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           if(_editing&&!_archived)MemoryPhotoGallery(
            memoryId:widget.existing!['id'].toString(),
            editable:_editable,layout:_photoLayout)
-          else if(!_editing)Text('Save the story first, then add photos to it.',
+          else if(!_editing)Text(tt('Save the story first, then add photos to it.'),
            style: Theme.of(context).textTheme.bodySmall),
           if(_editing&&_visibility=='shared')Padding(
            padding:const EdgeInsets.symmetric(vertical:6),
-           child:Text('Shared memories are written together: both of you can add photos, captions and tags.',
+           child:Text(tt('Shared memories are written together: both of you can add photos, captions and tags.'),
             style: Theme.of(context).textTheme.bodySmall)),
-          if (_error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_error!,
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(tt(_error!),
             style: TextStyle(color:Theme.of(context).colorScheme.error))),
         ],
       ),

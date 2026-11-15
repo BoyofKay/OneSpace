@@ -8,6 +8,7 @@ import '../occasions/occasions_screen.dart';
 import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../world/trips_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// The eight Quick add choices, in the order the spec lists them (2.1).
 enum QuickAddKind {
@@ -36,7 +37,7 @@ Future<void> showQuickAdd(BuildContext context, {required String spaceId}) async
       child: Column(mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-          child: Text('Quick add', style: Theme.of(ctx).textTheme.titleLarge)),
+          child: Text(tt('Quick add'), style: Theme.of(ctx).textTheme.titleLarge)),
         GridView.count(
           crossAxisCount: 4, shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -50,7 +51,7 @@ Future<void> showQuickAdd(BuildContext context, {required String spaceId}) async
                   backgroundColor: Theme.of(ctx).colorScheme.primaryContainer,
                   child: Icon(k.icon, color: Theme.of(ctx).colorScheme.onPrimaryContainer)),
                 const SizedBox(height: 6),
-                Text(k.label, textAlign: TextAlign.center, maxLines: 2,
+                Text(tt(k.label), textAlign: TextAlign.center, maxLines: 2,
                   style: Theme.of(ctx).textTheme.labelSmall),
               ])),
           ]),

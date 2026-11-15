@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Inserts the authenticated, connected partner's full name exactly as the
 /// database mention trigger expects. Disabled for private content.
@@ -56,6 +57,6 @@ class _PartnerMentionButtonState extends State<PartnerMentionButton>{
  @override Widget build(BuildContext context)=>TextButton.icon(
   onPressed:widget.enabled&&partner!=null?insert:null,
   icon:const Icon(Icons.alternate_email,size:17),
-  label:Text(partner==null?'Mention partner':'Mention '+partner!),
+  label:Text(tt(partner==null?'Mention partner':'Mention '+partner!)),
  );
 }

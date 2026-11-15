@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'voice.dart';
 import 'voice_assistant.dart';
 import 'voice_commands.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R61: the OneSpace listening sheet — a hands-free conversation.
 ///
@@ -154,7 +155,7 @@ class _VoiceSessionSheetState extends State<VoiceSessionSheet> {
             Row(children: [
               Icon(Icons.graphic_eq, color: scheme.primary),
               const SizedBox(width: 8),
-              Expanded(child: Text(status, style: theme.textTheme.titleMedium)),
+              Expanded(child: Text(tt(status), style: theme.textTheme.titleMedium)),
               IconButton(tooltip: t('Close', 'إغلاق'), icon: const Icon(Icons.close), onPressed: _close),
             ]),
             Flexible(child: ListView(shrinkWrap: true, reverse: false, children: [
@@ -164,22 +165,22 @@ class _VoiceSessionSheetState extends State<VoiceSessionSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(color: scheme.primaryContainer,
                     borderRadius: BorderRadius.circular(16)),
-                  child: Text(turn.heard, style: TextStyle(color: scheme.onPrimaryContainer)))),
+                  child: Text(tt(turn.heard), style: TextStyle(color: scheme.onPrimaryContainer)))),
                 Align(alignment: AlignmentDirectional.centerStart, child: Container(
                   margin: const EdgeInsets.only(top: 6, right: 40),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(color: scheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(16)),
-                  child: Text(turn.reply))),
+                  child: Text(tt(turn.reply)))),
               ],
               if (showHelp || turns.isEmpty && phase != _Phase.listening) Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(t('You can say', 'يمكنك أن تقول'), style: theme.textTheme.labelLarge),
+                  Text(tt(t('You can say', 'يمكنك أن تقول')), style: theme.textTheme.labelLarge),
                   const SizedBox(height: 6),
                   for (final e in ar ? VoiceAssistant.examplesAr : VoiceAssistant.examplesEn)
                     Padding(padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(e, style: theme.textTheme.bodyMedium)),
+                      child: Text(tt(e), style: theme.textTheme.bodyMedium)),
                 ])),
               if (pendingChoice != null) Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -189,17 +190,17 @@ class _VoiceSessionSheetState extends State<VoiceSessionSheet> {
                     (VoiceAction.note, Icons.note_add_outlined, t('Note', 'ملاحظة')),
                     (VoiceAction.event, Icons.event_outlined, t('Event', 'موعد')),
                     (VoiceAction.newList, Icons.checklist_outlined, t('To-do list', 'قائمة')),
-                  ]) ActionChip(avatar: Icon(o.$2, size: 18), label: Text(o.$3), onPressed: () => _choose(o.$1)),
+                  ]) ActionChip(avatar: Icon(o.$2, size: 18), label: Text(tt(o.$3)), onPressed: () => _choose(o.$1)),
                 ])),
             ])),
             if (phase == _Phase.listening) ValueListenableBuilder<String>(
               valueListenable: Voice.partial,
               builder: (_, words, __) => words.isEmpty ? const SizedBox(height: 8) : Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: Text(words, textAlign: TextAlign.center,
+                child: Text(tt(words), textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium?.copyWith(color: scheme.primary)))),
             if (problem != null) Padding(padding: const EdgeInsets.only(top: 10),
-              child: Text(problem!, style: TextStyle(color: scheme.error))),
+              child: Text(tt(problem!), style: TextStyle(color: scheme.error))),
             const SizedBox(height: 14),
             _MicButton(phase: phase,
               onTap: () {
@@ -209,8 +210,8 @@ class _VoiceSessionSheetState extends State<VoiceSessionSheet> {
                 _listen();
               }),
             const SizedBox(height: 6),
-            Text(phase == _Phase.speaking ? t('Tap to stop', 'اضغط للإيقاف')
-              : phase == _Phase.listening ? t('Tap when you’re done', 'اضغط عند الانتهاء') : '',
+            Text(tt(phase == _Phase.speaking ? t('Tap to stop', 'اضغط للإيقاف')
+              : phase == _Phase.listening ? t('Tap when you’re done', 'اضغط عند الانتهاء') : ''),
               style: theme.textTheme.bodySmall),
           ]),
         ),

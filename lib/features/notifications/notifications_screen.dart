@@ -13,6 +13,7 @@ import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../memories/scrapbook_studio_screen.dart';
 import '../memories/memories_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// One stable realtime subscription per signed-in account, not per frame.
 class NotificationBell extends StatefulWidget {
@@ -42,10 +43,10 @@ class _NotificationBellState extends State<NotificationBell> {
    builder:(context,snapshot){
     final unread=snapshot.data?.where((n)=>n['read_at']==null).length??0;
     return IconButton(
-     tooltip:unread==0?'Notifications':'Notifications, $unread unread',
+     tooltip:unread==0?tt('Notifications'):'Notifications, $unread unread',
      onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
       builder:(_)=>const NotificationsScreen())),
-     icon:Badge(isLabelVisible:unread>0,label:Text(unread>99?'99+':'$unread'),
+     icon:Badge(isLabelVisible:unread>0,label:Text(tt(unread>99?'99+':'$unread')),
       child:const Icon(Icons.notifications_none_outlined)),
     );
    },
@@ -179,25 +180,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
  @override Widget build(BuildContext context){
    final userId=db.auth.currentUser?.id;
-   if(userId==null)return const Scaffold(
-     body:Center(child:Text('Sign in required')));
+   if(userId==null)return Scaffold(
+     body:Center(child:Text(tt('Sign in required'))));
    return Scaffold(
-     appBar:AppBar(title:const Text('Notifications'),actions:[
+     appBar:AppBar(title:Text(tt('Notifications')),actions:[
       PopupMenuButton<String>(
-       tooltip:'Notification filters',
+       tooltip:tt('Notification filters'),
        icon:Badge(isLabelVisible:unreadOnly,smallSize:7,child:const Icon(Icons.tune)),
        initialValue:unreadOnly?'unread':'all',
        onSelected:(choice)=>setState(()=>unreadOnly=choice=='unread'),
-       itemBuilder:(_)=>const [
-        PopupMenuItem(value:'all',child:Text('All notifications')),
-        PopupMenuItem(value:'unread',child:Text('Unread only')),
+       itemBuilder:(_)=>[
+        PopupMenuItem(value:'all',child:Text(tt('All notifications'))),
+        PopupMenuItem(value:'unread',child:Text(tt('Unread only'))),
        ]),
      ]),
      body:StreamBuilder<List<Map<String,dynamic>>>(
        stream:_feed(userId),
        builder:(context,snapshot){
-         if(snapshot.hasError)return const Center(
-           child:Text('Notifications are unavailable.'));
+         if(snapshot.hasError)return Center(
+           child:Text(tt('Notifications are unavailable.')));
          if(!snapshot.hasData)return const Center(
            child:CircularProgressIndicator());
          final all=snapshot.data!;
@@ -210,19 +211,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
              child:Wrap(spacing:8,runSpacing:4,
               alignment:WrapAlignment.spaceBetween,
               crossAxisAlignment:WrapCrossAlignment.center,children:[
-               Text('Unread: $unread',
+               Text('${tt('Unread')}: $unread',
                  style:Theme.of(context).textTheme.labelLarge),
                TextButton.icon(
                  onPressed:unread==0||saving?null:()=>_markAllRead(userId),
                  icon:const Icon(Icons.done_all),
-                 label:const Text('Mark all read')),
+                 label:Text(tt('Mark all read'))),
              ]),
            ),
-           if(error!=null)Text(error!,style:TextStyle(
+           if(error!=null)Text(tt(error!),style:TextStyle(
              color:Theme.of(context).colorScheme.error)),
            Expanded(
              child:shown.isEmpty?
-               Center(child:Text(unreadOnly?'No unread notifications.':'All caught up.')):
+               Center(child:Text(tt(unreadOnly?tt('No unread notifications.'):tt('All caught up.')))):
                ListView.builder(
                  itemCount:shown.length,
                  itemBuilder:(context,i){
@@ -235,16 +236,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                          gestureId:item['object_id'].toString()):
                        Icon(notificationIcon(item)),
                      title:Text(
-                       (item['push_title']??item['headline'])?.toString()??'Update',
+                       tt((item['push_title']??item['headline'])?.toString()??'Update'),
                        maxLines:2,overflow:TextOverflow.ellipsis,
                        style:TextStyle(fontWeight:unreadItem?
                          FontWeight.bold:FontWeight.normal)),
                      subtitle:Text(
-                       [
+                       tt([
                          (item['push_body']?.toString().trim().isNotEmpty??false)
                            ?item['push_body'].toString():item['headline']?.toString()??'',
                          notificationAge(item['created_at']),
-                       ].where((part)=>part.isNotEmpty).join(' · '),
+                       ].where((part)=>part.isNotEmpty).join(' · ')),
                        maxLines:3,overflow:TextOverflow.ellipsis),
                      trailing:unreadItem?const Icon(Icons.circle,size:8):null,
                      onTap:()=>_open(item,userId),

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A private object's owner can grant or revoke a temporary viewing right.
 /// The server RPC validates ownership, relationship, privacy and membership.
@@ -97,7 +98,7 @@ class _PrivateShareButtonState extends State<PrivateShareButton> {
     } on PostgrestException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
+          SnackBar(content: Text(tt(e.message))),
         );
       }
     } catch (_) {

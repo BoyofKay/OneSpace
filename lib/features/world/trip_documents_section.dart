@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 import 'trip_document_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 const tripDocumentKinds=<String,String>{
  'boarding_pass':'Boarding pass',
@@ -114,27 +115,27 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    var kind=chosen.mime=='application/pdf'?'itinerary':'photo';
    var location='whole_trip';
    final accepted=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(fullscreenDialog:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>EditorPage(
-      title:const Text('Attach travel document'),
+      title:Text(tt('Attach travel document')),
       content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-       Text(chosen.filename,style:Theme.of(ctx).textTheme.bodySmall),
+       Text(tt(chosen.filename),style:Theme.of(ctx).textTheme.bodySmall),
        const SizedBox(height:12),
        TextFormField(initialValue:title,maxLength:160,
         onChanged:(value)=>title=value,
-        decoration:const InputDecoration(labelText:'Title *',border:OutlineInputBorder())),
+        decoration:InputDecoration(labelText:tt('Title *'),border:OutlineInputBorder())),
        const SizedBox(height:10),
-       ChoiceRow<String>(label:'Type',options:tripDocumentKinds,selected:kind,icons:const {'boarding_pass':Icons.airplane_ticket_outlined,'itinerary':Icons.route_outlined,'ticket':Icons.confirmation_number_outlined,'receipt':Icons.receipt_long_outlined,'photo':Icons.photo_camera_outlined,'other':Icons.description_outlined},
+       ChoiceRow<String>(label:tt('Type'),options:tripDocumentKinds,selected:kind,icons:const {'boarding_pass':Icons.airplane_ticket_outlined,'itinerary':Icons.route_outlined,'ticket':Icons.confirmation_number_outlined,'receipt':Icons.receipt_long_outlined,'photo':Icons.photo_camera_outlined,'other':Icons.description_outlined},
         onSelected:(v)=>update(()=>kind=v??kind)),
-       ChoicePickerField<String>(label:'Belongs to',icon:Icons.luggage_outlined,
+       ChoicePickerField<String>(label:tt('Belongs to'),icon:Icons.luggage_outlined,
         options:{'whole_trip':'The whole trip',
          for(final item in widget.itineraryItems.where((item)=>item['archived_at']==null))
           item['id'].toString():item['title'].toString()},
         selected:location,onSelected:(v)=>update(()=>location=v??location)),
        const SizedBox(height:8),
-       Text('Private file · Maximum 10 MB',style:Theme.of(ctx).textTheme.bodySmall),
+       Text(tt('Private file · Maximum 10 MB'),style:Theme.of(ctx).textTheme.bodySmall),
       ])),
       actions:[
-       TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-       FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Upload')),
+       TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+       FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Upload'))),
       ],
      ))));
     if(accepted!=true)return;
@@ -145,7 +146,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
     await service.upload(tripId:widget.tripId,file:chosen,title:title.trim(),
       kind:kind,itineraryItemId:location=='whole_trip'?null:location);
     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content:Text('Travel document added securely.')));
+      SnackBar(content:Text(tt('Travel document added securely.'))));
   }on PlatformException catch(e){
    if(mounted)setState(()=>error=e.message??'Document picker is unavailable.');
   }on FormatException catch(e){
@@ -166,21 +167,21 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    location='whole_trip';
   }
   final accepted=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(fullscreenDialog:true,builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>EditorPage(
-     title:const Text('Edit document'),
+     title:Text(tt('Edit document')),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       TextFormField(initialValue:title,maxLength:160,onChanged:(v)=>title=v,
-       decoration:const InputDecoration(labelText:'Title *',border:OutlineInputBorder())),
+       decoration:InputDecoration(labelText:tt('Title *'),border:OutlineInputBorder())),
       const SizedBox(height:10),
-      ChoiceRow<String>(label:'Type',options:tripDocumentKinds,selected:kind,icons:const {'boarding_pass':Icons.airplane_ticket_outlined,'itinerary':Icons.route_outlined,'ticket':Icons.confirmation_number_outlined,'receipt':Icons.receipt_long_outlined,'photo':Icons.photo_camera_outlined,'other':Icons.description_outlined},
+      ChoiceRow<String>(label:tt('Type'),options:tripDocumentKinds,selected:kind,icons:const {'boarding_pass':Icons.airplane_ticket_outlined,'itinerary':Icons.route_outlined,'ticket':Icons.confirmation_number_outlined,'receipt':Icons.receipt_long_outlined,'photo':Icons.photo_camera_outlined,'other':Icons.description_outlined},
        onSelected:(v)=>update(()=>kind=v??kind)),
-      ChoicePickerField<String>(label:'Belongs to',icon:Icons.luggage_outlined,
+      ChoicePickerField<String>(label:tt('Belongs to'),icon:Icons.luggage_outlined,
        options:{'whole_trip':'The whole trip',
         for(final item in widget.itineraryItems)item['id'].toString():item['title'].toString()},
        selected:location,onSelected:(v)=>update(()=>location=v??location)),
      ])),
      actions:[
-      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save')),
+      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save'))),
      ],
     ))));
    if(accepted!=true||title.trim().isEmpty)return;
@@ -225,9 +226,9 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
      child:Stack(children:[
       InteractiveViewer(minScale:0.8,maxScale:5,child:Image.network(url,
        fit:BoxFit.contain,errorBuilder:(context,error,stack)=>
-        const Padding(padding:EdgeInsets.all(24),child:Text('Image unavailable.')))),
+        Padding(padding:EdgeInsets.all(24),child:Text(tt('Image unavailable.'))))),
       Positioned(top:0,right:0,child:IconButton(
-       tooltip:'Close',icon:const Icon(Icons.close),
+       tooltip:tt('Close'),icon:const Icon(Icons.close),
        onPressed:()=>Navigator.pop(ctx))),
      ]),
     ));
@@ -247,40 +248,40 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
  @override Widget build(BuildContext context){
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Row(children:[
-    Expanded(child:Text('Travel documents',style:Theme.of(context).textTheme.titleLarge)),
+    Expanded(child:Text(tt('Travel documents'),style:Theme.of(context).textTheme.titleLarge)),
     TextButton.icon(onPressed:busy?null:add,icon:const Icon(Icons.attach_file),
-     label:const Text('Attach')),
+     label:Text(tt('Attach'))),
    ]),
-   const Text('Boarding passes, tickets, travel PDFs and photo scans. Files stay private to people who can view this trip.'),
+   Text(tt('Boarding passes, tickets, travel PDFs and photo scans. Files stay private to people who can view this trip.')),
    const SizedBox(height:8),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+   Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
     value:showArchived,onChanged:(v)=>setState(()=>showArchived=v))),
    if(error!=null)Padding(padding:const EdgeInsets.all(6),
-    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
    if(busy)const LinearProgressIndicator(),
    StreamBuilder<List<Map<String,dynamic>>>(stream:changes,builder:(ctx,snapshot){
-    if(snapshot.hasError)return const Text('Documents unavailable. Check your connection.');
+    if(snapshot.hasError)return Text(tt('Documents unavailable. Check your connection.'));
     if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
     final visible=snapshot.data!.where(
      (r)=>showArchived||r['archived_at']==null).toList();
-    if(visible.isEmpty)return const Card(child:Padding(
+    if(visible.isEmpty)return Card(child:Padding(
      padding:EdgeInsets.all(16),
-     child:Text('No travel documents here yet. Attach a PDF or an image.')));
+     child:Text(tt('No travel documents here yet. Attach a PDF or an image.'))));
     return Column(children:[
      for(final doc in visible)Card(elevation:0,child:ListTile(
       leading:Icon(doc['mime_type']=='application/pdf'?
        Icons.picture_as_pdf_outlined:Icons.image_outlined),
-      title:Text(doc['title'].toString(),maxLines:2),
-      subtitle:Text([
+      title:Text(tt(doc['title'].toString()),maxLines:2),
+      subtitle:Text(tt([
        tripDocumentKinds[doc['kind']]??'Document',
        attachedTo(doc),
        if(doc['archived_at']!=null)'Removed',
        if(doc['file_size'] is num)
         ((doc['file_size'] as num)/1024).toStringAsFixed(0)+' KB',
-      ].join(' · '),maxLines:3),
+      ].join(' · ')),maxLines:3),
       onTap:doc['archived_at']!=null?null:()=>view(doc),
       trailing:PopupMenuButton<String>(
-       tooltip:'More',
+       tooltip:tt('More'),
        onSelected:(choice){
         if(choice=='edit'){edit(doc);}
         else if(choice=='archive'){toggleArchive(doc);}

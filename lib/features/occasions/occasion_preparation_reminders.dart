@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../reminders/reminders_screen.dart';
 import 'occasion_preparation_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Makes the next four occasion preparation milestones actionable through
 /// the existing Reminder system; never creates reminders automatically.
@@ -55,25 +56,25 @@ class _OccasionPreparationRemindersState
      18,8,18,MediaQuery.viewInsetsOf(ctx).bottom+22),
      child:Column(mainAxisSize:MainAxisSize.min,
       crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Text('Set preparation reminder',
+       Text(tt('Set preparation reminder'),
         style:Theme.of(ctx).textTheme.titleLarge),
        const SizedBox(height:8),
-       Text(step.title,style:Theme.of(ctx).textTheme.titleMedium),
+       Text(tt(step.title),style:Theme.of(ctx).textTheme.titleMedium),
        const SizedBox(height:4),
-       Text(step.description),
+       Text(tt(step.description)),
        const SizedBox(height:8),
-       Text('Suggested: '+step.dateLabel,
+       Text(tt('Suggested: ')+step.dateLabel,
         style:Theme.of(ctx).textTheme.bodySmall),
        if(due.year!=step.suggestedDate.year||
           due.month!=step.suggestedDate.month||
           due.day!=step.suggestedDate.day)
-        const Padding(padding:EdgeInsets.symmetric(vertical:6),
-         child:Text('The suggested date has passed, so a future date was selected. You can change it.')),
+        Padding(padding:EdgeInsets.symmetric(vertical:6),
+         child:Text(tt('The suggested date has passed, so a future date was selected. You can change it.'))),
        ListTile(
         contentPadding:EdgeInsets.zero,
         leading:const Icon(Icons.event_outlined),
-        title:const Text('Notify me on'),
-        subtitle:Text(formatted(due)),
+        title:Text(tt('Notify me on')),
+        subtitle:Text(tt(formatted(due))),
         trailing:const Icon(Icons.edit_calendar_outlined),
         onTap:()async{
          final today=DateTime.now();
@@ -90,26 +91,26 @@ class _OccasionPreparationRemindersState
        ),
        if(sharedPlan)SwitchListTile(
         contentPadding:EdgeInsets.zero,
-        title:const Text('Remind both of us'),
-        subtitle:const Text('Off by default. Keep a surprise private until you choose to share it.'),
+        title:Text(tt('Remind both of us')),
+        subtitle:Text(tt('Off by default. Keep a surprise private until you choose to share it.')),
         value:shareWithBoth,
         onChanged:(v)=>update(()=>shareWithBoth=v)),
-       if(!sharedPlan)const Text('Private occasion · reminder visible only to you.'),
+       if(!sharedPlan)Text(tt('Private occasion · reminder visible only to you.')),
        const SizedBox(height:12),
        Row(mainAxisAlignment:MainAxisAlignment.end,children:[
         TextButton(onPressed:()=>Navigator.pop(ctx,false),
-         child:const Text('Cancel')),
+         child:Text(tt('Cancel'))),
         const SizedBox(width:10),
         FilledButton.icon(onPressed:()=>Navigator.pop(ctx,true),
          icon:const Icon(Icons.alarm_add_outlined),
-         label:const Text('Create reminder')),
+         label:Text(tt('Create reminder'))),
        ]),
       ]),
     ))));
   if(approved!=true||!mounted)return;
   if(!due.isAfter(DateTime.now().add(const Duration(minutes:1)))){
-   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Choose a future date and time for this reminder.')));
+   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Choose a future date and time for this reminder.'))));
    return;
   }
   setState((){busy=true;error=null;});
@@ -123,8 +124,8 @@ class _OccasionPreparationRemindersState
     'planning_phase':step.phase,
     'occasion_instance_on':OccasionPreparationRules.dateOnly(step.occasionDate),
    });
-   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Preparation reminder saved. You can manage it in Remember → Reminders.')));
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Preparation reminder saved. You can manage it in Remember → Reminders.'))));
   }on PostgrestException catch(e){
    if(mounted)setState(()=>error=e.code=='23505'
     ?'You already have an active reminder for this step. Open it to edit or remove it.'
@@ -155,16 +156,16 @@ class _OccasionPreparationRemindersState
        Row(children:[
         Icon(Icons.event_repeat_outlined,color:colors.primary),
         const SizedBox(width:9),
-        Expanded(child:Text('Preparation reminders',
+        Expanded(child:Text(tt('Preparation reminders'),
          style:Theme.of(context).textTheme.titleLarge)),
        ]),
        const SizedBox(height:6),
-       const Text('Turn your plan into reminders at the right time. Nothing is scheduled automatically.'),
+       Text(tt('Turn your plan into reminders at the right time. Nothing is scheduled automatically.')),
        if(snapshot.connectionState==ConnectionState.waiting)
         const LinearProgressIndicator(),
-       if(snapshot.hasError)Text('Reminder status is unavailable. Check again when connected.',
+       if(snapshot.hasError)Text(tt('Reminder status is unavailable. Check again when connected.'),
         style:TextStyle(color:colors.error)),
-       if(error!=null)Text(error!,
+       if(error!=null)Text(tt(error!),
         style:TextStyle(color:colors.error)),
        const SizedBox(height:8),
        for(final step in steps)Builder(builder:(ctx){
@@ -174,10 +175,10 @@ class _OccasionPreparationRemindersState
          leading:Icon(existingId==null?
           Icons.radio_button_unchecked:Icons.check_circle_outline,
           color:existingId==null?null:colors.primary),
-         title:Text(step.title),
-         subtitle:Text(existingId!=null?
+         title:Text(tt(step.title)),
+         subtitle:Text(tt(existingId!=null?
           'Reminder already saved · Tap to manage it':
-          'Suggested '+step.dateLabel+' · '+step.description,
+          'Suggested '+step.dateLabel+' · '+step.description),
           maxLines:2,overflow:TextOverflow.ellipsis),
          trailing:Icon(existingId==null?
           Icons.add_alarm_outlined:Icons.chevron_right),
@@ -186,7 +187,7 @@ class _OccasionPreparationRemindersState
         );
        }),
        const SizedBox(height:5),
-       Text('Your private reminders stay private, even when the occasion is shared.',
+       Text(tt('Your private reminders stay private, even when the occasion is shared.'),
         style:Theme.of(context).textTheme.bodySmall),
       ]),
     ));

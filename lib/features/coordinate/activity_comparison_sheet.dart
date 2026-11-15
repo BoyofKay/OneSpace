@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'activity_comparison_matrix.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Structured comparison of the same questions across different candidates.
 /// The first column holds criteria, and each option is a horizontally
@@ -30,7 +31,7 @@ class ActivityComparisonSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(option.title,
+          Text(tt(option.title),
             maxLines: 2, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w600)),
           Row(children: [
@@ -39,11 +40,11 @@ class ActivityComparisonSheet extends StatelessWidget {
                 Navigator.of(context).pop();
                 onChoose(option.id);
               },
-              child: const Text('Choose'),
+              child: Text(tt('Choose')),
             ),
             if (option.sourceUrl.isNotEmpty)
               IconButton(
-                tooltip: 'Open source',
+                tooltip: tt('Open source'),
                 icon: const Icon(Icons.open_in_new, size: 18),
                 onPressed: () => onOpenSource(option.sourceUrl),
               ),
@@ -67,11 +68,11 @@ class ActivityComparisonSheet extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Compare ${matrix.columns.length} options',
+                  Text('${tt('Compare')} ${matrix.columns.length} ${tt('options')}',
                     style: theme.textTheme.titleLarge),
                   const SizedBox(height: 3),
-                  Text('Swipe sideways to see every candidate. '
-                    'Prices are manually recorded, not live.',
+                  Text(tt('Swipe sideways to see every candidate. '
+                    'Prices are manually recorded, not live.'),
                     style: theme.textTheme.bodySmall),
                 ],
               ),
@@ -89,9 +90,9 @@ class ActivityComparisonSheet extends StatelessWidget {
                     dataRowMinHeight: 48,
                     dataRowMaxHeight: 144,
                     columns: [
-                      const DataColumn(label: SizedBox(
+                      DataColumn(label: SizedBox(
                         width: 98,
-                        child: Text('Compare by',
+                        child: Text(tt('Compare by'),
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       )),
                       for (final option in matrix.columns)
@@ -99,7 +100,7 @@ class ActivityComparisonSheet extends StatelessWidget {
                     ],
                     rows: [
                       DataRow(cells: [
-                        const DataCell(Text('Opinions')),
+                        DataCell(Text(tt('Opinions'))),
                         for (final option in matrix.columns)
                           DataCell(SizedBox(width: 180, child: Text(
                             'You ${_opinion(option.myOpinion)}  '
@@ -109,12 +110,12 @@ class ActivityComparisonSheet extends StatelessWidget {
                       for (final row in matrix.rows)
                         DataRow(cells: [
                           DataCell(SizedBox(width: 98, child: Text(
-                            row.key == 'price' ? 'Price (observed)' : row.label,
+                            tt(row.key == 'price' ? 'Price (observed)' : row.label),
                             style: theme.textTheme.labelMedium,
                             softWrap: true))),
                           for (final option in matrix.columns)
                             DataCell(SizedBox(width: 180, child: Text(
-                              matrix.value(row.key, option),
+                              tt(matrix.value(row.key, option)),
                               maxLines: 6,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodyMedium))),

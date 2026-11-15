@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Mention partner inside Quill's actual document selection. The note's
 /// existing server mention trigger owns notification and permission checks.
@@ -57,6 +58,6 @@ class _RichNoteMentionButtonState extends State<RichNoteMentionButton>{
  @override Widget build(BuildContext context)=>TextButton.icon(
   onPressed:widget.enabled&&partner!=null?insert:null,
   icon:const Icon(Icons.alternate_email,size:18),
-  label:Text(partner==null?'Mention partner':'Mention '+partner!),
+  label:Text(tt(partner==null?'Mention partner':'Mention '+partner!)),
  );
 }

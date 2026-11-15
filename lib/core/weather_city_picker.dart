@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'device_weather_service.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Explicit city selection. Never touches the phone's location settings.
 class WeatherCityPicker extends StatefulWidget {
@@ -51,13 +52,13 @@ class _WeatherCityPickerState extends State<WeatherCityPicker> {
           Row(children:[
             const Icon(Icons.location_city_outlined),
             const SizedBox(width:8),
-            Expanded(child:Text('Choose a weather city',
+            Expanded(child:Text(tt('Choose a weather city'),
               style:Theme.of(context).textTheme.titleLarge)),
-            IconButton(tooltip:'Close',icon:const Icon(Icons.close),
+            IconButton(tooltip:tt('Close'),icon:const Icon(Icons.close),
               onPressed:()=>Navigator.pop(context)),
           ]),
-          const Text('Search for any city. Choose the correct region/country '
-            'and OneSpace will remember it. No GPS permission.'),
+          Text(tt('Search for any city. Choose the correct region/country '
+            'and OneSpace will remember it. No GPS permission.')),
           const SizedBox(height:12),
           TextField(
             controller:input,
@@ -65,11 +66,11 @@ class _WeatherCityPickerState extends State<WeatherCityPicker> {
             textInputAction:TextInputAction.search,
             onSubmitted:(_)=>search(),
             decoration:InputDecoration(
-              labelText:'City or city, country',
-              hintText:'e.g. Riyadh or Norristown, Pennsylvania',
+              labelText:tt('City or city, country'),
+              hintText:tt('e.g. Riyadh or Norristown, Pennsylvania'),
               prefixIcon:const Icon(Icons.search),
               suffixIcon:IconButton(
-                tooltip:'Search cities',
+                tooltip:tt('Search cities'),
                 onPressed:searching?null:search,
                 icon:const Icon(Icons.arrow_forward)),
               border:const OutlineInputBorder(),
@@ -77,27 +78,27 @@ class _WeatherCityPickerState extends State<WeatherCityPicker> {
           ),
           const SizedBox(height:7),
           if(searching) const LinearProgressIndicator(),
-          if(error!=null) Text(error!,
+          if(error!=null) Text(tt(error!),
             style:TextStyle(color:Theme.of(context).colorScheme.error)),
           if(!searching&&error==null&&results.isEmpty)
-            const Padding(padding:EdgeInsets.all(16),
-              child:Text('Enter a city name and search.')),
+            Padding(padding:EdgeInsets.all(16),
+              child:Text(tt('Enter a city name and search.'))),
           Expanded(child:ListView.builder(
             itemCount:results.length,
             itemBuilder:(context,index){
               final city=results[index];
               return ListTile(
                 leading:const Icon(Icons.place_outlined),
-                title:Text(city.name),
-                subtitle:Text([
+                title:Text(tt(city.name)),
+                subtitle:Text(tt([
                   if(city.region!=null)city.region!,city.country,
-                ].join(' · ')),
+                ].join(' · '))),
                 trailing:const Icon(Icons.chevron_right),
                 onTap:()=>Navigator.pop(context,city),
               );
             },
           )),
-          const Text('City search: GeoNames / Open-Meteo',
+          Text(tt('City search: GeoNames / Open-Meteo'),
             style:TextStyle(fontSize:11)),
         ]),
       ),

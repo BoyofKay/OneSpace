@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../coordinate/activity_image_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Private, RLS-enforced photo attachments for a saved note.
 class NotePhotosPanel extends StatefulWidget{
@@ -71,18 +72,18 @@ class _NotePhotosPanelState extends State<NotePhotosPanel>{
    Row(children:[
     Icon(Icons.photo_library_outlined,color:theme.colorScheme.primary),
     const SizedBox(width:8),
-    Expanded(child:Text('Photos in this note',style:theme.textTheme.titleMedium)),
+    Expanded(child:Text(tt('Photos in this note'),style:theme.textTheme.titleMedium)),
     if(widget.canEdit)TextButton.icon(onPressed:busy?null:add,
      icon:const Icon(Icons.add_photo_alternate_outlined),
-     label:const Text('Add photo')),
+     label:Text(tt('Add photo'))),
    ]),
    if(busy)const LinearProgressIndicator(),
-   if(error!=null)Text(error!,style:TextStyle(color:theme.colorScheme.error)),
+   if(error!=null)Text(tt(error!),style:TextStyle(color:theme.colorScheme.error)),
    StreamBuilder<List<Map<String,dynamic>>>(stream:stream,builder:(ctx,snapshot){
-    if(snapshot.hasError)return const Text('Photos cannot be loaded.');
+    if(snapshot.hasError)return Text(tt('Photos cannot be loaded.'));
     if(!snapshot.hasData)return const LinearProgressIndicator();
     final rows=snapshot.data!.where((x)=>x['archived_at']==null).toList();
-    if(rows.isEmpty)return const Text('No photos attached yet.');
+    if(rows.isEmpty)return Text(tt('No photos attached yet.'));
     return Wrap(spacing:8,runSpacing:8,children:[
      for(final row in rows)SizedBox(width:160,child:Card(clipBehavior:Clip.antiAlias,
       child:Column(children:[
@@ -93,7 +94,7 @@ class _NotePhotosPanelState extends State<NotePhotosPanel>{
           fit:BoxFit.cover,errorBuilder:(_,__,___)=>
            const Icon(Icons.broken_image_outlined)):
           const Center(child:CircularProgressIndicator()))),
-       if(widget.canEdit)IconButton(tooltip:'Remove attached photo',
+       if(widget.canEdit)IconButton(tooltip:tt('Remove attached photo'),
         onPressed:()=>archive(row['id'].toString()),
         icon:const Icon(Icons.delete_outline)),
       ]))),

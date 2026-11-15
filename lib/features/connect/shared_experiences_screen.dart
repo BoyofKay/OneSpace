@@ -17,6 +17,7 @@ import 'experience_comment_rules.dart';
 import '../notes/related_notes_panel.dart';
 import '../../core/record_action_history_view.dart';
 import '../mentions/partner_mention_button.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
 const experienceStates={'suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed'};
@@ -75,20 +76,20 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
        Row(children:[
         Icon(Icons.auto_awesome,color:scheme.primary),
         const SizedBox(width:8),
-        Expanded(child:Text('What shall we do together?',
+        Expanded(child:Text(tt('What shall we do together?'),
          style:Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700))),
-        IconButton(tooltip:'Close',icon:const Icon(Icons.close),
+        IconButton(tooltip:tt('Close'),icon:const Icon(Icons.close),
          onPressed:()=>Navigator.pop(ctx)),
        ]),
        Padding(padding:const EdgeInsets.only(right:10),child:Column(
         crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text(mutual.isNotEmpty?'From the things you both picked.':'From your own collection.',
+        Text(tt(mutual.isNotEmpty?tt('From the things you both picked.'):tt('From your own collection.')),
          style:Theme.of(ctx).textTheme.bodySmall),
         const SizedBox(height:14),
         Row(children:[
          Icon(typeIcon(pick['category'].toString()),color:scheme.primary,size:30),
          const SizedBox(width:10),
-         Expanded(child:Text(pick['title'].toString(),
+         Expanded(child:Text(tt(pick['title'].toString()),
           style:Theme.of(ctx).textTheme.headlineSmall)),
         ]),
         const SizedBox(height:18),
@@ -106,7 +107,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
              mainAxisSize:MainAxisSize.min,children:[
               Icon(a.$1,size:22,color:scheme.onSecondaryContainer),
               const SizedBox(height:4),
-              Text(a.$2,maxLines:1,overflow:TextOverflow.ellipsis,
+              Text(tt(a.$2),maxLines:1,overflow:TextOverflow.ellipsis,
                style:Theme.of(ctx).textTheme.labelMedium?.copyWith(color:scheme.onSecondaryContainer)),
              ])))))),
         ]),
@@ -211,20 +212,20 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    if(changed&&mounted)await quickRate(row);
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Could not mark as watched.')));
+    SnackBar(content:Text(tt('Could not mark as watched.'))));
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> openPlatform(Map<String,dynamic> row)async{
   final raw=(row['source_url']??'').toString();
   final url=Uri.tryParse(raw);
   if(url==null||!['http','https'].contains(url.scheme)||url.host.isEmpty){
-   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Add a valid platform link in Edit first.')));
+   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Add a valid platform link in Edit first.'))));
    return;
   }
   if(!await launchUrl(url,mode:LaunchMode.externalApplication)&&mounted){
    ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Could not open this platform.')));
+    SnackBar(content:Text(tt('Could not open this platform.'))));
   }
  }
  Future<void> quickRate(Map<String,dynamic> row)async{
@@ -239,17 +240,17 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    if(!mounted)return;
    final confirm=await showDialog<bool>(context:context,builder:(ctx)=>
     StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-     title:Text('Rate '+row['title'].toString()),
+     title:Text(tt('Rate ')+row['title'].toString()),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       StarRating(value:rating,onChanged:(v)=>update(()=>rating=v)),
       const SizedBox(height:12),
       TextField(controller:review,maxLength:2000,minLines:2,maxLines:4,
        textCapitalization:TextCapitalization.sentences,
-       decoration:const InputDecoration(labelText:'Review (optional)',border:OutlineInputBorder())),
+       decoration:InputDecoration(labelText:tt('Review (optional)'),border:OutlineInputBorder())),
      ])),
      actions:[
-      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
-      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save rating')),
+      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
+      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save rating'))),
      ],
     )));
    if(confirm!=true||rating==null)return;
@@ -272,18 +273,18 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    }
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Unable to save review. Try again.')));
+    SnackBar(content:Text(tt('Unable to save review. Try again.'))));
   }finally{review.dispose();}
  }
  Future<void> archiveFromList(Map<String,dynamic> row)async{
   final archived=row['archived_at']!=null;
   if(!archived){
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-    title:const Text('Remove this experience?'),
-    content:const Text('It will move to experience history. Reviews remain saved.'),
+    title:Text(tt('Remove this experience?')),
+    content:Text(tt('It will move to experience history. Reviews remain saved.')),
     actions:[
-     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Keep')),
-     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Remove')),
+     TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Keep'))),
+     FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Remove'))),
     ]));
    if(yes!=true)return;
   }
@@ -293,7 +294,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    });
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Could not remove or restore this item.')));
+    SnackBar(content:Text(tt('Could not remove or restore this item.'))));
   }
  }
  Future<void> openHistory()async{
@@ -309,20 +310,20 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     isScrollControlled:true,builder:(ctx)=>SafeArea(
      child:SizedBox(height:MediaQuery.sizeOf(ctx).height*.68,
       child:ListView(padding:const EdgeInsets.all(16),children:[
-       Text('Our experience history',style:Theme.of(ctx).textTheme.titleLarge),
-       const Text('Only changes to Movies, TV, Music, Books, Games and Others.'),
+       Text(tt('Our experience history'),style:Theme.of(ctx).textTheme.titleLarge),
+       Text(tt('Only changes to Movies, TV, Music, Books, Games and Others.')),
        for(final r in records)ListTile(
         leading:const Icon(Icons.history_outlined),
-        title:Text(rows.where((x)=>x['id']==r['experience_id'])
-         .map((x)=>x['title'].toString()).firstOrNull??'Experience'),
-        subtitle:Text(((r['before_snapshot'] as Map?)?['status']??'').toString()+
+        title:Text(tt(rows.where((x)=>x['id']==r['experience_id'])
+         .map((x)=>x['title'].toString()).firstOrNull??'Experience')),
+        subtitle:Text(tt(((r['before_snapshot'] as Map?)?['status']??'').toString()+
          ' → '+((r['after_snapshot'] as Map?)?['status']??'').toString()+
-         ' · '+(r['changed_at']??'').toString().split('T').first),
+         ' · '+(r['changed_at']??'').toString().split('T').first)),
        ),
       ]))));
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Experience history is unavailable.')));
+    SnackBar(content:Text(tt('Experience history is unavailable.'))));
   }
  }
  Future<bool> updateSafely(
@@ -332,8 +333,8 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    .select('id');
   if(updated.isEmpty){
    await load();
-   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Your partner changed this experience. Refreshed the latest version.')));
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Your partner changed this experience. Refreshed the latest version.'))));
    return false;
   }
   await load();
@@ -349,11 +350,11 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   try{
    final updated=await updateSafely(row,{
     'status':'planned','planned_on':ExperiencePickerRules.dateOnly(day)});
-   if(updated&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Saved your plan. Your partner can see it too.')));
+   if(updated&&mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Saved your plan. Your partner can see it too.'))));
   }catch(_){
-   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-    content:Text('Unable to save this plan. Try again.')));
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Unable to save this plan. Try again.'))));
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> edit([Map<String,dynamic>? row])async{
@@ -368,7 +369,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   if(mounted)await load();
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'progress',label:'Show',options:const {'open':'Still to enjoy','suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed','all':'All'},selected:status,defaultValue:'open'),FilterGroupSpec(id:'picks',label:'Picks',options:const {'all':'All','mutual':'Both interested'},selected:mutualOnly?'mutual':'all',defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'progress',label:tt('Show'),options:const {'open':'Still to enjoy','suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed','all':'All'},selected:status,defaultValue:'open'),FilterGroupSpec(id:'picks',label:tt('Picks'),options:const {'all':'All','mutual':'Both interested'},selected:mutualOnly?'mutual':'all',defaultValue:'all')];
 
  @override Widget build(BuildContext context){
   final scheme=Theme.of(context).colorScheme;
@@ -379,9 +380,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    RecordCollectionSearchRules.matches(r,search,
     fields:const ['title','platform','description'])).toList();
   return Scaffold(
-   appBar:AppBar(title:Text(widget.collection==null?'Shared experiences':experienceTypes[widget.collection]??'Collection'),actions:[
+   appBar:AppBar(title:Text(tt(widget.collection==null?'Shared experiences':experienceTypes[widget.collection]??'Collection')),actions:[
     RecordListTopActions(
-     historyKinds:const ['experience'],historyTitle:'Shared experiences',
+     historyKinds:const ['experience'],historyTitle:tt('Shared experiences'),
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
      groups:_filterGroups(),
@@ -391,18 +392,18 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     heroTag:'add-experience',
     onPressed:()=>edit(),icon:const Icon(Icons.add),
-    label:const Text('Add experience')),
+    label:Text(tt('Add experience'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,12,16,110),children:[
-    Text('Discover, watch, play, read',style:Theme.of(context).textTheme.titleLarge),
+    Text(tt('Discover, watch, play, read'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:8),
     TextField(onChanged:(v)=>setState(()=>search=v),
-     decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
-      labelText:'Search experiences',
-      hintText:'Title, platform or description')),
+     decoration:InputDecoration(prefixIcon:Icon(Icons.search),
+      labelText:tt('Search experiences'),
+      hintText:tt('Title, platform or description'))),
     const SizedBox(height:8),
-    Text('Mutual picks · '+
+    Text(tt('Mutual picks · ')+
       ExperienceInterestRules.mutualCount(rows,interests).toString(),
       style:Theme.of(context).textTheme.bodyMedium),
     const SizedBox(height:15),
@@ -426,29 +427,29 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
           child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
            Icon(typeIcon(e.key),size:25,color:scheme.primary),
            const SizedBox(height:6),
-           Text(e.value,maxLines:2,textAlign:TextAlign.center,
+           Text(tt(e.value),maxLines:2,textAlign:TextAlign.center,
             style:Theme.of(context).textTheme.labelLarge),
            Text('${rows.where((r)=>r['category']==e.key&&r['archived_at']==null&&r['status']!='enjoyed').length} to enjoy',
             style:Theme.of(context).textTheme.labelSmall),
           ])))),
      ])),
     const SizedBox(height:12),
-    if(widget.collection==null&&search.trim().isNotEmpty)Text('Search results',
+    if(widget.collection==null&&search.trim().isNotEmpty)Text(tt('Search results'),
       style:Theme.of(context).textTheme.titleMedium),
-    if(error!=null)Text(error!,style:TextStyle(color:scheme.error)),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:scheme.error)),
     if(loading)const Center(child:CircularProgressIndicator())
-    else if(space==null)const Text('Connect your shared space first.')
+    else if(space==null)Text(tt('Connect your shared space first.'))
     else if(widget.collection==null&&search.trim().isEmpty)const SizedBox.shrink()
-    else if(filtered.isEmpty)const Padding(padding:EdgeInsets.all(22),
-      child:Text('Nothing in this collection yet. Add the first title.'))
+    else if(filtered.isEmpty)Padding(padding:EdgeInsets.all(22),
+      child:Text(tt('Nothing in this collection yet. Add the first title.')))
     else for(final r in filtered)Card(child:Padding(
      padding:const EdgeInsets.fromLTRB(12,10,12,10),
      child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
       ListTile(contentPadding:EdgeInsets.zero,
        leading:Icon(typeIcon(r['category'].toString()),color:scheme.primary,size:29),
-       title:Text(r['title'].toString(),
+       title:Text(tt(r['title'].toString()),
         style:Theme.of(context).textTheme.titleMedium),
-       subtitle:Text([
+       subtitle:Text(tt([
         experienceTypes[r['category']]??'Other',
         experienceStates[r['status']]??'Suggested',
         if((r['platform']??'').toString().trim().isNotEmpty)r['platform'].toString(),
@@ -457,9 +458,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         if(r['status']=='enjoyed'&&r['enjoyed_on']!=null)
          ExperiencePickerRules.completionState(r['category'].toString())+
           ': '+r['enjoyed_on'].toString(),
-       ].join(' · ')),
+       ].join(' · '))),
        trailing:ItemMenu(kind:'experience',recordId:r['id'].toString(),title:r['title']?.toString(),
-        statusActions:[ItemMenuAction('Rate & review',Icons.star_outline,()=>quickRate(r))],
+        statusActions:[ItemMenuAction(tt('Rate & review'),Icons.star_outline,()=>quickRate(r))],
         onOpen:()=>edit(r),removed:r['archived_at']!=null,onRemove:()=>archiveFromList(r)),
        onTap:()=>open(r)),
       if(ExperienceInterestRules.summary(interests,r['id'])!='No picks yet')
@@ -467,7 +468,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         Icon(ExperienceInterestRules.mutuallyInterested(interests,r['id'])?
          Icons.favorite:Icons.favorite_border,size:17,color:scheme.primary),
         const SizedBox(width:6),
-        Expanded(child:Text(ExperienceInterestRules.summary(interests,r['id']),
+        Expanded(child:Text(tt(ExperienceInterestRules.summary(interests,r['id'])),
          style:Theme.of(context).textTheme.labelMedium)),
        ])),
       Wrap(spacing:8,runSpacing:6,children:[
@@ -477,19 +478,19 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         icon:Icon(r['category']=='music'?Icons.play_arrow:
          r['category']=='movie'||r['category']=='show'?Icons.play_circle_outline:
          Icons.open_in_new),
-        label:Text(r['category']=='music'?'Play':
-         r['category']=='movie'||r['category']=='show'?'Watch':'Open')),
+        label:Text(tt(r['category']=='music'?'Play':
+         r['category']=='movie'||r['category']=='show'?'Watch':'Open'))),
        if(r['status']!='enjoyed')OutlinedButton.icon(
         onPressed:busy?null:()=>planSuggestion(r),
-        icon:const Icon(Icons.event_outlined),label:const Text('Plan')),
+        icon:const Icon(Icons.event_outlined),label:Text(tt('Plan'))),
        if(r['status']!='enjoyed')FilledButton.tonalIcon(
         onPressed:busy?null:()=>markWatched(r),
         icon:const Icon(Icons.check_circle_outline),
-        label:Text(ExperiencePickerRules.completionAction(
-         r['category'].toString()))),
+        label:Text(tt(ExperiencePickerRules.completionAction(
+         r['category'].toString())))),
        if(r['status']=='enjoyed')
         OutlinedButton.icon(onPressed:()=>quickRate(r),
-         icon:const Icon(Icons.star_border),label:const Text('Rate & review')),
+         icon:const Icon(Icons.star_border),label:Text(tt('Rate & review'))),
       ]),
      ]))),
    ])));
@@ -569,13 +570,13 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
  };
  @override Widget build(BuildContext context){
   final w=words;
-  return EditorScaffold(title:widget.original==null?'Add experience':'Edit experience',
+  return EditorScaffold(title:widget.original==null?tt('Add experience'):tt('Edit experience'),
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
    meta:MetaStrip(value:MetaValues(date:planned),showVisibility:false,showBelongs:false,
-    dateLabel:'Plan a date',onChanged:(v)=>setState(()=>planned=v.date)),
+    dateLabel:tt('Plan a date'),onChanged:(v)=>setState(()=>planned=v.date)),
    body:ListView(padding:const EdgeInsets.all(18),children:[
-   ChoiceRow<String>(label:'Watchlist',options:experienceTypes,selected:kind,
+   ChoiceRow<String>(label:tt('Watchlist'),options:experienceTypes,selected:kind,
     icons:{for(final k in experienceTypes.keys)k:switch(k){
      'movie'=>Icons.movie_creation_outlined,'show'=>Icons.live_tv_outlined,
      'music'=>Icons.queue_music_outlined,'book'=>Icons.menu_book_outlined,
@@ -590,25 +591,25 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
      prefixIcon:const Icon(Icons.live_tv_outlined),border:const OutlineInputBorder())),
    const SizedBox(height:10),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,
-    decoration:const InputDecoration(labelText:'Link',prefixIcon:Icon(Icons.link),
+    decoration:InputDecoration(labelText:tt('Link'),prefixIcon:Icon(Icons.link),
      border:OutlineInputBorder())),
    const SizedBox(height:10),
-   ChoiceRow<String>(label:'Progress',options:experienceStates,selected:status,
+   ChoiceRow<String>(label:tt('Progress'),options:experienceStates,selected:status,
     icons:const {'suggested':Icons.lightbulb_outline,'planned':Icons.event_available_outlined,
      'enjoyed':Icons.task_alt},
     onSelected:(v){if(v!=null)setState((){
      status=v;
      if(v=='enjoyed')enjoyed??=DateTime.now();
     });}),
-   if(status=='enjoyed')DateField(label:'Enjoyed on',value:enjoyed,
+   if(status=='enjoyed')DateField(label:tt('Enjoyed on'),value:enjoyed,
     onChanged:(v)=>setState(()=>enjoyed=v)),
    TextField(controller:description,maxLength:5000,minLines:2,maxLines:6,
-    decoration:const InputDecoration(labelText:'Why this one?',alignLabelWithHint:true,
+    decoration:InputDecoration(labelText:tt('Why this one?'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
    Align(alignment:Alignment.centerLeft,
     child:PartnerMentionButton(spaceId:widget.spaceId,controller:description)),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
-    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
  }
 }
@@ -784,15 +785,15 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   if(!ExperienceCommentRules.canEdit(row,me))return;
   final controller=TextEditingController(text:(row['body']??'').toString());
   final next=await showDialog<String>(context:context,builder:(ctx)=>
-   AlertDialog(title:const Text('Edit your comment'),
+   AlertDialog(title:Text(tt('Edit your comment')),
     content:TextField(controller:controller,maxLength:2000,maxLines:4,
-     autofocus:true,decoration:const InputDecoration(labelText:'Comment')),
+     autofocus:true,decoration:InputDecoration(labelText:tt('Comment'))),
     actions:[
-     TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
+     TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('Cancel'))),
      FilledButton(onPressed:(){
       final value=controller.text.trim();
       if(value.isNotEmpty)Navigator.pop(ctx,value);
-     },child:const Text('Save')),
+     },child:Text(tt('Save'))),
     ]));
   controller.dispose();
   if(next==null||next==(row['body']??'').toString())return;
@@ -814,11 +815,11 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     !ExperienceCommentRules.canRetract(row,me))return;
   if(!retracted){
    final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
-    AlertDialog(title:const Text('Retract this comment?'),
-     content:const Text('Your partner will no longer see it. You can restore it later.'),
+    AlertDialog(title:Text(tt('Retract this comment?')),
+     content:Text(tt('Your partner will no longer see it. You can restore it later.')),
      actions:[
-      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Keep')),
-      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Retract')),
+      TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Keep'))),
+      FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Retract'))),
      ]));
    if(confirmed!=true)return;
   }
@@ -859,80 +860,80 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   final myPick=ExperienceInterestRules.choiceForUser(interests,widget.id,myId);
   final partnerPick=interests.where((x)=>x['user_id']!=myId)
    .map((x)=>x['choice']?.toString()??'undecided').firstOrNull??'undecided';
-  return Scaffold(appBar:AppBar(title:const Text('Our experience'),actions:[
+  return Scaffold(appBar:AppBar(title:Text(tt('Our experience')),actions:[
    if(r!=null&&r['space_id']!=null)CreateFromThisButton(kind:LinkKind.experience,id:widget.id,spaceId:r['space_id'].toString(),title:r['title'].toString(),date:DateTime.tryParse(r['planned_on']?.toString()??''),shared:r['visibility']!='private',stripKey:_links),
     if(r!=null)RecordActionHistoryButton(kind:'experience',recordId:widget.id),
-   if(r!=null)IconButton(tooltip:'Edit',onPressed:edit,icon:const Icon(Icons.edit_outlined)),
-   if(r!=null)IconButton(tooltip:'Remove or restore',onPressed:archive,
+   if(r!=null)IconButton(tooltip:tt('Edit'),onPressed:edit,icon:const Icon(Icons.edit_outlined)),
+   if(r!=null)IconButton(tooltip:tt('Remove or restore'),onPressed:archive,
     icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined)),
   ]),body:loading?const Center(child:CircularProgressIndicator()):
-   r==null?Center(child:Text(error??'Not found')):ListView(
+   r==null?Center(child:Text(tt(error??'Not found'))):ListView(
     padding:const EdgeInsets.all(16),children:[
-    Text(r['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+    Text(tt(r['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
-    Text((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested')),
-    if(r['planned_on']!=null)Text('Planned together: '+r['planned_on'].toString()),
+    Text(tt((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested'))),
+    if(r['planned_on']!=null)Text(tt('Planned together: ')+r['planned_on'].toString()),
     if(r['enjoyed_on']!=null)Text(
-     ExperiencePickerRules.completionState(r['category'].toString())+
-     ' on: '+r['enjoyed_on'].toString()),
-    if((r['description']??'').toString().isNotEmpty)Text(r['description'].toString()),
-    if((r['platform']??'').toString().isNotEmpty)Text('Platform: '+r['platform'].toString()),
+     tt(ExperiencePickerRules.completionState(r['category'].toString())+
+     ' on: '+r['enjoyed_on'].toString())),
+    if((r['description']??'').toString().isNotEmpty)Text(tt(r['description'].toString())),
+    if((r['platform']??'').toString().isNotEmpty)Text(tt('Platform: ')+r['platform'].toString()),
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
-     onPressed:openLink,icon:const Icon(Icons.open_in_new),label:const Text('Open link')),
+     onPressed:openLink,icon:const Icon(Icons.open_in_new),label:Text(tt('Open link'))),
     const Divider(height:28),
     RelatedNotesPanel(sourceKind:'experience',sourceId:widget.id),
     const SizedBox(height:12),
-    Text('Our picks',style:Theme.of(context).textTheme.titleLarge),
+    Text(tt('Our picks'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
-    const Text('Each of you chooses independently. A mutual pick means you both selected Interested.'),
+    Text(tt('Each of you chooses independently. A mutual pick means you both selected Interested.')),
     const SizedBox(height:8),
     Wrap(spacing:8,runSpacing:6,children:[
      for(final entry in ExperienceInterestRules.choices.entries)
-      ChoiceChip(label:Text(entry.value),selected:myPick==entry.key,
+      ChoiceChip(label:Text(tt(entry.value)),selected:myPick==entry.key,
        onSelected:busy?null:(_)=>setInterest(entry.key)),
     ]),
     const SizedBox(height:6),
-    Text('You: '+(ExperienceInterestRules.choices[myPick]??'Clear pick')+
+    Text(tt('You: ')+(ExperienceInterestRules.choices[myPick]??'Clear pick')+
      ' · Partner: '+(ExperienceInterestRules.choices[partnerPick]??'No pick yet')),
     if(ExperienceInterestRules.mutuallyInterested(interests,widget.id))
      Padding(padding:const EdgeInsets.only(top:8),child:Row(children:[
       Icon(Icons.favorite,color:Theme.of(context).colorScheme.primary,size:20),
       const SizedBox(width:7),
-      const Expanded(child:Text('A mutual pick! You both want to enjoy this together.')),
+      Expanded(child:Text(tt('A mutual pick! You both want to enjoy this together.'))),
      ])),
     const Divider(height:28),
-    Text('Our ratings and reviews',style:Theme.of(context).textTheme.titleLarge),
+    Text(tt('Our ratings and reviews'),style:Theme.of(context).textTheme.titleLarge),
     for(final x in reviews)Card(elevation:0,child:ListTile(
-      title:Text(who(x['user_id'])+' · '+(x['rating']??'No rating').toString()),
-      subtitle:Text((x['review']??'').toString()))),
-    const Text('My rating'),
+      title:Text(tt(who(x['user_id'])+' · '+(x['rating']??'No rating').toString())),
+      subtitle:Text(tt((x['review']??'').toString())))),
+    Text(tt('My rating')),
     Row(children:[
      Expanded(child:StarRating(value:rating,onChanged:(v)=>setState((){rating=v;_reviewDraftDirty=true;}))),
      TextButton(onPressed:()=>setState((){
       rating=null;_reviewDraftDirty=true;
-     }),child:const Text('Clear')),
+     }),child:Text(tt('Clear'))),
     ]),
     TextField(controller:review,maxLength:2000,maxLines:3,
      onChanged:(_)=>_reviewDraftDirty=true,
-     decoration:const InputDecoration(labelText:'My review')),
+     decoration:InputDecoration(labelText:tt('My review'))),
     Align(alignment:Alignment.centerRight,child:FilledButton(
-     onPressed:busy?null:saveReview,child:const Text('Save my review'))),
+     onPressed:busy?null:saveReview,child:Text(tt('Save my review')))),
     const Divider(height:28),
-    Text('Our conversation',style:Theme.of(context).textTheme.titleLarge),
+    Text(tt('Our conversation'),style:Theme.of(context).textTheme.titleLarge),
     TextField(onChanged:(value)=>setState(()=>commentSearch=value),
-     decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
-      labelText:'Search conversation')),
-    Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show my removed comments',
-     icon:Icons.delete_outline,help:'Only you can see and restore them',
+     decoration:InputDecoration(prefixIcon:Icon(Icons.search),
+      labelText:tt('Search conversation'))),
+    Align(alignment:Alignment.centerLeft,child:OptionChip(label:tt('Show my removed comments'),
+     icon:Icons.delete_outline,help:tt('Only you can see and restore them'),
      value:showMyRetracted,onChanged:(v)=>setState(()=>showMyRetracted=v))),
     for(final x in ExperienceCommentRules.visible(
      comments,myId,showMyRetracted:showMyRetracted,query:commentSearch))
      Card(elevation:0,child:ListTile(
-      title:Text(who(x['created_by'])+
-       (ExperienceCommentRules.isRetracted(x)?' · Retracted':'')),
-      subtitle:Text(x['body'].toString()),
+      title:Text(tt(who(x['created_by'])+
+       (ExperienceCommentRules.isRetracted(x)?' · Retracted':''))),
+      subtitle:Text(tt(x['body'].toString())),
       trailing:ExperienceCommentRules.isAuthor(x,myId)?
-       PopupMenuButton<String>(tooltip:'More',
+       PopupMenuButton<String>(tooltip:tt('More'),
         onSelected:(action){
          if(action=='edit')editComment(x);
          if(action=='archive')changeCommentArchive(x);
@@ -950,13 +951,13 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
          iconMenuItem('history',MenuIcons.changeLog,'Change log'),
         ]):null)),
     TextField(controller:comment,maxLength:2000,maxLines:3,
-     decoration:const InputDecoration(labelText:'Share your thoughts')),
+     decoration:InputDecoration(labelText:tt('Share your thoughts'))),
     if(r['space_id']!=null)PartnerMentionButton(
      spaceId:r['space_id'].toString(),controller:comment),
     Align(alignment:Alignment.centerRight,child:FilledButton.icon(
      onPressed:busy?null:send,icon:const Icon(Icons.send_outlined),
-     label:const Text('Send'))),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+     label:Text(tt('Send')))),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
   ]));
  }
 }

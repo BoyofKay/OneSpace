@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../coordinate/activity_contact.dart';
 import 'world_contact_entry.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// One editor for standalone contacts and existing Activity contact components.
 class SavedContactEditor extends StatefulWidget{
@@ -82,13 +83,13 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
        if(matching.isNotEmpty){
         if(!mounted)return;
         final confirm=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-         title:const Text('Possible duplicate contact'),
-         content:Text('You already have a saved card matching this phone number or email: '+
+         title:Text(tt('Possible duplicate contact')),
+         content:Text(tt('You already have a saved card matching this phone number or email: ')+
           matching.first['label'].toString()+
           '. Save a separate card anyway?'),
          actions:[
-          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Review')),
-          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save separately')),
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Review'))),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save separately'))),
          ]));
         if(confirm!=true)return;
        }
@@ -118,7 +119,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
  }
  @override Widget build(BuildContext context){
    final fromActivity=widget.existing!=null&&!widget.existing!.direct;
-   return EditorScaffold(title:widget.existing==null?'Add contact card':'Edit contact card',
+   return EditorScaffold(title:widget.existing==null?tt('Add contact card'):tt('Edit contact card'),
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>name.text.trim().isNotEmpty,
    listenTo:[name,person,phone,email,address,hours,notes,company,role,website],saving:busy,onSave:save,
    meta:fromActivity?null:MetaStrip(value:MetaValues(shared:!onlyMe),showBelongs:false,showDate:false,
@@ -127,27 +128,27 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
        padding:const EdgeInsets.all(18),children:[
        if(widget.imported!=null)Padding(
         padding:const EdgeInsets.only(bottom:12),
-        child:Text('Imported from your phone. Check the details before saving.',
+        child:Text(tt('Imported from your phone. Check the details before saving.'),
          style:Theme.of(context).textTheme.bodySmall)),
        if(fromActivity)Padding(padding:const EdgeInsets.only(bottom:12),
-        child:Text('This card comes from an Activity, so it follows that Activity’s privacy.',
+        child:Text(tt('This card comes from an Activity, so it follows that Activity’s privacy.'),
          style:Theme.of(context).textTheme.bodySmall)),
-       field(name,'Name on the card *',icon:Icons.badge_outlined,hint:'Dr. Sara, Kids’ swim club…'),
+       field(name,'Name on the card *',icon:Icons.badge_outlined,hint:tt('Dr. Sara, Kids’ swim club…')),
        field(person,'Contact person',icon:Icons.person_outline),
-       const FormSection('Reach them'),
+       FormSection(tt('Reach them')),
        field(phone,'Phone',max:80,type:TextInputType.phone,icon:Icons.phone_outlined),
        field(email,'Email',max:254,type:TextInputType.emailAddress,icon:Icons.mail_outline),
        field(website,'Website',max:500,type:TextInputType.url,icon:Icons.language),
-       const FormSection('Where and when'),
+       FormSection(tt('Where and when')),
        field(address,'Address',max:1000,lines:2,icon:Icons.place_outlined),
        field(hours,'Opening or working hours',max:800,lines:2,icon:Icons.schedule),
-       const FormSection('Work'),
+       FormSection(tt('Work')),
        field(company,'Company',icon:Icons.business_outlined),
        field(role,'Job title or role',icon:Icons.work_outline),
-       const FormSection('Notes'),
+       FormSection(tt('Notes')),
        field(notes,'Notes',max:3000,lines:3),
        if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),
-         child:Text(error!,style:TextStyle(
+         child:Text(tt(error!),style:TextStyle(
            color:Theme.of(context).colorScheme.error))),
      ])),
    );

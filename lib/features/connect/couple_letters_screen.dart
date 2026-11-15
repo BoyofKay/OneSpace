@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
 import 'couple_letter_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 class CoupleLettersScreen extends StatefulWidget {
   const CoupleLettersScreen({super.key});
@@ -76,10 +77,10 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
 
   @override
   Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:const Text('Letters')),
+    appBar:AppBar(title:Text(tt('Letters'))),
     floatingActionButton:spaceId==null?null:FloatingActionButton.extended(heroTag:'fab-couple-letters',
       icon:const Icon(Icons.edit_outlined),
-      label:const Text('Write'),
+      label:Text(tt('Write')),
       onPressed:compose,
     ),
     body:RefreshIndicator(
@@ -88,17 +89,17 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
         padding:const EdgeInsets.fromLTRB(15,10,15,95),
         physics:const AlwaysScrollableScrollPhysics(),
         children:[
-          Text('Words worth keeping',
+          Text(tt('Words worth keeping'),
             style:Theme.of(context).textTheme.titleLarge),
           const SizedBox(height:5),
-          Text('Send a letter to your partner, save a private draft, '
-            'or write back. Sent letters cannot be edited.'),
+          Text(tt('Send a letter to your partner, save a private draft, '
+            'or write back. Sent letters cannot be edited.')),
           const SizedBox(height:14),
           SegmentedButton<String>(
-            segments:const [
-              ButtonSegment(value:'inbox',label:Text('Received',maxLines:1,softWrap:false)),
-              ButtonSegment(value:'sent',label:Text('Sent',maxLines:1)),
-              ButtonSegment(value:'drafts',label:Text('Drafts',maxLines:1)),
+            segments:[
+              ButtonSegment(value:'inbox',label:Text(tt('Received'),maxLines:1,softWrap:false)),
+              ButtonSegment(value:'sent',label:Text(tt('Sent'),maxLines:1)),
+              ButtonSegment(value:'drafts',label:Text(tt('Drafts'),maxLines:1)),
             ],
             showSelectedIcon:false,
             selected:{view},
@@ -106,8 +107,8 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
           ),
           const SizedBox(height:12),
           if(loading)const Center(child:CircularProgressIndicator())
-          else if(error!=null)Text(error!)
-          else if(spaceId==null)const Text('Connect your shared space first.')
+          else if(error!=null)Text(tt(error!))
+          else if(spaceId==null)Text(tt('Connect your shared space first.'))
           else Builder(
             builder:(ctx){
               final data=CoupleLetterRules.filter(
@@ -116,9 +117,9 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
               if(data.isEmpty){return Padding(
                 padding:const EdgeInsets.symmetric(vertical:35),
                 child:Text(
-                  view=='inbox'?'No letters received yet.':
+                  tt(view=='inbox'?'No letters received yet.':
                   view=='drafts'?'No private drafts yet.':
-                  'No letters sent yet.',
+                  'No letters sent yet.'),
                   textAlign:TextAlign.center,
                 ),
               );}
@@ -127,14 +128,14 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
                   Card(elevation:0,child:ListTile(
                     leading:Icon(letter['status']=='draft'
                       ? Icons.edit_note:Icons.mail_outline),
-                    title:Text(letter['title']?.toString()??'Letter',
+                    title:Text(tt(letter['title']?.toString()??'Letter'),
                       maxLines:2,overflow:TextOverflow.ellipsis),
                     subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-                      Text(CoupleLetterRules.snippet(
-                        letter['body']?.toString()??''),
+                      Text(tt(CoupleLetterRules.snippet(
+                        letter['body']?.toString()??'')),
                         maxLines:2,overflow:TextOverflow.ellipsis),
                       const SizedBox(height:3),
-                      Text(_stamp(letter),style:Theme.of(context).textTheme.labelSmall),
+                      Text(tt(_stamp(letter)),style:Theme.of(context).textTheme.labelSmall),
                     ]),
                     isThreeLine:true,
                     trailing:const Icon(Icons.chevron_right),
@@ -145,8 +146,8 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
             },
           ),
           const SizedBox(height:15),
-          Text('Your drafts are visible only to you. Sent letters '
-            'are private to your shared space.',
+          Text(tt('Your drafts are visible only to you. Sent letters '
+            'are private to your shared space.'),
             style:Theme.of(context).textTheme.bodySmall),
         ],
       ),
@@ -228,41 +229,41 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
 
   @override
   Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:Text(widget.parent!=null?'Write a reply':
-      widget.existing!=null?'Edit private draft':'Write a letter')),
+    appBar:AppBar(title:Text(tt(widget.parent!=null?'Write a reply':
+      widget.existing!=null?'Edit private draft':'Write a letter'))),
     body:ListView(padding:const EdgeInsets.all(16),children:[
       if(widget.parent!=null)
         Padding(padding:const EdgeInsets.only(bottom:12),
           child:Text('Replying to: ${widget.parent!['title']}')),
       TextField(controller:title,maxLength:160,
         textCapitalization:TextCapitalization.sentences,
-        decoration:const InputDecoration(
-          labelText:'Title',border:OutlineInputBorder())),
+        decoration:InputDecoration(
+          labelText:tt('Title'),border:OutlineInputBorder())),
       const SizedBox(height:10),
       TextField(controller:body,maxLength:16000,
         minLines:8,maxLines:20,textCapitalization:TextCapitalization.sentences,
-        decoration:const InputDecoration(
-          labelText:'Your letter',hintText:'What do you want them to know?',
+        decoration:InputDecoration(
+          labelText:tt('Your letter'),hintText:tt('What do you want them to know?'),
           alignLabelWithHint:true,border:OutlineInputBorder())),
-      if(error!=null)Text(error!,
+      if(error!=null)Text(tt(error!),
         style:TextStyle(color:Theme.of(context).colorScheme.error)),
       const SizedBox(height:12),
       FilledButton.icon(
         icon:const Icon(Icons.send_outlined),
         onPressed:saving?null:()=>save(send:true),
-        label:Text(saving?'Saving…':'Send to my partner')),
+        label:Text(tt(saving?tt('Saving…'):tt('Send to my partner')))),
       const SizedBox(height:7),
       OutlinedButton.icon(
         icon:const Icon(Icons.save_outlined),
         onPressed:saving?null:()=>save(send:false),
-        label:const Text('Save privately as draft')),
+        label:Text(tt('Save privately as draft'))),
       if(widget.existing!=null)
         TextButton.icon(icon:const Icon(Icons.delete_outline),
           onPressed:saving?null:deleteDraft,
-          label:const Text('Delete draft')),
+          label:Text(tt('Delete draft'))),
       const SizedBox(height:12),
-      Text('Sent letters are permanent, shared with your partner '
-        'and cannot be silently changed afterward.',
+      Text(tt('Sent letters are permanent, shared with your partner '
+        'and cannot be silently changed afterward.'),
         style:Theme.of(context).textTheme.bodySmall),
     ]),
   );
@@ -351,7 +352,7 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
   Widget build(BuildContext context){
     final letter=fresh??widget.letter;
     return Scaffold(
-      appBar:AppBar(title:const Text('Letter')),
+      appBar:AppBar(title:Text(tt('Letter'))),
       body:RefreshIndicator(
         onRefresh:load,
         child:ListView(padding:const EdgeInsets.all(18),
@@ -360,24 +361,24 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
             if(reading)const LinearProgressIndicator(),
             if(error!=null)...[
               Card(child:Padding(padding:const EdgeInsets.all(12),
-                child:Text(error!,style:TextStyle(
+                child:Text(tt(error!),style:TextStyle(
                   color:Theme.of(context).colorScheme.error)))),
               TextButton.icon(onPressed:load,
                 icon:const Icon(Icons.refresh),
-                label:const Text('Retry opening letter')),
+                label:Text(tt('Retry opening letter'))),
             ],
-            Text(letter['title']?.toString()??'Letter',
+            Text(tt(letter['title']?.toString()??'Letter'),
               style:Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height:8),
-            Text(mine?'From You':'From your partner',
+            Text(tt(mine?tt('From You'):tt('From your partner')),
               style:Theme.of(context).textTheme.labelMedium),
-            Text(() {
+            Text(tt(() {
               final sent=DateTime.tryParse(letter['sent_at']?.toString()??'');
               return sent==null?'Date unavailable':
                 MaterialLocalizations.of(context).formatMediumDate(sent.toLocal())+
                 ' · '+MaterialLocalizations.of(context).formatTimeOfDay(
                   TimeOfDay.fromDateTime(sent.toLocal()));
-            }(),style:Theme.of(context).textTheme.bodySmall),
+            }()),style:Theme.of(context).textTheme.bodySmall),
             const SizedBox(height:18),
             SelectableText(letter['body']?.toString()??'',
               style:Theme.of(context).textTheme.bodyLarge),
@@ -385,22 +386,22 @@ class _CoupleLetterDetailState extends State<CoupleLetterDetail> {
             if(mine&&partnerRead!=null)Row(children:[
               Icon(partnerRead!?Icons.done_all:Icons.done,size:17),
               const SizedBox(width:6),
-              Text(partnerRead!?'Read by your partner':
-                'Sent · not marked read yet'),
+              Text(tt(partnerRead!?'Read by your partner':
+                'Sent · not marked read yet')),
             ]),
             const SizedBox(height:18),
             FilledButton.icon(
               onPressed:reply,
               icon:const Icon(Icons.reply_outlined),
-              label:const Text('Write a reply')),
+              label:Text(tt('Write a reply'))),
             if(replies.isNotEmpty)...[
               const Divider(height:30),
-              Text('Replies',style:Theme.of(context).textTheme.titleMedium),
+              Text(tt('Replies'),style:Theme.of(context).textTheme.titleMedium),
               for(final item in replies)
                 Card(elevation:0,child:ListTile(
-                  title:Text(item['title']?.toString()??'Reply'),
-                  subtitle:Text(CoupleLetterRules.snippet(
-                    item['body']?.toString()??''),maxLines:2),
+                  title:Text(tt(item['title']?.toString()??'Reply')),
+                  subtitle:Text(tt(CoupleLetterRules.snippet(
+                    item['body']?.toString()??'')),maxLines:2),
                   onTap:()=>Navigator.push<void>(context,
                     MaterialPageRoute(builder:(_)=>
                       CoupleLetterDetail(letter:item))),

@@ -8,6 +8,7 @@ import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
 import '../calendar/calendar_rules.dart';
 import 'memory_photo_service.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R55: a purpose-built studio for the Daily selfie.
 ///
@@ -115,12 +116,12 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
         decoration: BoxDecoration(shape: BoxShape.circle,
             color: on ? c : scheme.outlineVariant));
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('This week', style: Theme.of(context).textTheme.labelLarge),
+      Text(tt('This week'), style: Theme.of(context).textTheme.labelLarge),
       const SizedBox(height: 6),
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         for (final d in days)
           Column(children: [
-            Text(MaterialLocalizations.of(context).narrowWeekdays[d.weekday % 7],
+            Text(tt(MaterialLocalizations.of(context).narrowWeekdays[d.weekday % 7]),
                 style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(height: 4),
             Row(children: [dot(posted(d, true), scheme.primary), dot(posted(d, false), scheme.tertiary)]),
@@ -129,10 +130,10 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       const SizedBox(height: 6),
       Row(children: [
         dot(true, scheme.primary), const SizedBox(width: 4),
-        Text('You', style: Theme.of(context).textTheme.labelSmall),
+        Text(tt('You'), style: Theme.of(context).textTheme.labelSmall),
         const SizedBox(width: 14),
         dot(true, scheme.tertiary), const SizedBox(width: 4),
-        Text(widget.partnerName ?? 'Your partner', style: Theme.of(context).textTheme.labelSmall),
+        Text(tt(widget.partnerName ?? 'Your partner'), style: Theme.of(context).textTheme.labelSmall),
       ]),
     ]);
   }
@@ -141,13 +142,13 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return EditorScaffold(
-      title: 'Daily selfie',
+      title: tt('Daily selfie'),
       isNew: true,
       isChanged: () => _photo != null,
       isComplete: () => _photo != null,
       missingHint: 'Take or choose a photo first',
       saving: _saving,
-      saveLabel: 'Save selfie',
+      saveLabel: tt('Save selfie'),
       listenTo: [_caption],
       onSave: _save,
       meta: MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
@@ -167,7 +168,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.photo_camera_front_outlined, size: 54, color: scheme.primary),
                       const SizedBox(height: 8),
-                      const Text('Tap to take today’s selfie'),
+                      Text(tt('Tap to take today’s selfie')),
                     ]))
                 : Image.memory(_bytes!, fit: BoxFit.cover)),
           ),
@@ -176,17 +177,17 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           FilledButton.tonalIcon(onPressed: _saving ? null : () => _take(ImageSource.camera),
               icon: const Icon(Icons.photo_camera_front_outlined),
-              label: Text(_photo == null ? 'Camera' : 'Retake')),
+              label: Text(tt(_photo == null ? tt('Camera') : tt('Retake')))),
           const SizedBox(width: 10),
           OutlinedButton.icon(onPressed: _saving ? null : () => _take(ImageSource.gallery),
-              icon: const Icon(Icons.photo_library_outlined), label: const Text('Gallery')),
+              icon: const Icon(Icons.photo_library_outlined), label: Text(tt('Gallery'))),
         ]),
         const SizedBox(height: 18),
         TextField(controller: _caption, maxLength: 80, textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Caption (optional)',
-                hintText: 'Today in a few words', border: OutlineInputBorder())),
+            decoration: InputDecoration(labelText: tt('Caption (optional)'),
+                hintText: tt('Today in a few words'), border: OutlineInputBorder())),
         if (_error != null) Padding(padding: const EdgeInsets.only(top: 12),
-            child: Text(_error!, style: TextStyle(color: scheme.error))),
+            child: Text(tt(_error!), style: TextStyle(color: scheme.error))),
         const SizedBox(height: 22),
         _weekStrip(context),
       ]),

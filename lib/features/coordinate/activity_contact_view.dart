@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'activity_contact.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Compact actionable contact details inside any Activity or Option.
 class ActivityContactView extends StatelessWidget {
@@ -26,7 +27,7 @@ class ActivityContactView extends StatelessWidget {
         if (contact.person.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: Text('Contact: ${contact.person}', style: style),
+            child: Text('${tt('Contact')}: ${contact.person}', style: style),
           ),
         if (contact.company.isNotEmpty || contact.role.isNotEmpty)
           Padding(
@@ -34,10 +35,10 @@ class ActivityContactView extends StatelessWidget {
             child: Row(children:[
               const Icon(Icons.business_outlined,size:17),
               const SizedBox(width:5),
-              Expanded(child:Text([
+              Expanded(child:Text(tt([
                 if(contact.company.isNotEmpty)contact.company,
                 if(contact.role.isNotEmpty)contact.role,
-              ].join(' · '),style:style)),
+              ].join(' · ')),style:style)),
             ]),
           ),
         if (Uri.tryParse(contact.website) case final Uri website
@@ -46,7 +47,7 @@ class ActivityContactView extends StatelessWidget {
           TextButton.icon(
             onPressed:()=>onEmail(website),
             icon:const Icon(Icons.language,size:17),
-            label:Text(contact.website),
+            label:Text(tt(contact.website)),
           ),
         if (contact.workingHours.isNotEmpty)
           Padding(
@@ -56,7 +57,7 @@ class ActivityContactView extends StatelessWidget {
               children: [
                 const Icon(Icons.schedule_outlined, size: 17),
                 const SizedBox(width: 5),
-                Expanded(child: Text(contact.workingHours, style: style)),
+                Expanded(child: Text(tt(contact.workingHours), style: style)),
               ],
             ),
           ),
@@ -71,19 +72,19 @@ class ActivityContactView extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => onPhone(phone),
                   icon: const Icon(Icons.call_outlined, size: 17),
-                  label: Text(contact.phone),
+                  label: Text(tt(contact.phone)),
                 ),
               if (contact.emailUri case final Uri email)
                 TextButton.icon(
                   onPressed: () => onEmail(email),
                   icon: const Icon(Icons.mail_outline, size: 17),
-                  label: Text(contact.email),
+                  label: Text(tt(contact.email)),
                 ),
               if (contact.address.isNotEmpty)
                 TextButton.icon(
                   onPressed: () => onMap(contact.address),
                   icon: const Icon(Icons.map_outlined, size: 17),
-                  label: Text(contact.address),
+                  label: Text(tt(contact.address)),
                 ),
             ],
           ),

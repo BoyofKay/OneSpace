@@ -16,6 +16,7 @@ import '../mentions/partner_mention_button.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Partner-visible and creator-only notes. Live list updates are streamed, while
 /// edits use optimistic concurrency to avoid silently overwriting another edit.
@@ -113,21 +114,21 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
 
  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:AppBar(title:const Text('Notes'),actions:[
+      appBar:AppBar(title:Text(tt('Notes')),actions:[
        RecordListTopActions(
-        historyKinds:const ['note'],historyTitle:'Notes',
+        historyKinds:const ['note'],historyTitle:tt('Notes'),
      showHistory:_showArchived,
         onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
         groups:_filterGroups(),
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
       ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,onClear:()=>setState((){_showArchived=false;_scope='all';}))),
-      floatingActionButton:_spaceId==null?null:AddFab(label:'Add note',onPressed:()=>_openEditor()),
+      floatingActionButton:_spaceId==null?null:AddFab(label:tt('Add note'),onPressed:()=>_openEditor()),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -138,7 +139,7 @@ class _NotesScreenState extends State<NotesScreen> {
           const SizedBox(height: 6),
           Text(tr(context, 'notesSubtitle')),
           const SizedBox(height: 14),
-          if (_error != null) Text(_error!, style: TextStyle(color:Theme.of(context).colorScheme.error)),
+          if (_error != null) Text(tt(_error!), style: TextStyle(color:Theme.of(context).colorScheme.error)),
           if (_loading)
             const Padding(padding: EdgeInsets.all(36),
               child: Center(child: CircularProgressIndicator()))
@@ -149,11 +150,11 @@ class _NotesScreenState extends State<NotesScreen> {
               controller:_search,
               onChanged:(value)=>setState(()=>_query=value),
               decoration:InputDecoration(
-               labelText:'Search notes',
-               hintText:'Titles and note text',
+               labelText:tt('Search notes'),
+               hintText:tt('Titles and note text'),
                prefixIcon:const Icon(Icons.search),
                suffixIcon:_query.isEmpty?null:IconButton(
-                tooltip:'Clear search',
+                tooltip:tt('Clear search'),
                 icon:const Icon(Icons.clear),
                 onPressed:(){
                   _search.clear();
@@ -199,15 +200,15 @@ class _NotesScreenState extends State<NotesScreen> {
                       ListTile(
                         leading: Icon(note['pinned'] == true
                             ? Icons.push_pin : Icons.sticky_note_2_outlined),
-                        title: Text(note['title'] as String,
+                        title: Text(tt(note['title'] as String),
                           maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Text(
-                          [
+                          tt([
                             tr(context, note['visibility'] as String),
                             if (archived) tr(context, 'archived'),
                             if (!canEdit) tr(context, 'viewOnly'),
                             if (body.isNotEmpty) body.replaceAll('\n',' '),
-                          ].join(' • '),
+                          ].join(' • ')),
                           maxLines: 2, overflow: TextOverflow.ellipsis,
                         ),
                         trailing: ItemMenu(kind: 'note', recordId: note['id'].toString(),
@@ -388,26 +389,26 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Widget _formattingToolbar()=>SingleChildScrollView(
     scrollDirection:Axis.horizontal,
     child:Row(children:[
-      TextButton.icon(onPressed:()=>_insertFormatting('## ',placeholder:'Heading'),
-       icon:const Icon(Icons.title),label:const Text('Heading')),
-      IconButton(tooltip:'Heading (compact)',icon:const Icon(Icons.title),
-        onPressed:()=>_insertFormatting('## ',placeholder:'Heading')),
+      TextButton.icon(onPressed:()=>_insertFormatting('## ',placeholder:tt('Heading')),
+       icon:const Icon(Icons.title),label:Text(tt('Heading'))),
+      IconButton(tooltip:tt('Heading (compact)'),icon:const Icon(Icons.title),
+        onPressed:()=>_insertFormatting('## ',placeholder:tt('Heading'))),
       TextButton.icon(onPressed:()=>_insertFormatting('**',after:'**'),
-       icon:const Icon(Icons.format_bold),label:const Text('Bold')),
-      IconButton(tooltip:'Bold (compact)',icon:const Icon(Icons.format_bold),
+       icon:const Icon(Icons.format_bold),label:Text(tt('Bold'))),
+      IconButton(tooltip:tt('Bold (compact)'),icon:const Icon(Icons.format_bold),
         onPressed:()=>_insertFormatting('**',after:'**')),
-      IconButton(tooltip:'Italic',icon:const Icon(Icons.format_italic),
+      IconButton(tooltip:tt('Italic'),icon:const Icon(Icons.format_italic),
         onPressed:()=>_insertFormatting('*',after:'*')),
-      TextButton.icon(onPressed:()=>_insertFormatting('- [ ] ',placeholder:'To-do'),
-       icon:const Icon(Icons.check_box_outlined),label:const Text('Checklist')),
-      IconButton(tooltip:'Checklist (compact)',icon:const Icon(Icons.check_box_outlined),
-        onPressed:()=>_insertFormatting('- [ ] ',placeholder:'To-do')),
-      IconButton(tooltip:'Bullets',icon:const Icon(Icons.format_list_bulleted),
-        onPressed:()=>_insertFormatting('- ',placeholder:'List item')),
-      IconButton(tooltip:'Numbers',icon:const Icon(Icons.format_list_numbered),
-        onPressed:()=>_insertFormatting('1. ',placeholder:'List item')),
-      IconButton(tooltip:'Link',icon:const Icon(Icons.link),
-        onPressed:()=>_insertFormatting('[',after:'](https://)',placeholder:'Link name')),
+      TextButton.icon(onPressed:()=>_insertFormatting('- [ ] ',placeholder:tt('To-do')),
+       icon:const Icon(Icons.check_box_outlined),label:Text(tt('Checklist'))),
+      IconButton(tooltip:tt('Checklist (compact)'),icon:const Icon(Icons.check_box_outlined),
+        onPressed:()=>_insertFormatting('- [ ] ',placeholder:tt('To-do'))),
+      IconButton(tooltip:tt('Bullets'),icon:const Icon(Icons.format_list_bulleted),
+        onPressed:()=>_insertFormatting('- ',placeholder:tt('List item'))),
+      IconButton(tooltip:tt('Numbers'),icon:const Icon(Icons.format_list_numbered),
+        onPressed:()=>_insertFormatting('1. ',placeholder:tt('List item'))),
+      IconButton(tooltip:tt('Link'),icon:const Icon(Icons.link),
+        onPressed:()=>_insertFormatting('[',after:'](https://)',placeholder:tt('Link name'))),
     ]),
   );
 
@@ -587,12 +588,12 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             ),
             const SizedBox(height: 10),
             Row(children:[
-              Expanded(child:Text('Content',
+              Expanded(child:Text(tt('Content'),
                 style:Theme.of(context).textTheme.titleSmall)),
               TextButton.icon(
                 onPressed:()=>setState(()=>_preview=!_preview),
                 icon:Icon(_preview?Icons.edit_outlined:Icons.visibility_outlined),
-                label:Text(_preview?'Edit':'Preview'),
+                label:Text(tt(_preview?tt('Edit'):tt('Preview'))),
               ),
             ]),
             if(!_preview&&_canEdit)_formattingToolbar(),
@@ -612,7 +613,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: tr(context, 'noteBody'),
-                hintText:'Write your thoughts. Select text then tap a formatting action above.',
+                hintText:tt('Write your thoughts. Select text then tap a formatting action above.'),
                 border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -623,7 +624,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               alignment:AlignmentDirectional.centerStart,
               child:ActionChip(
                 avatar:const Icon(Icons.alternate_email,size:17),
-                label:Text(_noteMention!),
+                label:Text(tt(_noteMention!)),
                 onPressed:_acceptNoteMention)),
             const SizedBox(height: 14),
             if(_editing)...[
@@ -635,7 +636,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
              child:Row(children:[
               const Icon(Icons.add_photo_alternate_outlined),
               const SizedBox(width:9),
-              const Expanded(child:Text('Save this note to attach pictures securely.')),
+              Expanded(child:Text(tt('Save this note to attach pictures securely.'))),
              ]))),
             const SizedBox(height: 10),
             Text(tr(context, 'visibility')),
@@ -660,7 +661,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   : (value) => setState(() => _pinned = value),
             ),
             if (_error != null)
-              Text(_error!, style: TextStyle(color:Theme.of(context).colorScheme.error)),
+              Text(tt(_error!), style: TextStyle(color:Theme.of(context).colorScheme.error)),
             const SizedBox(height: 12),
             if (_canEdit) FilledButton.icon(
               onPressed: _busy || _archived ? null : _save,

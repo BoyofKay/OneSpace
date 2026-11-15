@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Small corner switch without adding a full row to sign-in.
 class AuthLanguageSwitcher extends StatelessWidget {
@@ -16,13 +17,13 @@ class AuthLanguageSwitcher extends StatelessWidget {
         TextButton(
           onPressed: disabled ? null : () =>
               OneSpaceLocaleController.instance.selectLanguage('en'),
-          child: const Text('EN'),
+          child: Text(tt('EN')),
         ),
         const Text('|'),
         TextButton(
           onPressed: disabled ? null : () =>
               OneSpaceLocaleController.instance.selectLanguage('ar'),
-          child: const Text('AR'),
+          child: Text(tt('AR')),
         ),
       ],
     ),

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'notes_screen.dart';
 import 'related_notes_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A lazy, read-only reverse reference. No queries while collapsed.
 /// RLS filters BOTH note_references and notes on the current account.
@@ -62,8 +63,8 @@ class _RelatedNotesPanelState extends State<RelatedNotesPanel>{
     contentPadding:const EdgeInsets.symmetric(horizontal:12),
     leading:Icon(Icons.sticky_note_2_outlined,
      color:theme.colorScheme.primary),
-    title:const Text('Related notes'),
-    subtitle:const Text('Notes linked to this item and visible to you'),
+    title:Text(tt('Related notes')),
+    subtitle:Text(tt('Notes linked to this item and visible to you')),
     trailing:Icon(expanded?Icons.expand_less:Icons.expand_more),
     onTap:(){
      setState(()=>expanded=!expanded);
@@ -76,25 +77,25 @@ class _RelatedNotesPanelState extends State<RelatedNotesPanel>{
       if(snapshot.hasError)return Padding(
        padding:const EdgeInsets.all(12),
        child:Column(children:[
-        const Text('Could not load related notes.'),
+        Text(tt('Could not load related notes.')),
         TextButton.icon(icon:const Icon(Icons.refresh),
-         label:const Text('Retry'),onPressed:_refresh),
+         label:Text(tt('Retry')),onPressed:_refresh),
        ]));
       if(!snapshot.hasData)return const LinearProgressIndicator();
       final notes=snapshot.data!;
-      if(notes.isEmpty)return const Padding(
+      if(notes.isEmpty)return Padding(
        padding:EdgeInsets.symmetric(horizontal:12,vertical:8),
-       child:Text('No linked notes visible here yet. Open a saved note and use Link item to connect it.'));
+       child:Text(tt('No linked notes visible here yet. Open a saved note and use Link item to connect it.')));
       return Column(children:[
        for(final note in notes)ListTile(
         contentPadding:const EdgeInsets.symmetric(horizontal:12),
         leading:Icon(note['pinned']==true?
          Icons.push_pin_outlined:Icons.notes_outlined),
-        title:Text(note['title'].toString(),maxLines:2,
+        title:Text(tt(note['title'].toString()),maxLines:2,
          overflow:TextOverflow.ellipsis),
         subtitle:Text(
-         (note['visibility']=='private'?'Only me':'Shared')+
-         (note['archived_at']!=null?' · Removed':'')),
+         tt((note['visibility']=='private'?'Only me':'Shared')+
+         (note['archived_at']!=null?' · Removed':''))),
         trailing:const Icon(Icons.chevron_right),
         onTap:()=>_openNote(note['id'].toString()),
        ),
@@ -102,9 +103,9 @@ class _RelatedNotesPanelState extends State<RelatedNotesPanel>{
      }),
     Row(mainAxisAlignment:MainAxisAlignment.end,children:[
      TextButton.icon(icon:const Icon(Icons.refresh),
-      onPressed:_refresh,label:const Text('Refresh')),
+      onPressed:_refresh,label:Text(tt('Refresh'))),
      TextButton.icon(icon:const Icon(Icons.open_in_new),
-      onPressed:_openLibrary,label:const Text('Open Notes')),
+      onPressed:_openLibrary,label:Text(tt('Open Notes'))),
     ]),
    ],
   ]));
