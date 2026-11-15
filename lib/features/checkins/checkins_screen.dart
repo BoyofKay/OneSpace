@@ -1,6 +1,7 @@
+import '../../core/form_kit.dart';
+import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/editor_scaffold.dart';
-import '../../core/collection_history_screen.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -265,6 +266,12 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       builder:(_)=>PartnerCheckinReplyScreen(request:request)));
   }
 
+  IconData _ackIcon(String kind,bool on)=>switch(kind){
+    'heart'=>on?Icons.favorite:Icons.favorite_border,
+    'hug'=>on?Icons.volunteer_activism:Icons.volunteer_activism_outlined,
+    _=>on?Icons.thumb_up:Icons.thumb_up_outlined,
+  };
+
   Widget _detail(String label,String value)=>Padding(
     padding:const EdgeInsets.symmetric(vertical:7),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -349,15 +356,19 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                    ' · '+CheckinRequestRules.expiryHint(item,now):''),
                   style:Theme.of(context).textTheme.labelSmall),
               ]),
-              trailing:PopupMenuButton<String>(tooltip:'More',
-                onSelected:(_)=>openChangeLog(context,kind:'checkin_request',recordId:item['id'].toString()),
-                itemBuilder:(_)=>const [PopupMenuItem(value:'log',child:Text('Change log'))]),
-              childrenPadding:const EdgeInsets.fromLTRB(15,0,15,14),
+              trailing:ItemMenu(kind:'checkin_request',recordId:item['id'].toString(),
+                statusActions:[
+                  if(CheckinRequestRules.canRespond(item,me,now))
+                    ItemMenuAction('Respond',Icons.reply_outlined,()=>_respond(item)),
+                ]),
+              childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
+              expandedAlignment:Alignment.centerLeft,
+              expandedCrossAxisAlignment:CrossAxisAlignment.start,
               children:[
                 if(item['response_mood']!=null)ListTile(
                   contentPadding:EdgeInsets.zero,
                   leading:const Icon(Icons.favorite_outline),
-                  title:Text('How they felt · '+item['response_mood'].toString()+'/5'),
+                  title:Text('How they felt · '+_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1]),
                   subtitle:Text('Answered '+_dateTime(item['responded_at'])),
                 ),
                 if((item['response_message']?.toString()??'').isNotEmpty)
@@ -368,16 +379,29 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                     item['response_topic'].toString()),
                 if(item['responded_at']!=null&&
                   CheckinAcknowledgementRules.canAcknowledge(item,me))...[
-                  const SizedBox(height:8),
-                  Text('Acknowledge their response (optional)',
-                   style:Theme.of(context).textTheme.labelMedium),
-                  const SizedBox(height:6),
-                  Wrap(spacing:7,runSpacing:5,children:[
+                  const Divider(height:22),
+                  Row(children:[
+                   Expanded(child:Text('Reply with a gesture',
+                    style:Theme.of(context).textTheme.labelMedium)),
                    for(final entry in CheckinAcknowledgementRules.labels.entries)
-                    ChoiceChip(label:Text(entry.value),
-                     selected:CheckinAcknowledgementRules.forRequest(
+                    IconButton(
+                     tooltip:entry.value,
+                     isSelected:CheckinAcknowledgementRules.forRequest(
                        _ackRows,item['id'])?['kind']==entry.key,
-                     onSelected:_ackBusy?null:(_)=>_acknowledge(item,entry.key)),
+                     icon:Icon(_ackIcon(entry.key,false)),
+                     selectedIcon:Icon(_ackIcon(entry.key,true),
+                      color:Theme.of(context).colorScheme.primary),
+                     onPressed:_ackBusy?null:()async{
+                      final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+                       icon:Icon(_ackIcon(entry.key,true)),
+                       title:Text(entry.value),
+                       content:const Text('Send this to your partner?'),
+                       actions:[
+                        TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
+                        FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Send')),
+                       ]));
+                      if(ok==true)await _acknowledge(item,entry.key);
+                     }),
                   ]),
                 ],
                 if(item['responded_at']!=null&&item['recipient_id']==me&&
@@ -512,17 +536,8 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
               if(private)'Only me',
             ].join(' · '),style:theme.textTheme.labelSmall),
           ]),
-          trailing:own?PopupMenuButton<String>(
-            tooltip:'More',
-            onSelected:(v){
-              if(v=='edit')_edit(entry);
-              if(v=='log')openChangeLog(context,kind:'checkin',recordId:entry['id'].toString(),
-                recordTitle:entry['checkin_date']?.toString());
-            },
-            itemBuilder:(_)=>const [
-              PopupMenuItem(value:'edit',child:Text('Edit')),
-              PopupMenuItem(value:'log',child:Text('Change log')),
-            ]):null,
+          trailing:own?ItemMenu(kind:'checkin',recordId:entry['id'].toString(),
+            title:entry['checkin_date']?.toString(),onOpen:()=>_edit(entry)):null,
           childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
           expandedCrossAxisAlignment:CrossAxisAlignment.stretch,
           children:[
@@ -641,57 +656,44 @@ class _CheckinEditorState extends State<CheckinEditor> {
       if(mounted)setState(()=>_saving=false);
     }
   }
+  String get _signature=>'${_message.text}|${_gratitude.text}|$_mood|$_visibility|$_date';
+  late final String _start=_signature;
+
   @override
-  Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:Text(tr(context,'dailyCheckin'))),
-    body:SafeArea(child:ListView(padding:const EdgeInsets.all(20),children:[
-      if(!_canEdit)Text(tr(context,'viewOnly')),
-      OutlinedButton.icon(
-        onPressed:!_canEdit || _saving || widget.existing!=null
-          ? null : ()async{
-          final now=DateTime.now();
-          final selected=await showDatePicker(context:context,
-            initialDate:_date,firstDate:DateTime(2020),lastDate:now);
-          if(mounted && selected!=null)setState(()=>_date=selected);
-        },
-        icon:const Icon(Icons.event),
-        label:Text('${_date.year}-${_date.month}-${_date.day}')),
-      const SizedBox(height:18),
-      Text(tr(context,'howAreYouFeeling'),
-        style:Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height:8),
-      Wrap(spacing:6,children:List.generate(5,(i){
-        return ChoiceChip(
-          key:Key('mood-${i+1}'),
-          label:Text('${i+1}'),
-          selected:_mood==i+1,
-          onSelected:!_canEdit || _saving?null:
-            (_)=>setState(()=>_mood=i+1));
+  Widget build(BuildContext context)=>EditorScaffold(
+    title:widget.existing==null?'Record my feeling':'Edit my feeling',
+    isNew:widget.existing==null,
+    isChanged:()=>_signature!=_start,
+    isComplete:()=>_canEdit,
+    listenTo:[_message,_gratitude],saving:_saving,onSave:_save,
+    missingHint:null,
+    meta:MetaStrip(value:MetaValues(shared:_visibility=='shared',date:_date),
+      showBelongs:false,dateLabel:'Day',enabled:widget.existing==null&&_canEdit&&!_saving,
+      onChanged:(v)=>setState((){
+        _visibility=v.shared?'shared':'private';
+        final now=DateTime.now();
+        final d=v.date??now;
+        _date=d.isAfter(now)?now:d;
       })),
-      const SizedBox(height:14),
+    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
+      if(!_canEdit)Padding(padding:const EdgeInsets.only(bottom:12),child:Text(tr(context,'viewOnly'))),
+      MoodPicker(value:_mood,onChanged:!_canEdit||_saving?null:(m)=>setState(()=>_mood=m)),
       TextField(controller:_message,readOnly:!_canEdit,
-        maxLength:2000,minLines:2,maxLines:5,
-        decoration:InputDecoration(
-          labelText:'What’s on your mind?',
-          border:const OutlineInputBorder())),
-      const SizedBox(height:12),
+        maxLength:2000,minLines:3,maxLines:6,textCapitalization:TextCapitalization.sentences,
+        decoration:const InputDecoration(
+          labelText:'What’s on your mind?',alignLabelWithHint:true,
+          border:OutlineInputBorder())),
+      const SizedBox(height:10),
       TextField(controller:_gratitude,readOnly:!_canEdit,maxLength:500,
-        minLines:1,maxLines:3,
-        decoration:InputDecoration(
+        minLines:1,maxLines:3,textCapitalization:TextCapitalization.sentences,
+        decoration:const InputDecoration(
           labelText:'Something I’m grateful for',
-          border:const OutlineInputBorder())),
-      const SizedBox(height:12),
-      Text(tr(context,'visibility')),
-      Wrap(spacing:8,children:['shared','private'].map((v)=>ChoiceChip(
-        selected:_visibility==v,label:Text(tr(context,v)),
-        onSelected:widget.existing!=null || _saving?null:
-          (_)=>setState(()=>_visibility=v))).toList()),
-      Text(tr(context,'privacyFixed'),
+          prefixIcon:Icon(Icons.favorite_border),
+          border:OutlineInputBorder())),
+      if(widget.existing!=null)Text('The day and who can see it were set when it was recorded.',
         style:Theme.of(context).textTheme.bodySmall),
-      const SizedBox(height:16),
-      if(_error!=null)Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-      if(_canEdit)FilledButton(
-        onPressed:_saving?null:_save,child:Text(tr(context,'save'))),
+      if(_error!=null)Padding(padding:const EdgeInsets.only(top:10),
+        child:Text(_error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
     ])),
   );
 }
@@ -739,42 +741,34 @@ class _PartnerCheckinReplyScreenState extends State<PartnerCheckinReplyScreen> {
      if(mounted)setState(()=>saving=false);
    }
  }
- @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:const Text('Respond to your love')),
-   body:SafeArea(child:ListView(padding:const EdgeInsets.all(20),children:[
-     const Text('Your partner wants to know how you are doing.',
-       style:TextStyle(fontSize:17,fontWeight:FontWeight.w600)),
-     if((widget.request['note']?.toString()??'').isNotEmpty)
-       Card(child:Padding(padding:const EdgeInsets.all(14),
-         child:Text(widget.request['note'].toString()))),
-     const SizedBox(height:16),
-     Text('How do you feel? ($mood/5)',
+ @override Widget build(BuildContext context)=>EditorScaffold(
+   title:'Answer the check-in',isNew:true,isChanged:()=>mind.text.isNotEmpty||topic.text.isNotEmpty||mood!=3,isComplete:()=>true,
+   listenTo:[mind,topic],saving:saving,onSave:_save,saveLabel:'Send',missingHint:null,
+   body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
+     Text('Your partner wants to know how you are doing.',
        style:Theme.of(context).textTheme.titleMedium),
-     const SizedBox(height:7),
-     Wrap(spacing:8,children:[
-       for(var i=1;i<=5;i++)ChoiceChip(
-         label:Text(i.toString()),selected:mood==i,
-         onSelected:saving?null:(_)=>setState(()=>mood=i)),
-     ]),
-     const SizedBox(height:15),
-     TextField(controller:mind,maxLength:2000,minLines:2,maxLines:5,
+     if((widget.request['note']?.toString()??'').isNotEmpty)Card(elevation:0,
+       color:Theme.of(context).colorScheme.primaryContainer,
+       margin:const EdgeInsets.only(top:10),
+       child:Padding(padding:const EdgeInsets.all(14),
+         child:Text('“${widget.request['note']}”',
+           style:const TextStyle(fontStyle:FontStyle.italic)))),
+     const SizedBox(height:16),
+     MoodPicker(value:mood,onChanged:saving?null:(m)=>setState(()=>mood=m)),
+     TextField(controller:mind,maxLength:2000,minLines:3,maxLines:6,
+       textCapitalization:TextCapitalization.sentences,
        decoration:const InputDecoration(labelText:'What’s on your mind?',
-         border:OutlineInputBorder())),
-     const SizedBox(height:15),
+         alignLabelWithHint:true,border:OutlineInputBorder())),
+     const SizedBox(height:10),
      TextField(controller:topic,maxLength:1000,minLines:2,maxLines:4,
+       textCapitalization:TextCapitalization.sentences,
        decoration:const InputDecoration(
-         labelText:'Something you need to talk about?',
+         labelText:'Something we should talk about?',
+         prefixIcon:Icon(Icons.forum_outlined),
          border:OutlineInputBorder())),
-     const Text('Your response is shared only with your partner. '
-       'You can choose when to answer while this invitation is open. '
-       'Nothing is sent until you press Send.'),
-     if(error!=null)Text(error!,
-       style:TextStyle(color:Theme.of(context).colorScheme.error)),
-     const SizedBox(height:12),
-     FilledButton.icon(
-       onPressed:saving?null:_save,
-       icon:const Icon(Icons.send_outlined),
-       label:Text(saving?'Sending…':'Send my response')),
+     Text('Only your partner sees your answer.',style:Theme.of(context).textTheme.bodySmall),
+     if(error!=null)Padding(padding:const EdgeInsets.only(top:10),child:Text(error!,
+       style:TextStyle(color:Theme.of(context).colorScheme.error))),
    ])),
  );
 }

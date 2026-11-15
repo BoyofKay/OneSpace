@@ -378,3 +378,45 @@ class OptionChip extends StatelessWidget {
       selected: value,
       onSelected: onChanged));
 }
+
+/// Mood 1–5 as faces with words (used by check-ins and responses).
+class MoodPicker extends StatelessWidget {
+  const MoodPicker({super.key, required this.value, required this.onChanged, this.label = 'How do you feel? *'});
+  final int value;
+  final ValueChanged<int>? onChanged;
+  final String label;
+  static const words = ['Very low', 'Low', 'Okay', 'Good', 'Great'];
+  static const icons = [
+    Icons.sentiment_very_dissatisfied, Icons.sentiment_dissatisfied, Icons.sentiment_neutral,
+    Icons.sentiment_satisfied, Icons.sentiment_very_satisfied,
+  ];
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    Color tone(int m) => m <= 2 ? scheme.error : m == 3 ? scheme.tertiary : scheme.primary;
+    return Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        Row(children: [
+          for (var m = 1; m <= 5; m++) Expanded(child: InkWell(
+            key: Key('mood-$m'),
+            borderRadius: BorderRadius.circular(12),
+            onTap: onChanged == null ? null : () => onChanged!(m),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: value == m ? tone(m).withValues(alpha: .14) : null,
+                border: Border.all(color: value == m ? tone(m) : scheme.outlineVariant),
+                borderRadius: BorderRadius.circular(12)),
+              child: Column(children: [
+                Icon(icons[m - 1], color: value == m ? tone(m) : scheme.onSurfaceVariant, size: 28),
+                const SizedBox(height: 4),
+                Text(words[m - 1], maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall),
+              ])))),
+        ]),
+      ]));
+  }
+}
