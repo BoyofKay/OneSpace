@@ -224,7 +224,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             label:const Text('Reset filters')),
           ])),
       ),
-    ]),
+    ],bottom:_archived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>_archived=false))):null),
     body: RefreshIndicator(
       onRefresh: _load,
       child: ListView(

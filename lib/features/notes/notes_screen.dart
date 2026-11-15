@@ -137,7 +137,7 @@ class _NotesScreenState extends State<NotesScreen> {
            label:const Text('Reset filters')),
          ])),
        ),
-      ]),
+      ],bottom:_showArchived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>_showArchived=false))):null),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(

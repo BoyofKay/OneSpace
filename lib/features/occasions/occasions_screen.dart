@@ -1,3 +1,4 @@
+import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
 import 'dart:async';
 
@@ -166,7 +167,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     ),
     IconButton(tooltip:'Refresh',onPressed:load,
      icon:const Icon(Icons.refresh)),
-   ]),
+   ],bottom:archived?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>archived=false))):null),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Plan an occasion')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
@@ -193,9 +194,10 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     else if(shown.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),
      child:Text('Nothing planned here yet. Start with an upcoming birthday, anniversary or holiday.')))
     else for(final p in shown)Card(elevation:0,child:ListTile(
-     leading:CircleAvatar(child:Icon(p['visibility']=='private'?
+     leading:CircleAvatar(child:StatusLook.mark(p['status']?.toString())??Icon(p['visibility']=='private'?
       Icons.lock_outline:Icons.card_giftcard_outlined)),
-     title:Text(p['title'].toString(),style:Theme.of(context).textTheme.titleMedium),
+     title:Text(p['title'].toString(),style:StatusLook.title(context,p['status']?.toString(),
+      Theme.of(context).textTheme.titleMedium)),
      subtitle:Text([
       if((p['honoree_name']??'').toString().isNotEmpty)p['honoree_name'].toString(),
       occasionKinds[p['kind']]??'Occasion',

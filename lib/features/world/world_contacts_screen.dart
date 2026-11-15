@@ -326,7 +326,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
        IconButton(
         tooltip:'Contact edit history',icon:const Icon(Icons.manage_history),
         onPressed:()=>showHistory()),
-     ]),
+     ],bottom:showDeleted?PreferredSize(preferredSize:const Size.fromHeight(34),child:FilterShowingLine(labels:const ['Removed'],onClear:()=>setState(()=>showDeleted=false))):null),
      body:RefreshIndicator(onRefresh:load,child:ListView(
        physics:const AlwaysScrollableScrollPhysics(),
        padding:const EdgeInsets.all(14),

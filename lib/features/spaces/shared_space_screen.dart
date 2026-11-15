@@ -28,6 +28,7 @@ import '../world/world_contacts_screen.dart';
 import 'today_talk_window.dart';
 import '../quick_add/quick_add_sheet.dart';
 import '../share_in/items_to_sort_screen.dart';
+import '../memories/memories_screen.dart';
 import '../../core/partner_time_zones.dart';
 import '../../core/performance_timings.dart';
 import '../../theme/appearance_settings_screen.dart';
@@ -90,6 +91,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   bool sinceAwayCollapsed=false;
   int lettersBadge=0;
   int itemsToSort=0;
+  Map<String,dynamic>? onThisDay;
+  Set<String> hiddenOnThisDay=const {};
   List<StatedSchedule> schedulesMine=const [];
   List<StatedSchedule> schedulesPartner=const [];
   String? myZone;
@@ -116,6 +119,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     WidgetsBinding.instance.addObserver(this);
     _load();
     unawaited(_loadPartnerLabel());
+    unawaited(_loadHiddenOnThisDay());
   }
 
   @override
@@ -425,6 +429,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       schedulesPartner=[for(final x in schedules)if(x['is_me']!=true)StatedSchedule.fromJson(x)];
       myZone=schedules.where((x)=>x['is_me']==true)
         .map((x)=>x['time_zone']?.toString()).firstOrNull;
+      onThisDay=data['on_this_day'] is Map?
+        Map<String,dynamic>.from(data['on_this_day'] as Map):null;
       activeTrip=data['active_trip'] is Map?
         Map<String,dynamic>.from(data['active_trip'] as Map):null;
       relationshipMode = data['relationship_mode']?.toString() ?? 'not_set';
@@ -630,6 +636,38 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final now=DateTime.now();
     return DateTime(target.year,target.month,target.day)
       .difference(DateTime(now.year,now.month,now.day)).inDays;
+  }
+
+  static const _hiddenOnThisDayKey='onespace_hidden_on_this_day_v1';
+
+  Future<void> _loadHiddenOnThisDay() async {
+    try{
+      final raw=await SharedPreferencesAsync().getStringList(_hiddenOnThisDayKey);
+      if(mounted&&raw!=null)setState(()=>hiddenOnThisDay=raw.toSet());
+    }catch(_){}
+  }
+
+  /// Spec 3.5: at most one past memory from today's date, hideable per memory.
+  Widget? _onThisDayTile(){
+    final memory=onThisDay;
+    final id=memory?['id']?.toString();
+    if(memory==null||id==null||hiddenOnThisDay.contains(id))return null;
+    final years=(memory['years_ago'] as num?)?.toInt()??1;
+    return ListTile(
+      dense:true,
+      contentPadding:const EdgeInsets.symmetric(horizontal:4),
+      leading:const Icon(Icons.auto_awesome_outlined),
+      title:Text(memory['title']?.toString()??'A memory'),
+      subtitle:Text('On this day · $years year${years==1?'':'s'} ago'),
+      onTap:()=>_push(MemoriesScreen(initialMemoryId:id)),
+      trailing:IconButton(
+        tooltip:'Hide this memory from Today',
+        icon:const Icon(Icons.close,size:18),
+        onPressed:()async{
+          final next={...hiddenOnThisDay,id};
+          setState(()=>hiddenOnThisDay=next);
+          try{await SharedPreferencesAsync().setStringList(_hiddenOnThisDayKey,next.toList());}catch(_){}
+        }));
   }
 
   bool get _together=>relationshipMode=='living_together';
@@ -1126,7 +1164,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               onOpenExperience:(id)=>_push(SharedExperiencesScreen(initialExperienceId:id)),
               onOpenTrip:(id)=>_push(TripsScreen(initialTripId:id)),
               onOpenOccasion:(id)=>_push(OccasionsScreen(initialPlanId:id)),
-              onOpenReminder:_openReminder),
+              onOpenReminder:_openReminder,
+              leading:[if(_onThisDayTile() case final Widget tile)tile]),
             const SizedBox(height:4),
             _shortcuts(),
           ],
