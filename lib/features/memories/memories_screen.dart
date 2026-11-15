@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import 'selfie_studio_screen.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:async';
@@ -260,7 +261,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           if (!editable) tr(context,'viewOnly'),
                           if (body.isNotEmpty) body.replaceAll('\n',' '),
                         ].join(' • '), maxLines: 3, overflow: TextOverflow.ellipsis),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: ItemMenu(kind: 'memory', recordId: memory['id'].toString(),
+                          title: memory['title']?.toString(),
+                          onOpen: () => _edit(existing: memory), openLabel: editable ? 'Edit' : 'Open',
+                          table: editable ? 'memories' : null,
+                          removed: memory['archived_at'] != null, onChanged: _load),
                         onTap: () => _edit(existing: memory),
                       ),
                       if (ownerShare) Align(

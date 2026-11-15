@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
@@ -185,7 +186,10 @@ class _TripsScreenState extends State<TripsScreen> {
          (trip['end_on']!=null?' – '+trip['end_on'].toString():''),
        if(trip['visibility']=='private')'Only me',
       ].join(' · '),maxLines:4),
-      trailing:const Icon(Icons.chevron_right),onTap:()=>open(trip),
+      trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
+       onOpen:()=>open(trip),openLabel:'Open',table:'shared_trips',
+       removed:trip['archived_at']!=null,onChanged:load),
+      onTap:()=>open(trip),
      )),
    ])));
  }

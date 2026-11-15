@@ -1,7 +1,7 @@
+import '../../core/item_menu.dart';
 import '../../core/status_look.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
-import '../../core/collection_history_screen.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -307,11 +307,25 @@ class _RemindersScreenState extends State<RemindersScreen> {
     if(r['reminder_intent']=='love_gesture')'Choose when to send',
     if(r['archived_at']!=null)'Removed',
    ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
-   trailing:own!=null&&r['archived_at']==null&&!closed&&
-     (openMine||(!repeating&&own['state']!='done'))?IconButton(
+   trailing:Row(mainAxisSize:MainAxisSize.min,children:[
+    if(own!=null&&r['archived_at']==null&&!closed&&
+     (openMine||(!repeating&&own['state']!='done')))IconButton(
      tooltip:repeating?'Done for this time':'Done',
      icon:const Icon(Icons.check_circle_outline),
-     onPressed:busy?null:()=>respond(r,'done')):null,
+     onPressed:busy?null:()=>respond(r,'done')),
+    ItemMenu(kind:'reminder',recordId:r['id'].toString(),title:r['title']?.toString(),
+     statusActions:[
+      if(own!=null&&r['archived_at']==null&&!closed)...[
+       ItemMenuAction(repeating?'Done for this time':'Done',Icons.check,()=>respond(r,'done')),
+       ItemMenuAction('Follow-up',Icons.flag_outlined,()=>respond(r,'follow_up')),
+       ItemMenuAction('Snooze',Icons.snooze,()=>respond(r,'snooze')),
+       if(own['state']=='done'&&!repeating)ItemMenuAction('Reopen',Icons.undo,()=>respond(r,'reopen')),
+      ],
+     ],
+     onOpen:r['created_by']==me?()=>editor(existing:r):null,
+     removed:r['archived_at']!=null,
+     onRemove:r['created_by']==me?()=>archive(r):null),
+   ]),
    childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
    children:[
     LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
@@ -353,19 +367,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
       if(own['state']=='done'&&!repeating)TextButton(
        onPressed:busy?null:()=>respond(r,'reopen'),child:const Text('Reopen')),
      ]),
-    if(r['created_by']==me)Wrap(spacing:10,children:[
-     TextButton.icon(onPressed:busy?null:()=>editor(existing:r),
-      icon:const Icon(Icons.edit_outlined),label:const Text('Edit reminder')),
-     TextButton.icon(onPressed:busy?null:()=>archive(r),
-      icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.unarchive_outlined),
-      label:Text(r['archived_at']==null?'Remove':'Restore')),
-    ]),
-    Align(alignment:Alignment.centerRight,
-     child:TextButton.icon(
-      onPressed:()=>openChangeLog(context,kind:'reminder',
-       recordId:r['id'].toString(),recordTitle:r['title']?.toString()),
-      icon:const Icon(Icons.history),
-      label:const Text('Change log'))),
     if(history.isNotEmpty)ExpansionTile(
      title:Text('Outcome history · '+history.length.toString()),
      children:[for(final event in history)ListTile(

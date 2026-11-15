@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
 import '../../core/linked_items.dart';
@@ -193,7 +194,10 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
        original:DateTime.parse(p['occasion_on'].toString()),
        annual:p['annual']==true,today:today),today),
      ].join(' · ')),
-     trailing:const Icon(Icons.chevron_right),onTap:()=>open(p))),
+     trailing:ItemMenu(kind:'occasion',recordId:p['id'].toString(),title:p['title']?.toString(),
+      onOpen:()=>open(p),openLabel:'Open',table:'occasion_plans',
+      removed:p['archived_at']!=null,onChanged:load),
+     onTap:()=>open(p))),
    ])));
  }
 }

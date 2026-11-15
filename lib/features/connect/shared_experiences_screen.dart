@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
@@ -446,19 +447,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
          ExperiencePickerRules.completionState(r['category'].toString())+
           ': '+r['enjoyed_on'].toString(),
        ].join(' · ')),
-       trailing:PopupMenuButton<String>(
-        tooltip:'Experience actions',
-        onSelected:(choice){
-         if(choice=='edit'){edit(r);}
-         if(choice=='archive'){archiveFromList(r);}
-         if(choice=='rate'){quickRate(r);}
-        },
-        itemBuilder:(_)=>[
-         const PopupMenuItem(value:'edit',child:Text('Edit details')),
-         const PopupMenuItem(value:'rate',child:Text('Rate & review')),
-         PopupMenuItem(value:'archive',child:Text(
-          r['archived_at']==null?'Remove':'Restore')),
-        ]),
+       trailing:ItemMenu(kind:'experience',recordId:r['id'].toString(),title:r['title']?.toString(),
+        statusActions:[ItemMenuAction('Rate & review',Icons.star_outline,()=>quickRate(r))],
+        onOpen:()=>edit(r),removed:r['archived_at']!=null,onRemove:()=>archiveFromList(r)),
        onTap:()=>open(r)),
       if(ExperienceInterestRules.summary(interests,r['id'])!='No picks yet')
        Padding(padding:const EdgeInsets.only(left:6,bottom:8),child:Row(children:[

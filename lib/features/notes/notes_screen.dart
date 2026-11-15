@@ -1,3 +1,4 @@
+import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
@@ -209,7 +210,10 @@ class _NotesScreenState extends State<NotesScreen> {
                           ].join(' • '),
                           maxLines: 2, overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: ItemMenu(kind: 'note', recordId: note['id'].toString(),
+                          title: note['title']?.toString(),
+                          onOpen: () => _openEditor(note: note), openLabel: canEdit ? 'Edit' : 'Open',
+                          table: canEdit ? 'notes' : null, removed: archived, onChanged: _load),
                         onTap: () => _openEditor(note: note),
                       ),
                       if (canShare)
