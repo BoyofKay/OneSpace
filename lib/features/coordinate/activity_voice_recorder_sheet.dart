@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 
 import 'activity_voice_rules.dart';
 import 'activity_voice_service.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Record → Stop → Preview → Send or Discard.
 /// No recording starts until the user explicitly taps Record and grants mic
@@ -276,7 +277,7 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16,
+          padding: EdgeInsetsDirectional.fromSTEB(16, 8, 16,
               MediaQuery.viewInsetsOf(context).bottom + 12),
           child: SingleChildScrollView(
             child: Column(
@@ -286,10 +287,10 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                 Row(children: [
                   const Icon(Icons.mic_rounded, size: 22),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(title,
+                  Expanded(child: Text(tt(title),
                     style: Theme.of(context).textTheme.titleMedium)),
                   IconButton(
-                    tooltip: 'Discard voice recording',
+                    tooltip: tt('Discard voice recording'),
                     onPressed: sending || busy ? null : discardAndClose,
                     icon: const Icon(Icons.close),
                   ),
@@ -297,11 +298,11 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                 if (widget.contextLabel case final String contextLabel)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(contextLabel, maxLines: 2,
+                    child: Text(tt(contextLabel), maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall),
                   ),
-                Text(status,style:Theme.of(context).textTheme.bodySmall),
+                Text(tt(status),style:Theme.of(context).textTheme.bodySmall),
                 if(recording)...[
                   const SizedBox(height:8),
                   Row(mainAxisAlignment:MainAxisAlignment.center,
@@ -326,14 +327,14 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                       : null,
                   ),
                   const SizedBox(width: 6),
-                  Text(ActivityVoiceRules.durationLabel(seconds),
+                  Text(tt(ActivityVoiceRules.durationLabel(seconds)),
                     style: Theme.of(context).textTheme.titleLarge),
                   const Spacer(),
                   if (recording)
                     FilledButton.icon(
                       onPressed: busy ? null : stopRecording,
                       icon: const Icon(Icons.stop_rounded),
-                      label: const Text('Stop'),
+                      label: Text(tt('Stop')),
                     )
                   else if (ready)
                     FilledButton.icon(
@@ -342,13 +343,13 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                           ? const SizedBox(width: 17, height: 17,
                               child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.send_rounded),
-                      label: Text(sending ? 'Sending…' : 'Send'),
+                      label: Text(tt(sending ? tt('Sending…') : tt('Send'))),
                     )
                   else
                     FilledButton.icon(
                       onPressed: busy ? null : startRecording,
                       icon: const Icon(Icons.mic_rounded),
-                      label: const Text('Try again'),
+                      label: Text(tt('Try again')),
                     ),
                 ]),
                 if (ready) ...[
@@ -360,18 +361,18 @@ class _ActivityVoiceRecorderSheetState extends State<ActivityVoiceRecorderSheet>
                         onPressed: sending ? null : togglePreview,
                         icon: Icon(snapshot.data?.playing == true
                             ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                        label: Text(snapshot.data?.playing == true
-                            ? 'Pause' : 'Preview'),
+                        label: Text(tt(snapshot.data?.playing == true
+                            ? 'Pause' : 'Preview')),
                       ),
                       const Spacer(),
-                      Text('Up to 2 min',
+                      Text(tt('Up to 2 min'),
                           style: Theme.of(context).textTheme.labelSmall),
                     ]),
                   ),
                 ],
                 if (error != null) ...[
                   const SizedBox(height: 7),
-                  Text(error!, style: TextStyle(
+                  Text(tt(error!), style: TextStyle(
                     color: Theme.of(context).colorScheme.error)),
                 ],
 

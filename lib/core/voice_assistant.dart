@@ -28,6 +28,7 @@ import 'current_space_cache.dart';
 import 'form_kit.dart';
 import 'voice_commands.dart';
 import 'voice_session_sheet.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// What the assistant does with a command: say something, open a page,
 /// offer choices, or end the conversation.
@@ -209,7 +210,7 @@ class VoiceAssistant {
     'search' => const GlobalSearchScreen(),
     'sort' => const ItemsToSortScreen(),
     'love' => const PartnerGesturesScreen(),
-    'me' => Scaffold(appBar: AppBar(title: const Text('Me')), body: const MeScreen()),
+    'me' => Scaffold(appBar: AppBar(title: Text(tt('Me'))), body: const MeScreen()),
     _ => null,
   };
 

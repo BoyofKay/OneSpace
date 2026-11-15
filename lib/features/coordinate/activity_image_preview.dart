@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'activity_image_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Private Activity image preview. Each access obtains a short-lived URL
 /// through the viewer's authenticated RLS permissions, never a public URL.
@@ -54,9 +55,9 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
               maxScale: 5,
               child: Image.network(freshUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (ctx, error, stack) => const Padding(
+                errorBuilder: (ctx, error, stack) => Padding(
                   padding: EdgeInsets.all(20),
-                  child: Text('Unable to open this private image.'),
+                  child: Text(tt('Unable to open this private image.')),
                 )),
             ),
             Positioned(
@@ -64,7 +65,7 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
               top: 4,
               child: IconButton(
                 icon: const Icon(Icons.close),
-                tooltip: 'Close photo',
+                tooltip: tt('Close photo'),
                 onPressed: () => Navigator.of(ctx).pop(),
               )),
           ]),
@@ -73,8 +74,8 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(
-            'Unable to open the photo. Check your connection or access.')),
+        SnackBar(content: Text(
+            tt('Unable to open the photo. Check your connection or access.'))),
       );
     }
   }
@@ -87,7 +88,7 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
         return TextButton.icon(
           onPressed: () => setState(() => signedUrl = sign()),
           icon: const Icon(Icons.refresh),
-          label: const Text('Retry private photo'),
+          label: Text(tt('Retry private photo')),
         );
       }
       if (!snapshot.hasData) {
@@ -106,9 +107,9 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
             height: 145,
             fit: BoxFit.cover,
             semanticLabel: widget.label,
-            errorBuilder: (ctx, error, stack) => const SizedBox(
+            errorBuilder: (ctx, error, stack) => SizedBox(
               height: 110,
-              child: Center(child: Text('Photo unavailable. Tap to retry.')),
+              child: Center(child: Text(tt('Photo unavailable. Tap to retry.'))),
             ),
           ),
         ),

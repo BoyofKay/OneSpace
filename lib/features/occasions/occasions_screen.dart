@@ -17,6 +17,7 @@ import 'occasion_budget_workspace.dart';
 import 'occasion_preparation_reminders.dart';
 import '../notes/related_notes_panel.dart';
 import '../../core/responsive_field_pair.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 const occasionKinds=<String,String>{
  'birthday':'Birthday','anniversary':'Anniversary',
@@ -124,7 +125,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
   if(mounted)await load();
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'upcoming':'Upcoming','private':'Only me','shared':'Both of us','all':'All'},selected:filter,defaultValue:'upcoming')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:tt('Show'),options:const {'upcoming':'Upcoming','private':'Only me','shared':'Both of us','all':'All'},selected:filter,defaultValue:'upcoming')];
 
  @override Widget build(BuildContext context){
   final today=DateTime.now();
@@ -146,9 +147,9 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
    return next(a).compareTo(next(b));
   });
   return Scaffold(
-   appBar:AppBar(title:const Text('Occasions'),actions:[
+   appBar:AppBar(title:Text(tt('Occasions')),actions:[
     RecordListTopActions(
-     historyKinds:const ['occasion'],historyTitle:'Occasions',
+     historyKinds:const ['occasion'],historyTitle:tt('Occasions'),
      showHistory:archived,
      onToggleHistory:()=>setState(()=>archived=!archived),
      groups:_filterGroups(),
@@ -156,36 +157,36 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:archived,onClear:()=>setState((){archived=false;filter='upcoming';}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-occasions',
-    onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Add occasion')),
+    onPressed:()=>edit(),icon:const Icon(Icons.add),label:Text(tt('Add occasion'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
-    Text('Plan the thoughtful moments',style:Theme.of(context).textTheme.titleLarge),
+    padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,90),children:[
+    Text(tt('Plan the thoughtful moments'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
-    const Text('Remember the day, prepare surprises early, and start saving in time. Private plans stay private.'),
+    Text(tt('Remember the day, prepare surprises early, and start saving in time. Private plans stay private.')),
     const SizedBox(height:12),
     TextField(
      onChanged:(value)=>setState(()=>query=value),
-     decoration:const InputDecoration(
+     decoration:InputDecoration(
       prefixIcon:Icon(Icons.search),
-      labelText:'Search occasions',
-      hintText:'Title, person, occasion type or notes',
+      labelText:tt('Search occasions'),
+      hintText:tt('Title, person, occasion type or notes'),
       border:OutlineInputBorder())),
     const SizedBox(height:10),
     if(archived)Padding(padding:const EdgeInsets.only(bottom:8),
-     child:Text('Removed occasions · Open one to restore it.',
+     child:Text(tt('Removed occasions · Open one to restore it.'),
       style:Theme.of(context).textTheme.bodySmall)),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Center(child:Padding(padding:EdgeInsets.all(24),child:CircularProgressIndicator()))
-    else if(space==null)const Text('Connect your shared space first.')
-    else if(shown.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),
-     child:Text('Nothing planned here yet. Start with an upcoming birthday, anniversary or holiday.')))
+    else if(space==null)Text(tt('Connect your shared space first.'))
+    else if(shown.isEmpty)Card(child:Padding(padding:EdgeInsets.all(20),
+     child:Text(tt('Nothing planned here yet. Start with an upcoming birthday, anniversary or holiday.'))))
     else for(final p in shown)Card(elevation:0,child:ListTile(
      leading:CircleAvatar(child:StatusLook.mark(p['status']?.toString())??Icon(p['visibility']=='private'?
       Icons.lock_outline:Icons.card_giftcard_outlined)),
-     title:Text(p['title'].toString(),style:StatusLook.title(context,p['status']?.toString(),
+     title:Text(tt(p['title'].toString()),style:StatusLook.title(context,p['status']?.toString(),
       Theme.of(context).textTheme.titleMedium)),
-     subtitle:Text([
+     subtitle:Text(tt([
       if((p['honoree_name']??'').toString().isNotEmpty)p['honoree_name'].toString(),
       occasionKinds[p['kind']]??'Occasion',
       occasionStages[p['status']]??'Planning',
@@ -193,9 +194,9 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
       OccasionRules.countdown(OccasionRules.nextDate(
        original:DateTime.parse(p['occasion_on'].toString()),
        annual:p['annual']==true,today:today),today),
-     ].join(' · ')),
+     ].join(' · '))),
      trailing:ItemMenu(kind:'occasion',recordId:p['id'].toString(),title:p['title']?.toString(),
-      onOpen:()=>open(p),openLabel:'Open',table:'occasion_plans',
+      onOpen:()=>open(p),openLabel:tt('Open'),table:'occasion_plans',
       removed:p['archived_at']!=null,onChanged:load),
      onTap:()=>open(p))),
    ])));
@@ -286,57 +287,57 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   final editing=widget.existing!=null;
   final stages={for(final e in occasionStages.entries)
    if(!['celebrated','cancelled'].contains(e.key)||e.key==status)e.key:e.value};
-  return EditorScaffold(title:editing?'Edit occasion':'Add occasion',
+  return EditorScaffold(title:editing?tt('Edit occasion'):tt('Add occasion'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,notes,prep,saving,budget,currency,honoree],saving:busy,onSave:save,
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
    body:ListView(padding:const EdgeInsets.all(18),children:[
-   ChoiceRow<String>(label:'Type',options:occasionKinds,selected:kind,
+   ChoiceRow<String>(label:tt('Type'),options:occasionKinds,selected:kind,
     icons:const {'birthday':Icons.cake_outlined,'anniversary':Icons.favorite_border,
      'holiday':Icons.celebration_outlined,'celebration':Icons.emoji_events_outlined,'other':Icons.star_outline},
     onSelected:(v){if(v!=null)setState(()=>kind=v);}),
    TextField(controller:title,maxLength:160,autofocus:!editing,textCapitalization:TextCapitalization.sentences,
-    decoration:const InputDecoration(labelText:'What are we celebrating? *',
-     hintText:'Kay’s birthday, our anniversary…',border:OutlineInputBorder())),
+    decoration:InputDecoration(labelText:tt('What are we celebrating? *'),
+     hintText:tt('Kay’s birthday, our anniversary…'),border:OutlineInputBorder())),
    const SizedBox(height:10),
    TextField(controller:honoree,maxLength:120,textCapitalization:TextCapitalization.words,
-    decoration:const InputDecoration(labelText:'For whom',
+    decoration:InputDecoration(labelText:tt('For whom'),
      prefixIcon:Icon(Icons.person_outline),border:OutlineInputBorder())),
-   const FormSection('When'),
-   DateField(label:'Date',required:true,value:date,first:DateTime(1900),last:DateTime(2100),
+   FormSection(tt('When')),
+   DateField(label:tt('Date'),required:true,value:date,first:DateTime(1900),last:DateTime(2100),
     onChanged:(v){if(v!=null)setState(()=>date=v);}),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Every year',icon:Icons.event_repeat,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Every year'),icon:Icons.event_repeat,
     value:annual,onChanged:(v)=>setState(()=>annual=v))),
    const SizedBox(height:14),
-   ChoiceRow<String>(label:'Progress',options:stages,selected:status,
+   ChoiceRow<String>(label:tt('Progress'),options:stages,selected:status,
     onSelected:(v){if(v!=null)setState(()=>status=v);}),
-   const FormSection('Getting ready'),
+   FormSection(tt('Getting ready')),
    ResponsiveFieldPair(firstFlex:1,
     first:TextField(controller:prep,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Start preparing (days before)',border:OutlineInputBorder())),
+     decoration:InputDecoration(labelText:tt('Start preparing (days before)'),border:OutlineInputBorder())),
     second:TextField(controller:saving,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Start saving (days before)',border:OutlineInputBorder())),
+     decoration:InputDecoration(labelText:tt('Start saving (days before)'),border:OutlineInputBorder())),
    ),
    const SizedBox(height:12),
    ResponsiveFieldPair(
     first:TextField(controller:budget,
      keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     decoration:const InputDecoration(labelText:'Budget',border:OutlineInputBorder())),
+     decoration:InputDecoration(labelText:tt('Budget'),border:OutlineInputBorder())),
     second:TextField(controller:currency,maxLength:3,
      textCapitalization:TextCapitalization.characters,
-     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
+     decoration:InputDecoration(labelText:tt('Currency'),border:OutlineInputBorder())),
    ),
    const SizedBox(height:12),
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:6,
-    decoration:const InputDecoration(labelText:'Gift ideas, plans or wishes',
+    decoration:InputDecoration(labelText:tt('Gift ideas, plans or wishes'),
      alignLabelWithHint:true,border:OutlineInputBorder())),
-   if(visibility=='shared')Align(alignment:Alignment.centerLeft,
+   if(visibility=='shared')Align(alignment:AlignmentDirectional.centerStart,
     child:PartnerMentionButton(spaceId:widget.spaceId,controller:notes,enabled:true)),
-   Text(editing?'Who can see it stays as it was created, to protect surprises.'
-    :'Tip: keep surprises Only me.',style:Theme.of(context).textTheme.bodySmall),
+   Text(tt(editing?'Who can see it stays as it was created, to protect surprises.'
+    :'Tip: keep surprises Only me.'),style:Theme.of(context).textTheme.bodySmall),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
-    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
  }
 }
@@ -395,30 +396,30 @@ class _OccasionStepEditorState extends State<OccasionStepEditor> with FormChange
    catch(_){if(mounted)setState(()=>error='Could not save step.');}
    finally{if(mounted)setState(()=>busy=false);}
  }
- @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?'Add preparation step':'Edit preparation step',
+ @override Widget build(BuildContext context)=>EditorScaffold(title:widget.existing==null?tt('Add preparation step'):tt('Edit preparation step'),
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,cost,currency],saving:busy,onSave:save,
-   meta:MetaStrip(value:MetaValues(date:due),showVisibility:false,showBelongs:false,dateLabel:'Due date',
+   meta:MetaStrip(value:MetaValues(date:due),showVisibility:false,showBelongs:false,dateLabel:tt('Due date'),
     onChanged:(v)=>setState(()=>due=v.date)),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    TextField(controller:title,maxLength:200,autofocus:widget.existing==null,
     textCapitalization:TextCapitalization.sentences,
-    decoration:const InputDecoration(labelText:'What needs to happen? *',
-     hintText:'Book the restaurant, order the cake…',border:OutlineInputBorder())),
+    decoration:InputDecoration(labelText:tt('What needs to happen? *'),
+     hintText:tt('Book the restaurant, order the cake…'),border:OutlineInputBorder())),
    const SizedBox(height:6),
    ResponsiveFieldPair(
     first:TextField(controller:cost,
      keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     decoration:const InputDecoration(labelText:'Estimated cost',border:OutlineInputBorder())),
+     decoration:InputDecoration(labelText:tt('Estimated cost'),border:OutlineInputBorder())),
     second:TextField(controller:currency,maxLength:3,
      textCapitalization:TextCapitalization.characters,
-     decoration:const InputDecoration(labelText:'Currency',border:OutlineInputBorder())),
+     decoration:InputDecoration(labelText:tt('Currency'),border:OutlineInputBorder())),
    ),
    const SizedBox(height:6),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Done',icon:Icons.task_alt,value:done,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
     onChanged:(v)=>setState(()=>done=v))),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
-    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
 }
 
@@ -549,17 +550,17 @@ class _OccasionDetailState extends State<OccasionDetail>{
    original:DateTime.parse(p['occasion_on'].toString()),
    annual:p['annual']==true,today:DateTime.now());
   final total=OccasionRules.estimatedByCurrency(current);
-  return Scaffold(appBar:AppBar(title:const Text('Occasion plan'),actions:[
+  return Scaffold(appBar:AppBar(title:Text(tt('Occasion plan')),actions:[
     if(p!=null)ItemMenu(kind:'occasion',recordId:widget.id,title:p['title']?.toString(),
      statusActions:[
       if(p['archived_at']==null&&p['status']!='celebrated')
-       ItemMenuAction('Mark celebrated',Icons.celebration_outlined,()=>setStage('celebrated')),
+       ItemMenuAction(tt('Mark celebrated'),Icons.celebration_outlined,()=>setStage('celebrated')),
       if(p['archived_at']==null&&(p['status']=='celebrated'||p['status']=='cancelled'))
-       ItemMenuAction('Reopen',Icons.undo,()=>setStage('planning')),
+       ItemMenuAction(tt('Reopen'),Icons.undo,()=>setStage('planning')),
      ],
      onOpen:editPlan,
      moreActions:[
-      if(p['space_id']!=null)ItemMenuAction('Create from this',Icons.add_link,
+      if(p['space_id']!=null)ItemMenuAction(tt('Create from this'),Icons.add_link,
        ()=>createFromThis(context,kind:LinkKind.occasion,id:widget.id,
         spaceId:p['space_id'].toString(),title:p['title'].toString(),
         date:DateTime.tryParse(p['occasion_on']?.toString()??''),
@@ -568,30 +569,30 @@ class _OccasionDetailState extends State<OccasionDetail>{
      removed:p['archived_at']!=null,onRemove:busy?null:setArchived),
    ]),
    body:loading?const Center(child:CircularProgressIndicator()):
-    p==null?Center(child:Text(error??'Not available')):RefreshIndicator(
+    p==null?Center(child:Text(tt(error??'Not available'))):RefreshIndicator(
     onRefresh:load,child:ListView(
      physics:const AlwaysScrollableScrollPhysics(),
-     padding:const EdgeInsets.fromLTRB(16,12,16,35),children:[
-     Text(p['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+     padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,35),children:[
+     Text(tt(p['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.occasion,id:widget.id),
-     Text((occasionKinds[p['kind']]??'Occasion')+' · '+
+     Text(tt((occasionKinds[p['kind']]??'Occasion')+' · '+
       ((p['honoree_name']??'').toString().isNotEmpty?p['honoree_name'].toString()+' · ':'')+
       (p['visibility']=='private'?'Only me':'Both of us')+' · '+
-      (occasionStages[p['status']]??'Planning')),
+      (occasionStages[p['status']]??'Planning'))),
      const SizedBox(height:9),
      ListTile(leading:const Icon(Icons.event_available_outlined),
-      title:Text('Occasion: '+p['occasion_on'].toString()),
-      subtitle:Text(upcoming==null?'Past one-off event':
-       OccasionRules.countdown(upcoming,DateTime.now()))),
+      title:Text(tt('Occasion: ')+p['occasion_on'].toString()),
+      subtitle:Text(tt(upcoming==null?'Past one-off event':
+       OccasionRules.countdown(upcoming,DateTime.now())))),
      if(upcoming!=null)...[
       ListTile(leading:const Icon(Icons.shopping_bag_outlined),
-       title:const Text('Start preparing'),
-       subtitle:Text(CalendarRules.sqlDate(OccasionRules.prepStart(
-        upcoming,(p['prep_lead_days'] as num).toInt())!))),
+       title:Text(tt('Start preparing')),
+       subtitle:Text(tt(CalendarRules.sqlDate(OccasionRules.prepStart(
+        upcoming,(p['prep_lead_days'] as num).toInt())!)))),
       ListTile(leading:const Icon(Icons.savings_outlined),
-       title:const Text('Start setting money aside'),
-       subtitle:Text(CalendarRules.sqlDate(OccasionRules.prepStart(
-        upcoming,(p['saving_lead_days'] as num).toInt())!))),
+       title:Text(tt('Start setting money aside')),
+       subtitle:Text(tt(CalendarRules.sqlDate(OccasionRules.prepStart(
+        upcoming,(p['saving_lead_days'] as num).toInt())!)))),
      ],
      const SizedBox(height:14),
      OccasionPreparationReminders(plan:p),
@@ -607,54 +608,54 @@ class _OccasionDetailState extends State<OccasionDetail>{
      Wrap(spacing:10,runSpacing:6,
       alignment:WrapAlignment.spaceBetween,crossAxisAlignment:WrapCrossAlignment.center,
       children:[
-       Text('Preparation ('+current.where((s)=>s['done']==true).length.toString()+
+       Text(tt('Preparation (')+current.where((s)=>s['done']==true).length.toString()+
         '/'+current.length.toString()+')',style:Theme.of(context).textTheme.titleLarge),
        TextButton.icon(onPressed:()=>editStep(),icon:const Icon(Icons.add),
-        label:const Text('Add step')),
+        label:Text(tt('Add step'))),
       ]),
-     Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
       value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
-     if(current.isEmpty)const Text('Add shopping, reservations, surprises or budget milestones.'),
+     if(current.isEmpty)Text(tt('Add shopping, reservations, surprises or budget milestones.')),
      for(final step in steps.where((s)=>showRemoved||s['archived_at']==null))
       Card(elevation:0,child:Column(children:[
        CheckboxListTile(value:step['done']==true,
         controlAffinity:ListTileControlAffinity.leading,
         onChanged:step['archived_at']!=null||busy?null:(_)=>toggleStep(step),
-        title:Text(step['title'].toString(),style:TextStyle(
+        title:Text(tt(step['title'].toString()),style:TextStyle(
           decoration:step['done']==true?TextDecoration.lineThrough:null)),
-        subtitle:Text([
+        subtitle:Text(tt([
          if(step['due_on']!=null)'Due '+step['due_on'].toString(),
          if(step['estimated_cost']!=null)step['currency'].toString()+' '+
             (step['estimated_cost'] as num).toStringAsFixed(2),
          if(step['archived_at']!=null)'Removed',
-        ].join(' · '))),
+        ].join(' · ')))),
        Row(mainAxisAlignment:MainAxisAlignment.end,children:[
         TextButton.icon(onPressed:busy?null:()=>editStep(step),
-         icon:const Icon(Icons.edit_outlined),label:const Text('Edit')),
+         icon:const Icon(Icons.edit_outlined),label:Text(tt('Edit'))),
         TextButton.icon(onPressed:busy?null:()=>archiveStep(step),
          icon:Icon(step['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined),
-         label:Text(step['archived_at']==null?'Remove':'Restore')),
+         label:Text(tt(step['archived_at']==null?tt('Remove'):tt('Restore')))),
        ]),
       ])),
      if(total.isNotEmpty)...[
       const SizedBox(height:9),
-      Text('Estimated spending by currency',style:Theme.of(context).textTheme.titleMedium),
+      Text(tt('Estimated spending by currency'),style:Theme.of(context).textTheme.titleMedium),
       for(final c in total.keys.toList()..sort())
-       Text(c+' '+total[c]!.toStringAsFixed(2)),
+       Text(tt(c+' '+total[c]!.toStringAsFixed(2))),
      ],
      const Divider(height:30),
      ListTile(leading:const Icon(Icons.history),
-      title:const Text('Change history'),
+      title:Text(tt('Change history')),
       trailing:Icon(showHistory?Icons.expand_less:Icons.expand_more),
       onTap:()=>setState(()=>showHistory=!showHistory)),
      if(showHistory)...[
-      if(history.isEmpty)const Text('No changes recorded yet.'),
+      if(history.isEmpty)Text(tt('No changes recorded yet.')),
       for(final row in history)ListTile(dense:true,
-       title:Text(row['record_kind'].toString()+' changed by '+
-        (row['changed_by']==db.auth.currentUser?.id?'you':'partner')),
-       subtitle:Text(row['changed_at'].toString().replaceFirst('T',' ').split('.').first)),
+       title:Text(tt(row['record_kind'].toString()+' changed by '+
+        (row['changed_by']==db.auth.currentUser?.id?'you':'partner'))),
+       subtitle:Text(tt(row['changed_at'].toString().replaceFirst('T',' ').split('.').first))),
      ],
-     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
    ])));
  }
 }

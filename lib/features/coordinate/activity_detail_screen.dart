@@ -25,6 +25,7 @@ import 'activity_inline_voice_composer.dart';
 import 'activity_voice_recorder_sheet.dart';
 import 'activity_voice_service.dart';
 import 'activity_message_identity.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
@@ -120,14 +121,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
   /// R56: free-text prompts open as a page (Cancel/Save pinned), not a pop-up.
   Future<String?> prompt(String label, {String initial = '', int max = 12000}) async {
     final values = await showFormPage(context, title: label, isNew: initial.isEmpty,
-        fields: [FormFieldSpec('Text', initial: initial, maxLength: max, lines: 3)]);
+        fields: [FormFieldSpec(tt('Text'), initial: initial, maxLength: max, lines: 3)]);
     return values?.first;
   }
 
   Future<void> editActivity(Map<String, dynamic> item) async {
-    final values = await showFormPage(context, title: 'Edit activity', fields: [
-      FormFieldSpec('Title', initial: item['title']?.toString() ?? '', required: true, maxLength: 120),
-      FormFieldSpec('Details', initial: item['body']?.toString() ?? '', maxLength: 12000, lines: 5),
+    final values = await showFormPage(context, title: tt('Edit activity'), fields: [
+      FormFieldSpec(tt('Title'), initial: item['title']?.toString() ?? '', required: true, maxLength: 120),
+      FormFieldSpec(tt('Details'), initial: item['body']?.toString() ?? '', maxLength: 12000, lines: 5),
     ]);
     if (values == null || !mounted) return;
     await run(() async {
@@ -196,13 +197,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('Which option did we choose?',
+              child: Text(tt('Which option did we choose?'),
                   style: Theme.of(ctx).textTheme.titleMedium),
             ),
             for (final item in results)
               ListTile(
                 leading: const Icon(Icons.check_circle_outline),
-                title: Text(item['label']?.toString() ?? ''),
+                title: Text(tt(item['label']?.toString() ?? '')),
                 onTap: () => Navigator.pop(ctx, item['id'] as String),
               ),
           ],
@@ -220,7 +221,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     stream: decisions,
     builder: (context, snapshot) {
       if (snapshot.hasError) {
-        return const Text('Outcome history could not be loaded.');
+        return Text(tt('Outcome history could not be loaded.'));
       }
       if (!snapshot.hasData) return const LinearProgressIndicator();
       final history = snapshot.data!;
@@ -231,15 +232,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Expanded(child: Text('Decision & outcome',
+              Expanded(child: Text(tt('Decision & outcome'),
                 style: Theme.of(context).textTheme.titleMedium)),
               IconButton(
-                tooltip: 'Choose an option',
+                tooltip: tt('Choose an option'),
                 icon: const Icon(Icons.fact_check_outlined),
                 onPressed: chooseDecisionOption,
               ),
               AnchoredMenuButton<String>(
-                tooltip: 'Record an outcome',
+                tooltip: tt('Record an outcome'),
                 icon: const Icon(Icons.more_horiz),
                 onSelected: (action) => recordDecision(action),
                 itemBuilder: (_) => [
@@ -247,15 +248,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       .where((v) => v != 'chosen'))
                     PopupMenuItem(
                       value: action,
-                      child: Text(ActivityDecisionRules.titleFor(action)),
+                      child: Text(tt(ActivityDecisionRules.titleFor(action))),
                     ),
                 ],
               ),
             ]),
             if (latest == null)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('No decision yet. Choose an option or record an outcome.'),
+                child: Text(tt('No decision yet. Choose an option or record an outcome.')),
               )
             else
               Card(
@@ -265,8 +266,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(ActivityDecisionRules.titleFor(
-                          latest['action']?.toString() ?? ''),
+                      Text(tt(ActivityDecisionRules.titleFor(
+                          latest['action']?.toString() ?? '')),
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                       if (latest['component_id'] != null)
                         StreamBuilder<List<Map<String, dynamic>>>(
@@ -277,14 +278,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                     item['id'] == latest['component_id'])
                                 .firstOrNull;
                             return Text(
-                              selected?['label']?.toString() ?? 'Selected option',
+                              tt(selected?['label']?.toString() ?? 'Selected option'),
                               style: Theme.of(context).textTheme.bodyLarge,
                             );
                           },
                         ),
                       if ((latest['reason']?.toString() ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(latest['reason'].toString()),
+                        Text(tt(latest['reason'].toString())),
                       ],
                       const SizedBox(height: 4),
                       Text('${author(latest['created_by']?.toString(),spaceId)}'
@@ -297,21 +298,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
             if (history.length > 1)
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                title: Text('Previous outcomes (${history.length - 1})',
+                title: Text('${tt('Previous outcomes')} (${history.length - 1})',
                     style: Theme.of(context).textTheme.labelLarge),
                 children: [
                   for (final entry in history.where(
                       (event) => event['id'] != latest?['id']))
                     ListTile(
                       dense: true,
-                      title: Text(ActivityDecisionRules.titleFor(
-                          entry['action']?.toString() ?? '')),
-                      subtitle: Text([
+                      title: Text(tt(ActivityDecisionRules.titleFor(
+                          entry['action']?.toString() ?? ''))),
+                      subtitle: Text(tt([
                         if ((entry['reason']?.toString() ?? '').isNotEmpty)
                           entry['reason'].toString(),
                         '${author(entry['created_by']?.toString(),spaceId)}'
                             ' · ${when(entry['created_at'])}',
-                      ].join('\n')),
+                      ].join('\n'))),
                     ),
                 ],
               ),
@@ -362,12 +363,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final chosen = await showModalBottomSheet<String>(
       context: context, showDragHandle: true,
       builder: (ctx) => SafeArea(child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 14),
         child: SingleChildScrollView(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(underTitle == null ? 'Add to this Activity'
-                : 'Add detail to $underTitle',
+            Text(tt(underTitle == null ? 'Add to this Activity'
+                : 'Add detail to $underTitle'),
               style: Theme.of(ctx).textTheme.titleMedium),
             const SizedBox(height: 12),
             Wrap(spacing: 7, runSpacing: 7,
@@ -375,7 +376,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 for (final choice in choices)
                   ActionChip(
                     avatar: Icon(choice.$2, size: 17),
-                    label: Text(choice.$3),
+                    label: Text(tt(choice.$3)),
                     onPressed: () => Navigator.pop(ctx, choice.$1),
                   ),
               ]),
@@ -540,7 +541,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await Clipboard.setData(ClipboardData(text: url));
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot open website; link copied.')));
+          SnackBar(content: Text(tt('Cannot open website; link copied.'))));
       }
     } catch (_) {
       if (mounted) setState(() => issue = 'Could not open the link.');
@@ -567,8 +568,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
         await Clipboard.setData(ClipboardData(text: uri.path));
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(
-            'No compatible app found. Contact detail copied.',
+          SnackBar(content: Text(
+            tt('No compatible app found. Contact detail copied.'),
           )),
         );
       }
@@ -639,16 +640,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> _setComponentRemoved(Map<String,dynamic> item,bool remove) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
       AlertDialog(
-        title:Text(remove?'Remove this component?':'Restore this component?'),
-        content:Text(remove
+        title:Text(tt(remove?tt('Remove this component?'):tt('Restore this component?'))),
+        content:Text(tt(remove
           ?'It will disappear from the active Activity. Its contents and '
            'change history are preserved.'
-          :'Return this component to the Activity.'),
+          :'Return this component to the Activity.')),
         actions:[
           TextButton(onPressed:()=>Navigator.pop(ctx,false),
-            child:const Text('Keep')),
+            child:Text(tt('Keep'))),
           FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-            child:Text(remove?'Remove':'Restore')),
+            child:Text(tt(remove?tt('Remove'):tt('Restore')))),
         ],
       ));
     if(confirmed!=true||!mounted)return;
@@ -665,16 +666,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> _setActivityArchived(Map<String,dynamic> item,bool archive) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
       AlertDialog(
-        title:Text(archive?'Remove this Activity?':'Restore this Activity?'),
-        content:Text(archive
+        title:Text(tt(archive?tt('Remove this Activity?'):tt('Restore this Activity?'))),
+        content:Text(tt(archive
           ?'Hide this Activity from active lists while keeping its '
            'comments, evidence, decisions, and audit trail.'
-          :'Restore this Activity without losing history.'),
+          :'Restore this Activity without losing history.')),
         actions:[
           TextButton(onPressed:()=>Navigator.pop(ctx,false),
-            child:const Text('Cancel')),
+            child:Text(tt('Cancel'))),
           FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-            child:Text(archive?'Remove':'Restore')),
+            child:Text(tt(archive?tt('Remove'):tt('Restore')))),
         ],
       ));
     if(confirmed!=true||!mounted)return;
@@ -691,14 +692,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> _finishActivity(Map<String,dynamic> item) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
       AlertDialog(
-        title:const Text('Mark Activity completed?'),
-        content:const Text('Every comment, component, decision and edit '
-          'remains available. You can reopen it later.'),
+        title:Text(tt('Mark Activity completed?')),
+        content:Text(tt('Every comment, component, decision and edit '
+          'remains available. You can reopen it later.')),
         actions:[
           TextButton(onPressed:()=>Navigator.pop(ctx,false),
-            child:const Text('Not yet')),
+            child:Text(tt('Not yet'))),
           FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-            child:const Text('Mark completed')),
+            child:Text(tt('Mark completed'))),
         ],
       ));
     if(confirmed==true&&mounted)await changeField(item,'stage','completed');
@@ -729,92 +730,92 @@ class _ActivityScreenState extends State<ActivityScreen> {
               if (kind == 'link')
                 ListTile(
                   leading: const Icon(Icons.open_in_new),
-                  title: const Text('Open website'),
+                  title: Text(tt('Open website')),
                   onTap: () => Navigator.pop(ctx, 'open-link')),
               if (kind == 'location')
                 ListTile(
                   leading: const Icon(Icons.map_outlined),
-                  title: const Text('Open in Maps'),
+                  title: Text(tt('Open in Maps')),
                   onTap: () => Navigator.pop(ctx, 'open-location')),
               if (kind == 'reminder')
                 ListTile(
                   leading: Icon(payload['status']=='done'
                     ? Icons.restart_alt : Icons.done_all),
-                  title: Text(payload['status']=='done'
+                  title: Text(tt(payload['status']=='done'
                     ? 'Reopen shared reminder'
-                    : 'Mark reminder handled for both of us'),
+                    : 'Mark reminder handled for both of us')),
                   onTap: () => Navigator.pop(ctx,'reminder'),
                 ),
               if (kind == 'step')
                 ListTile(
                   leading: Icon(payload['status'] == 'done'
                       ? Icons.restart_alt : Icons.check_circle_outline),
-                  title: Text(payload['status'] == 'done'
-                      ? 'Reopen step' : 'Mark step completed'),
+                  title: Text(tt(payload['status'] == 'done'
+                      ? 'Reopen step' : 'Mark step completed')),
                   onTap: () => Navigator.pop(ctx, 'step')),
               if (kind == 'option') ...[
                 ListTile(
                   leading: const Icon(Icons.fact_check_outlined),
-                  title: const Text('Choose this option'),
+                  title: Text(tt('Choose this option')),
                   onTap: () => Navigator.pop(ctx, 'choose')),
                 ListTile(
                   leading: const Icon(Icons.tune_outlined),
-                  title: const Text('Add a specification'),
+                  title: Text(tt('Add a specification')),
                   onTap: () => Navigator.pop(ctx, 'add-spec')),
                 ListTile(
                   leading: const Icon(Icons.payments_outlined),
-                  title: const Text('Add or update a price observation'),
+                  title: Text(tt('Add or update a price observation')),
                   onTap: () => Navigator.pop(ctx, 'add-price')),
                 ListTile(
                   leading: const Icon(Icons.note_add_outlined),
-                  title: const Text('Add a note or response'),
+                  title: Text(tt('Add a note or response')),
                   onTap: () => Navigator.pop(ctx, 'add-note')),
                 ListTile(
                   leading: const Icon(Icons.link),
-                  title: const Text('Attach another source link'),
+                  title: Text(tt('Attach another source link')),
                   onTap: () => Navigator.pop(ctx, 'add-link')),
                 ListTile(
                   leading: const Icon(Icons.mic_none_outlined),
-                  title: const Text('Attach voice note'),
+                  title: Text(tt('Attach voice note')),
                   onTap: () => Navigator.pop(ctx, 'add-voice')),
                 ListTile(
                   leading: const Icon(Icons.contact_phone_outlined),
-                  title: const Text('Attach contact information'),
+                  title: Text(tt('Attach contact information')),
                   onTap: () => Navigator.pop(ctx, 'add-contact')),
               ],
               ListTile(
                 leading: const Icon(Icons.chat_bubble_outline),
-                title: const Text('Discuss this item'),
+                title: Text(tt('Discuss this item')),
                 onTap: () => Navigator.pop(ctx, 'comment')),
               if (kind != 'step') ...[
                 ListTile(
                   leading: const Icon(Icons.thumb_up_outlined),
-                  title: const Text('Like'),
+                  title: Text(tt('Like')),
                   trailing: current == 1 ? const Icon(Icons.check) : null,
                   onTap: () => Navigator.pop(ctx, 'like')),
                 ListTile(
                   leading: const Icon(Icons.thumb_down_outlined),
-                  title: const Text('Dislike'),
+                  title: Text(tt('Dislike')),
                   trailing: current == -1 ? const Icon(Icons.check) : null,
                   onTap: () => Navigator.pop(ctx, 'dislike')),
               ],
               ListTile(
                 leading: const Icon(Icons.add_outlined),
-                title: const Text('Attach another component'),
+                title: Text(tt('Attach another component')),
                 onTap: () => Navigator.pop(ctx, 'child')),
               ListTile(
                 leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit'),
+                title: Text(tt('Edit')),
                 onTap: () => Navigator.pop(ctx, 'edit')),
               ListTile(
                 leading:const Icon(Icons.history),
-                title:const Text('Edit & removal history'),
+                title:Text(tt('Edit & removal history')),
                 onTap:()=>Navigator.pop(ctx,'history')),
               ListTile(
                 leading:Icon(item['archived_at']==null
                   ?Icons.remove_circle_outline:Icons.restore_outlined),
-                title:Text(item['archived_at']==null?
-                  'Remove from Activity':'Restore component'),
+                title:Text(tt(item['archived_at']==null?
+                  'Remove from Activity':'Restore component')),
                 onTap:()=>Navigator.pop(ctx,'toggle-removed')),
             ]),
           ),
@@ -874,14 +875,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
       if (!mounted) return;
       await showDialog<void>(context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Component history'),
+          title: Text(tt('Component history')),
           content: SizedBox(width: 420,
             child: ListView(shrinkWrap: true, children: [
-              if (changes.isEmpty) const Text('No edits yet.'),
+              if (changes.isEmpty) Text(tt('No edits yet.')),
               for (final change in changes)
                 ListTile(
-                  title:Text((change['change_kind']?.toString()??'Edited')+
-                    ' · '+when(change['changed_at'])),
+                  title:Text(tt((change['change_kind']?.toString()??'Edited')+
+                    ' · '+when(change['changed_at']))),
                   subtitle: Text(
                     '${change['old_label']} → ${change['new_label']}\n'
                     '${change['old_payload']} → ${change['new_payload']}'),
@@ -889,7 +890,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ])),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close')),
+              child: Text(tt('Close'))),
           ],
         ));
     });
@@ -1039,7 +1040,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           onTap: kind == 'voice'||removed ? null : primaryAction,
           onLongPress: () => componentMenu(item, allVotes),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(11, 10, 7, 10),
+            padding: const EdgeInsetsDirectional.fromSTEB(11, 10, 7, 10),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (kind == 'step')
                 SizedBox(width: 30, height: 30,
@@ -1050,19 +1051,19 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   child: Checkbox(value: done,
                     onChanged: (_) => toggleReminder(item)))
               else
-                Padding(padding: const EdgeInsets.only(top: 4, right: 8),
+                Padding(padding: const EdgeInsetsDirectional.only(top: 4, end: 8),
                   child: Icon(typeIcon(kind), size: 19,
                     color: Theme.of(context).colorScheme.secondary)),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item['label']?.toString() ?? '',
+                  Text(tt(item['label']?.toString() ?? ''),
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color:removed?Theme.of(context).colorScheme.outline:null,
                       decoration: done ? TextDecoration.lineThrough : null,
                     )),
-                  if(removed)const Text('Removed · kept in history'),
+                  if(removed)Text(tt('Removed · kept in history')),
                   if (value.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     SelectableText(value,
@@ -1074,10 +1075,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ],
                   if(kind=='countdown')...[
                     const SizedBox(height:5),
-                    Text('Milestone: '+(payload['value']?.toString()??''),
+                    Text(tt('Milestone: ')+(payload['value']?.toString()??''),
                       style:Theme.of(context).textTheme.labelSmall),
                     if(payload['repeat_yearly']==true)
-                      Text('Repeats every year',
+                      Text(tt('Repeats every year'),
                         style:Theme.of(context).textTheme.bodySmall),
                   ],
                   if (contact != null) ...[
@@ -1107,13 +1108,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   ],
                   if (note.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(note, style: Theme.of(context).textTheme.bodySmall),
+                    Text(tt(note), style: Theme.of(context).textTheme.bodySmall),
                   ],
                   if (url.isNotEmpty)
                     TextButton.icon(
                       onPressed: () => openExternal(url),
                       icon: const Icon(Icons.open_in_new, size: 15),
-                      label: const Text('Open link'),
+                      label: Text(tt('Open link')),
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 0)),
                     ),
@@ -1121,7 +1122,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     TextButton.icon(
                       onPressed: () => openMap(location),
                       icon: const Icon(Icons.map_outlined, size: 15),
-                      label: const Text('Open in Maps'),
+                      label: Text(tt('Open in Maps')),
                       style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 0)),
                     ),
@@ -1132,10 +1133,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
                      builder:(_)=>SendOptionToOccasionSheet(
                       activityId:widget.id,option:item)),
                     icon:const Icon(Icons.card_giftcard_outlined,size:16),
-                    label:const Text('Send to occasion plan'),
+                    label:Text(tt('Send to occasion plan')),
                    ),
                   if (kind == 'reminder')
-                    Text('Notification not active',
+                    Text(tt('Notification not active'),
                         style: Theme.of(context).textTheme.labelSmall),
                   if (likes > 0 || dislikes > 0)
                     Padding(padding: const EdgeInsets.only(top: 4),
@@ -1180,7 +1181,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Widget componentSection() => StreamBuilder<List<Map<String,dynamic>>>(
     stream: components,
     builder: (context, snapshot) {
-      if (snapshot.hasError) return const Text('Could not load attached items.');
+      if (snapshot.hasError) return Text(tt('Could not load attached items.'));
       if (!snapshot.hasData) return const LinearProgressIndicator();
       final items = snapshot.data!;
       final visible=showRemovedComponents?items:
@@ -1202,29 +1203,29 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     showRemovedComponents=!showRemovedComponents),
                   icon:Icon(showRemovedComponents?
                     Icons.visibility_off_outlined:Icons.history_toggle_off),
-                  label:Text(showRemovedComponents?
-                    'Hide removed items':'View removed items'))),
+                  label:Text(tt(showRemovedComponents?
+                    'Hide removed items':'View removed items')))),
             if (items.isEmpty) ...[
               Row(children: [
-                Expanded(child: Text('Add to this Activity',
+                Expanded(child: Text(tt('Add to this Activity'),
                   style: Theme.of(context).textTheme.titleMedium)),
                 IconButton(
-                  tooltip: 'Add a component',
+                  tooltip: tt('Add a component'),
                   onPressed: chooseAdd,
                   icon: const Icon(Icons.add_circle_outline)),
               ]),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Add a product, link, note, step or map location.')),
+              Padding(padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(tt('Add a product, link, note, step or map location.'))),
             ],
             if (options.isNotEmpty) ...[
               Row(children: [
-                Expanded(child: Text('Options · ${options.length}',
+                Expanded(child: Text('${tt('Options')} · ${options.length}',
                   style: Theme.of(context).textTheme.titleMedium)),
                 if (options.length >= 2)
-                  IconButton(tooltip: 'Compare options',
+                  IconButton(tooltip: tt('Compare options'),
                     onPressed: () => compare(items, votes),
                     icon: const Icon(Icons.compare_arrows)),
-                IconButton(tooltip: 'Add option',
+                IconButton(tooltip: tt('Add option'),
                   onPressed: () => openEditor('option'),
                   icon: const Icon(Icons.add)),
               ]),
@@ -1236,7 +1237,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 Expanded(child: Text('Next steps · ${steps.where(
                     (i) => (i['payload'] as Map?)?['status'] != 'done').length} open',
                   style: Theme.of(context).textTheme.titleMedium)),
-                IconButton(tooltip: 'Add step',
+                IconButton(tooltip: tt('Add step'),
                   onPressed: () => openEditor('step'),
                   icon: const Icon(Icons.add)),
               ]),
@@ -1245,9 +1246,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ],
             if (references.isNotEmpty) ...[
               Row(children: [
-                Expanded(child: Text('Notes & references',
+                Expanded(child: Text(tt('Notes & references'),
                   style: Theme.of(context).textTheme.titleMedium)),
-                IconButton(tooltip: 'Add reference',
+                IconButton(tooltip: tt('Add reference'),
                   onPressed: chooseAdd,
                   icon: const Icon(Icons.add)),
               ]),
@@ -1265,7 +1266,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     stream: comments,
     builder: (context, messagesSnapshot) {
       if (messagesSnapshot.hasError) {
-        return const Text('Could not load the conversation.');
+        return Text(tt('Could not load the conversation.'));
       }
       if (!messagesSnapshot.hasData) return const LinearProgressIndicator();
       final messages = messagesSnapshot.data!;
@@ -1287,11 +1288,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
           return Column(key: _conversationKey,
             crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 18),
-            Text('Conversation', style: Theme.of(context).textTheme.titleMedium),
+            Text(tt('Conversation'), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
             if (messages.isEmpty)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text('Start talking here. Every message stays with this Activity.')),
+              Padding(padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(tt('Start talking here. Every message stays with this Activity.'))),
             for (final message in messages)
               commentBubble(message, spaceId, messages, componentItems),
           ]);
@@ -1323,7 +1324,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
 
     return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
       child: GestureDetector(
         // Let tapping a voice bubble control playback; long-press still replies.
         onTap: isVoice ? null : () => startReply(msg),
@@ -1336,12 +1337,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.reply_outlined),
-                  title: const Text('Reply'),
+                  title: Text(tt('Reply')),
                   onTap: () => Navigator.pop(ctx, 'reply')),
                 if (!isVoice)
                   ListTile(
                     leading: const Icon(Icons.copy_outlined),
-                    title: const Text('Copy message'),
+                    title: Text(tt('Copy message')),
                     onTap: () => Navigator.pop(ctx, 'copy')),
               ],
             )),
@@ -1373,18 +1374,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: Theme.of(context).colorScheme.surface,
-                    child: Text(avatarText,
+                    child: Text(tt(avatarText),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.primary)),
                   ),
-                  Text(when(msg['created_at']),
+                  Text(tt(when(msg['created_at'])),
                     style: Theme.of(context).textTheme.labelSmall),
                 ]),
               if (replyQuote != null || target != null) ...[
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 6, 4),
+                  padding: const EdgeInsetsDirectional.fromSTEB(8, 4, 6, 4),
                   decoration: BoxDecoration(
                     border: Border(
                       left: BorderSide(
@@ -1397,11 +1398,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (target != null)
-                        Text('About: $target',
+                        Text('${tt('About')}: $target',
                           maxLines: 1, overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.labelSmall),
                       if (replyQuote != null)
-                        Text(replyQuote,
+                        Text(tt(replyQuote),
                           maxLines: 2, overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.labelSmall),
                     ],
@@ -1415,7 +1416,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   seconds: (msg['voice_seconds'] as num?)?.toInt() ?? 0,
                 )
               else
-                Text(msg['body']?.toString() ?? '',
+                Text(tt(msg['body']?.toString() ?? ''),
                   style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
@@ -1427,7 +1428,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Widget bottomComposer()=>SafeArea(
     top:false,
     child:Container(
-      padding:const EdgeInsets.fromLTRB(9,5,9,8),
+      padding:const EdgeInsetsDirectional.fromSTEB(9,5,9,8),
       decoration:BoxDecoration(
         color:Theme.of(context).colorScheme.surface,
         border:Border(top:BorderSide(
@@ -1436,25 +1437,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
       child:Column(mainAxisSize:MainAxisSize.min,children:[
         if(replyingTo!=null||onComponent!=null)Row(children:[
           Expanded(child:Text(
-            replyingTo!=null?'Replying to: '+(replyPreview??'message'):
-              'Discussing: '+(onComponentTitle??'attached item'),
+            tt(replyingTo!=null?'Replying to: '+(replyPreview??'message'):
+              'Discussing: '+(onComponentTitle??'attached item')),
             maxLines:1,overflow:TextOverflow.ellipsis,
             style:Theme.of(context).textTheme.labelSmall)),
           IconButton(icon:const Icon(Icons.close,size:16),
-            tooltip:'Cancel reply',onPressed:()=>setState((){
+            tooltip:tt('Cancel reply'),onPressed:()=>setState((){
               replyingTo=null;replyPreview=null;
               onComponent=null;onComponentTitle=null;
             })),
         ]),
         if(mentionSuggestion!=null)Align(
-          alignment:Alignment.centerLeft,
+          alignment:AlignmentDirectional.centerStart,
           child:Card(elevation:2,child:InkWell(
             onTap:_acceptMention,
             child:Padding(padding:const EdgeInsets.all(10),
               child:Row(mainAxisSize:MainAxisSize.min,children:[
                 const Icon(Icons.alternate_email,size:18),
                 const SizedBox(width:8),
-                Text(mentionSuggestion!),
+                Text(tt(mentionSuggestion!)),
               ]),
             ),
           )),
@@ -1474,7 +1475,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         )
         else Row(children:[
           IconButton(
-            tooltip:'Record voice message',
+            tooltip:tt('Record voice message'),
             onPressed:sending?null:(){
               FocusScope.of(context).unfocus();
               setState(()=>voiceMode=true);
@@ -1486,14 +1487,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
             minLines:1,maxLines:4,maxLength:5000,
             textCapitalization:TextCapitalization.sentences,
             textInputAction:TextInputAction.newline,
-            decoration:const InputDecoration(
-              hintText:'Message your partner…',
+            decoration:InputDecoration(
+              hintText:tt('Message your partner…'),
               isDense:true,counterText:'',
               contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:10),
               border:OutlineInputBorder(),
             ),
           )),
-          IconButton(tooltip:'Send message',
+          IconButton(tooltip:tt('Send message'),
             onPressed:sending?null:send,
             icon:const Icon(Icons.send_rounded)),
         ]),
@@ -1508,18 +1509,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Column(children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         AnchoredMenuButton<String>(
-          tooltip: 'Priority: $priority',
+          tooltip: '${tt('Priority')}: $priority',
           icon: Icon(Icons.flag_outlined, size: 22,
             color: priority == 'high' || priority == 'urgent'
               ? Theme.of(context).colorScheme.error : null),
           onSelected: (value) => changeField(item, 'priority', value),
           itemBuilder: (_) => [
             for (final v in ['low','normal','high','urgent'])
-              PopupMenuItem(value: v, child: Text('Priority · $v')),
+              PopupMenuItem(value: v, child: Text('${tt('Priority')} · $v')),
           ],
         ),
         AnchoredMenuButton<String>(
-          tooltip: 'Status: $stage',
+          tooltip: '${tt('Status')}: $stage',
           icon: const Icon(Icons.task_alt, size: 22),
           onSelected: (value) {
             if (value == 'decision') {
@@ -1532,20 +1533,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
           },
           itemBuilder: (_) => [
             for (final v in ['exploring','comparing'])
-              PopupMenuItem(value: v, child: Text('Status · $v')),
-            const PopupMenuItem(value: 'decision',
-                child: Text('Choose an option…')),
-            const PopupMenuItem(value: 'outcome',
-                child: Text('Reopen Activity…')),
+              PopupMenuItem(value: v, child: Text('${tt('Status')} · $v')),
+            PopupMenuItem(value: 'decision',
+                child: Text(tt('Choose an option…'))),
+            PopupMenuItem(value: 'outcome',
+                child: Text(tt('Reopen Activity…'))),
           ],
         ),
-        IconButton(tooltip: 'Set due date', icon: const Icon(Icons.event_outlined),
+        IconButton(tooltip: tt('Set due date'), icon: const Icon(Icons.event_outlined),
           onPressed: () => pickDueDate(item)),
         if (due != null)
-          IconButton(tooltip: 'Remove due date',
+          IconButton(tooltip: tt('Remove due date'),
             icon: const Icon(Icons.event_busy_outlined),
             onPressed: () => changeField(item, 'due_on', null)),
-        IconButton(tooltip: 'Add an item', icon: const Icon(Icons.add_circle_outline),
+        IconButton(tooltip: tt('Add an item'), icon: const Icon(Icons.add_circle_outline),
           onPressed: chooseAdd),
       ]),
       Padding(
@@ -1569,19 +1570,19 @@ class _ActivityScreenState extends State<ActivityScreen> {
           child: StreamBuilder<List<Map<String,dynamic>>>(
             stream: revisions,
             builder: (context, s) => ListView(children: [
-              Text('Activity edit history',
+              Text(tt('Activity edit history'),
                 style: Theme.of(ctx).textTheme.titleLarge),
               const SizedBox(height: 12),
               ListTile(
-                title: const Text('Original'),
+                title: Text(tt('Original')),
                 subtitle: Text('${item['original_title']}\n'
                     '${item['original_body']}\n'
                     '${when(item['created_at'])}')),
               if (s.hasData)
                 for (final rev in s.data!)
                   ListTile(
-                    title:Text((rev['change_kind']?.toString()??'Edited')+
-                      ' · '+when(rev['changed_at'])),
+                    title:Text(tt((rev['change_kind']?.toString()??'Edited')+
+                      ' · '+when(rev['changed_at']))),
                     subtitle: Text(
                       '${rev['old_title']} → ${rev['new_title']}\n'
                       '${rev['old_body']} → ${rev['new_body']}\n'
@@ -1601,25 +1602,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
     builder: (context, s) {
       if (s.hasError) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Activity')),
-          body: const Center(child: Text('This Activity could not be loaded.')));
+          appBar: AppBar(title: Text(tt('Activity'))),
+          body: Center(child: Text(tt('This Activity could not be loaded.'))));
       }
       if (!s.hasData) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Activity')),
+          appBar: AppBar(title: Text(tt('Activity'))),
           body: const Center(child: CircularProgressIndicator()));
       }
       if (s.data!.isEmpty) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Activity')),
-          body: const Center(child: Text('Activity not available.')));
+          appBar: AppBar(title: Text(tt('Activity'))),
+          body: Center(child: Text(tt('Activity not available.'))));
       }
       final item = s.data!.first;
       conversationSpaceId=item['space_id']?.toString();
       return Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          title: Text(item['title']?.toString() ?? 'Activity',
+          title: Text(tt(item['title']?.toString() ?? 'Activity'),
               maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
             Builder(builder: (_) {
@@ -1630,13 +1631,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 title: item['title']?.toString(),
                 statusActions: [
                   if (!archived && !finished)
-                    ItemMenuAction('Mark completed', Icons.task_alt, () => _finishActivity(item)),
+                    ItemMenuAction(tt('Mark completed'), Icons.task_alt, () => _finishActivity(item)),
                   if (!archived && finished)
-                    ItemMenuAction('Reopen', Icons.undo, () => recordDecision('reopened')),
+                    ItemMenuAction(tt('Reopen'), Icons.undo, () => recordDecision('reopened')),
                 ],
                 onOpen: () => editActivity(item),
                 moreActions: [
-                  if (item['space_id'] != null) ItemMenuAction('Create from this', Icons.add_link,
+                  if (item['space_id'] != null) ItemMenuAction(tt('Create from this'), Icons.add_link,
                     () => createFromThis(context, kind: LinkKind.activity, id: widget.id,
                       spaceId: item['space_id'].toString(),
                       title: item['title']?.toString() ?? 'Activity',
@@ -1651,22 +1652,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
         body:Column(children:[
           Expanded(child:ListView(
           keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 15),
+          padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 15),
           children: [
             LinkedItemsStrip(key: _links, kind: LinkKind.activity, id: widget.id),
             toolbar(item),
             if (issue != null)
               Padding(padding: const EdgeInsets.only(bottom: 8),
-                child: Text(issue!, style: TextStyle(
+                child: Text(tt(issue!), style: TextStyle(
                   color: Theme.of(context).colorScheme.error))),
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+              padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 4, 12),
               child: InkWell(
                 onTap: () => editBody(item),
                 child: Text(
-                  (item['body']?.toString() ?? '').isEmpty
+                  tt((item['body']?.toString() ?? '').isEmpty
                     ? 'Tap to add details…'
-                    : item['body'].toString(),
+                    : item['body'].toString()),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),

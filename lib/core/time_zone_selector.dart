@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'partner_time_zones.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Search the IANA zone catalogue. This requires no GPS/location permissions.
 class TimeZoneSelector extends StatelessWidget {
@@ -34,20 +35,20 @@ class TimeZoneSelector extends StatelessWidget {
               child: FractionallySizedBox(
                 heightFactor: 0.75,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 8),
                   child: Column(children: [
-                    Text('Choose your time zone',
+                    Text(tt('Choose your time zone'),
                         style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 5),
-                    Text('Search by region or city. No location access needed.',
+                    Text(tt('Search by region or city. No location access needed.'),
                         style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 12),
                     TextField(
                       controller: search,
                       autofocus: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         prefixIcon: Icon(Icons.search),
-                        labelText: 'Search time zones',
+                        labelText: tt('Search time zones'),
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (_) => update(() {}),
@@ -59,7 +60,7 @@ class TimeZoneSelector extends StatelessWidget {
                         final zone = filtered[index];
                         return ListTile(
                           dense: true,
-                          title: Text(zone.replaceAll('_',' ')),
+                          title: Text(tt(zone.replaceAll('_',' '))),
                           trailing: zone == selected
                               ? const Icon(Icons.check) : null,
                           onTap: () => Navigator.of(sheetContext).pop(zone),
@@ -67,7 +68,7 @@ class TimeZoneSelector extends StatelessWidget {
                       },
                     )),
                     if (text.isEmpty)
-                      Text('Type to search all ${zones.length} regions.',
+                      Text('${tt('Type to search all')} ${zones.length} ${tt('regions.')}',
                         style: Theme.of(context).textTheme.bodySmall),
                   ]),
                 ),
@@ -87,14 +88,14 @@ class TimeZoneSelector extends StatelessWidget {
     onTap: () => choose(context),
     borderRadius: BorderRadius.circular(12),
     child: InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Your time zone',
+      decoration: InputDecoration(
+        labelText: tt('Your time zone'),
         border: OutlineInputBorder(),
         suffixIcon: Icon(Icons.travel_explore_outlined),
       ),
-      child: Text(selected == null
+      child: Text(tt(selected == null
           ? 'Not set — tap to choose'
-          : selected!.replaceAll('_',' ')),
+          : selected!.replaceAll('_',' '))),
     ),
   );
 }

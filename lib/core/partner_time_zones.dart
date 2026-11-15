@@ -1,5 +1,6 @@
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:onespace/l10n/phrases.dart';
 
 /// Explicit IANA time zones. Device location is never requested or guessed.
 /// IANA rules handle daylight-saving changes for past/future instants.
@@ -35,13 +36,12 @@ class PartnerTimeZones {
   static String timeLabel(DateTime value) {
     final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
     return '$hour:${value.minute.toString().padLeft(2, '0')} '
-        '${value.hour >= 12 ? 'PM' : 'AM'}';
+        '${value.hour >= 12 ? tt('PM') : tt('AM')}';
   }
 
   static String dateLabel(DateTime value) {
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
-      'Sep','Oct','Nov','Dec'];
+    final days = OneSpacePhrases.weekdaysShort;
+    final months = OneSpacePhrases.monthsShort;
     return '${days[value.weekday - 1]}, ${months[value.month - 1]} '
         '${value.day}';
   }

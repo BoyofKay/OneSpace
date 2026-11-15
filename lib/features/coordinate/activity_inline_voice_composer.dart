@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 
 import 'activity_voice_rules.dart';
 import 'activity_voice_service.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Inline chat voice flow: microphone -> recording -> Stop -> Preview/Send
 /// or Delete. Never uploads until Send; local draft is kept on upload error.
@@ -212,12 +213,12 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
    final scheme=Theme.of(context).colorScheme;
    final ready=path!=null&&!recording&&duration>=1;
    return Column(mainAxisSize:MainAxisSize.min,children:[
-     if(error!=null)Text(error!,
+     if(error!=null)Text(tt(error!),
        style:TextStyle(color:scheme.error),
        maxLines:3,overflow:TextOverflow.ellipsis),
      Row(children:[
        IconButton(
-         tooltip:'Discard voice message',
+         tooltip:tt('Discard voice message'),
          icon:const Icon(Icons.delete_outline),
          onPressed:sending||stopping?null:_cancel),
        if(recording)...[
@@ -234,35 +235,35 @@ class _ActivityInlineVoiceComposerState extends State<ActivityInlineVoiceCompose
          )),
        ]else if(ready)...[
          IconButton(
-           tooltip:player.playing?'Pause preview':'Play preview',
+           tooltip:player.playing?tt('Pause preview'):tt('Play preview'),
            onPressed:sending?null:_togglePreview,
            icon:Icon(player.playing?Icons.pause_circle_filled:
              Icons.play_circle_filled)),
-         Expanded(child:Text('Voice message ready',
+         Expanded(child:Text(tt('Voice message ready'),
            maxLines:1,overflow:TextOverflow.ellipsis)),
        ]else...[
          const Icon(Icons.mic_none_outlined),
          const SizedBox(width:8),
-         const Expanded(child:Text('Opening microphone…',
+         Expanded(child:Text(tt('Opening microphone…'),
            maxLines:1)),
        ],
-       Text(ActivityVoiceRules.durationLabel(duration),
+       Text(tt(ActivityVoiceRules.durationLabel(duration)),
          style:Theme.of(context).textTheme.labelMedium),
        const SizedBox(width:4),
        if(recording)
          IconButton(
-           tooltip:'Stop recording',
+           tooltip:tt('Stop recording'),
            onPressed:stopping?null:_stop,
            icon:const Icon(Icons.stop_circle_outlined))
        else if(ready)
          IconButton(
-           tooltip:'Send voice message',
+           tooltip:tt('Send voice message'),
            onPressed:sending?null:_send,
            icon:sending?const SizedBox.square(dimension:18,
              child:CircularProgressIndicator(strokeWidth:2)):
              const Icon(Icons.send_rounded))
        else IconButton(
-         tooltip:'Record again',
+         tooltip:tt('Record again'),
          onPressed:starting||stopping?null:_start,
          icon:const Icon(Icons.mic_rounded)),
      ]),

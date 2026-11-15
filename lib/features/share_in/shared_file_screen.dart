@@ -10,6 +10,7 @@ import '../calendar/calendar_rules.dart';
 import '../memories/memory_photo_service.dart';
 import '../../core/form_kit.dart';
 import 'share_intake_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R55: save a photo or PDF shared from another app.
 /// Default: Items to sort, only me. A photo can go straight to Memories.
@@ -71,7 +72,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
-          toMemory && widget.file.isImage ? 'Saved to Memories.' : 'Saved to Items to sort.')));
+          tt(toMemory && widget.file.isImage ? 'Saved to Memories.' : 'Saved to Items to sort.'))));
       Navigator.pop(context, true);
     } on PostgrestException catch (e) {
       if (mounted) setState(() { saving = false; error = 'Could not save: ${e.message}'; });
@@ -88,7 +89,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
     final f = widget.file;
     final kb = (f.bytes.length / 1024).round();
     return EditorScaffold(
-      title: f.isImage ? 'Save shared photo' : 'Save shared PDF',
+      title: f.isImage ? tt('Save shared photo') : tt('Save shared PDF'),
       isNew: true,
       isChanged: () => true,
       isComplete: () => title.text.trim().isNotEmpty,
@@ -102,28 +103,28 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
           ClipRRect(borderRadius: BorderRadius.circular(14),
             child: ConstrainedBox(constraints: const BoxConstraints(maxHeight: 260),
               child: Image.memory(Uint8List.fromList(f.bytes), fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox(height: 80,
-                  child: Center(child: Text('Preview not available'))))))
+                errorBuilder: (_, __, ___) => SizedBox(height: 80,
+                  child: Center(child: Text(tt('Preview not available')))))))
         else
           Card(elevation: 0, color: theme.colorScheme.surfaceContainerHighest, child: ListTile(
             leading: Icon(Icons.picture_as_pdf_outlined, color: theme.colorScheme.primary, size: 34),
-            title: Text(f.name.isEmpty ? 'PDF' : f.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: Text(kb >= 1024 ? '${(kb / 1024).toStringAsFixed(1)} MB' : '$kb KB'))),
+            title: Text(tt(f.name.isEmpty ? 'PDF' : f.name), maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Text(tt(kb >= 1024 ? '${(kb / 1024).toStringAsFixed(1)} MB' : '$kb KB')))),
         const SizedBox(height: 16),
         TextField(controller: title, maxLength: 180,
           textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(labelText: requiredLabel('Title'),
+          decoration: InputDecoration(labelText: requiredLabel(tt('Title')),
             border: const OutlineInputBorder())),
         TextField(controller: note, maxLength: 5000, minLines: 2, maxLines: 5,
-          decoration: const InputDecoration(labelText: 'Note (optional)',
+          decoration: InputDecoration(labelText: tt('Note (optional)'),
             border: OutlineInputBorder())),
         if (f.isImage) ...[
-          ChoiceRow<bool>(label: 'Save to', options: const {false: 'Items to sort', true: 'Memories'},
+          ChoiceRow<bool>(label: tt('Save to'), options: const {false: 'Items to sort', true: 'Memories'},
             icons: const {false: Icons.inbox_outlined, true: Icons.photo_album_outlined},
             selected: toMemory, onSelected: (v) => setState(() => toMemory = v ?? toMemory)),
         ],
         if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
-          child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
+          child: Text(tt(error!), style: TextStyle(color: theme.colorScheme.error))),
       ]),
     );
   }

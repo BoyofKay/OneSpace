@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'collection_history_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// One group of filter choices a screen offers (single choice, shown as chips).
 /// Screens only describe their groups; the panel draws every screen the same way.
@@ -55,13 +56,13 @@ class RecordListTopActions extends StatelessWidget {
   @override Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min, children: [
       if (historyKinds != null) IconButton(
-        tooltip: 'Change log',
+        tooltip: tt('Change log'),
         icon: const Icon(Icons.history),
         onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
           builder: (_) => CollectionHistoryScreen(
             kinds: historyKinds!, title: historyTitle)))),
       if (allowRemoved || groups.isNotEmpty) Builder(builder: (anchor) => IconButton(
-        tooltip: active ? 'Filters (on)' : 'Filters',
+        tooltip: active ? tt('Filters (on)') : tt('Filters'),
         icon: Badge(isLabelVisible: active, smallSize: 8, child: const Icon(Icons.tune)),
         onPressed: () => showFilterPanel(anchor,
           removed: showHistory,
@@ -111,14 +112,14 @@ Future<void> showFilterPanel(BuildContext anchor, {
                 final theme = Theme.of(context);
                 Widget group(String label, Map<String, String> options, String value,
                     ValueChanged<String> pick) => Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 6),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(label, style: theme.textTheme.labelLarge?.copyWith(
+                    Text(tt(label), style: theme.textTheme.labelLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant)),
                     const SizedBox(height: 8),
                     Wrap(spacing: 8, runSpacing: 8, children: [
                       for (final o in options.entries) ChoiceChip(
-                        label: Text(o.value),
+                        label: Text(tt(o.value)),
                         selected: value == o.key,
                         showCheckmark: false,
                         onSelected: (_) => refresh(() => pick(o.key))),
@@ -129,11 +130,11 @@ Future<void> showFilterPanel(BuildContext anchor, {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 8, 2),
+                      padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 8, 2),
                       child: Row(children: [
-                        Expanded(child: Text('Filter', style: theme.textTheme.titleMedium
+                        Expanded(child: Text(tt('Filter'), style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700))),
-                        IconButton(tooltip: 'Close', visualDensity: VisualDensity.compact,
+                        IconButton(tooltip: tt('Close'), visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.close, size: 20),
                           onPressed: () => Navigator.of(context).pop()),
                       ])),
@@ -154,21 +155,21 @@ Future<void> showFilterPanel(BuildContext anchor, {
                       ]))),
                     const Divider(height: 1),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                      padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 10),
                       child: Row(children: [
                         Expanded(child: OutlinedButton(
                           onPressed: () {
                             Navigator.of(context).pop();
                             onApply(false, {for (final g in groups) g.id: g.defaultValue});
                           },
-                          child: const Text('Clear'))),
+                          child: Text(tt('Clear')))),
                         const SizedBox(width: 10),
                         Expanded(child: FilledButton(
                           onPressed: () {
                             Navigator.of(context).pop();
                             onApply(pendingRemoved, pending);
                           },
-                          child: const Text('Apply'))),
+                          child: Text(tt('Apply')))),
                       ])),
                   ]);
               }),
@@ -188,12 +189,12 @@ class FilterShowingLine extends StatelessWidget {
   @override Widget build(BuildContext context) {
     if (labels.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 4),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 8, 4),
       child: Row(children: [
-        Expanded(child: Text('Showing: ${labels.join(' · ')}',
+        Expanded(child: Text('${tt('Showing')}: ${labels.map(tt).join(' · ')}',
           style: Theme.of(context).textTheme.bodySmall)),
         IconButton(
-          tooltip: 'Clear filters',
+          tooltip: tt('Clear filters'),
           visualDensity: VisualDensity.compact,
           icon: const Icon(Icons.close, size: 18),
           onPressed: onClear),

@@ -16,6 +16,7 @@ import 'checklist_list_loader.dart';
 import '../sharing/object_permissions.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
+import 'package:onespace/l10n/phrases.dart';
 export 'task_editor_sheet.dart'
     show SharedTask, TaskPriority, TaskStatus, TaskVisibility, TaskFilter, TaskScope;
 
@@ -48,11 +49,11 @@ class _PlansScreenState extends State<PlansScreen> {
   TaskScope _scope = TaskScope.all;
   String _query = '';
   List<FilterGroupSpec> _filterGroups()=>[
-    FilterGroupSpec(id:'status',label:'Lists',options:const {'open':'Open','completed':'Completed','cancelled':'Cancelled','all':'All'},
+    FilterGroupSpec(id:'status',label:tt('Lists'),options:const {'open':'Open','completed':'Completed','cancelled':'Cancelled','all':'All'},
       selected:_filter.name,defaultValue:'open'),
-    FilterGroupSpec(id:'who',label:'Who can see',options:const {'all':'All','shared':'Shared','private':'Only me'},
+    FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},
       selected:_scope.name,defaultValue:'all'),
-    FilterGroupSpec(id:'due',label:'Due',options:const {'any':'Any time','today':'Today or overdue'},
+    FilterGroupSpec(id:'due',label:tt('Due'),options:const {'any':'Any time','today':'Today or overdue'},
       selected:_todayOnly?'today':'any',defaultValue:'any'),
   ];
   bool _loadingSpace = true;
@@ -248,18 +249,18 @@ class _PlansScreenState extends State<PlansScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancel task?'),
-        content: const Text(
-          'Cancelled tasks remain in history and can be reopened.',
+        title: Text(tt('Cancel task?')),
+        content: Text(
+          tt('Cancelled tasks remain in history and can be reopened.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep'),
+            child: Text(tt('Keep')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Cancel task'),
+            child: Text(tt('Cancel task')),
           ),
         ],
       ),
@@ -287,9 +288,9 @@ class _PlansScreenState extends State<PlansScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:AppBar(title:const Text('To-do lists'),actions:[
+      appBar:AppBar(title:Text(tt('To-do lists')),actions:[
        RecordListTopActions(
-        historyKinds:const ['task'],historyTitle:'To-do lists',
+        historyKinds:const ['task'],historyTitle:tt('To-do lists'),
         showHistory:false,onToggleHistory:(){},allowRemoved:false,
         groups:_filterGroups(),
         onApply:(v)=>setState((){
@@ -300,21 +301,21 @@ class _PlansScreenState extends State<PlansScreen> {
       ],bottom:filterShowingBar(_filterGroups(),removed:false,onClear:()=>setState((){
         _filter=TaskFilter.open;_scope=TaskScope.all;_todayOnly=false;}))),
       floatingActionButton:_spaceId==null||_me.isEmpty?null:
-        AddFab(label:'New list',onPressed:_busy?null:()=>_taskEditor()),
+        AddFab(label:tt('New list'),onPressed:_busy?null:()=>_taskEditor()),
       body:RefreshIndicator(
       onRefresh: _loadSpace,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20,16,20,96),
+        padding: const EdgeInsetsDirectional.fromSTEB(20,16,20,96),
         children: [
           TextField(
             onChanged:(v)=>setState(()=>_query=v.trim().toLowerCase()),
-            decoration:const InputDecoration(
+            decoration:InputDecoration(
               prefixIcon:Icon(Icons.search),
-              labelText:'Search lists',
+              labelText:tt('Search lists'),
               border:OutlineInputBorder())),
           const SizedBox(height: 14),
           if (_error != null) ...[
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            Text(tt(_error!), style: const TextStyle(color: Colors.red)),
             TextButton.icon(
               onPressed: _loadSpace,
               icon: const Icon(Icons.refresh),
@@ -327,9 +328,9 @@ class _PlansScreenState extends State<PlansScreen> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_me.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(20),
-              child: Text('Your session is unavailable. Sign in to open checklists.'),
+              child: Text(tt('Your session is unavailable. Sign in to open checklists.')),
             )
           else if (_spaceId == null)
             _emptySpace()
@@ -346,10 +347,10 @@ class _PlansScreenState extends State<PlansScreen> {
                 if (snapshot.hasError) {
                   return Column(
                     children: [
-                      const Text('Could not refresh your tasks.'),
+                      Text(tt('Could not refresh your tasks.')),
                       TextButton(
                         onPressed: _loadSpace,
-                        child: const Text('Reconnect'),
+                        child: Text(tt('Reconnect')),
                       ),
                     ],
                   );
@@ -384,20 +385,20 @@ class _PlansScreenState extends State<PlansScreen> {
                     child:Padding(
                       padding:const EdgeInsets.all(12),
                       child:Column(children:[
-                        const Text('Some older checklists could not be displayed. '
-                          'Your saved data has not been deleted.'),
+                        Text(tt('Some older checklists could not be displayed. '
+                          'Your saved data has not been deleted.')),
                         TextButton.icon(
                           onPressed:_loadSpace,
                           icon:const Icon(Icons.refresh),
-                          label:const Text('Retry checklists'),
+                          label:Text(tt('Retry checklists')),
                         ),
                       ]),
                     ),
                   ),
                   if(tiles.isEmpty)
-                    const Padding(
+                    Padding(
                       padding:EdgeInsets.all(44),
-                      child:Center(child:Text('No checklists in this view.')),
+                      child:Center(child:Text(tt('No checklists in this view.'))),
                     )
                   else ...tiles,
                 ]);
@@ -418,9 +419,9 @@ class _PlansScreenState extends State<PlansScreen> {
               const SizedBox(height: 12),
               Text(tr(context, 'noSpace')),
               const SizedBox(height: 8),
-              const Text(
-                'Your private tasks and shared tasks both live in your space. '
-                'Private tasks are visible only to you.',
+              Text(
+                tt('Your private tasks and shared tasks both live in your space. '
+                'Private tasks are visible only to you.'),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -477,17 +478,17 @@ class _PlansScreenState extends State<PlansScreen> {
         if(expanded){_expandedLists.add(task.id);}else{_expandedLists.remove(task.id);}
        }),
        leading:StatusLook.mark(task.status.name)??const Icon(Icons.format_list_bulleted_outlined),
-       title:Text(task.title,style:StatusLook.title(context,task.status.name)),
-       subtitle:details.isEmpty?null:Text(details.join(' · ')),
+       title:Text(tt(task.title),style:StatusLook.title(context,task.status.name)),
+       subtitle:details.isEmpty?null:Text(tt(details.join(' · '))),
        trailing:!canEdit?const Icon(Icons.lock_outline):
         ItemMenu(kind:'task',recordId:task.id,title:task.title,
          statusActions:[
-          if(!cancelled&&!completed)ItemMenuAction('Mark complete',MenuIcons.complete,()=>_changeStatus(task,TaskStatus.completed)),
-          if(!cancelled&&!completed)ItemMenuAction('Cancel list',MenuIcons.cancel,()=>_cancelTask(task)),
-          if(cancelled||completed)ItemMenuAction('Reopen list',MenuIcons.reopen,()=>_changeStatus(task,TaskStatus.open)),
+          if(!cancelled&&!completed)ItemMenuAction(tt('Mark complete'),MenuIcons.complete,()=>_changeStatus(task,TaskStatus.completed)),
+          if(!cancelled&&!completed)ItemMenuAction(tt('Cancel list'),MenuIcons.cancel,()=>_cancelTask(task)),
+          if(cancelled||completed)ItemMenuAction(tt('Reopen list'),MenuIcons.reopen,()=>_changeStatus(task,TaskStatus.open)),
          ],
          onOpen:()=>_taskEditor(existing:task)),
-       childrenPadding:const EdgeInsets.fromLTRB(15,2,15,14),
+       childrenPadding:const EdgeInsetsDirectional.fromSTEB(15,2,15,14),
        children:[
         if(_expandedLists.contains(task.id)) TaskChecklistPanel(
          key:ValueKey(task.id),taskId:task.id,listTitle:task.title,

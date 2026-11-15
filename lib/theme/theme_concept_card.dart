@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'onespace_appearance.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// The selector previews a real composition, not a single palette circle.
 class ThemeConceptCard extends StatelessWidget{
@@ -44,7 +45,7 @@ class ThemeConceptCard extends StatelessWidget{
           CircleAvatar(radius:8,backgroundColor:primary),
          ]),
          const SizedBox(height:12),
-         Text('Our space',style:TextStyle(
+         Text(tt('Our space'),style:TextStyle(
           color:ink,fontSize:13,fontWeight:FontWeight.w800)),
          const SizedBox(height:8),
          Expanded(flex:4,child:Container(
@@ -57,7 +58,7 @@ class ThemeConceptCard extends StatelessWidget{
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
            Icon(Icons.auto_awesome_rounded,color:primary,size:19),
            const Spacer(),
-           Text('One life, two places',style:TextStyle(color:ink,
+           Text(tt('One life, two places'),style:TextStyle(color:ink,
             fontSize:9,fontWeight:FontWeight.w700)),
            Container(margin:const EdgeInsets.only(top:5),height:4,width:68,
             decoration:BoxDecoration(color:primary.withValues(alpha:.55),
@@ -68,7 +69,7 @@ class ThemeConceptCard extends StatelessWidget{
          Expanded(flex:2,child:Row(children:[
           for(final icon in [Icons.event_available_outlined,
             Icons.card_giftcard_outlined])...[
-           Expanded(child:Container(margin:const EdgeInsets.only(right:5),
+           Expanded(child:Container(margin:const EdgeInsetsDirectional.only(end:5),
             decoration:BoxDecoration(
              color:surface,borderRadius:BorderRadius.circular(9),
              border:Border.all(color:border)),
@@ -86,7 +87,7 @@ class ThemeConceptCard extends StatelessWidget{
       )),
       const SizedBox(height:9),
       Row(children:[
-       Expanded(child:Text(label,maxLines:1,overflow:TextOverflow.ellipsis,
+       Expanded(child:Text(tt(label),maxLines:1,overflow:TextOverflow.ellipsis,
         style:Theme.of(context).textTheme.labelLarge)),
        Icon(selected?Icons.check_circle_rounded:Icons.circle_outlined,
         color:selected?Theme.of(context).colorScheme.primary:

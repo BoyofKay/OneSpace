@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'partner_time_zones.dart';
 import 'shared_weather.dart';
 import 'weather_unit_preference.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Clocks and weather sit in the same partner columns. No new network requests.
 class PartnerClockStrip extends StatefulWidget {
@@ -29,7 +30,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
    final cs=Theme.of(context).colorScheme;
    if(member['city_weather_shared']!=true){
      return Padding(padding:const EdgeInsets.only(top:12),
-       child:Text('Weather city not selected',
+       child:Text(tt('Weather city not selected'),
          style:Theme.of(context).textTheme.bodySmall));
    }
    final parts=(member['city_name']?.toString()??'')
@@ -49,40 +50,40 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
      const SizedBox(height:12),
      Divider(height:1,color:cs.outlineVariant),
      const SizedBox(height:10),
-     Text(city,maxLines:2,overflow:TextOverflow.ellipsis,
+     Text(tt(city),maxLines:2,overflow:TextOverflow.ellipsis,
        style:Theme.of(context).textTheme.titleSmall),
-     if(region.isNotEmpty)Text(region,maxLines:2,
+     if(region.isNotEmpty)Text(tt(region),maxLines:2,
        overflow:TextOverflow.ellipsis,
        style:Theme.of(context).textTheme.bodySmall),
-     if(country.isNotEmpty)Text(country,maxLines:2,
+     if(country.isNotEmpty)Text(tt(country),maxLines:2,
        overflow:TextOverflow.ellipsis,
        style:Theme.of(context).textTheme.labelSmall),
      const SizedBox(height:10),
-     Text(temperature is num?WeatherUnitPreference.instance.format(temperature):'—',
+     Text(tt(temperature is num?WeatherUnitPreference.instance.format(temperature):'—'),
        style:Theme.of(context).textTheme.headlineSmall),
      const SizedBox(height:3),
-     Text(code==null?'Conditions unavailable':SharedWeather.condition(code),
+     Text(tt(code==null?'Conditions unavailable':SharedWeather.condition(code)),
        maxLines:2,overflow:TextOverflow.ellipsis,
        style:Theme.of(context).textTheme.bodySmall),
      const SizedBox(height:8),
      Row(children:[
-       Expanded(child:Text(high is num?
-         'H '+WeatherUnitPreference.instance.format(high,suffix:false):'H —',
+       Expanded(child:Text(tt(high is num?
+         'H '+WeatherUnitPreference.instance.format(high,suffix:false):'H —'),
          style:Theme.of(context).textTheme.labelMedium)),
-       Expanded(child:Text(low is num?
-         'L '+WeatherUnitPreference.instance.format(low,suffix:false):'L —',
+       Expanded(child:Text(tt(low is num?
+         'L '+WeatherUnitPreference.instance.format(low,suffix:false):'L —'),
          style:Theme.of(context).textTheme.labelMedium)),
      ]),
      const SizedBox(height:6),
      Row(children:[
        Icon(Icons.water_drop_outlined,size:15,color:cs.primary),
        const SizedBox(width:4),
-       Expanded(child:Text(rain is num?
-         'Rain '+rain.toStringAsFixed(0)+'%':'Rain —',
+       Expanded(child:Text(tt(rain is num?
+         'Rain '+rain.toStringAsFixed(0)+'%':'Rain —'),
          style:Theme.of(context).textTheme.bodySmall)),
      ]),
      if(stale)Padding(padding:const EdgeInsets.only(top:5),
-       child:Text('Update pending',
+       child:Text(tt('Update pending'),
          style:Theme.of(context).textTheme.labelSmall)),
    ]);
  }
@@ -91,12 +92,12 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
    return Expanded(child:Padding(
      padding:const EdgeInsets.symmetric(horizontal:4,vertical:3),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Text(member?['name']?.toString()??(mine?'You':'Partner'),
+       Text(tt(member?['name']?.toString()??(mine?tt('You'):tt('Partner'))),
          maxLines:1,overflow:TextOverflow.ellipsis,
          style:Theme.of(context).textTheme.labelLarge),
        const SizedBox(height:5),
-       FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
-         child:Text(actual==null?'—':PartnerTimeZones.timeLabel(actual),
+       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+         child:Text(tt(actual==null?'—':PartnerTimeZones.timeLabel(actual)),
            style:Theme.of(context).textTheme.headlineSmall)),
        if(member!=null)_weather(member),
      ]),
@@ -112,7 +113,7 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
    final otherTime=PartnerTimeZones.inZone(other?['time_zone']?.toString(),now);
    final attribution=mine?['city_weather_shared']==true||
      other?['city_weather_shared']==true;
-   return Padding(padding:const EdgeInsets.fromLTRB(2,4,2,5),
+   return Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,4,2,5),
      child:Column(children:[
        Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
          _column(mine,mineTime,mine:true),
@@ -121,12 +122,12 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
            _column(other,otherTime,mine:false),
          ],
        ]),
-       if(attribution)Align(alignment:Alignment.centerRight,
+       if(attribution)Align(alignment:AlignmentDirectional.centerEnd,
          child:InkWell(
            onTap:()=>unawaited(launchUrl(
              Uri.parse('https://open-meteo.com/'),
              mode:LaunchMode.externalApplication)),
-           child:Text('Weather by Open-Meteo',
+           child:Text(tt('Weather by Open-Meteo'),
              style:Theme.of(context).textTheme.labelSmall?.copyWith(
                decoration:TextDecoration.underline)),
          ),

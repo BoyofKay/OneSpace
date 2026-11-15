@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R59 (D47): Download my data · Delete my account.
 ///
@@ -107,22 +108,22 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
     final pending = AccountDataRules.pending(request);
     final due = DateTime.tryParse(request?['purge_after']?.toString() ?? '')?.toLocal();
     return Scaffold(
-      appBar: AppBar(title: const Text('Your data and account')),
+      appBar: AppBar(title: Text(tt('Your data and account'))),
       body: loading ? const Center(child: CircularProgressIndicator()) : ListView(
         padding: const EdgeInsets.all(18), children: [
           if (pending) Card(elevation: 0, color: theme.colorScheme.errorContainer,
             child: Padding(padding: const EdgeInsets.all(14), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Your account is scheduled for deletion',
+                Text(tt('Your account is scheduled for deletion'),
                   style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onErrorContainer,
                     fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text(due == null ? 'It will be deleted soon.'
-                  : 'It will be deleted on ${MaterialLocalizations.of(context).formatFullDate(due)}.',
+                Text(tt(due == null ? 'It will be deleted soon.'
+                  : 'It will be deleted on ${MaterialLocalizations.of(context).formatFullDate(due)}.'),
                   style: TextStyle(color: theme.colorScheme.onErrorContainer)),
                 const SizedBox(height: 10),
                 FilledButton.icon(onPressed: busy ? null : _cancelDeletion,
-                  icon: const Icon(Icons.undo), label: const Text('Keep my account')),
+                  icon: const Icon(Icons.undo), label: Text(tt('Keep my account'))),
               ]))),
           const SizedBox(height: 8),
           Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(14), child: Column(
@@ -130,17 +131,17 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
               Row(children: [
                 Icon(Icons.download_outlined, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Download my data', style: theme.textTheme.titleMedium)),
+                Expanded(child: Text(tt('Download my data'), style: theme.textTheme.titleMedium)),
               ]),
               const SizedBox(height: 6),
-              const Text('A file with everything you created or received: notes, events, to-dos, '
+              Text(tt('A file with everything you created or received: notes, events, to-dos, '
                 'reminders, memories, letters, check-ins, trips and your settings. '
-                'Photos and documents stay in the app.'),
+                'Photos and documents stay in the app.')),
               const SizedBox(height: 10),
               FilledButton.tonalIcon(onPressed: exporting ? null : _export,
                 icon: exporting ? const SizedBox(width: 18, height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.download_outlined),
-                label: Text(exporting ? 'Preparing…' : 'Download')),
+                label: Text(tt(exporting ? tt('Preparing…') : tt('Download')))),
             ]))),
           const SizedBox(height: 8),
           if (!pending) Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(14), child: Column(
@@ -148,10 +149,10 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
               Row(children: [
                 Icon(Icons.person_remove_outlined, color: theme.colorScheme.error),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Delete my account', style: theme.textTheme.titleMedium)),
+                Expanded(child: Text(tt('Delete my account'), style: theme.textTheme.titleMedium)),
               ]),
               const SizedBox(height: 6),
-              const Text('What happens:'),
+              Text(tt('What happens:')),
               const SizedBox(height: 4),
               for (final line in const [
                 'Your private items, photos, devices and settings are deleted.',
@@ -160,17 +161,17 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                 'You have 7 days to change your mind: sign in again and tap Keep my account.',
               ]) Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('•  '), Expanded(child: Text(line)),
+                  const Text('•  '), Expanded(child: Text(tt(line))),
                 ])),
               const SizedBox(height: 10),
               OutlinedButton.icon(onPressed: busy ? null : _requestDeletion,
                 style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.error),
-                icon: const Icon(Icons.delete_forever_outlined), label: const Text('Delete my account')),
+                icon: const Icon(Icons.delete_forever_outlined), label: Text(tt('Delete my account'))),
             ]))),
           if (message != null) Padding(padding: const EdgeInsets.only(top: 12),
-            child: Text(message!, style: theme.textTheme.bodyMedium)),
+            child: Text(tt(message!), style: theme.textTheme.bodyMedium)),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
-            child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
+            child: Text(tt(error!), style: TextStyle(color: theme.colorScheme.error))),
         ]),
     );
   }
@@ -189,31 +190,31 @@ class _DeleteConfirmPageState extends State<_DeleteConfirmPage> {
     final theme = Theme.of(context);
     final ok = AccountDataRules.confirmed(widget.controller.text);
     return Scaffold(
-      appBar: AppBar(title: const Text('Delete my account')),
+      appBar: AppBar(title: Text(tt('Delete my account'))),
       body: ListView(padding: const EdgeInsets.all(18), children: [
-        Text('Are you sure?', style: theme.textTheme.titleLarge),
+        Text(tt('Are you sure?'), style: theme.textTheme.titleLarge),
         const SizedBox(height: 8),
-        const Text('You will be signed out now. In 7 days your private items and settings are deleted '
-          'for good and you leave our space. Shared items stay for your partner.'),
+        Text(tt('You will be signed out now. In 7 days your private items and settings are deleted '
+          'for good and you leave our space. Shared items stay for your partner.')),
         const SizedBox(height: 8),
-        const Text('Tip: download your data first.'),
+        Text(tt('Tip: download your data first.')),
         const SizedBox(height: 16),
         TextField(controller: widget.controller, onChanged: (_) => setState(() {}),
           textCapitalization: TextCapitalization.characters,
-          decoration: const InputDecoration(labelText: 'Type DELETE to confirm *',
+          decoration: InputDecoration(labelText: tt('Type DELETE to confirm *'),
             border: OutlineInputBorder())),
       ]),
       bottomNavigationBar: SafeArea(child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 10),
         child: Row(children: [
           Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'))),
+            child: Text(tt('Cancel')))),
           const SizedBox(width: 12),
           Expanded(child: FilledButton(
             style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error,
               foregroundColor: theme.colorScheme.onError),
             onPressed: ok ? () => Navigator.pop(context, true) : null,
-            child: const Text('Delete'))),
+            child: Text(tt('Delete')))),
         ]))),
     );
   }

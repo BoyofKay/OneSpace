@@ -8,6 +8,7 @@ import '../../core/device_time_zone.dart';
 import '../sharing/object_permissions.dart';
 import 'calendar_rules.dart';
 import '../mentions/partner_mention_button.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Full page owns its controllers; avoids disposing text inputs during
 /// bottom-sheet exit animations (a prior source of Flutter red screens).
@@ -179,7 +180,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
 
   @override
   Widget build(BuildContext context) => EditorScaffold(
-   title: _editing ? 'Edit event' : 'Add event',
+   title: _editing ? tt('Edit event') : tt('Add event'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_canEdit && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_details],saving:_saving,onSave:_save,
    meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(
@@ -201,7 +202,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           if (_archived) Padding(padding: const EdgeInsets.only(bottom: 12),
-            child: Text('Removed · restore it from the ⋮ menu', style: Theme.of(context).textTheme.bodySmall)),
+            child: Text(tt('Removed · restore it from the ⋮ menu'), style: Theme.of(context).textTheme.bodySmall)),
           TextField(
             key: const Key('eventTitle'),
             controller: _title,
@@ -209,35 +210,35 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
             autofocus: !_editing,
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'What is happening? *',
-              hintText: 'Dinner with friends, doctor visit…',
+            decoration: InputDecoration(
+              labelText: tt('What is happening? *'),
+              hintText: tt('Dinner with friends, doctor visit…'),
               border: OutlineInputBorder(),
             ),
           ),
-          ChoiceRow<String>(label: 'Type', options: {'event': tr(context, 'event'), 'occasion': tr(context, 'occasion')},
+          ChoiceRow<String>(label: tt('Type'), options: {'event': tr(context, 'event'), 'occasion': tr(context, 'occasion')},
             icons: const {'event': Icons.event_outlined, 'occasion': Icons.celebration_outlined},
             selected: _kind,
             onSelected: (v) { if (_canEdit && !_saving && v != null) setState(() => _kind = v); }),
-          const FormSection('When'),
-          DateField(label: 'Date', required: true, value: _date, first: DateTime(1900), last: DateTime(2100, 12, 31),
+          FormSection(tt('When')),
+          DateField(label: tt('Date'), required: true, value: _date, first: DateTime(1900), last: DateTime(2100, 12, 31),
             onChanged: (v) { if (v != null && _canEdit && !_saving) setState(() => _date = v); }),
           Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
-            OptionChip(label: 'All day', icon: Icons.wb_sunny_outlined, value: _allDay,
+            OptionChip(label: tt('All day'), icon: Icons.wb_sunny_outlined, value: _allDay,
               onChanged: !_canEdit || _saving ? null : (v) => setState(() => _allDay = v)),
             if (!_allDay) ...[
               ActionChip(avatar: const Icon(Icons.schedule, size: 18),
-                label: Text('Starts ${_timeLabel(_start)}'), onPressed: () => _pickTime(true)),
+                label: Text('${tt('Starts')} ${_timeLabel(_start)}'), onPressed: () => _pickTime(true)),
               ActionChip(avatar: const Icon(Icons.schedule_outlined, size: 18),
-                label: Text('Ends ${_timeLabel(_end)}'), onPressed: () => _pickTime(false)),
+                label: Text('${tt('Ends')} ${_timeLabel(_end)}'), onPressed: () => _pickTime(false)),
             ],
           ]),
           const SizedBox(height: 14),
-          ChoiceRow<String>(label: 'Repeat', options: const {'none': 'Once', 'yearly': 'Every year'},
+          ChoiceRow<String>(label: tt('Repeat'), options: const {'none': 'Once', 'yearly': 'Every year'},
             icons: const {'none': Icons.looks_one_outlined, 'yearly': Icons.event_repeat},
             selected: _recurrence,
             onSelected: (v) { if (_canEdit && !_saving && v != null) setState(() => _recurrence = v); }),
-          const FormSection('More details'),
+          FormSection(tt('More details')),
           TextField(
             controller: _details,
             maxLength: 2000,
@@ -251,13 +252,13 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               alignLabelWithHint: true,
             ),
           ),
-          if (_visibility == 'shared') Align(alignment: Alignment.centerLeft,
+          if (_visibility == 'shared') Align(alignment: AlignmentDirectional.centerStart,
             child: PartnerMentionButton(spaceId:widget.spaceId,controller:_details,enabled:_canEdit)),
-          if (_editing) Text('Who can see it was set when it was created.',
+          if (_editing) Text(tt('Who can see it was set when it was created.'),
             style: Theme.of(context).textTheme.bodySmall),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(tt(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ],
         ],
       ),

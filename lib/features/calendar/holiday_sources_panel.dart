@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'holiday_calendar_service.dart';
 import '../../l10n/onespace_strings.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Holiday calendars are overlays, not copied or duplicated as editable events.
 class HolidaySourcesPanel extends StatefulWidget{
@@ -53,19 +54,19 @@ class _HolidaySourcesPanelState extends State<HolidaySourcesPanel>{
    leading:const Icon(Icons.public_outlined),
    title:Text(tr(context,'holidaySourceTitle')),
    subtitle:Text(tr(context,'holidaySourceHint')),
-   childrenPadding:const EdgeInsets.fromLTRB(12,0,12,12),
+   childrenPadding:const EdgeInsetsDirectional.fromSTEB(12,0,12,12),
    children:[
     if(loading)const LinearProgressIndicator()
     else for(final code in HolidayCatalog.countryNames.keys)
      CheckboxListTile(
       contentPadding:EdgeInsets.zero,
-      title:Text(HolidayCatalog.label(code)),
-      subtitle:Text(code=='SA'?'Founding Day and National Day only':
-       'National public holidays · from Nager.Date'),
+      title:Text(tt(HolidayCatalog.label(code))),
+      subtitle:Text(tt(code=='SA'?'Founding Day and National Day only':
+       'National public holidays · from Nager.Date')),
       value:enabled[code]??false,
       onChanged:busy?null:(value)=>setCountry(code,value??false)),
-    const Text('Holiday overlays are informational. Local/state observances and announced lunar-calendar holidays may differ. Add your own important dates below.',
+    Text(tt('Holiday overlays are informational. Local/state observances and announced lunar-calendar holidays may differ. Add your own important dates below.'),
      style:TextStyle(fontSize:12)),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
    ]));
 }

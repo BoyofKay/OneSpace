@@ -18,6 +18,7 @@ import '../mentions/partner_mention_button.dart';
 import '../../core/device_time_zone.dart';
 import '../../core/partner_time_zones.dart';
 import 'reminder_repeat_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R22: first-class shared and personal reminders. The database owns
 /// per-recipient state, privacy checks, delivery and immutable history.
@@ -138,15 +139,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
  Future<String?> notesPrompt(String type)async{
   final input=TextEditingController();
   final answer=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(
-   title:Text(type=='done'?'Mark job done':'Needs follow-up'),
+   title:Text(tt(type=='done'?tt('Mark job done'):tt('Needs follow-up'))),
    content:TextField(controller:input,maxLength:1200,maxLines:4,minLines:2,
     autofocus:true,decoration:InputDecoration(
-     labelText:type=='done'?'Outcome notes (optional)':'What still needs attention?',
+     labelText:type=='done'?tt('Outcome notes (optional)'):tt('What still needs attention?'),
      border:const OutlineInputBorder())),
    actions:[
-    TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
+    TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('Cancel'))),
     FilledButton(onPressed:()=>Navigator.pop(ctx,input.text.trim()),
-     child:const Text('Save outcome')),
+     child:Text(tt('Save outcome'))),
    ]));
   input.dispose();
   return answer;
@@ -155,16 +156,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
   final answer=await showModalBottomSheet<String>(context:context,
    showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
     mainAxisSize:MainAxisSize.min,children:[
-     const ListTile(title:Text('Snooze until…'),
-       subtitle:Text('Your choice will be visible in a shared reminder.')),
+     ListTile(title:Text(tt('Snooze until…')),
+       subtitle:Text(tt('Your choice will be visible in a shared reminder.'))),
      ListTile(leading:const Icon(Icons.more_time),
-      title:const Text('Later today · 2 hours'),
+      title:Text(tt('Later today · 2 hours')),
       onTap:()=>Navigator.pop(ctx,'today')),
      ListTile(leading:const Icon(Icons.wb_sunny_outlined),
-      title:const Text('Tomorrow · 9:00 AM'),
+      title:Text(tt('Tomorrow · 9:00 AM')),
       onTap:()=>Navigator.pop(ctx,'tomorrow')),
      ListTile(leading:const Icon(Icons.edit_calendar_outlined),
-      title:const Text('Choose a date and time'),
+      title:Text(tt('Choose a date and time')),
       onTap:()=>Navigator.pop(ctx,'custom')),
     ])));
   if(answer==null)return null;
@@ -191,8 +192,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
    final value=await notesPrompt(action);
    if(value==null)return;
    if(action=='follow_up'&&value.trim().isEmpty){
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-     content:Text('Please add an outcome note for follow-up.')));
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+     content:Text(tt('Please add an outcome note for follow-up.'))));
     return;
    }
    note=value;
@@ -200,8 +201,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
    snooze=await chooseSnooze();
    if(snooze==null)return;
    if(!snooze.isAfter(DateTime.now().add(const Duration(minutes:1)))){
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-     content:Text('Choose a time in the future.')));
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+     content:Text(tt('Choose a time in the future.'))));
     return;
    }
   }
@@ -223,12 +224,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
   if(busy||r['created_by']!=me)return;
   final isArchived=r['archived_at']!=null;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-   title:Text(isArchived?'Restore reminder?':'Remove reminder?'),
-   content:const Text('The reminder and its outcome history stay saved.'),
+   title:Text(tt(isArchived?tt('Restore reminder?'):tt('Remove reminder?'))),
+   content:Text(tt('The reminder and its outcome history stay saved.')),
    actions:[
-    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
+    TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Cancel'))),
     FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-     child:Text(isArchived?'Restore':'Remove')),
+     child:Text(tt(isArchived?tt('Restore'):tt('Remove')))),
    ]));
   if(ok!=true)return;
   setState(()=>busy=true);
@@ -268,12 +269,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
   if(at!=null){
    final d=DateTime(at.year,at.month,at.day);
    final gap=d.difference(today).inDays;
-   const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+   final names=OneSpacePhrases.weekdaysShort;
+   final months=OneSpacePhrases.monthsShort;
    day=gap==0?'Today':gap==1?'Tomorrow':gap==-1?'Yesterday':
     '${names[at.weekday-1]} ${at.day} ${months[at.month-1]}';
    final h=at.hour%12==0?12:at.hour%12;
-   time='$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?'PM':'AM'}';
+   time='$h:${at.minute.toString().padLeft(2,'0')} ${at.hour>=12?tt('PM'):tt('AM')}';
   }
   final tone=done?colors.surfaceContainerHighest:
    alert?colors.errorContainer:urgent?colors.tertiaryContainer:colors.secondaryContainer;
@@ -283,8 +284,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
    width:68,padding:const EdgeInsets.symmetric(vertical:6,horizontal:4),
    decoration:BoxDecoration(color:tone,borderRadius:BorderRadius.circular(10)),
    child:Column(mainAxisSize:MainAxisSize.min,children:[
-    Text(time,maxLines:1,style:TextStyle(color:ink,fontWeight:FontWeight.w700,fontSize:12.5)),
-    if(day.isNotEmpty)Text(day,maxLines:1,overflow:TextOverflow.ellipsis,
+    Text(tt(time),maxLines:1,style:TextStyle(color:ink,fontWeight:FontWeight.w700,fontSize:12.5)),
+    if(day.isNotEmpty)Text(tt(day),maxLines:1,overflow:TextOverflow.ellipsis,
      style:TextStyle(color:ink,fontSize:11)),
    ]));
  }
@@ -308,11 +309,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
    initiallyExpanded:r['id']==widget.initialReminderId,
    // R55: time first (red when overdue), title, one short line, one-tap Done.
    leading:_timeBadge(due,overdue||openMine,r['urgent']==true,allDone),
-   title:Text(r['title']?.toString()??'Reminder',
+   title:Text(tt(r['title']?.toString()??'Reminder'),
     maxLines:2,overflow:TextOverflow.ellipsis,
     style:StatusLook.title(context,allDone?'completed':null,
      const TextStyle(fontWeight:FontWeight.w600))),
-   subtitle:Text([
+   subtitle:Text(tt([
     if(repeating)ReminderRepeat.describe(r['repeat_rule']),
     if(repeating&&openMine)'Due now',
     if(!shared)'Only me',
@@ -320,33 +321,33 @@ class _RemindersScreenState extends State<RemindersScreen> {
     if(closed)'Linked item closed',
     if(r['reminder_intent']=='love_gesture')'Choose when to send',
     if(r['archived_at']!=null)'Removed',
-   ].join(' · '),maxLines:2,overflow:TextOverflow.ellipsis),
+   ].join(' · ')),maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:ItemMenu(kind:'reminder',recordId:r['id'].toString(),title:r['title']?.toString(),
      statusActions:[
       if(own!=null&&r['archived_at']==null&&!closed)...[
        ItemMenuAction(repeating?'Done for this time':'Done',Icons.check,()=>respond(r,'done')),
-       ItemMenuAction('Follow-up',Icons.flag_outlined,()=>respond(r,'follow_up')),
-       ItemMenuAction('Snooze',Icons.snooze,()=>respond(r,'snooze')),
-       if(own['state']=='done'&&!repeating)ItemMenuAction('Reopen',Icons.undo,()=>respond(r,'reopen')),
+       ItemMenuAction(tt('Follow-up'),Icons.flag_outlined,()=>respond(r,'follow_up')),
+       ItemMenuAction(tt('Snooze'),Icons.snooze,()=>respond(r,'snooze')),
+       if(own['state']=='done'&&!repeating)ItemMenuAction(tt('Reopen'),Icons.undo,()=>respond(r,'reopen')),
       ],
      ],
      onOpen:r['created_by']==me?()=>editor(existing:r):null,
      removed:r['archived_at']!=null,
      onRemove:r['created_by']==me?()=>archive(r):null),
-   childrenPadding:const EdgeInsets.fromLTRB(16,0,16,14),
+   childrenPadding:const EdgeInsetsDirectional.fromSTEB(16,0,16,14),
    children:[
     LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
     if((r['details']??'').toString().isNotEmpty)
-     Align(alignment:Alignment.centerLeft,
+     Align(alignment:AlignmentDirectional.centerStart,
       child:Padding(padding:const EdgeInsets.symmetric(vertical:8),
-       child:Text(r['details'].toString()))),
+       child:Text(tt(r['details'].toString())))),
     for(final x in rows)ListTile(
      dense:true,contentPadding:EdgeInsets.zero,
      leading:Icon(x['state']=='done'?Icons.check_circle_outline:
        x['state']=='follow_up'?Icons.flag_outlined:Icons.schedule_outlined),
-     title:Text(person(x['recipient_id'].toString())+
-       ' · '+status(x['state']?.toString()??'pending')),
-     subtitle:Text([
+     title:Text(tt(person(x['recipient_id'].toString())+
+       ' · '+status(x['state']?.toString()??'pending'))),
+     subtitle:Text(tt([
       if(x['snoozed_until']!=null)'Snoozed until '+when(x['snoozed_until']),
       if(x['state']=='follow_up'&&x['next_alert_at']!=null)
        'Follow-up '+when(x['next_alert_at']),
@@ -354,37 +355,37 @@ class _RemindersScreenState extends State<RemindersScreen> {
        'Waiting for an answer since '+when(x['open_occurrence_at']),
       if((x['outcome_note']??'').toString().isNotEmpty)
        x['outcome_note'].toString(),
-     ].join('\n')),
+     ].join('\n'))),
     ),
     if(r['source_kind']!=null||r['reminder_intent']=='love_gesture')
-     Align(alignment:Alignment.centerLeft,
+     Align(alignment:AlignmentDirectional.centerStart,
       child:TextButton.icon(onPressed:()=>linked(r),
        icon:const Icon(Icons.link),
-       label:Text(r['reminder_intent']=='love_gesture'
-        ?'Open A little love':'Open related item'))),
+       label:Text(tt(r['reminder_intent']=='love_gesture'
+        ?'Open A little love':'Open related item')))),
     if(history.isNotEmpty)ExpansionTile(
-     title:Text('Outcome history · '+history.length.toString()),
+     title:Text(tt('Outcome history · ')+history.length.toString()),
      children:[for(final event in history)ListTile(
       dense:true,contentPadding:EdgeInsets.zero,
-      title:Text(person(event['actor_id'])+' · '+
+      title:Text(tt(person(event['actor_id'])+' · '+
        ReminderRepeat.actionLabel(event['action']?.toString()??'')+
        (event['actor_id']==null&&event['recipient_id']!=null?
-        ' (for '+person(event['recipient_id']).toLowerCase()+')':'')),
-      subtitle:Text([
+        ' (for '+person(event['recipient_id']).toLowerCase()+')':''))),
+      subtitle:Text(tt([
        when(event['recorded_at']),
        if((event['note']??'').toString().isNotEmpty)event['note'].toString(),
        if((event['action']=='snooze'||event['action']=='deferred')&&event['next_alert_at']!=null)
         'Until '+when(event['next_alert_at']),
        if(event['action']=='missed'&&event['next_alert_at']!=null)
         'Occurrence of '+when(event['next_alert_at']),
-      ].join(' · ')),
+      ].join(' · '))),
      )],
     ),
    ],
   ));
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:'Show',options:const {'open':'Open','done':'Completed'},selected:showCompleted?'done':'open',defaultValue:'open')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'show',label:tt('Show'),options:const {'open':'Open','done':'Completed'},selected:showCompleted?'done':'open',defaultValue:'open')];
 
  @override Widget build(BuildContext context){
   final visible=reminders.where((r)=>
@@ -395,9 +396,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
     (r['details']??'').toString().toLowerCase().contains(searchText))
    ).toList();
   return Scaffold(
-   appBar:AppBar(title:const Text('Reminders'),actions:[
+   appBar:AppBar(title:Text(tt('Reminders')),actions:[
     RecordListTopActions(
-      historyKinds:const ['reminder'],historyTitle:'Reminders',
+      historyKinds:const ['reminder'],historyTitle:tt('Reminders'),
      showHistory:showArchived,
       onToggleHistory:()=>setState(()=>showArchived=!showArchived),
       groups:_filterGroups(),
@@ -406,33 +407,33 @@ class _RemindersScreenState extends State<RemindersScreen> {
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-reminders',
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
-    label:const Text('Add reminder')),
+    label:Text(tt('Add reminder'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,16,16,95),children:[
-     const Text('Remember what matters',
+    padding:const EdgeInsetsDirectional.fromSTEB(16,16,16,95),children:[
+     Text(tt('Remember what matters'),
       style:TextStyle(fontSize:24,fontWeight:FontWeight.bold)),
      const SizedBox(height:6),
-     const Text('Personal and shared reminders, with separate follow-up '
-      'and snooze outcomes for each of you.'),
+     Text(tt('Personal and shared reminders, with separate follow-up '
+      'and snooze outcomes for each of you.')),
      const SizedBox(height:10),
      TextField(
       onChanged:(v)=>setState(()=>searchText=v.trim().toLowerCase()),
-      decoration:const InputDecoration(
+      decoration:InputDecoration(
        prefixIcon:Icon(Icons.search),
-       labelText:'Search reminders',
-       hintText:'Titles and details',
+       labelText:tt('Search reminders'),
+       hintText:tt('Titles and details'),
        border:OutlineInputBorder())),
      const SizedBox(height:10),
      if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),
-      child:Text(error!,style:TextStyle(
+      child:Text(tt(error!),style:TextStyle(
        color:Theme.of(context).colorScheme.error))),
      if(loading)const Padding(padding:EdgeInsets.all(40),
       child:Center(child:CircularProgressIndicator())),
-     if(!loading&&space==null)const Text('Connect a shared space first.'),
+     if(!loading&&space==null)Text(tt('Connect a shared space first.')),
      if(!loading&&space!=null&&visible.isEmpty)
-      const Padding(padding:EdgeInsets.all(40),
-       child:Center(child:Text('No reminders in this view.'))),
+      Padding(padding:EdgeInsets.all(40),
+       child:Center(child:Text(tt('No reminders in this view.')))),
      for(final r in visible)tile(r),
    ])),
   );
@@ -554,7 +555,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   final unit=repeat.preset=='daily'?'day':repeat.preset=='weekly'?'week':
    repeat.preset=='monthly'?'month':'year';
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   ChoiceRow<String>(label:'Repeat',
+   ChoiceRow<String>(label:tt('Repeat'),
     options:{for(final p in ReminderRepeat.presets)p:switch(p){
      'none'=>'Once','daily'=>'Daily','weekdays'=>'Weekdays',
      'weekly'=>'Weekly','monthly'=>'Monthly',_=>'Yearly'}},
@@ -564,19 +565,19 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
       weekdays:v=='weekly'?{due.weekday}:null);
     });}),
    if(repeat.repeats&&repeat.preset!='weekdays')Row(children:[
-    const Text('Every'),
+    Text(tt('Every')),
     IconButton(onPressed:interval>1?()=>setState(()=>
       repeat=repeat.copyWith(interval:interval-1)):null,
-     icon:const Icon(Icons.remove_circle_outline),tooltip:'Less often'),
-    Text(interval.toString(),style:const TextStyle(fontWeight:FontWeight.bold)),
+     icon:const Icon(Icons.remove_circle_outline),tooltip:tt('Less often')),
+    Text(tt(interval.toString()),style:const TextStyle(fontWeight:FontWeight.bold)),
     IconButton(onPressed:interval<99?()=>setState(()=>
       repeat=repeat.copyWith(interval:interval+1)):null,
-     icon:const Icon(Icons.add_circle_outline),tooltip:'More apart'),
-    Text(interval==1?unit:unit+'s'),
+     icon:const Icon(Icons.add_circle_outline),tooltip:tt('More apart')),
+    Text(tt(interval==1?unit:unit+'s')),
    ]),
    if(repeat.preset=='weekly')Wrap(spacing:6,children:[
     for(var d=1;d<=7;d++)FilterChip(
-     label:Text(ReminderRepeat.dayShort[d-1]),
+     label:Text(tt(ReminderRepeat.dayShort[d-1])),
      selected:repeat.weekdays.contains(d),
      onSelected:(on)=>setState((){
       final next={...repeat.weekdays};
@@ -586,27 +587,27 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    ]),
    if(repeat.repeats)...[
     const SizedBox(height:8),
-    const Text('Times of day'),
+    Text(tt('Times of day')),
     Wrap(spacing:6,runSpacing:4,children:[
-     Chip(label:Text(ReminderRepeat.clock(ReminderRepeat.hhmm(due.hour,due.minute)))),
+     Chip(label:Text(tt(ReminderRepeat.clock(ReminderRepeat.hhmm(due.hour,due.minute))))),
      for(final t in repeat.extraTimes)InputChip(
-      label:Text(ReminderRepeat.clock(t)),
+      label:Text(tt(ReminderRepeat.clock(t))),
       onDeleted:()=>setState(()=>repeat=repeat.copyWith(
        extraTimes:repeat.extraTimes.where((x)=>x!=t).toList()))),
      ActionChip(avatar:const Icon(Icons.add,size:18),
-      label:const Text('Add another time'),onPressed:saving?null:addTime),
+      label:Text(tt('Add another time')),onPressed:saving?null:addTime),
     ]),
     const SizedBox(height:6),
     Wrap(crossAxisAlignment:WrapCrossAlignment.center,spacing:8,children:[
-     const Text('Ends'),
-     ChoiceChip(label:const Text('Never'),selected:repeat.until==null,
+     Text(tt('Ends')),
+     ChoiceChip(label:Text(tt('Never')),selected:repeat.until==null,
       onSelected:(_)=>setState(()=>repeat=repeat.copyWith(clearUntil:true))),
-     ChoiceChip(label:Text(repeat.until==null?'On a date':
-       'On '+CalendarRules.sqlDate(repeat.until!)),
+     ChoiceChip(label:Text(tt(repeat.until==null?'On a date':
+       'On '+CalendarRules.sqlDate(repeat.until!))),
       selected:repeat.until!=null,onSelected:(_)=>pickUntil()),
     ]),
     const SizedBox(height:4),
-    Text('Times follow this phone’s time zone ('+myZone+'), even when the clocks change.',
+    Text(tt('Times follow this phone’s time zone (')+myZone+'), even when the clocks change.',
      style:Theme.of(context).textTheme.bodySmall),
    ],
   ]);
@@ -695,11 +696,11 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   final options={
    for(final item in eligible)
     item['kind'].toString()+':'+item['id'].toString():
-      item['title'].toString()+' · '+(item['kind']=='task'?'To-do list':item['kind']=='calendar'?'Calendar':'Occasion'),
+      item['title'].toString()+' · '+(item['kind']=='task'?'To-do list':item['kind']=='calendar'?tt('Calendar'):tt('Occasion')),
   };
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
-  return EditorScaffold(title:editing?'Edit reminder':'Add reminder',
+  return EditorScaffold(title:editing?tt('Edit reminder'):tt('Add reminder'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,details],saving:saving,onSave:save,
    meta:MetaStrip(value:meta,people:people,showDate:false,enabled:!editing,
@@ -713,46 +714,46 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
     TextField(controller:title,maxLength:160,autofocus:!editing,
      textCapitalization:TextCapitalization.sentences,
-     decoration:const InputDecoration(labelText:'What to remember *',
-      hintText:'Call the clinic, take the vitamins…',border:OutlineInputBorder())),
-    DateField(label:repeat.repeats?'Starts':'Remind me at',value:due,withTime:true,required:true,
+     decoration:InputDecoration(labelText:tt('What to remember *'),
+      hintText:tt('Call the clinic, take the vitamins…'),border:OutlineInputBorder())),
+    DateField(label:repeat.repeats?tt('Starts'):tt('Remind me at'),value:due,withTime:true,required:true,
      first:DateTime.now(),onChanged:(v){if(v!=null)setState(()=>due=v);}),
     if(partnerTimeHint()!=null)Padding(
      padding:const EdgeInsets.only(bottom:12),
      child:Row(children:[
       const Icon(Icons.public,size:18),const SizedBox(width:6),
-      Expanded(child:Text(partnerTimeHint()!,style:Theme.of(context).textTheme.bodySmall)),
+      Expanded(child:Text(tt(partnerTimeHint()!),style:Theme.of(context).textTheme.bodySmall)),
      ])),
     repeatSection(),
     const SizedBox(height:6),
     if(visibility=='shared'&&audience!='me')Padding(
      padding:const EdgeInsets.only(bottom:14),
-     child:Align(alignment:Alignment.centerLeft,child:OptionChip(
-      label:'Urgent',icon:Icons.priority_high,value:urgent,
-      help:'Alerts even during your partner\'s sleep hours. Without it, alerts wait until they wake up.',
+     child:Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(
+      label:tt('Urgent'),icon:Icons.priority_high,value:urgent,
+      help:tt('Alerts even during your partner\'s sleep hours. Without it, alerts wait until they wake up.'),
       onChanged:saving?null:(v)=>setState(()=>urgent=v)))),
-    const FormSection('More details'),
+    FormSection(tt('More details')),
     TextField(controller:details,maxLength:4000,minLines:2,maxLines:5,
-     decoration:const InputDecoration(labelText:'Details / instructions',
+     decoration:InputDecoration(labelText:tt('Details / instructions'),
       border:OutlineInputBorder())),
     if(visibility=='shared')Align(
-     alignment:Alignment.centerLeft,
+     alignment:AlignmentDirectional.centerStart,
      child:PartnerMentionButton(
       spaceId:widget.spaceId,controller:details,
       enabled:!saving)),
     const SizedBox(height:10),
     if(loadingLinks)const LinearProgressIndicator(),
-    if(!editing)ChoicePickerField<String>(label:'About an item (optional)',
-     icon:Icons.link,noneLabel:'Not linked',options:options,
+    if(!editing)ChoicePickerField<String>(label:tt('About an item (optional)'),
+     icon:Icons.link,noneLabel:tt('Not linked'),options:options,
      selected:selected!=null&&options.containsKey(selected)?selected:null,
      onSelected:(v)=>setState((){
       if(v==null){sourceKind=null;sourceId=null;}
       else{final parts=v.split(':');sourceKind=parts.first;sourceId=parts.last;}
      }))
     else if(selected!=null&&options[selected]!=null)ListTile(contentPadding:EdgeInsets.zero,
-     leading:const Icon(Icons.link),title:Text(options[selected]!)),
+     leading:const Icon(Icons.link),title:Text(tt(options[selected]!))),
     if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:10),
-     child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
    ])),
   );
  }

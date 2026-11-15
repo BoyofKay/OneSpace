@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'current_space_cache.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R57 (Ahmed, 15 Nov): one form language for every editor.
 ///
@@ -119,8 +120,8 @@ class MetaStrip extends StatelessWidget {
     final chips = <Widget>[
       if (showVisibility) _MenuChip<bool>(enabled: enabled,
         icon: value.shared ? Icons.people_outline : Icons.lock_outline,
-        label: value.shared ? 'Shared' : 'Only me',
-        tooltip: 'Who can see it',
+        label: value.shared ? tt('Shared') : tt('Only me'),
+        tooltip: tt('Who can see it'),
         options: const {true: 'Shared', false: 'Only me'},
         icons: const {true: Icons.people_outline, false: Icons.lock_outline},
         selected: value.shared,
@@ -128,7 +129,7 @@ class MetaStrip extends StatelessWidget {
       if (showBelongs) _MenuChip<String>(enabled: enabled,
         icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
         label: MetaRules.belongsLabel(value.belongsTo, people),
-        tooltip: 'Belongs to',
+        tooltip: tt('Belongs to'),
         options: {
           '': 'Both of us',
           if (me.isNotEmpty) me: 'Me',
@@ -140,9 +141,9 @@ class MetaStrip extends StatelessWidget {
         onSelected: (v) => onChanged(MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me))),
       if (showDate) InputChip(
         avatar: const Icon(Icons.event_outlined, size: 18),
-        label: Text(value.date == null ? 'Add ${dateLabel.toLowerCase()}'
+        label: Text(tt(value.date == null ? 'Add ${dateLabel.toLowerCase()}'
           : withTime ? '${loc.formatShortDate(value.date!)} ${loc.formatTimeOfDay(TimeOfDay.fromDateTime(value.date!))}'
-          : loc.formatShortDate(value.date!)),
+          : loc.formatShortDate(value.date!))),
         tooltip: dateLabel,
         onPressed: () => _pickDate(context),
         onDeleted: value.date == null ? null : () => onChanged(value.copyWith(date: null))),
@@ -173,8 +174,8 @@ class _MenuChip<T> extends StatelessWidget {
   final ValueChanged<T> onSelected;
   @override
   Widget build(BuildContext context) => !enabled
-    ? Tooltip(message: '$tooltip (set when it was created)',
-        child: Chip(avatar: Icon(icon, size: 18), label: Text(label)))
+    ? Tooltip(message: '$tooltip (${tt('set when it was created')})',
+        child: Chip(avatar: Icon(icon, size: 18), label: Text(tt(label))))
     : PopupMenuButton<T>(
     tooltip: tooltip,
     initialValue: selected,
@@ -184,13 +185,13 @@ class _MenuChip<T> extends StatelessWidget {
         value: e.key, checked: e.key == selected,
         child: Row(children: [
           if (icons[e.key] != null) ...[Icon(icons[e.key], size: 20), const SizedBox(width: 10)],
-          Text(e.value),
+          Text(tt(e.value)),
         ])),
     ],
     child: Chip(
       avatar: Icon(icon, size: 18),
       label: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(label), const SizedBox(width: 2), const Icon(Icons.arrow_drop_down, size: 18)]),
+        Text(tt(label)), const SizedBox(width: 2), const Icon(Icons.arrow_drop_down, size: 18)]),
     ));
 }
 
@@ -208,13 +209,13 @@ class ChoiceRow<T> extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 14),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(required ? '$label *' : label, style: Theme.of(context).textTheme.labelLarge),
+      Text(tt(required ? '$label *' : label), style: Theme.of(context).textTheme.labelLarge),
       const SizedBox(height: 6),
       Wrap(spacing: 8, runSpacing: 6, children: [
         for (final e in options.entries) ChoiceChip(
           avatar: icons[e.key] == null ? null : Icon(icons[e.key], size: 18),
           showCheckmark: false,
-          label: Text(e.value),
+          label: Text(tt(e.value)),
           selected: selected == e.key,
           onSelected: (on) => onSelected(on ? e.key : (allowNone ? null : e.key))),
       ]),
@@ -257,7 +258,7 @@ class ChoicePickerField<T> extends StatelessWidget {
           prefixIcon: Icon(icons[selected] ?? icon ?? Icons.list_alt_outlined),
           suffixIcon: const Icon(Icons.unfold_more),
           border: const OutlineInputBorder()),
-        child: Text(text, style: theme.textTheme.bodyLarge))));
+        child: Text(tt(text), style: theme.textTheme.bodyLarge))));
   }
 }
 
@@ -283,23 +284,23 @@ class _PickerSheetState<T> extends State<_PickerSheet<T>> {
     return SafeArea(child: SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: Column(children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: Column(
+        Padding(padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 8), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
+            Text(tt(widget.title), style: Theme.of(context).textTheme.titleMedium),
             if (widget.options.length > 8) Padding(padding: const EdgeInsets.only(top: 8),
               child: TextField(autofocus: false, onChanged: (v) => setState(() => q = v),
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.search),
-                  hintText: 'Search', isDense: true, border: OutlineInputBorder()))),
+                decoration: InputDecoration(prefixIcon: Icon(Icons.search),
+                  hintText: tt('Search'), isDense: true, border: OutlineInputBorder()))),
           ])),
         Expanded(child: ListView(children: [
           if (widget.noneLabel != null && q.isEmpty) ListTile(
             leading: const Icon(Icons.remove_circle_outline),
-            title: Text(widget.noneLabel!),
+            title: Text(tt(widget.noneLabel!)),
             trailing: widget.selected == null ? const Icon(Icons.check) : null,
             onTap: () => Navigator.pop(context, _Pick<T>(null))),
           for (final e in entries) ListTile(
             leading: Icon(widget.icons[e.key] ?? Icons.circle_outlined),
-            title: Text(e.value),
+            title: Text(tt(e.value)),
             trailing: e.key == widget.selected ? const Icon(Icons.check) : null,
             onTap: () => Navigator.pop(context, _Pick<T>(e.key))),
         ])),
@@ -342,10 +343,10 @@ class DateField extends StatelessWidget {
         decoration: InputDecoration(labelText: required ? '$label *' : label,
           prefixIcon: Icon(withTime ? Icons.schedule : Icons.event_outlined),
           suffixIcon: !required && value != null
-            ? IconButton(tooltip: 'Clear', icon: const Icon(Icons.close), onPressed: () => onChanged(null))
+            ? IconButton(tooltip: tt('Clear'), icon: const Icon(Icons.close), onPressed: () => onChanged(null))
             : null,
           border: const OutlineInputBorder()),
-        child: Text(text))));
+        child: Text(tt(text)))));
   }
 }
 
@@ -356,7 +357,7 @@ class FormSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 6, bottom: 10),
-    child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(
+    child: Text(tt(title), style: Theme.of(context).textTheme.titleSmall?.copyWith(
       color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700)));
 }
 
@@ -374,7 +375,7 @@ class OptionChip extends StatelessWidget {
     message: help ?? label,
     child: FilterChip(
       avatar: icon == null ? null : Icon(icon, size: 18),
-      label: Text(label),
+      label: Text(tt(label)),
       selected: value,
       onSelected: onChanged));
 }
@@ -396,7 +397,7 @@ class MoodPicker extends StatelessWidget {
     Color tone(int m) => m <= 2 ? scheme.error : m == 3 ? scheme.tertiary : scheme.primary;
     return Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        Text(tt(label), style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
         Row(children: [
           for (var m = 1; m <= 5; m++) Expanded(child: InkWell(
@@ -413,7 +414,7 @@ class MoodPicker extends StatelessWidget {
               child: Column(children: [
                 Icon(icons[m - 1], color: value == m ? tone(m) : scheme.onSurfaceVariant, size: 28),
                 const SizedBox(height: 4),
-                Text(words[m - 1], maxLines: 1, overflow: TextOverflow.ellipsis,
+                Text(tt(words[m - 1]), maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelSmall),
               ])))),
         ]),
@@ -435,7 +436,7 @@ class StarRating extends StatelessWidget {
       for (var i = 1; i <= 5; i++) SizedBox(width: size, height: size, child: InkResponse(
         radius: size / 2,
         onTap: onChanged == null ? null : () => onChanged!(value == i ? null : i),
-        child: Tooltip(message: '$i of 5', child: Icon(
+        child: Tooltip(message: '$i ${tt('of')} 5', child: Icon(
           (value ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded,
           size: size * .82,
           color: (value ?? 0) >= i ? Colors.amber.shade600 : Theme.of(context).colorScheme.outline)))),

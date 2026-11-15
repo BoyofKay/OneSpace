@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../calendar/calendar_rules.dart';
 import '../../core/responsive_field_pair.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 const tripItemKinds=<String,String>{
  'flight':'Flight','stay':'Accommodation','transport':'Transport',
@@ -152,14 +153,14 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
  Widget whenChips(String label,DateTime? date,TimeOfDay? time,bool isEnd){
   final loc=MaterialLocalizations.of(context);
   return Padding(padding:const EdgeInsets.only(bottom:10),child:Row(children:[
-   SizedBox(width:92,child:Text(label,style:Theme.of(context).textTheme.labelLarge)),
+   SizedBox(width:92,child:Text(tt(label),style:Theme.of(context).textTheme.labelLarge)),
    Expanded(child:Wrap(spacing:8,runSpacing:6,children:[
     InputChip(avatar:const Icon(Icons.event_outlined,size:18),
-     label:Text(date==null?'Date':loc.formatMediumDate(date)),
+     label:Text(tt(date==null?'Date':loc.formatMediumDate(date))),
      onPressed:()=>pickDate(isEnd),
      onDeleted:date==null?null:()=>setState((){if(isEnd){endDate=null;}else{localDate=null;}})),
     InputChip(avatar:const Icon(Icons.schedule,size:18),
-     label:Text(time==null?'Time':time.format(context)),
+     label:Text(tt(time==null?'Time':time.format(context))),
      onPressed:()=>pickTime(isEnd),
      onDeleted:time==null?null:()=>setState((){if(isEnd){endTime=null;}else{localTime=null;}})),
    ])),
@@ -169,19 +170,19 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
  @override Widget build(BuildContext context){
   final w=words;
   final isNote=kind=='note';
-  return EditorScaffold(title:widget.existing==null?'Add to the itinerary':'Edit itinerary entry',
+  return EditorScaffold(title:widget.existing==null?tt('Add to the itinerary'):tt('Edit itinerary entry'),
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,location,destination,provider,reference,link,details,cost,currency],saving:saving,onSave:save,
    body:ListView(padding:const EdgeInsets.all(18),children:[
-   ChoiceRow<String>(label:'What is it?',options:tripItemKinds,selected:kind,
+   ChoiceRow<String>(label:tt('What is it?'),options:tripItemKinds,selected:kind,
     icons:const {'flight':Icons.flight_outlined,'stay':Icons.hotel_outlined,
      'transport':Icons.directions_car_outlined,'activity':Icons.local_activity_outlined,
      'booking':Icons.restaurant_outlined,'note':Icons.sticky_note_2_outlined},
     onSelected:(v){if(!saving&&v!=null)setState(()=>kind=v);}),
    TextField(controller:title,maxLength:160,textCapitalization:TextCapitalization.sentences,
-    decoration:InputDecoration(labelText:'Title *',hintText:w['title'],border:const OutlineInputBorder())),
+    decoration:InputDecoration(labelText:tt('Title *'),hintText:w['title'],border:const OutlineInputBorder())),
    if(!isNote)...[
-    const FormSection('Where and when'),
+    FormSection(tt('Where and when')),
     if(w['from']!.isNotEmpty)Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(
      controller:location,maxLength:240,
      decoration:InputDecoration(labelText:w['from'],prefixIcon:const Icon(Icons.place_outlined),
@@ -192,8 +193,8 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
       border:const OutlineInputBorder()))),
     whenChips(w['start']!,localDate,localTime,false),
     if(w['end']!.isNotEmpty)whenChips(w['end']!,endDate,endTime,true),
-    Text('Local times, exactly as on the booking.',style:Theme.of(context).textTheme.bodySmall),
-    const FormSection('Booking'),
+    Text(tt('Local times, exactly as on the booking.'),style:Theme.of(context).textTheme.bodySmall),
+    FormSection(tt('Booking')),
     TextField(controller:provider,maxLength:160,
      decoration:InputDecoration(labelText:w['provider'],border:const OutlineInputBorder())),
     const SizedBox(height:10),
@@ -202,27 +203,27 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
       border:const OutlineInputBorder())),
     const SizedBox(height:10),
     TextField(controller:link,maxLength:1800,keyboardType:TextInputType.url,
-     decoration:const InputDecoration(labelText:'Link',prefixIcon:Icon(Icons.link),
+     decoration:InputDecoration(labelText:tt('Link'),prefixIcon:Icon(Icons.link),
       border:OutlineInputBorder())),
     const SizedBox(height:10),
     ResponsiveFieldPair(
      first:TextField(controller:cost,
       keyboardType:const TextInputType.numberWithOptions(decimal:true),
-      decoration:const InputDecoration(labelText:'Cost',border:OutlineInputBorder())),
+      decoration:InputDecoration(labelText:tt('Cost'),border:OutlineInputBorder())),
      second:TextField(controller:currency,maxLength:3,
       textCapitalization:TextCapitalization.characters,
-      decoration:const InputDecoration(labelText:'Currency',hintText:'USD',border:OutlineInputBorder())),
+      decoration:InputDecoration(labelText:tt('Currency'),hintText:tt('USD'),border:OutlineInputBorder())),
     ),
    ],
-   const FormSection('Notes'),
+   FormSection(tt('Notes')),
    TextField(controller:details,maxLength:5000,minLines:2,maxLines:6,
-    decoration:const InputDecoration(labelText:'Notes and details',alignLabelWithHint:true,
+    decoration:InputDecoration(labelText:tt('Notes and details'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
    const SizedBox(height:10),
-   Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Done',icon:Icons.task_alt,value:done,
+   Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Done'),icon:Icons.task_alt,value:done,
     onChanged:(v)=>setState(()=>done=v))),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
-    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
  }
 }

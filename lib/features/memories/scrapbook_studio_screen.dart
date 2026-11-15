@@ -11,6 +11,7 @@ import 'memory_photo_gallery.dart';
 import 'memory_photo_service.dart';
 import 'scrapbook_templates.dart';
 import 'scrapbook_page_canvas.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A scrapbook is a first-class Memory containing collaborative designed pages.
 /// All photo bytes remain in the existing RLS-protected memory storage bucket.
@@ -98,23 +99,23 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   var sharing=true;
   final requested=await showDialog<(String,bool)>(
    context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
-    title:Text('Start '+design.name),
+    title:Text(tt('Start ')+design.name),
     content:Column(mainAxisSize:MainAxisSize.min,children:[
-     Text(design.subtitle),
+     Text(tt(design.subtitle)),
      const SizedBox(height:12),
      TextField(controller:input,maxLength:120,autofocus:true,
-      decoration:const InputDecoration(labelText:'Scrapbook title',
-       hintText:'Our November memories',border:OutlineInputBorder())),
+      decoration:InputDecoration(labelText:tt('Scrapbook title'),
+       hintText:tt('Our November memories'),border:OutlineInputBorder())),
      SwitchListTile(
       contentPadding:EdgeInsets.zero,value:sharing,
-      title:const Text('Shared with partner'),
-      subtitle:const Text('Only you can edit until your invitation is accepted.'),
+      title:Text(tt('Shared with partner')),
+      subtitle:Text(tt('Only you can edit until your invitation is accepted.')),
       onChanged:(v)=>update(()=>sharing=v)),
     ]),
     actions:[
-     TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
+     TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('Cancel'))),
      FilledButton(onPressed:()=>Navigator.pop(ctx,(input.text.trim(),sharing)),
-      child:const Text('Create scrapbook')),
+      child:Text(tt('Create scrapbook'))),
     ],
    )));
   input.dispose();
@@ -152,7 +153,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   try{
    await db.rpc('invite_scrapbook_partner',params:{'p_memory_id':id});
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Invitation sent to your partner.')));
+    SnackBar(content:Text(tt('Invitation sent to your partner.'))));
    await _load();
   }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
   finally{if(mounted)setState(()=>busy=false);}
@@ -178,11 +179,11 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   final key=await showModalBottomSheet<String>(context:context,
    showDragHandle:true,builder:(ctx)=>SafeArea(child:ListView(
     shrinkWrap:true,children:[
-     const ListTile(title:Text('Choose a page design'),
-      subtitle:Text('Photos and writing stay intact when you change designs.')),
+     ListTile(title:Text(tt('Choose a page design')),
+      subtitle:Text(tt('Photos and writing stay intact when you change designs.'))),
      for(final d in ScrapbookTemplates.designs)ListTile(
       leading:Icon(d.icon,color:d.accent),
-      title:Text(d.name),subtitle:Text(d.subtitle),
+      title:Text(tt(d.name)),subtitle:Text(tt(d.subtitle)),
       trailing:page['template_key']==d.key?const Icon(Icons.check):null,
       onTap:()=>Navigator.pop(ctx,d.key)),
    ])));
@@ -197,23 +198,23 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   final highlight=TextEditingController(text:(page['highlight_text']??'').toString());
   final next=await showDialog<Map<String,dynamic>>(context:context,
    builder:(ctx)=>AlertDialog(
-    title:const Text('Write your scrapbook page'),
+    title:Text(tt('Write your scrapbook page')),
     content:SizedBox(width:520,child:SingleChildScrollView(child:Column(children:[
      TextField(controller:title,maxLength:120,
-      decoration:const InputDecoration(labelText:'Page title')),
+      decoration:InputDecoration(labelText:tt('Page title'))),
      TextField(controller:sub,maxLength:180,
-      decoration:const InputDecoration(labelText:'Subtitle')),
+      decoration:InputDecoration(labelText:tt('Subtitle'))),
      TextField(controller:highlight,maxLength:360,maxLines:2,
-      decoration:const InputDecoration(labelText:'Favorite quote / highlight')),
+      decoration:InputDecoration(labelText:tt('Favorite quote / highlight'))),
      TextField(controller:story,maxLength:2200,maxLines:7,minLines:4,
-      decoration:const InputDecoration(labelText:'Your story')),
+      decoration:InputDecoration(labelText:tt('Your story'))),
     ]))),
     actions:[
-     TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
+     TextButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('Cancel'))),
      FilledButton(onPressed:()=>Navigator.pop(ctx,{
       'title':title.text.trim(),'subtitle':sub.text.trim(),
       'story_text':story.text.trim(),'highlight_text':highlight.text.trim(),
-     }),child:const Text('Save page')),
+     }),child:Text(tt('Save page'))),
     ],
    ));
   title.dispose();sub.dispose();story.dispose();highlight.dispose();
@@ -238,27 +239,27 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   final choice=await showModalBottomSheet<String>(context:context,
    showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
     mainAxisSize:MainAxisSize.min,children:[
-     const ListTile(title:Text('Fill a photo slot')),
+     ListTile(title:Text(tt('Fill a photo slot'))),
      ListTile(leading:const Icon(Icons.photo_camera_outlined),
-      title:const Text('Take a photo'),onTap:()=>Navigator.pop(ctx,'camera')),
+      title:Text(tt('Take a photo')),onTap:()=>Navigator.pop(ctx,'camera')),
      ListTile(leading:const Icon(Icons.photo_library_outlined),
-      title:const Text('Choose from gallery'),onTap:()=>Navigator.pop(ctx,'gallery')),
+      title:Text(tt('Choose from gallery')),onTap:()=>Navigator.pop(ctx,'gallery')),
      if(photoRows.isNotEmpty)ListTile(
       leading:const Icon(Icons.collections_outlined),
-      title:const Text('Use an existing scrapbook photo'),
+      title:Text(tt('Use an existing scrapbook photo')),
       onTap:()=>Navigator.pop(ctx,'existing')),
      ListTile(leading:const Icon(Icons.remove_circle_outline),
-      title:const Text('Clear this slot'),onTap:()=>Navigator.pop(ctx,'clear')),
+      title:Text(tt('Clear this slot')),onTap:()=>Navigator.pop(ctx,'clear')),
    ])));
   if(choice==null||!mounted)return;
   String? photoId;
   if(choice=='existing'){
    photoId=await showDialog<String>(context:context,builder:(ctx)=>SimpleDialog(
-    title:const Text('Select an existing photo'),
+    title:Text(tt('Select an existing photo')),
     children:[for(final p in photoRows)SimpleDialogOption(
      onPressed:()=>Navigator.pop(ctx,p['id'].toString()),
-     child:Text(((p['caption']??'').toString().isEmpty?'Photo':'Photo · '+p['caption'].toString())+
-      ((p['place_tag']??'').toString().isEmpty?'':' · '+p['place_tag'].toString()),
+     child:Text(tt(((p['caption']??'').toString().isEmpty?'Photo':'Photo · '+p['caption'].toString())+
+      ((p['place_tag']??'').toString().isEmpty?'':' · '+p['place_tag'].toString())),
        maxLines:2,overflow:TextOverflow.ellipsis)),
     ],
    ));
@@ -344,17 +345,17 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
     'saveAndShare',{'bytes':encoded.buffer.asUint8List(),
      'name':(memory?['title']??'OneSpace-Scrapbook').toString()});
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Scrapbook page saved as a PNG.')));
+    SnackBar(content:Text(tt('Scrapbook page saved as a PNG.'))));
   }catch(e){
    if(mounted)setState(()=>error=e is StateError?e.message:
-    'Could not export the page. Make sure all photos are loaded.');
+    tt('Could not export the page. Make sure all photos are loaded.'));
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Widget _welcome(){
   return ListView(padding:const EdgeInsets.all(18),children:[
-   Text('Scrapbook Studio',style:Theme.of(context).textTheme.headlineMedium),
+   Text(tt('Scrapbook Studio'),style:Theme.of(context).textTheme.headlineMedium),
    const SizedBox(height:6),
-   const Text('Pick a beautiful starting point. Add photos and words, then invite your partner to write the next chapter.'),
+   Text(tt('Pick a beautiful starting point. Add photos and words, then invite your partner to write the next chapter.')),
    const SizedBox(height:14),
    for(final d in ScrapbookTemplates.designs)Card(
     child:InkWell(onTap:busy?null:()=>_create(d),
@@ -368,11 +369,11 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
          photos:const {},signedUrls:const {}))))),
       const SizedBox(width:16),
       Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Text(d.name,style:Theme.of(context).textTheme.titleMedium),
+       Text(tt(d.name),style:Theme.of(context).textTheme.titleMedium),
        const SizedBox(height:4),
-       Text(d.subtitle),
+       Text(tt(d.subtitle)),
        const SizedBox(height:4),
-       Text(d.photoCount.toString()+' photo slots per page',
+       Text(tt(d.photoCount.toString()+' photo slots per page'),
         style:Theme.of(context).textTheme.bodySmall),
       ])),
       const Icon(Icons.chevron_right),
@@ -382,45 +383,45 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   ]);
  }
  Widget _collaboration(){
-  if(!isShared)return const ListTile(leading:Icon(Icons.lock_outline),
-   title:Text('Private scrapbook'),subtitle:Text('Only you can view and edit it.'));
+  if(!isShared)return ListTile(leading:Icon(Icons.lock_outline),
+   title:Text(tt('Private scrapbook')),subtitle:Text(tt('Only you can view and edit it.')));
   if(isOwner)return ListTile(
    contentPadding:EdgeInsets.zero,leading:const Icon(Icons.people_outline),
-   title:Text(inviteState=='accepted'?'Creating together':
-    inviteState=='pending'?'Invitation sent':'Invite your partner'),
-   subtitle:Text(inviteState=='accepted'?'Both of you can edit every page.':
+   title:Text(tt(inviteState=='accepted'?'Creating together':
+    inviteState=='pending'?'Invitation sent':'Invite your partner')),
+   subtitle:Text(tt(inviteState=='accepted'?'Both of you can edit every page.':
     inviteState=='pending'?'Your partner can accept or decline.':
-    'Ask your partner to contribute photos and stories.'),
+    'Ask your partner to contribute photos and stories.')),
    trailing:inviteState=='accepted'?const Icon(Icons.check_circle_outline):
     TextButton(onPressed:busy?null:_invite,child:Text(
-     inviteState=='pending'?'Resend':'Invite')),
+     tt(inviteState=='pending'?'Resend':'Invite'))),
   );
   if(awaiting)return Card(child:Padding(padding:const EdgeInsets.all(12),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Text('Your partner invited you to this scrapbook!',
+    Text(tt('Your partner invited you to this scrapbook!'),
      style:TextStyle(fontWeight:FontWeight.bold)),
-    const Text('Accept to add your own photos and words to any page.'),
+    Text(tt('Accept to add your own photos and words to any page.')),
     Wrap(spacing:8,children:[
      OutlinedButton(onPressed:busy?null:()=>_respond(false),
-      child:const Text('Decline')),
+      child:Text(tt('Decline'))),
      FilledButton(onPressed:busy?null:()=>_respond(true),
-      child:const Text('Accept invitation')),
+      child:Text(tt('Accept invitation'))),
     ]),
    ])));
   return ListTile(leading:Icon(canEdit?Icons.edit_note:Icons.visibility_outlined),
-   title:Text(canEdit?'You can contribute':'Shared view'),
-   subtitle:Text(canEdit?'Your changes are visible to both of you.':
-    'Only invited collaborators can edit scrapbook pages.'));
+   title:Text(tt(canEdit?tt('You can contribute'):tt('Shared view'))),
+   subtitle:Text(tt(canEdit?'Your changes are visible to both of you.':
+    'Only invited collaborators can edit scrapbook pages.')));
  }
  Widget _studio(){
   final myId=id;
   if(myId==null||memory==null||pageStream==null)return _welcome();
   return StreamBuilder<List<Map<String,dynamic>>>(
    stream:pageStream,builder:(ctx,snapshot){
-    if(snapshot.hasError)return const Center(child:Text('Could not load scrapbook pages.'));
+    if(snapshot.hasError)return Center(child:Text(tt('Could not load scrapbook pages.')));
     if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
     final pages=snapshot.data!;
-    if(pages.isEmpty)return const Center(child:Text('This scrapbook has no pages yet.'));
+    if(pages.isEmpty)return Center(child:Text(tt('This scrapbook has no pages yet.')));
     final idx=selectedPage.clamp(0,pages.length-1);
     final page=pages[idx];
     WidgetsBinding.instance.addPostFrameCallback((_){
@@ -430,23 +431,23 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
      for(final x in photoRows)x['id'].toString():x
     };
     final scheme=ScrapbookTemplates.get(page['template_key']?.toString());
-    return ListView(padding:const EdgeInsets.fromLTRB(14,10,14,90),children:[
-     Text(memory!['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+    return ListView(padding:const EdgeInsetsDirectional.fromSTEB(14,10,14,90),children:[
+     Text(tt(memory!['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      const SizedBox(height:8),
      _collaboration(),
      const SizedBox(height:8),
      SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
-      for(var n=0;n<pages.length;n++)Padding(padding:const EdgeInsets.only(right:6),
+      for(var n=0;n<pages.length;n++)Padding(padding:const EdgeInsetsDirectional.only(end:6),
        child:ChoiceChip(
-        label:Text('Page '+(n+1).toString()),
+        label:Text(tt('Page ')+(n+1).toString()),
         selected:idx==n,onSelected:(_)=>setState(()=>selectedPage=n))),
       if(canEdit&&pages.length<12)ActionChip(
        avatar:const Icon(Icons.add,size:18),
-       label:const Text('New page'),
+       label:Text(tt('New page')),
        onPressed:busy?null:()=>_addPage(pages)),
      ])),
      const SizedBox(height:14),
-     Text(scheme.name+' · '+(idx+1).toString()+'/'+pages.length.toString(),
+     Text(tt(scheme.name+' · '+(idx+1).toString()+'/'+pages.length.toString()),
       style:Theme.of(context).textTheme.titleMedium),
      const SizedBox(height:8),
      Center(child:ConstrainedBox(
@@ -457,41 +458,41 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
      const SizedBox(height:12),
      if(canEdit)Wrap(spacing:8,runSpacing:4,children:[
       OutlinedButton.icon(onPressed:busy?null:()=>_editWords(page),
-       icon:const Icon(Icons.edit_note_outlined),label:const Text('Write')),
+       icon:const Icon(Icons.edit_note_outlined),label:Text(tt('Write'))),
       OutlinedButton.icon(onPressed:busy?null:()=>_changeTemplate(page),
        icon:const Icon(Icons.dashboard_customize_outlined),
-       label:const Text('Change design')),
+       label:Text(tt('Change design'))),
       for(var n=1;n<=scheme.photoCount;n++)
        OutlinedButton.icon(onPressed:busy?null:()=>_pickPhoto(page,n),
         icon:const Icon(Icons.add_photo_alternate_outlined),
-        label:Text('Photo '+n.toString())),
+        label:Text(tt('Photo ')+n.toString())),
      ]),
      const SizedBox(height:8),
      FilledButton.icon(onPressed:busy?null:()=>_export(page),
       icon:const Icon(Icons.ios_share_outlined),
-      label:const Text('Export this page as PNG')),
+      label:Text(tt('Export this page as PNG'))),
      const SizedBox(height:8),
      if(canEdit)ExpansionTile(
-      title:const Text('Photo library & searchable tags'),
-      subtitle:const Text('People, location, tags and captions'),
+      title:Text(tt('Photo library & searchable tags')),
+      subtitle:Text(tt('People, location, tags and captions')),
       children:[MemoryPhotoGallery(memoryId:myId,
        editable:canEdit,layout:'grid')],
      ),
      if(busy)const LinearProgressIndicator(),
      if(error!=null)Padding(padding:const EdgeInsets.all(8),
-      child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+      child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
     ]);
    });
  }
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:const Text('Scrapbook Studio'),
+  appBar:AppBar(title:Text(tt('Scrapbook Studio')),
    actions:[if(id!=null)IconButton(
-    tooltip:'Refresh scrapbook',onPressed:busy?null:_load,
+    tooltip:tt('Refresh scrapbook'),onPressed:busy?null:_load,
     icon:const Icon(Icons.refresh))]),
   body:loading?const Center(child:CircularProgressIndicator()):
    id==null?_welcome():_studio(),
   bottomNavigationBar:error!=null&&id==null?SafeArea(
-   child:Padding(padding:const EdgeInsets.all(8),child:Text(error!,
+   child:Padding(padding:const EdgeInsets.all(8),child:Text(tt(error!),
     style:TextStyle(color:Theme.of(context).colorScheme.error)))):null,
  );
 }

@@ -37,6 +37,7 @@ import '../../core/current_space_cache.dart';
 import '../../core/home_member_names.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/first_name.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 class SharedSpaceScreen extends StatefulWidget {
   const SharedSpaceScreen({
@@ -516,8 +517,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       await _load();
     } catch(_){
       if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:Text('Unable to snooze this item. Try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:Text(tt('Unable to snooze this item. Try again.'))));
       }
     }
   }
@@ -674,11 +675,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       dense:true,
       contentPadding:const EdgeInsets.symmetric(horizontal:4),
       leading:const Icon(Icons.auto_awesome_outlined),
-      title:Text(memory['title']?.toString()??'A memory'),
+      title:Text(tt(memory['title']?.toString()??'A memory')),
       subtitle:Text('On this day · $years year${years==1?'':'s'} ago'),
       onTap:()=>_push(MemoriesScreen(initialMemoryId:id)),
       trailing:IconButton(
-        tooltip:'Hide this memory from Today',
+        tooltip:tt('Hide this memory from Today'),
         icon:const Icon(Icons.close,size:18),
         onPressed:()async{
           final next={...hiddenOnThisDay,id};
@@ -731,14 +732,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       color:Color.alphaBlend((_together?colors.tertiary:colors.primary)
         .withValues(alpha:.09),colors.surface),
       child:Padding(
-        padding:const EdgeInsets.fromLTRB(14,6,6,12),
+        padding:const EdgeInsetsDirectional.fromSTEB(14,6,6,12),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Row(children:[
-            Expanded(child:Text(_together?'Together under one roof':
-              relationshipMode=='not_set'?'Tell OneSpace how you live':'Living apart',
+            Expanded(child:Text(tt(_together?'Together under one roof':
+              relationshipMode=='not_set'?'Tell OneSpace how you live':'Living apart'),
               style:theme.textTheme.titleSmall?.copyWith(color:colors.onSurfaceVariant))),
             IconButton(
-              tooltip:'How we live',
+              tooltip:tt('How we live'),
               onPressed:_chooseHowWeLive,
               icon:Icon(_together?Icons.home_rounded:Icons.flight_rounded,
                 color:colors.primary)),
@@ -746,38 +747,38 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           if(_together)Row(children:[
             Icon(Icons.favorite_rounded,size:30,color:colors.primary),
             const SizedBox(width:12),
-            const Expanded(child:Text('One home, one shared space.')),
+            Expanded(child:Text(tt('One home, one shared space.'))),
           ])
           else PartnerClockStrip(members:clockMembers,relationshipMode:relationshipMode),
           if(trip!=null)Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:Row(children:[
               Icon(Icons.luggage_outlined,size:18,color:colors.primary),
               const SizedBox(width:6),
-              Expanded(child:Text([
+              Expanded(child:Text(tt([
                 'Travelling',
                 (trip['destination']?.toString().trim().isNotEmpty??false)
                   ?trip['destination'].toString():trip['title']?.toString()??'Trip',
                 if(backIn!=null&&backIn>0)'back in $backIn day${backIn==1?'':'s'}'
                 else if(backIn==0)'back today',
-              ].join(' · '))),
+              ].join(' · ')))),
             ])),
           if(window!=null)Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:Row(children:[
               Icon(Icons.phone_in_talk_outlined,size:18,color:colors.primary),
               const SizedBox(width:6),
-              Expanded(child:Text(talkWindowLabel(window,DateTime.now().toUtc(),myZone))),
+              Expanded(child:Text(tt(talkWindowLabel(window,DateTime.now().toUtc(),myZone)))),
             ]))
           else if(missingSchedules)Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
-            child:Text('Add your work and sleep hours in Profile to see good times to talk.',
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
+            child:Text(tt('Add your work and sleep hours in Profile to see good times to talk.'),
               style:theme.textTheme.bodySmall)),
           if(apart&&(lastMetOn!=null||nextMeetOn!=null))Padding(
-            padding:const EdgeInsets.only(top:8,right:8),
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
             child:_meetingCounters()),
           if(countdown!=null)Padding(
-            padding:const EdgeInsets.only(top:6,right:8),
+            padding:const EdgeInsetsDirectional.only(top:6,end:8),
             child:InkWell(
               onTap:()=>_openFocusActivity(countdown['activity_id'].toString()),
               child:Row(children:[
@@ -800,17 +801,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(tr(context,'lastMetLabel'),
             style:Theme.of(context).textTheme.bodySmall),
-          Text(ago==0?'Today':ago>0?'Coming up':
-            ago==-1?'Yesterday':'${-ago} days ago',
+          Text(tt(ago==0?'Today':ago>0?'Coming up':
+            ago==-1?'Yesterday':'${-ago} days ago'),
             style:Theme.of(context).textTheme.titleSmall),
         ])),
       if(until!=null)Expanded(child:Column(
         crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(tr(context,'nextMeetingLabel'),
             style:Theme.of(context).textTheme.bodySmall),
-          Text(until<0?'Meeting date passed':
+          Text(tt(until<0?'Meeting date passed':
             until==0?tr(context,'meetingToday'):
-            '$until days to go',
+            '$until days to go'),
             style:Theme.of(context).textTheme.titleSmall),
         ])),
     ]);
@@ -821,18 +822,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final choice=await showModalBottomSheet<bool>(
       context:context,showDragHandle:true,
       builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,children:[
-        const ListTile(title:Text('How do you live?',
+        ListTile(title:Text(tt('How do you live?'),
           style:TextStyle(fontWeight:FontWeight.w700))),
         ListTile(
           leading:const Icon(Icons.home_rounded),
-          title:const Text('Together'),
-          subtitle:const Text('We share one home'),
+          title:Text(tt('Together')),
+          subtitle:Text(tt('We share one home')),
           trailing:_together?const Icon(Icons.check):null,
           onTap:()=>Navigator.pop(ctx,true)),
         ListTile(
           leading:const Icon(Icons.flight_rounded),
-          title:const Text('Apart'),
-          subtitle:const Text('We live in different places for now'),
+          title:Text(tt('Apart')),
+          subtitle:Text(tt('We live in different places for now')),
           trailing:!_together&&relationshipMode!='not_set'?const Icon(Icons.check):null,
           onTap:()=>Navigator.pop(ctx,false)),
         const SizedBox(height:8),
@@ -845,8 +846,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       await client.rpc('set_how_we_live',params:{'p_together':choice});
     }catch(_){
       if(mounted){
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:Text('Could not save. Check your connection and try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:Text(tt('Could not save. Check your connection and try again.'))));
       }
       return;
     }
@@ -855,12 +856,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if(!mounted)return;
     if(choice&&!wasTogether&&previousMode!='not_set'){
       final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-        title:const Text('Moving in together'),
-        content:const Text('Save our journey apart as a memory? Nothing is deleted; '
-          'the meeting counters simply hide while you live together.'),
+        title:Text(tt('Moving in together')),
+        content:Text(tt('Save our journey apart as a memory? Nothing is deleted; '
+          'the meeting counters simply hide while you live together.')),
         actions:[
-          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Not now')),
-          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Save memory')),
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Not now'))),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save memory'))),
         ]));
       if(save==true&&spaceId!=null){
         final today=CalendarRules.sqlDate(DateTime.now());
@@ -878,8 +879,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           });
         }catch(_){
           if(mounted){
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content:Text('The memory could not be saved; you can add it from Memories.')));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content:Text(tt('The memory could not be saved; you can add it from Memories.'))));
           }
         }
       }
@@ -887,8 +888,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if(!mounted)return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       duration:const Duration(seconds:10),
-      content:Text(choice?'Saved: we live together':'Saved: we live apart'),
-      action:SnackBarAction(label:'Undo',onPressed:()async{
+      content:Text(tt(choice?tt('Saved: we live together'):tt('Saved: we live apart'))),
+      action:SnackBarAction(label:tt('Undo'),onPressed:()async{
         try{
           await client.rpc('set_how_we_live',params:{'p_together':!choice});
           if(mounted)await _load();
@@ -902,11 +903,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final theme=Theme.of(context);
     return TodaySectionCard(
       icon:Icons.mark_chat_unread_outlined,
-      title:'Since you were away',
+      title:tt('Since you were away'),
       trailing:sinceAwayTotal==0?null:TextButton(
-        onPressed:_openNotifications,child:const Text('See all')),
+        onPressed:_openNotifications,child:Text(tt('See all'))),
       children:[
-        if(sinceAway.isEmpty)const TodayEmptyHint("You're all caught up.")
+        if(sinceAway.isEmpty)TodayEmptyHint(tt("You're all caught up."))
         else if(sinceAwayCollapsed)ListTile(
           dense:true,
           contentPadding:const EdgeInsets.symmetric(horizontal:4),
@@ -918,20 +919,20 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             dense:true,
             contentPadding:const EdgeInsets.symmetric(horizontal:4),
             leading:Icon(notificationIcon(item)),
-            title:Text(item['title']?.toString()??'Update',
+            title:Text(tt(item['title']?.toString()??'Update'),
               maxLines:2,overflow:TextOverflow.ellipsis),
-            subtitle:Text([
+            subtitle:Text(tt([
               item['body']?.toString()??'',
               notificationAge(item['created_at']),
-            ].where((x)=>x.trim().isNotEmpty).join(' · '),
+            ].where((x)=>x.trim().isNotEmpty).join(' · ')),
               maxLines:2,overflow:TextOverflow.ellipsis),
             onTap:()async{
               await openNotificationTarget(context,item);
               if(mounted)await _load();
             }),
           if(sinceAwayTotal>sinceAway.length)Padding(
-            padding:const EdgeInsets.only(left:4,top:2),
-            child:Text('and ${sinceAwayTotal-sinceAway.length} more',
+            padding:const EdgeInsetsDirectional.only(start:4,top:2),
+            child:Text('${tt('and')} ${sinceAwayTotal-sinceAway.length} ${tt('more')}',
               style:theme.textTheme.bodySmall)),
         ],
       ],
@@ -956,8 +957,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final dueReminders=focusItems.where((i)=>i.isReminder).length;
     Widget group(String label,Color color,List<_Shortcut> tiles)=>Column(
       crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Padding(padding:const EdgeInsets.fromLTRB(2,10,2,6),
-          child:Text(label.toUpperCase(),style:theme.textTheme.labelSmall?.copyWith(
+        Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,10,2,6),
+          child:Text(tt(label.toUpperCase()),style:theme.textTheme.labelSmall?.copyWith(
             color:color,fontWeight:FontWeight.w800,letterSpacing:.8))),
         GridView.count(
           crossAxisCount:3,
@@ -969,34 +970,34 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         ),
       ]);
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Our space',
+      Text(tt('Our space'),
         style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700)),
       // R55: grouped by what you are doing, not by tab, so no group has one tile.
       group('Plan together',colors.primary,[
-        _Shortcut('Calendar',Icons.calendar_month_outlined,widget.onOpenCalendar),
-        _Shortcut('To-do lists',Icons.checklist_outlined,widget.onOpenPlans),
-        _Shortcut('Reminders',Icons.alarm_outlined,
+        _Shortcut(tt('Calendar'),Icons.calendar_month_outlined,widget.onOpenCalendar),
+        _Shortcut(tt('To-do lists'),Icons.checklist_outlined,widget.onOpenPlans),
+        _Shortcut(tt('Reminders'),Icons.alarm_outlined,
           ()=>_push(const RemindersScreen()),badge:dueReminders),
-        _Shortcut('Activities',Icons.hub_outlined,widget.onOpenCoordinate),
-        _Shortcut('Trips',Icons.flight_takeoff_outlined,
+        _Shortcut(tt('Activities'),Icons.hub_outlined,widget.onOpenCoordinate),
+        _Shortcut(tt('Trips'),Icons.flight_takeoff_outlined,
           ()=>_push(const TripsScreen())),
-        _Shortcut('Occasions',Icons.card_giftcard_outlined,
+        _Shortcut(tt('Occasions'),Icons.card_giftcard_outlined,
           ()=>_push(const OccasionsScreen())),
-        _Shortcut('Notes',Icons.sticky_note_2_outlined,widget.onOpenNotes),
-        _Shortcut('Contact cards',Icons.contacts_outlined,
+        _Shortcut(tt('Notes'),Icons.sticky_note_2_outlined,widget.onOpenNotes),
+        _Shortcut(tt('Contact cards'),Icons.contacts_outlined,
           ()=>_push(const WorldContactsScreen())),
         ..._extraTools(),
       ]),
       group('Stay close',colors.tertiary,[
-        _Shortcut('Letters',Icons.mark_email_unread_outlined,widget.onOpenLetters,
+        _Shortcut(tt('Letters'),Icons.mark_email_unread_outlined,widget.onOpenLetters,
           badge:lettersBadge),
-        _Shortcut('A little love',Icons.volunteer_activism_outlined,
+        _Shortcut(tt('A little love'),Icons.volunteer_activism_outlined,
           ()=>_push(const PartnerGesturesScreen())),
-        _Shortcut('Daily connection',Icons.favorite_outline,widget.onOpenCheckins),
-        _Shortcut('Shared experiences',Icons.movie_outlined,
+        _Shortcut(tt('Daily connection'),Icons.favorite_outline,widget.onOpenCheckins),
+        _Shortcut(tt('Shared experiences'),Icons.movie_outlined,
           ()=>_push(const SharedExperiencesScreen())),
-        _Shortcut('Memories',Icons.auto_stories_outlined,widget.onOpenMemories),
-        _Shortcut('Search our space',Icons.search,
+        _Shortcut(tt('Memories'),Icons.auto_stories_outlined,widget.onOpenMemories),
+        _Shortcut(tt('Search our space'),Icons.search,
           ()=>_push(const GlobalSearchScreen())),
       ]),
     ]);
@@ -1004,7 +1005,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
 
   /// R52: the share-in tray, with a count when something waits.
   List<_Shortcut> _extraTools()=>[
-    _Shortcut('Items to sort',Icons.inbox_outlined,
+    _Shortcut(tt('Items to sort'),Icons.inbox_outlined,
       ()=>_push(const ItemsToSortScreen()),badge:itemsToSort),
   ];
 
@@ -1019,10 +1020,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
             Badge(
               isLabelVisible:tile.badge>0,
-              label:Text(tile.badge>99?'99+':'${tile.badge}'),
+              label:Text(tt(tile.badge>99?'99+':'${tile.badge}')),
               child:Icon(tile.icon,color:color,size:26)),
             const SizedBox(height:6),
-            Text(tile.label,textAlign:TextAlign.center,maxLines:2,
+            Text(tt(tile.label),textAlign:TextAlign.center,maxLines:2,
               overflow:TextOverflow.ellipsis,
               style:Theme.of(context).textTheme.labelMedium),
           ]),
@@ -1043,18 +1044,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           if(mounted)await _load();
         },
         icon:const Icon(Icons.add),
-        label:const Text('Quick add')),
+        label:Text(tt('Quick add'))),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16,16,16,24),
+        padding: const EdgeInsetsDirectional.fromSTEB(16,16,16,24),
         children: [
-          Text(spaceId == null ? tr(context, 'ourSpace') : _greeting(),
+          Text(tt(spaceId == null ? tr(context, 'ourSpace') : _greeting()),
             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
           if(spaceId!=null && clockMembers.length>1)
             Padding(
               padding:const EdgeInsets.only(top:2,bottom:6),
-              child:Text(_spaceWith(),style:theme.textTheme.bodyMedium))
+              child:Text(tt(_spaceWith()),style:theme.textTheme.bodyMedium))
           else const SizedBox(height:10),
           if(spaceId!=null&&(offline||(lastUpdated!=null&&summaryLoading)))
             Padding(
@@ -1064,15 +1065,15 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   color:theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width:6),
                 Expanded(child:Text(
-                  lastUpdated==null?'Showing your saved copy':
-                  'Last updated ${PartnerTimeZones.timeLabel(lastUpdated!)}',
+                  tt(lastUpdated==null?'Showing your saved copy':
+                  'Last updated ${PartnerTimeZones.timeLabel(lastUpdated!)}'),
                   style:theme.textTheme.bodySmall)),
-                if(offline)TextButton(onPressed:_load,child:const Text('Retry')),
+                if(offline)TextButton(onPressed:_load,child:Text(tt('Retry'))),
               ])),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:8),
           if (issue != null) ...[
-            Text(issue!, style:TextStyle(color:theme.colorScheme.error)),
+            Text(tt(issue!), style:TextStyle(color:theme.colorScheme.error)),
             const SizedBox(height: 12),
           ],
           if (loading)
@@ -1164,20 +1165,20 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   dense:true,
                   contentPadding:const EdgeInsets.symmetric(horizontal:4),
                   leading:const Icon(Icons.volunteer_activism_outlined),
-                  title:Text(text),
-                  subtitle:const Text('Send a hug, a thought or a good-night'),
+                  title:Text(tt(text)),
+                  subtitle:Text(tt('Send a hug, a thought or a good-night')),
                   onTap:()=>_push(const PartnerGesturesScreen()),
                   trailing:TextButton(onPressed:()async{
                     final now=DateTime.now();
                     setState(()=>loveDismissedOn=now);
                     try{await SharedPreferencesAsync().setString(_loveDismissKey,now.toIso8601String());}catch(_){}
-                  },child:const Text('Not today'))),
+                  },child:Text(tt('Not today')))),
                 if(itemsToSort>0)ListTile(
                   dense:true,
                   contentPadding:const EdgeInsets.symmetric(horizontal:4),
                   leading:const Icon(Icons.inbox_outlined),
                   title:Text('$itemsToSort item${itemsToSort==1?'':'s'} to sort'),
-                  subtitle:const Text('Saved from other apps'),
+                  subtitle:Text(tt('Saved from other apps')),
                   trailing:const Icon(Icons.chevron_right),
                   onTap:()=>_push(const ItemsToSortScreen())),
               ],
@@ -1216,7 +1217,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               children: [
                 const Icon(Icons.person_outline, size: 18),
                 const SizedBox(width: 8),
-                Expanded(child: Text(memberName)),
+                Expanded(child: Text(tt(memberName))),
               ],
             ),
           ),
@@ -1224,9 +1225,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         FilledButton.icon(
           onPressed: working ? null : _invite,
           icon: const Icon(Icons.person_add_alt_1),
-          label: Text(pendingInviteExpiry == null
+          label: Text(tt(pendingInviteExpiry == null
               ? tr(context, 'createInvitation')
-              : tr(context, 'replaceInvitation')),
+              : tr(context, 'replaceInvitation'))),
         ),
         if (pendingInviteExpiry != null) ...[
           const SizedBox(height: 10),
@@ -1261,10 +1262,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           children: [
             Icon(icon, size: 30, color:Theme.of(context).colorScheme.onPrimaryContainer),
             const SizedBox(height: 12),
-            Text(title, style:TextStyle(fontSize:21,fontWeight:FontWeight.w700,
+            Text(tt(title), style:TextStyle(fontSize:21,fontWeight:FontWeight.w700,
              color:Theme.of(context).colorScheme.onPrimaryContainer)),
             const SizedBox(height: 8),
-            Text(description,style:TextStyle(color:Theme.of(context).colorScheme.onPrimaryContainer)),
+            Text(tt(description),style:TextStyle(color:Theme.of(context).colorScheme.onPrimaryContainer)),
             const SizedBox(height: 14),
             action,
           ],

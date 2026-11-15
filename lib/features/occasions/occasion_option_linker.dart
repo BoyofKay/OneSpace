@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'occasion_budget_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Link an Activity decision into an occasion without mutating either object.
 /// Privacy follows the destination occasion; DB validates source visibility.
@@ -65,27 +66,27 @@ class _OccasionOptionLinkerState extends State<OccasionOptionLinker>{
  @override Widget build(BuildContext context)=>SafeArea(
   child:SizedBox(height:MediaQuery.sizeOf(context).height*.7,
    child:Column(children:[
-    Padding(padding:const EdgeInsets.fromLTRB(18,10,18,12),
+    Padding(padding:const EdgeInsetsDirectional.fromSTEB(18,10,18,12),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Connect a decision to this occasion',
+      Text(tt('Connect a decision to this occasion'),
        style:Theme.of(context).textTheme.titleLarge),
       const SizedBox(height:5),
-      const Text('Bring an option from Coordinate into your shopping plan. The source Activity remains unchanged.'),
+      Text(tt('Bring an option from Coordinate into your shopping plan. The source Activity remains unchanged.')),
      ])),
     if(loading)const LinearProgressIndicator(),
     if(error!=null)Padding(padding:const EdgeInsets.all(10),
-     child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
-    Expanded(child:options.isEmpty?const Center(
-     child:Text('No eligible options. Compare choices in Coordinate first.',
+     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    Expanded(child:options.isEmpty?Center(
+     child:Text(tt('No eligible options. Compare choices in Coordinate first.'),
       textAlign:TextAlign.center)):
      ListView.builder(itemCount:options.length,itemBuilder:(ctx,i){
       final row=options[i],payload=row['payload'] is Map?
        row['payload'] as Map:const {};
       return ListTile(
        leading:const Icon(Icons.compare_arrows_outlined),
-       title:Text(row['label'].toString()),
-       subtitle:Text(payload['price']==null?'Estimate not set':
-        (payload['currency']??'').toString()+' '+payload['price'].toString()),
+       title:Text(tt(row['label'].toString())),
+       subtitle:Text(tt(payload['price']==null?'Estimate not set':
+        (payload['currency']??'').toString()+' '+payload['price'].toString())),
        trailing:const Icon(Icons.add_circle_outline),
        onTap:busy?null:()=>add(row));
      })),
@@ -154,20 +155,20 @@ class _SendOptionToOccasionSheetState extends State<SendOptionToOccasionSheet>{
    child:Column(children:[
     Padding(padding:const EdgeInsets.all(16),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Send this choice to an occasion',
+      Text(tt('Send this choice to an occasion'),
        style:Theme.of(context).textTheme.titleLarge),
-      const Text('Reserve the estimated cost and connect the original decision. Private ideas remain private.'),
+      Text(tt('Reserve the estimated cost and connect the original decision. Private ideas remain private.')),
      ])),
     if(loading)const LinearProgressIndicator(),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
-    Expanded(child:plans.isEmpty?const Center(
-     child:Text('No eligible occasions yet. Create one in Remember.')):
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    Expanded(child:plans.isEmpty?Center(
+     child:Text(tt('No eligible occasions yet. Create one in Remember.'))):
      ListView(children:[for(final p in plans)ListTile(
       leading:Icon(p['visibility']=='private'?Icons.lock_outline:
        Icons.celebration_outlined),
-      title:Text(p['title'].toString()),
-      subtitle:Text((p['visibility']=='private'?'Only me':'Both of us')+
-       ' · '+p['currency'].toString()),
+      title:Text(tt(p['title'].toString())),
+      subtitle:Text(tt((p['visibility']=='private'?tt('Only me'):tt('Both of us'))+
+       ' · '+p['currency'].toString())),
       trailing:const Icon(Icons.arrow_forward_ios,size:16),
       onTap:busy?null:()=>send(p),
      )])),

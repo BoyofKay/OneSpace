@@ -39,6 +39,7 @@ import 'features/profile/profile_settings_screen.dart';
 import 'features/spaces/shared_space_screen.dart';
 import 'l10n/onespace_locale_controller.dart';
 import 'l10n/onespace_strings.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,12 +82,12 @@ class OneSpaceErrorFallback extends StatelessWidget {
            Icon(Icons.report_problem_outlined,size:44,
              color:theme.colorScheme.error),
            const SizedBox(height:12),
-           Text('This part of OneSpace could not open',
+           Text(tt('This part of OneSpace could not open'),
              textAlign:TextAlign.center,
              style:theme.textTheme.titleLarge),
            const SizedBox(height:8),
-           const Text('Your saved data has not been deleted. '
-             'Copy the technical details so we can identify and repair the cause.',
+           Text(tt('Your saved data has not been deleted. '
+             'Copy the technical details so we can identify and repair the cause.'),
              textAlign:TextAlign.center),
            const SizedBox(height:12),
            Container(
@@ -96,7 +97,7 @@ class OneSpaceErrorFallback extends StatelessWidget {
            const SizedBox(height:15),
            FilledButton.icon(
              icon:const Icon(Icons.copy),
-             label:const Text('Copy error details'),
+             label:Text(tt('Copy error details')),
              onPressed:()=>Clipboard.setData(ClipboardData(text:text))),
          ]),
        ),
@@ -170,25 +171,25 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
               padding:const EdgeInsets.all(28),
               child:Column(mainAxisSize:MainAxisSize.min,children:[
                 Image.asset('assets/branding/mark.png',width:96,height:96,
-                  semanticLabel:'OneSpace logo'),
+                  semanticLabel:tt('OneSpace logo')),
                 const SizedBox(height:12),
-                const Text('OneSpace',style:TextStyle(
+                Text(tt('OneSpace'),style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                const Text('Two of us, One Space'),
+                Text(tt('Two of us, One Space')),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
                   const SizedBox(height:16),
-                  const Text('Opening your secure space…'),
+                  Text(tt('Opening your secure space…')),
                 ],
                 if (_error != null) ...[
-                  Text(_error!,textAlign:TextAlign.center),
+                  Text(tt(_error!),textAlign:TextAlign.center),
                   const SizedBox(height:14),
                   FilledButton.icon(
                     onPressed:_initialize,
                     icon:const Icon(Icons.refresh),
-                    label:const Text('Retry')),
+                    label:Text(tt('Retry'))),
                 ],
               ]),
             ),
@@ -213,7 +214,7 @@ class OneSpaceApp extends StatelessWidget {
         return ValueListenableBuilder<Locale?>(
           valueListenable:OneSpaceLocaleController.instance,
           builder:(context,currentLocale,child)=>MaterialApp(
-            title:'OneSpace',
+            title:tt('OneSpace'),
             locale:currentLocale,
             supportedLocales:const [Locale('en'),Locale('ar')],
             localizationsDelegates:const [
@@ -227,8 +228,10 @@ class OneSpaceApp extends StatelessWidget {
             darkTheme:OneSpaceTheme.build(
               palette:appearance.palette,brightness:Brightness.dark,season:activeSeason),
             themeMode:appearance.mode,
-            builder:(context,child)=>OneSpaceCanvas(
-             season:activeSeason,child:child??const SizedBox.shrink()),
+            builder:(context,child){
+              OneSpacePhrases.follow(context);
+              return OneSpaceCanvas(season:activeSeason,child:child??const SizedBox.shrink());
+            },
             themeAnimationDuration:
               WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
                 ?Duration.zero:const Duration(milliseconds:280),
@@ -287,17 +290,17 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       final due=DateTime.tryParse(row!['purge_after']?.toString()??'')?.toLocal();
       final keep=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
         icon:const Icon(Icons.person_remove_outlined),
-        title:const Text('Your account is scheduled for deletion'),
-        content:Text(due==null?'Do you want to keep it?':
-          'It will be deleted on ${MaterialLocalizations.of(ctx).formatFullDate(due)}. Do you want to keep it?'),
+        title:Text(tt('Your account is scheduled for deletion')),
+        content:Text(tt(due==null?'Do you want to keep it?':
+          'It will be deleted on ${MaterialLocalizations.of(ctx).formatFullDate(due)}. Do you want to keep it?')),
         actions:[
-          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Not now')),
-          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Keep my account')),
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Not now'))),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Keep my account'))),
         ]));
       if(keep==true){
         await db.rpc('cancel_account_deletion');
-        if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:Text('Deletion cancelled. Welcome back.')));
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:Text(tt('Deletion cancelled. Welcome back.'))));
       }
     }catch(_){/* never block the app on this check */}
   }
@@ -324,8 +327,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         if(!mounted)return;
         if(file==null||space==null){
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(
-            space==null?'Connect your shared space first.':
-            (message['fileError']?.toString()??'OneSpace accepts photos (JPEG, PNG, WebP, HEIC) and PDFs up to 10 MB.'))));
+            tt(space==null?'Connect your shared space first.':
+            (message['fileError']?.toString()??'OneSpace accepts photos (JPEG, PNG, WebP, HEIC) and PDFs up to 10 MB.')))));
           return;
         }
         open(SharedFileScreen(spaceId:space,file:file));
@@ -359,9 +362,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       SystemNavigator.pop();
     }else{
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         duration:Duration(seconds:2),
-        content:Text('Swipe back again to exit OneSpace'),
+        content:Text(tt('Swipe back again to exit OneSpace')),
       ));
     }
   }
@@ -436,7 +439,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           mainAxisSize:MainAxisSize.min,
           crossAxisAlignment:CrossAxisAlignment.start,
           children:[
-            const Text('OneSpace',
+            Text(tt('OneSpace'),
               maxLines:1,overflow:TextOverflow.ellipsis,
               style:TextStyle(fontWeight:FontWeight.w800)),
             Text(tr(context,'tagline'),
@@ -446,23 +449,23 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         ]),
         actions:[
           // R60: voice commands ("Remind me…", "What's on today?", "Open notes").
-          IconButton(tooltip:'Voice command',visualDensity:VisualDensity.compact,icon:const Icon(Icons.mic_none_rounded),
+          IconButton(tooltip:tt('Voice command'),visualDensity:VisualDensity.compact,icon:const Icon(Icons.mic_none_rounded),
             onPressed:()=>VoiceAssistant.start(context,goToday:()=>navigate(0))),
           if(!showProfile)const NotificationBell(),
           PopupMenuButton<String>(
-            tooltip:'More options',
+            tooltip:tt('More options'),
             icon:const Icon(Icons.more_vert),
             onSelected:(choice){
               if(choice=='search')open(const GlobalSearchScreen());
               if(choice=='sort')open(const ItemsToSortScreen());
             },
-            itemBuilder:(_)=>const [
+            itemBuilder:(_)=>[
               PopupMenuItem(value:'search',child:ListTile(
                 leading:Icon(Icons.search_outlined),
-                title:Text('Search our space'))),
+                title:Text(tt('Search our space')))),
               PopupMenuItem(value:'sort',child:ListTile(
                 leading:Icon(Icons.inbox_outlined),
-                title:Text('Items to sort'))),
+                title:Text(tt('Items to sort')))),
             ],
           ),
         ],

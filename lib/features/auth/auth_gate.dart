@@ -18,6 +18,7 @@ import '../../core/first_name.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'session_lock_rules.dart';
 import '../notifications/push_registration_gate.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
 /// OS-level unlock gate, while other remembered accounts require their own
@@ -411,21 +412,21 @@ class _SignInScreenState extends State<SignInScreen> {
                 Icon(Icons.favorite_rounded,
                     size:54,color:Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
-                const Text('OneSpace',
+                Text(tt('OneSpace'),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 5),
                 Text(tr(context, 'tagline'), textAlign: TextAlign.center),
                 const SizedBox(height: 23),
-                Text(registering ? tr(context, 'createAccount')
+                Text(tt(registering ? tr(context, 'createAccount')
                     : (_rememberedFirstName!=null&&
                        emailController.text.trim().toLowerCase()==_rememberedEmail
-                       ?'Welcome back, $_rememberedFirstName':tr(context,'welcome')),
+                       ?'Welcome back, $_rememberedFirstName':tr(context,'welcome'))),
                     style: const TextStyle(
                         fontSize: 23, fontWeight: FontWeight.w700)),
-                if(widget.onSessionUnlocked!=null)const Padding(
+                if(widget.onSessionUnlocked!=null)Padding(
                  padding:EdgeInsets.only(top:5,bottom:12),
-                 child:Text('Session locked. Use your phone PIN, fingerprint or password.')),
+                 child:Text(tt('Session locked. Use your phone PIN, fingerprint or password.'))),
                 const SizedBox(height: 18),
                 AutofillGroup(
                   child: Form(
@@ -524,11 +525,11 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 10),
-                  Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+                  Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
                 ],
                 if (info != null) ...[
                   const SizedBox(height: 10),
-                  Text(info!,style:TextStyle(color:Theme.of(context).colorScheme.primary)),
+                  Text(tt(info!),style:TextStyle(color:Theme.of(context).colorScheme.primary)),
                 ],
                 if (awaitingConfirmation) TextButton(
                   onPressed: loading ? null : _resendConfirmation,
@@ -540,8 +541,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   onPressed: loading ? null : _submit,
                   child: Padding(
                     padding: const EdgeInsets.all(10),
-                    child: Text(loading ? tr(context, 'pleaseWait')
-                        : tr(context, registering ? 'register' : 'signIn')),
+                    child: Text(tt(loading ? tr(context, 'pleaseWait')
+                        : tr(context, registering ? 'register' : 'signIn'))),
                   ),
                 ),
                 if (!registering) ...[

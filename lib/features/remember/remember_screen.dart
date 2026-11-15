@@ -10,6 +10,7 @@ import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../world/world_contacts_screen.dart';
 import '../occasions/occasions_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// The Remember section keeps daily reference information visible in one place.
 /// One invoker-only RPC returns the partner's RLS-filtered overview.
@@ -112,13 +113,13 @@ class _RememberScreenState extends State<RememberScreen> {
     elevation: 0,
     child: ListTile(
       leading: Icon(icon,color:Theme.of(context).colorScheme.primary,size:27),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle),
+      title: Text(tt(title), style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(tt(subtitle)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if(count!=null)...[
-            Text(count.toString(),style:Theme.of(context).textTheme.titleMedium),
+            Text(tt(count.toString()),style:Theme.of(context).textTheme.titleMedium),
             const SizedBox(width:6),
           ],
           const Icon(Icons.chevron_right),
@@ -142,7 +143,7 @@ class _RememberScreenState extends State<RememberScreen> {
           Text(tr(context, 'rememberIntro')),
           const SizedBox(height: 15),
           if (_error != null) ...[
-            Text(_error!, style: TextStyle(
+            Text(tt(_error!), style: TextStyle(
                 color: Theme.of(context).colorScheme.error)),
             TextButton.icon(
               onPressed: _load,
@@ -174,8 +175,8 @@ class _RememberScreenState extends State<RememberScreen> {
             ),
             _destination(
               icon: Icons.alarm_outlined,
-              title: 'Reminders',
-              subtitle: 'Personal and shared alerts, snoozes and follow-up notes',
+              title: tt('Reminders'),
+              subtitle: tt('Personal and shared alerts, snoozes and follow-up notes'),
               destination: const RemindersScreen(),
             ),
             _destination(
@@ -187,14 +188,14 @@ class _RememberScreenState extends State<RememberScreen> {
             ),
             _destination(
               icon:Icons.card_giftcard_outlined,
-              title:'Occasions',
-              subtitle:'Gifts, holidays, budgets and early preparation',
+              title:tt('Occasions'),
+              subtitle:tt('Gifts, holidays, budgets and early preparation'),
               destination:const OccasionsScreen(),
             ),
             _destination(
               icon:Icons.contacts_outlined,
-              title:'Contact cards',
-              subtitle:'Family, friends, useful contacts and shared context',
+              title:tt('Contact cards'),
+              subtitle:tt('Family, friends, useful contacts and shared context'),
               destination:const WorldContactsScreen(),
             ),
           ],

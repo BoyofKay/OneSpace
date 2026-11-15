@@ -12,6 +12,7 @@ import '../features/occasions/occasions_screen.dart';
 import '../features/plans/plans_screen.dart';
 import '../features/reminders/reminders_screen.dart';
 import '../features/world/trips_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R53 (spec 6, backlog B-17, decision D10): item kinds that can be linked.
 enum LinkKind {
@@ -109,16 +110,16 @@ class LinkedItemsStripState extends State<LinkedItemsStrip> {
 
   Future<void> _unlink(LinkedItem item) async {
     if (item.linkId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('This link is part of the reminder itself. Edit the reminder to change it.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(tt('This link is part of the reminder itself. Edit the reminder to change it.'))));
       return;
     }
     final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Unlink?'),
-      content: Text('"${item.title}" stays as it is; only the link is removed.'),
+      title: Text(tt('Unlink?')),
+      content: Text('"${item.title}" ${tt('stays as it is; only the link is removed.')}'),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Unlink')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tt('Cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tt('Unlink'))),
       ]));
     if (ok != true) return;
     try {
@@ -127,7 +128,7 @@ class LinkedItemsStripState extends State<LinkedItemsStrip> {
       await reload();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not unlink.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('Could not unlink.'))));
       }
     }
   }
@@ -137,16 +138,16 @@ class LinkedItemsStripState extends State<LinkedItemsStrip> {
     return SizedBox(
       height: 44,
       child: ListView(scrollDirection: Axis.horizontal, children: [
-        Padding(padding: const EdgeInsets.only(right: 6, top: 12),
-          child: Text('Linked', style: Theme.of(context).textTheme.labelMedium)),
+        Padding(padding: const EdgeInsetsDirectional.only(end: 6, top: 12),
+          child: Text(tt('Linked'), style: Theme.of(context).textTheme.labelMedium)),
         for (final item in items) Padding(
-          padding: const EdgeInsets.only(right: 6),
+          padding: const EdgeInsetsDirectional.only(end: 6),
           child: GestureDetector(
             onLongPress: () => _unlink(item),
             child: ActionChip(
               avatar: Icon(item.kind.icon, size: 18),
               label: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 180),
-                child: Text(item.title, overflow: TextOverflow.ellipsis)),
+                child: Text(tt(item.title), overflow: TextOverflow.ellipsis)),
               onPressed: () async {
                 await openLinkedItem(context, item.kind, item.id);
                 await reload();
@@ -226,7 +227,7 @@ class CreateFromThisButton extends StatelessWidget {
   final GlobalKey<LinkedItemsStripState>? stripKey;
 
   @override Widget build(BuildContext context) => IconButton(
-    tooltip: 'Create from this',
+    tooltip: tt('Create from this'),
     icon: const Icon(Icons.add_link),
     onPressed: () => createFromThis(context, kind: kind, id: id, spaceId: spaceId,
         title: title, date: date, shared: shared,
@@ -239,10 +240,10 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
   final action = await showModalBottomSheet<CreateFromAction>(
     context: context, showDragHandle: true,
     builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(title: Text('Create from "$title"', maxLines: 1, overflow: TextOverflow.ellipsis,
+      ListTile(title: Text('${tt('Create from')} "$title"', maxLines: 1, overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontWeight: FontWeight.w700))),
       for (final a in CreateFromAction.forKind(kind)) ListTile(
-        leading: Icon(a.icon), title: Text(a.label), onTap: () => Navigator.pop(ctx, a)),
+        leading: Icon(a.icon), title: Text(tt(a.label)), onTap: () => Navigator.pop(ctx, a)),
       const SizedBox(height: 8),
     ])));
   if (action == null || !context.mounted) return;
@@ -284,13 +285,13 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
         await link(LinkKind.task, created['id'].toString());
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('To-do "$newTitle" added and linked.'),
-            action: SnackBarAction(label: 'Open', onPressed: () =>
+            content: Text('${tt('To-do')} "$newTitle" ${tt('added and linked.')}'),
+            action: SnackBarAction(label: tt('Open'), onPressed: () =>
               openLinkedItem(context, LinkKind.task, created['id'].toString()))));
         }
       } catch (_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not add the to-do.')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('Could not add the to-do.'))));
         }
       }
     case CreateFromAction.note:
@@ -303,7 +304,7 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
         if (context.mounted) await openLinkedItem(context, LinkKind.note, created['id'].toString());
       } catch (_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not add the note.')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('Could not add the note.'))));
         }
       }
   }

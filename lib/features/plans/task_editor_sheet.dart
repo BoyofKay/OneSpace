@@ -6,6 +6,7 @@ import '../../l10n/onespace_strings.dart';
 import 'task_date_rules.dart';
 import 'checklist_schedule.dart';
 import '../mentions/partner_mention_button.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 enum TaskPriority { low, normal, high }
 enum TaskStatus { open, completed, cancelled }
@@ -269,7 +270,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
     final existing = widget.existing;
     final shared = _visibility == TaskVisibility.shared;
     return EditorScaffold(
-      title: existing == null ? 'New list' : 'Edit list',
+      title: existing == null ? tt('New list') : tt('Edit list'),
       isNew: existing == null,
       isChanged: () => changed,
       isComplete: () => _title.text.trim().isNotEmpty,
@@ -277,7 +278,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
       saving: _saving,
       onSave: _save,
       meta: MetaStrip(
-        people: _people, dateLabel: 'Due date', enabled: !_saving,
+        people: _people, dateLabel: tt('Due date'), enabled: !_saving,
         value: MetaValues(shared: shared, belongsTo: _assignedTo, date: _date),
         onChanged: (v) => setState(() {
           if (existing == null) {
@@ -287,7 +288,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
           _date = v.date;
         })),
       body: SafeArea(child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+        padding: const EdgeInsetsDirectional.fromSTEB(18, 12, 18, 24),
         children: [
           TextField(
             key: const Key('taskTitleInput'),
@@ -295,13 +296,13 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
             autofocus: true,
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'List name *',
-              hintText: 'Groceries, packing for the trip…',
+            decoration: InputDecoration(
+              labelText: tt('List name *'),
+              hintText: tt('Groceries, packing for the trip…'),
               border: OutlineInputBorder(),
             ),
           ),
-          if (shared) Align(alignment: Alignment.centerLeft,
+          if (shared) Align(alignment: AlignmentDirectional.centerStart,
             child: PartnerMentionButton(spaceId:widget.spaceId??'', controller:_title, enabled:true)),
           if (existing == null) ...[
             const SizedBox(height: 6),
@@ -309,20 +310,20 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
               controller: _items,
               minLines: 4, maxLines: 12,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: "What's on the list?",
-                hintText: 'One item per line',
+              decoration: InputDecoration(
+                labelText: tt("What's on the list?"),
+                hintText: tt('One item per line'),
                 alignLabelWithHint: true,
                 border: OutlineInputBorder())),
             const SizedBox(height: 12),
           ],
-          ChoiceRow<TaskPriority>(label: 'Priority',
+          ChoiceRow<TaskPriority>(label: tt('Priority'),
             options: {for (final v in TaskPriority.values) v: tr(context, v.name)},
             icons: const {TaskPriority.low: Icons.south, TaskPriority.normal: Icons.remove,
               TaskPriority.high: Icons.priority_high},
             selected: _priority,
             onSelected: (v) { if (!_saving && v != null) setState(() => _priority = v); }),
-          ChoicePickerField<String>(label: 'Repeat', icon: Icons.repeat,
+          ChoicePickerField<String>(label: tt('Repeat'), icon: Icons.repeat,
             options: _repeatLabels, selected: _scheduleMode,
             onSelected: (v) => setState(() {
               _scheduleMode = v ?? 'none';
@@ -330,11 +331,11 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
                 .contains(_scheduleMode) ? _scheduleMode : 'daily';
             })),
           if (_scheduleMode == 'selected_weekdays' || _scheduleMode == 'every_n_weeks') ...[
-            Text('On these days', style: Theme.of(context).textTheme.labelLarge),
+            Text(tt('On these days'), style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 6, children: [
               for (var d = 1; d <= 7; d++) FilterChip(
-                label: Text(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d-1]),
+                label: Text(tt(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d-1])),
                 selected: _weekdays.contains(d),
                 onSelected: (on) => setState(() { if (on) { _weekdays.add(d); } else { _weekdays.remove(d); } })),
             ]),
@@ -344,38 +345,38 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
             padding: const EdgeInsets.only(bottom: 14),
             child: TextField(controller: _interval, keyboardType: TextInputType.number,
               decoration: InputDecoration(border: const OutlineInputBorder(),
-                labelText: _scheduleMode == 'every_n_days' ? 'Every how many days? *' : 'Every how many weeks? *'))),
+                labelText: _scheduleMode == 'every_n_days' ? tt('Every how many days? *') : tt('Every how many weeks? *')))),
           if (_scheduleMode == 'month_days') Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: TextField(controller: _monthDays,
-              decoration: const InputDecoration(border: OutlineInputBorder(),
-                labelText: 'Days of the month *', hintText: '1, 15, -1 for the last day'))),
+              decoration: InputDecoration(border: OutlineInputBorder(),
+                labelText: tt('Days of the month *'), hintText: tt('1, 15, -1 for the last day')))),
           if (_scheduleMode != 'none') ...[
             Wrap(spacing: 8, runSpacing: 6, children: [
-              OptionChip(label: 'Skip days off', icon: Icons.beach_access_outlined, value: _skipDaysOff,
-                help: 'Uses each person’s Days off', onChanged: (v) => setState(() => _skipDaysOff = v)),
-              OptionChip(label: 'Skip US holidays', icon: Icons.flag_outlined, value: _skipUsHolidays,
-                help: 'Federal holidays, including observed weekdays',
+              OptionChip(label: tt('Skip days off'), icon: Icons.beach_access_outlined, value: _skipDaysOff,
+                help: tt('Uses each person’s Days off'), onChanged: (v) => setState(() => _skipDaysOff = v)),
+              OptionChip(label: tt('Skip US holidays'), icon: Icons.flag_outlined, value: _skipUsHolidays,
+                help: tt('Federal holidays, including observed weekdays'),
                 onChanged: (v) => setState(() => _skipUsHolidays = v)),
             ]),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: const Text('Advanced repeat'),
-              subtitle: const Text('Time zone and dates to skip'),
+              title: Text(tt('Advanced repeat')),
+              subtitle: Text(tt('Time zone and dates to skip')),
               children: [
                 TextField(controller: _timeZone,
-                  decoration: const InputDecoration(border: OutlineInputBorder(),
-                    labelText: 'Time zone (optional)', hintText: 'America/New_York',
-                    helperText: 'Blank = each person’s phone time zone')),
+                  decoration: InputDecoration(border: OutlineInputBorder(),
+                    labelText: tt('Time zone (optional)'), hintText: tt('America/New_York'),
+                    helperText: tt('Blank = each person’s phone time zone'))),
                 const SizedBox(height: 10),
                 TextField(controller: _excludedDates,
-                  decoration: const InputDecoration(border: OutlineInputBorder(),
-                    labelText: 'Dates to skip (optional)', hintText: '2026-12-24, 2027-01-02')),
+                  decoration: InputDecoration(border: OutlineInputBorder(),
+                    labelText: tt('Dates to skip (optional)'), hintText: '2026-12-24, 2027-01-02')),
                 const SizedBox(height: 8),
               ]),
           ],
           if (_error != null) Padding(padding: const EdgeInsets.only(top: 12),
-            child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+            child: Text(tt(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ],
       )),
     );

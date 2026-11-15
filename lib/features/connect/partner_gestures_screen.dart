@@ -8,6 +8,7 @@ import '../../core/current_space_cache.dart';
 import 'gesture_experience.dart';
 import 'gesture_pool_rules.dart';
 import 'love_prompt_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Intentionally sent gestures. Messages are explicitly identified as presets;
 /// there is no automated impersonation or push-notification claim here.
@@ -227,20 +228,20 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    try{
      final accepted=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(fullscreenDialog:true,builder:(ctx)=>
        StatefulBuilder(builder:(ctx,update)=>EditorPage(
-         title:Text('Edit '+option.title),
+         title:Text(tt('Edit ')+option.title),
          content:Column(mainAxisSize:MainAxisSize.min,children:[
            TextField(controller:message,maxLength:240,minLines:3,maxLines:6,
-             decoration:const InputDecoration(labelText:'Message',alignLabelWithHint:true,
+             decoration:InputDecoration(labelText:tt('Message'),alignLabelWithHint:true,
               border:OutlineInputBorder())),
            const SizedBox(height:6),
-           Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Don’t pick this one at random',
+           Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Don’t pick this one at random'),
              icon:Icons.visibility_off_outlined,value:disabled,onChanged:(v)=>update(()=>disabled=v))),
          ]),
          actions:[
            TextButton(onPressed:()=>Navigator.pop(ctx,false),
-             child:const Text('Cancel')),
+             child:Text(tt('Cancel'))),
            FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-             child:const Text('Save')),
+             child:Text(tt('Save'))),
          ],
        ))));
      if(accepted!=true||spaceId==null)return;
@@ -253,16 +254,16 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      await _load();
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Unable to update gesture message.')));
+       SnackBar(content:Text(tt('Unable to update gesture message.'))));
    }finally{message.dispose();}
  }
  Widget gestureLibrary(){
    return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
      FilledButton.tonalIcon(onPressed:()=>_createCustom(),
        icon:const Icon(Icons.add_reaction_outlined),
-       label:const Text('Create my own gesture')),
+       label:Text(tt('Create my own gesture'))),
      const SizedBox(height:12),
-     Text('Gesture types · tap to expand',
+     Text(tt('Gesture types · tap to expand'),
        style:Theme.of(context).textTheme.titleMedium),
      const SizedBox(height:7),
      for(final option in _options)
@@ -271,33 +272,33 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
            leading:CircleAvatar(
              backgroundColor:_tint(option.id).withValues(alpha:.16),
              child:GestureKindSymbol(kind:option.id,color:_tint(option.id))),
-           title:Text(option.title),
-           subtitle:Text(pool(option).length.toString()+' active messages'),
-           childrenPadding:const EdgeInsets.fromLTRB(12,2,12,12),
+           title:Text(tt(option.title)),
+           subtitle:Text(tt(pool(option).length.toString()+' active messages')),
+           childrenPadding:const EdgeInsetsDirectional.fromSTEB(12,2,12,12),
            children:[
              for(var index=0;index<option.messages.length;index++)
                ListTile(
                  dense:true,
-                 title:Text(overrides.where((o)=>o['kind']==option.id&&
+                 title:Text(tt(overrides.where((o)=>o['kind']==option.id&&
                    o['message_index']==index).firstOrNull?['message']
-                     ?.toString()??option.messages[index]),
-                 subtitle:Text(overrides.any((o)=>o['kind']==option.id&&
+                     ?.toString()??option.messages[index])),
+                 subtitle:Text(tt(overrides.any((o)=>o['kind']==option.id&&
                    o['message_index']==index&&o['disabled']==true)?
-                     'Hidden from pool':'Built-in · editable'),
+                     'Hidden from pool':'Built-in · editable')),
                  trailing:IconButton(
-                   tooltip:'Edit this message',
+                   tooltip:tt('Edit this message'),
                    icon:const Icon(Icons.edit_outlined),
                    onPressed:()=>editPreset(option,index)),
                ),
              for(final item in custom.where((row)=>row['kind']==option.id))
                ListTile(
                  dense:true,
-                 title:Text(item['message']?.toString()??''),
-                 subtitle:const Text('My message'),
+                 title:Text(tt(item['message']?.toString()??'')),
+                 subtitle:Text(tt('My message')),
                  trailing:Row(mainAxisSize:MainAxisSize.min,children:[
-                   IconButton(tooltip:'Edit',icon:const Icon(Icons.edit_outlined),
+                   IconButton(tooltip:tt('Edit'),icon:const Icon(Icons.edit_outlined),
                      onPressed:()=>_createCustom(item)),
-                   IconButton(tooltip:'Remove',icon:const Icon(Icons.delete_outline),
+                   IconButton(tooltip:tt('Remove'),icon:const Icon(Icons.delete_outline),
                      onPressed:()=>_deleteCustom(item['id'].toString())),
                  ]),
                ),
@@ -329,19 +330,19 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      await _load();
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Could not save this gesture.')));
+       SnackBar(content:Text(tt('Could not save this gesture.'))));
    }
  }
  Future<void> _deleteCustom(String id) async {
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>
-     AlertDialog(title:const Text('Remove personal gesture?'),
-       content:const Text('Sent messages remain in gesture history. '
-         'This only removes your reusable template.'),
+     AlertDialog(title:Text(tt('Remove personal gesture?')),
+       content:Text(tt('Sent messages remain in gesture history. '
+         'This only removes your reusable template.')),
        actions:[
          TextButton(onPressed:()=>Navigator.pop(ctx,false),
-           child:const Text('Keep')),
+           child:Text(tt('Keep'))),
          FilledButton(onPressed:()=>Navigator.pop(ctx,true),
-           child:const Text('Remove')),
+           child:Text(tt('Remove'))),
        ]));
    if(yes!=true)return;
    try{
@@ -349,7 +350,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      await _load();
    }catch(_){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('Could not delete gesture.')));
+       SnackBar(content:Text(tt('Could not delete gesture.'))));
    }
  }
 
@@ -358,7 +359,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    final messages=pool(option);
    if(messages.isEmpty){
      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('No active messages in this gesture type.')));
+       SnackBar(content:Text(tt('No active messages in this gesture type.'))));
      return;
    }
    final random=Random();
@@ -379,7 +380,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
         lastSentAt=DateTime.now().toUtc().toIso8601String();
        });
        ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content:Text('Sent to '+(recipientName??'your partner'))),
+         SnackBar(content:Text(tt('Sent to ')+(recipientName??'your partner'))),
        );
      }
    }on PostgrestException catch(e){
@@ -392,39 +393,39 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  }
  @override Widget build(BuildContext context) {
    return Scaffold(
-     appBar:AppBar(title:Text(widget.manageOnly?'Love gesture settings':'A little love'),actions:[
-       if(!widget.manageOnly)IconButton(tooltip:'Sent and received history',icon:const Icon(Icons.history),
+     appBar:AppBar(title:Text(tt(widget.manageOnly?tt('Love gesture settings'):tt('A little love'))),actions:[
+       if(!widget.manageOnly)IconButton(tooltip:tt('Sent and received history'),icon:const Icon(Icons.history),
          onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
            builder:(_)=>const GestureHistoryScreen()))),
      ]),
      body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),
        children:[
-         Text(widget.manageOnly?'My gesture library':
-           'Small gestures, felt across any distance.',
+         Text(tt(widget.manageOnly?'My gesture library':
+           'Small gestures, felt across any distance.'),
            style:Theme.of(context).textTheme.titleMedium),
          const SizedBox(height:6),
-         Text(widget.manageOnly?'Each gesture type has one randomized message pool. Edit or hide built-in messages and add your own.':
-           'Tap a gesture to send it. Manage your gesture library in Settings.'),
+         Text(tt(widget.manageOnly?'Each gesture type has one randomized message pool. Edit or hide built-in messages and add your own.':
+           'Tap a gesture to send it. Manage your gesture library in Settings.')),
          const SizedBox(height:16),
          if(!widget.manageOnly)...[
           FilledButton.tonalIcon(
            onPressed:_createCustom,
            icon:const Icon(Icons.add_reaction_outlined),
-           label:const Text('Create my own gesture')),
+           label:Text(tt('Create my own gesture'))),
           if(LovePromptRules.lastSentSummary(lastSentAt,DateTime.now())!=null)
            Padding(padding:const EdgeInsets.only(top:6),
-            child:Text(LovePromptRules.lastSentSummary(
-             lastSentAt,DateTime.now())!,
+            child:Text(tt(LovePromptRules.lastSentSummary(
+             lastSentAt,DateTime.now())!),
              style:Theme.of(context).textTheme.bodySmall)),
           const SizedBox(height:12),
          ],
          if(loading)const Center(child:CircularProgressIndicator()),
          if(!loading&&recipientId==null)
-           const Text('Connect your partner to send a gesture.'),
-         if(error!=null)Text(error!,
+           Text(tt('Connect your partner to send a gesture.')),
+         if(error!=null)Text(tt(error!),
            style:TextStyle(color:Theme.of(context).colorScheme.error)),
          if(recipientId!=null)...[
-           if(!widget.manageOnly)Text('Send to '+(sendToLabel??recipientName??'your partner'),
+           if(!widget.manageOnly)Text(tt('Send to ')+(sendToLabel??recipientName??'your partner'),
              style:Theme.of(context).textTheme.titleSmall),
            if(!widget.manageOnly)const SizedBox(height:12),
            if(!widget.manageOnly)LayoutBuilder(builder:(ctx,size)=>GridView.builder(
@@ -449,7 +450,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                            child:GestureKindSymbol(
                              kind:option.id,color:color,size:25)),
                          const SizedBox(height:9),
-                         Text(option.title,textAlign:TextAlign.center,
+                         Text(tt(option.title),textAlign:TextAlign.center,
                            maxLines:2,overflow:TextOverflow.ellipsis,
                            style:Theme.of(context).textTheme.titleSmall),
 
@@ -485,7 +486,7 @@ class _GestureEditorPageState extends State<GestureEditorPage> with FormChangeTr
  @override String get signature=>[name.text,body.text,kind].join('|');
  @override void dispose(){name.dispose();body.dispose();super.dispose();}
  @override Widget build(BuildContext context)=>EditorScaffold(
-  title:widget.original==null?'Add new gesture':'Edit gesture',
+  title:widget.original==null?tt('Add new gesture'):tt('Edit gesture'),
   isNew:widget.original==null,isChanged:()=>changed,
   isComplete:()=>name.text.trim().isNotEmpty&&body.text.trim().isNotEmpty,
   listenTo:[name,body],
@@ -494,19 +495,19 @@ class _GestureEditorPageState extends State<GestureEditorPage> with FormChangeTr
   body:ListView(padding:const EdgeInsets.all(18),children:[
    TextField(controller:name,maxLength:60,autofocus:widget.original==null,
     textCapitalization:TextCapitalization.sentences,
-    decoration:const InputDecoration(labelText:'Gesture name *',hintText:'Morning coffee wish',
+    decoration:InputDecoration(labelText:tt('Gesture name *'),hintText:tt('Morning coffee wish'),
      border:OutlineInputBorder())),
    const SizedBox(height:8),
    TextField(controller:body,maxLength:240,minLines:3,maxLines:6,
     textCapitalization:TextCapitalization.sentences,
-    decoration:const InputDecoration(labelText:'Your message *',alignLabelWithHint:true,
-     hintText:'What your partner will read',border:OutlineInputBorder())),
+    decoration:InputDecoration(labelText:tt('Your message *'),alignLabelWithHint:true,
+     hintText:tt('What your partner will read'),border:OutlineInputBorder())),
    const SizedBox(height:8),
    widget.options.length<=6
-    ?ChoiceRow<String>(label:'Theme',options:widget.options,
+    ?ChoiceRow<String>(label:tt('Theme'),options:widget.options,
       selected:widget.options.containsKey(kind)?kind:widget.options.keys.first,
       onSelected:(v){if(v!=null)setState(()=>kind=v);})
-    :ChoicePickerField<String>(label:'Theme',icon:Icons.palette_outlined,options:widget.options,
+    :ChoicePickerField<String>(label:tt('Theme'),icon:Icons.palette_outlined,options:widget.options,
       selected:widget.options.containsKey(kind)?kind:widget.options.keys.first,
       onSelected:(v){if(v!=null)setState(()=>kind=v);}),
   ]));

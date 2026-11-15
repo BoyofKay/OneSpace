@@ -20,6 +20,7 @@ import 'trip_rules.dart';
 import 'trip_documents_section.dart';
 import 'trip_flight_options_section.dart';
 import 'trip_preparation_section.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 const tripStages=<String,String>{
  'planning':'Planning','booked':'Booked','traveling':'Traveling',
@@ -128,7 +129,7 @@ class _TripsScreenState extends State<TripsScreen> {
   if(mounted)await load();
  }
  /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'when',label:'Trips',options:const {'upcoming':'Upcoming','past':'Past','all':'All'},selected:filter,defaultValue:'upcoming')];
+ List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'when',label:tt('Trips'),options:const {'upcoming':'Upcoming','past':'Past','all':'All'},selected:filter,defaultValue:'upcoming')];
 
  @override Widget build(BuildContext context){
   final now=CalendarRules.day(DateTime.now());
@@ -144,9 +145,9 @@ class _TripsScreenState extends State<TripsScreen> {
   }).toList();
   return Scaffold(
    backgroundColor:widget.embedded?Colors.transparent:null,
-   appBar:widget.embedded?null:AppBar(title:const Text('Trips'),actions:[
+   appBar:widget.embedded?null:AppBar(title:Text(tt('Trips')),actions:[
     RecordListTopActions(
-     historyKinds:const ['trip'],historyTitle:'Trips',
+     historyKinds:const ['trip'],historyTitle:tt('Trips'),
      showHistory:showArchived,
      onToggleHistory:()=>setState(()=>showArchived=!showArchived),
      groups:_filterGroups(),
@@ -154,15 +155,15 @@ class _TripsScreenState extends State<TripsScreen> {
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;filter='upcoming';}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-trips',
-    icon:const Icon(Icons.add),label:const Text('Add trip'),onPressed:()=>edit()),
+    icon:const Icon(Icons.add),label:Text(tt('Add trip')),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
+    padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,90),children:[
     if(widget.embedded)...[
      Row(children:[
-      Expanded(child:Text('Trips',style:Theme.of(context).textTheme.headlineMedium)),
+      Expanded(child:Text(tt('Trips'),style:Theme.of(context).textTheme.headlineMedium)),
       RecordListTopActions(
-       historyKinds:const ['trip'],historyTitle:'Trips',
+       historyKinds:const ['trip'],historyTitle:tt('Trips'),
        showHistory:showArchived,
        onToggleHistory:()=>setState(()=>showArchived=!showArchived),
        groups:_filterGroups(),
@@ -171,40 +172,40 @@ class _TripsScreenState extends State<TripsScreen> {
      if(FilterGroupSpec.showing(_filterGroups(),removed:showArchived).isNotEmpty)FilterShowingLine(
       labels:FilterGroupSpec.showing(_filterGroups(),removed:showArchived),
       onClear:()=>setState((){showArchived=false;filter='upcoming';})),
-    ]else Text('Our journeys',style:Theme.of(context).textTheme.titleLarge),
+    ]else Text(tt('Our journeys'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
-    Text('From the next reunion to the smallest weekend getaway. Plan it together, one detail at a time.',
+    Text(tt('From the next reunion to the smallest weekend getaway. Plan it together, one detail at a time.'),
       style:Theme.of(context).textTheme.bodyMedium),
     const SizedBox(height:15),
     TextField(onChanged:(v)=>setState(()=>query=v),
-     decoration:const InputDecoration(prefixIcon:Icon(Icons.search),
-      labelText:'Search trips',hintText:'Trips or destinations',border:OutlineInputBorder())),
+     decoration:InputDecoration(prefixIcon:Icon(Icons.search),
+      labelText:tt('Search trips'),hintText:tt('Trips or destinations'),border:OutlineInputBorder())),
     const SizedBox(height:8),
     if(showArchived)Padding(
      padding:const EdgeInsets.only(bottom:8),
-     child:Text('Removed trips · Use ⋮ › Restore to bring one back.',
+     child:Text(tt('Removed trips · Use ⋮ › Restore to bring one back.'),
       style:Theme.of(context).textTheme.bodySmall)),
-    if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+    if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Padding(padding:EdgeInsets.all(24),child:Center(child:CircularProgressIndicator()))
-    else if(space==null)const Text('Connect your shared space first.')
-    else if(visible.isEmpty)const Padding(padding:EdgeInsets.all(24),
-     child:Text('No trips in this view yet. Your next adventure can start here.'))
+    else if(space==null)Text(tt('Connect your shared space first.'))
+    else if(visible.isEmpty)Padding(padding:EdgeInsets.all(24),
+     child:Text(tt('No trips in this view yet. Your next adventure can start here.')))
     else for(final trip in visible)Card(elevation:0,clipBehavior:Clip.antiAlias,
      child:ListTile(
       contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:8),
       leading:CircleAvatar(child:StatusLook.mark(trip['status']?.toString())??Icon(trip['visibility']=='private'?
        Icons.lock_outline:Icons.flight_takeoff_outlined)),
-      title:Text(trip['title'].toString(),
+      title:Text(tt(trip['title'].toString()),
        style:StatusLook.title(context,trip['status']?.toString(),Theme.of(context).textTheme.titleMedium)),
-      subtitle:Text([
+      subtitle:Text(tt([
        if((trip['destination']??'').toString().isNotEmpty)trip['destination'].toString(),
        tripStages[trip['status']]??'Planning',
        if(trip['start_on']!=null)trip['start_on'].toString()+
          (trip['end_on']!=null?' – '+trip['end_on'].toString():''),
        if(trip['visibility']=='private')'Only me',
-      ].join(' · '),maxLines:4),
+      ].join(' · ')),maxLines:4),
       trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
-       onOpen:()=>open(trip),openLabel:'Open',table:'shared_trips',
+       onOpen:()=>open(trip),openLabel:tt('Open'),table:'shared_trips',
        removed:trip['archived_at']!=null,onChanged:load),
       onTap:()=>open(trip),
      )),
@@ -294,7 +295,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
   final editing=widget.existing!=null;
   final stages={for(final e in tripStages.entries)
    if(!['completed','cancelled'].contains(e.key)||e.key==status)e.key:e.value};
-  return EditorScaffold(title:editing?'Edit trip':'Add trip',
+  return EditorScaffold(title:editing?tt('Edit trip'):tt('Add trip'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,origin,destination,notes],saving:saving,onSave:save,
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
@@ -302,33 +303,33 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    body:ListView(padding:const EdgeInsets.all(18),children:[
    TextField(controller:title,maxLength:160,autofocus:!editing,
     textCapitalization:TextCapitalization.sentences,
-    decoration:const InputDecoration(labelText:'Trip name *',
-     hintText:'Christmas in Philadelphia, weekend in AlUla…',border:OutlineInputBorder())),
-   const FormSection('Where'),
+    decoration:InputDecoration(labelText:tt('Trip name *'),
+     hintText:tt('Christmas in Philadelphia, weekend in AlUla…'),border:OutlineInputBorder())),
+   FormSection(tt('Where')),
    TextField(controller:origin,maxLength:160,
-    decoration:const InputDecoration(labelText:'From',prefixIcon:Icon(Icons.flight_takeoff_outlined),
+    decoration:InputDecoration(labelText:tt('From'),prefixIcon:Icon(Icons.flight_takeoff_outlined),
      border:OutlineInputBorder())),
    const SizedBox(height:10),
    TextField(controller:destination,maxLength:160,
-    decoration:const InputDecoration(labelText:'To',prefixIcon:Icon(Icons.flight_land_outlined),
+    decoration:InputDecoration(labelText:tt('To'),prefixIcon:Icon(Icons.flight_land_outlined),
      border:OutlineInputBorder())),
-   const FormSection('When'),
-   DateField(label:'Leaving',value:from,first:DateTime(2000),last:DateTime(2100),
+   FormSection(tt('When')),
+   DateField(label:tt('Leaving'),value:from,first:DateTime(2000),last:DateTime(2100),
     onChanged:(v)=>setState(()=>from=v)),
-   DateField(label:'Coming back',value:to,first:from??DateTime(2000),last:DateTime(2100),
+   DateField(label:tt('Coming back'),value:to,first:from??DateTime(2000),last:DateTime(2100),
     onChanged:(v)=>setState(()=>to=v)),
-   ChoiceRow<String>(label:'Stage',options:stages,selected:status,
+   ChoiceRow<String>(label:tt('Stage'),options:stages,selected:status,
     icons:const {'planning':Icons.edit_note,'booked':Icons.confirmation_number_outlined,
      'traveling':Icons.luggage_outlined,'completed':Icons.task_alt,'cancelled':Icons.block},
     onSelected:(v){if(v!=null)setState(()=>status=v);}),
-   const FormSection('Notes'),
+   FormSection(tt('Notes')),
    TextField(controller:notes,maxLength:5000,minLines:3,maxLines:8,
-    decoration:const InputDecoration(labelText:'Plans, ideas and things to remember',
+    decoration:InputDecoration(labelText:tt('Plans, ideas and things to remember'),
      alignLabelWithHint:true,border:OutlineInputBorder())),
-   if(editing)Text('Who can see it stays as it was created, to protect travel documents.',
+   if(editing)Text(tt('Who can see it stays as it was created, to protect travel documents.'),
     style:Theme.of(context).textTheme.bodySmall),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
-    child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
  }
 }
@@ -492,11 +493,11 @@ class _TripDetailState extends State<TripDetail>{
   try{
    if(!await launchUrl(uri,mode:LaunchMode.externalApplication)&&mounted){
     ScaffoldMessenger.of(context).showSnackBar(
-     const SnackBar(content:Text('Could not open this link.')));
+     SnackBar(content:Text(tt('Could not open this link.'))));
    }
   }catch(_){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content:Text('Could not open this link.')));
+    SnackBar(content:Text(tt('Could not open this link.'))));
   }
  }
  String label(Object? user)=>user==db.auth.currentUser?.id?'You':'Partner';
@@ -523,41 +524,41 @@ class _TripDetailState extends State<TripDetail>{
      CircleAvatar(radius:18,child:Icon(kindIcon(entry['kind'].toString()),size:20)),
      const SizedBox(width:10),
      Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text(title,style:Theme.of(context).textTheme.titleMedium),
-      Text((tripItemKinds[entry['kind']]??'Travel item')+' · '+start,
+      Text(tt(title),style:Theme.of(context).textTheme.titleMedium),
+      Text(tt((tripItemKinds[entry['kind']]??'Travel item')+' · '+start),
        style:Theme.of(context).textTheme.bodySmall),
      ])),
      IconButton(onPressed:deleted||busy?null:()=>editItem(entry),
-      tooltip:'Edit itinerary item',icon:const Icon(Icons.edit_outlined)),
+      tooltip:tt('Edit itinerary item'),icon:const Icon(Icons.edit_outlined)),
     ]),
     if(entry['location'].toString().isNotEmpty||entry['destination'].toString().isNotEmpty)
      Padding(padding:const EdgeInsets.only(top:5),child:Text(
-      [if(entry['location'].toString().isNotEmpty)entry['location'].toString(),
-       if(entry['destination'].toString().isNotEmpty)entry['destination'].toString()].join(' → '))),
-    if(entry['end_date']!=null)Text('Ends / arrives: '+_date(entry['end_date'])+
+      tt([if(entry['location'].toString().isNotEmpty)entry['location'].toString(),
+       if(entry['destination'].toString().isNotEmpty)entry['destination'].toString()].join(' → ')))),
+    if(entry['end_date']!=null)Text(tt('Ends / arrives: ')+_date(entry['end_date'])+
       (entry['end_time']!=null?' · '+entry['end_time'].toString().substring(0,5):'')),
     if(entry['provider'].toString().isNotEmpty)
-     Text('Provider: '+entry['provider'].toString()),
+     Text(tt('Provider: ')+entry['provider'].toString()),
     if(entry['booking_reference'].toString().isNotEmpty)
      Row(children:[
-      Expanded(child:Text('Reference: '+entry['booking_reference'].toString())),
-      IconButton(tooltip:'Copy booking reference',icon:const Icon(Icons.copy_outlined),
+      Expanded(child:Text(tt('Reference: ')+entry['booking_reference'].toString())),
+      IconButton(tooltip:tt('Copy booking reference'),icon:const Icon(Icons.copy_outlined),
        onPressed:()=>Clipboard.setData(ClipboardData(text:entry['booking_reference'].toString()))),
      ]),
-    if(amount.isNotEmpty)Text('Estimated cost: '+amount),
+    if(amount.isNotEmpty)Text(tt('Estimated cost: ')+amount),
     if(entry['details'].toString().isNotEmpty)
      Padding(padding:const EdgeInsets.symmetric(vertical:6),
       child:SelectableText(entry['details'].toString())),
     if(entry['source_url'].toString().isNotEmpty)
      TextButton.icon(onPressed:()=>openLink(entry['source_url'].toString()),
-      icon:const Icon(Icons.open_in_new),label:const Text('Open booking link')),
+      icon:const Icon(Icons.open_in_new),label:Text(tt('Open booking link'))),
     Wrap(spacing:5,children:[
      OutlinedButton.icon(onPressed:deleted||busy?null:()=>toggleItem(entry),
       icon:Icon(entry['done']==true?Icons.check_circle:Icons.circle_outlined),
-      label:Text(entry['done']==true?'Done':'Mark done')),
+      label:Text(tt(entry['done']==true?tt('Done'):tt('Mark done')))),
      TextButton.icon(onPressed:busy?null:()=>setItemRemoved(entry),
       icon:Icon(deleted?Icons.restore_outlined:Icons.archive_outlined),
-      label:Text(deleted?'Restore':'Remove')),
+      label:Text(tt(deleted?tt('Restore'):tt('Remove')))),
     ]),
    ])));
  }
@@ -568,32 +569,32 @@ class _TripDetailState extends State<TripDetail>{
   final shown=items.where((i)=>showRemoved||i['archived_at']==null).toList();
   final amounts=TripRules.sumByCurrency(active);
   return Scaffold(
-   appBar:AppBar(title:const Text('Trip details'),actions:[
+   appBar:AppBar(title:Text(tt('Trip details')),actions:[
     if(t!=null&&t['space_id']!=null)CreateFromThisButton(kind:LinkKind.trip,id:widget.tripId,spaceId:t['space_id'].toString(),title:t['title'].toString(),date:DateTime.tryParse(t['start_on']?.toString()??''),shared:t['visibility']!='private',stripKey:_links),
     if(t!=null)RecordActionHistoryButton(
      kind:'trip',recordId:widget.tripId),
-    if(t!=null)IconButton(tooltip:'Edit trip',icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
-    if(t!=null)IconButton(tooltip:t['archived_at']==null?'Remove trip':'Restore trip',
+    if(t!=null)IconButton(tooltip:tt('Edit trip'),icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
+    if(t!=null)IconButton(tooltip:t['archived_at']==null?tt('Remove trip'):tt('Restore trip'),
      icon:Icon(t['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined),
      onPressed:busy?null:setTripRemoved),
    ]),
    body:loading?const Center(child:CircularProgressIndicator()):
-   t==null?Center(child:Text(error??'Trip not available')):RefreshIndicator(
+   t==null?Center(child:Text(tt(error??'Trip not available'))):RefreshIndicator(
     onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
-    padding:const EdgeInsets.fromLTRB(16,14,16,32),children:[
-     Text(t['title'].toString(),style:Theme.of(context).textTheme.headlineSmall),
+    padding:const EdgeInsetsDirectional.fromSTEB(16,14,16,32),children:[
+     Text(tt(t['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
      const SizedBox(height:6),
-     Text((tripStages[t['status']]??'Planning')+' · '+
-       (t['visibility']=='private'?'Only me':'Both of us')),
+     Text(tt((tripStages[t['status']]??'Planning')+' · '+
+       (t['visibility']=='private'?'Only me':'Both of us'))),
      if((t['origin']??'').toString().isNotEmpty||(t['destination']??'').toString().isNotEmpty)
-      Text([if((t['origin']??'').toString().isNotEmpty)t['origin'].toString(),
-        if((t['destination']??'').toString().isNotEmpty)t['destination'].toString()].join(' → ')),
-     if(t['start_on']!=null)Text('Departure: '+_date(t['start_on'])),
-     if(t['end_on']!=null)Text('Return: '+_date(t['end_on'])),
+      Text(tt([if((t['origin']??'').toString().isNotEmpty)t['origin'].toString(),
+        if((t['destination']??'').toString().isNotEmpty)t['destination'].toString()].join(' → '))),
+     if(t['start_on']!=null)Text(tt('Departure: ')+_date(t['start_on'])),
+     if(t['end_on']!=null)Text(tt('Return: ')+_date(t['end_on'])),
      if(t['start_on']!=null)Text(
-       TripRules.countdownLabel(DateTime.tryParse(t['start_on'].toString()),DateTime.now())),
+       tt(TripRules.countdownLabel(DateTime.tryParse(t['start_on'].toString()),DateTime.now()))),
      if((t['notes']??'').toString().isNotEmpty)
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
        child:SelectableText(t['notes'].toString()))),
@@ -603,59 +604,59 @@ class _TripDetailState extends State<TripDetail>{
      Wrap(spacing:10,runSpacing:6,
       alignment:WrapAlignment.spaceBetween,crossAxisAlignment:WrapCrossAlignment.center,
       children:[
-       Text('Itinerary ('+active.length.toString()+')',
+       Text(tt('Itinerary (')+active.length.toString()+')',
         style:Theme.of(context).textTheme.titleLarge),
        TextButton.icon(onPressed:()=>editItem(),icon:const Icon(Icons.add),
-        label:const Text('Add item')),
+        label:Text(tt('Add item'))),
       ]),
-     Text('Local times match the booking and do not convert between time zones.',
+     Text(tt('Local times match the booking and do not convert between time zones.'),
       style:Theme.of(context).textTheme.bodySmall),
-     Align(alignment:Alignment.centerLeft,child:OptionChip(label:'Show removed',icon:Icons.delete_outline,
+     Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show removed'),icon:Icons.delete_outline,
       value:showRemoved,onChanged:(v)=>setState(()=>showRemoved=v))),
-     if(shown.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(18),
-       child:Text('Add a flight, stay, activity or reservation to build the journey.'))),
+     if(shown.isEmpty)Card(child:Padding(padding:EdgeInsets.all(18),
+       child:Text(tt('Add a flight, stay, activity or reservation to build the journey.')))),
      for(final entry in shown)itineraryCard(entry),
      if(amounts.isNotEmpty)...[
       const SizedBox(height:10),
-      Text('Estimated costs',style:Theme.of(context).textTheme.titleMedium),
-      Text(TripRules.formatTotals(amounts)),
+      Text(tt('Estimated costs'),style:Theme.of(context).textTheme.titleMedium),
+      Text(tt(TripRules.formatTotals(amounts))),
      ],
      const Divider(height:30),
      TripPreparationSection(tripId:widget.tripId),
      const Divider(height:30),
      TripDocumentsSection(tripId:widget.tripId,itineraryItems:items),
      const Divider(height:30),
-     Text('Trip conversation',style:Theme.of(context).textTheme.titleLarge),
+     Text(tt('Trip conversation'),style:Theme.of(context).textTheme.titleLarge),
      const SizedBox(height:8),
      if(messages.where((m)=>m['archived_at']==null).isEmpty)
-      const Text('Share ideas or updates for this trip.'),
+      Text(tt('Share ideas or updates for this trip.')),
      for(final m in messages.where((m)=>m['archived_at']==null))
       Card(elevation:0,child:ListTile(
-       title:Text(label(m['created_by'])),
-       subtitle:Text(m['body'].toString()),
+       title:Text(tt(label(m['created_by']))),
+       subtitle:Text(tt(m['body'].toString())),
        trailing:m['created_by']==db.auth.currentUser?.id?
-        IconButton(tooltip:'Retract my message',icon:const Icon(Icons.delete_outline),
+        IconButton(tooltip:tt('Retract my message'),icon:const Icon(Icons.delete_outline),
          onPressed:busy?null:()=>retract(m)):null)),
      const SizedBox(height:10),
      TextField(controller:message,maxLength:3000,minLines:2,maxLines:4,
-      decoration:const InputDecoration(labelText:'Share a thought',
+      decoration:InputDecoration(labelText:tt('Share a thought'),
        border:OutlineInputBorder())),
-     Align(alignment:Alignment.centerRight,child:FilledButton.icon(
+     Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(
       onPressed:busy?null:postMessage,
-      icon:const Icon(Icons.send_outlined),label:const Text('Send'))),
+      icon:const Icon(Icons.send_outlined),label:Text(tt('Send')))),
      const Divider(height:28),
-     ListTile(leading:const Icon(Icons.history),title:const Text('Change history'),
+     ListTile(leading:const Icon(Icons.history),title:Text(tt('Change history')),
       trailing:Icon(showHistory?Icons.expand_less:Icons.expand_more),
       onTap:()=>setState(()=>showHistory=!showHistory)),
      if(showHistory)...[
-      if(history.isEmpty)const Text('No changes recorded yet.'),
+      if(history.isEmpty)Text(tt('No changes recorded yet.')),
       for(final event in history)ListTile(
        dense:true,
-       title:Text((event['record_kind']??'Item').toString()+' edited by '+
-         label(event['changed_by'])),
-       subtitle:Text((event['changed_at']??'').toString().replaceFirst('T',' ').split('.').first)),
+       title:Text(tt((event['record_kind']??'Item').toString()+' edited by '+
+         label(event['changed_by']))),
+       subtitle:Text(tt((event['changed_at']??'').toString().replaceFirst('T',' ').split('.').first))),
      ],
-     if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
+     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     ])),
    );
  }

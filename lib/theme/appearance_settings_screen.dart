@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'onespace_appearance.dart';
 import 'theme_concept_card.dart';
 import '../l10n/onespace_strings.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 class AppearanceSettingsScreen extends StatelessWidget{
  const AppearanceSettingsScreen({super.key});
@@ -90,7 +91,7 @@ class AppearanceSettingsScreen extends StatelessWidget{
       decoration:InputDecoration(prefixIcon:const Icon(Icons.auto_awesome_outlined),
        labelText:tr(context,'themeSeasonLabel')),
       items:[for(final choice in SeasonChoice.values)
-       DropdownMenuItem(value:choice,child:Text(seasonLabel(context,choice)))],
+       DropdownMenuItem(value:choice,child:Text(tt(seasonLabel(context,choice))))],
       onChanged:(value){if(value!=null)state.setSeason(value);}),
      const SizedBox(height:14),
      const SeasonalThemePreview(),
@@ -145,8 +146,8 @@ class SeasonalThemePreview extends StatelessWidget{
        child:Icon(icon,color:accent,size:compact?23:27)),
       const SizedBox(width:13),
       Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Text(title,style:Theme.of(ctx).textTheme.titleMedium),
-       Text(subtitle,style:Theme.of(ctx).textTheme.bodySmall),
+       Text(tt(title),style:Theme.of(ctx).textTheme.titleMedium),
+       Text(tt(subtitle),style:Theme.of(ctx).textTheme.bodySmall),
       ])),
      ]),
     );

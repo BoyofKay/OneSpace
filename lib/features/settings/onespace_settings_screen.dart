@@ -10,6 +10,7 @@ import '../../theme/appearance_settings_screen.dart';
 import '../../core/weather_unit_preference.dart';
 import '../calendar/holiday_sources_panel.dart';
 import '../occasions/occasions_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Central configuration hub, distinct from personal profile details.
 class OneSpaceSettingsScreen extends StatelessWidget {
@@ -18,33 +19,33 @@ class OneSpaceSettingsScreen extends StatelessWidget {
  void _open(BuildContext context,String title,Widget child){
    Navigator.of(context).push<void>(MaterialPageRoute<void>(
      builder:(_)=>Scaffold(
-       appBar:AppBar(title:Text(title)),
+       appBar:AppBar(title:Text(tt(title))),
        body:SafeArea(child:child),
      ),
    ));
  }
 
  @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:const Text('Settings')),
+   appBar:AppBar(title:Text(tt('Settings'))),
    body:SafeArea(child:ListView(
      padding:const EdgeInsets.all(16),
      children:[
-       Text('Our relationship',
+       Text(tt('Our relationship'),
          style:Theme.of(context).textTheme.titleMedium),
        Card(elevation:0,child:ListTile(
          leading:const Icon(Icons.favorite_border),
-         title:const Text('Living arrangement & meeting dates'),
-         subtitle:const Text('Together or apart, last visit, next reunion'),
+         title:Text(tt('Living arrangement & meeting dates')),
+         subtitle:Text(tt('Together or apart, last visit, next reunion')),
          trailing:const Icon(Icons.chevron_right),
          onTap:()=>_open(context,'Our relationship',
            const SingleChildScrollView(child:RelationshipSettings())),
        )),
        const SizedBox(height:16),
-       Text('My preferences',style:Theme.of(context).textTheme.titleMedium),
+       Text(tt('My preferences'),style:Theme.of(context).textTheme.titleMedium),
        Card(elevation:0,child:ListTile(
         leading:const Icon(Icons.palette_outlined),
         title:Text(tr(context,'themeSettings')),
-        subtitle:const Text('Four colors · Light, dark or follow phone · Holidays'),
+        subtitle:Text(tt('Four colors · Light, dark or follow phone · Holidays')),
         trailing:const Icon(Icons.chevron_right),
         onTap:()=>Navigator.of(context).push<void>(MaterialPageRoute<void>(
           builder:(_)=>const AppearanceSettingsScreen())),
@@ -52,8 +53,8 @@ class OneSpaceSettingsScreen extends StatelessWidget {
        Card(elevation:0,child:Column(children:[
          ListTile(
            leading:const Icon(Icons.badge_outlined),
-           title:const Text('Preferred names & labels'),
-           subtitle:const Text('Manage the names used for your partner'),
+           title:Text(tt('Preferred names & labels')),
+           subtitle:Text(tt('Manage the names used for your partner')),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>_open(context,'Personalization',
              const ProfileSettingsScreen(settingsOnly:true,section:'labels')),
@@ -61,8 +62,8 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
            leading:const Icon(Icons.access_time_outlined),
-           title:const Text('Working hours & sleep'),
-           subtitle:const Text('Set days, hours and quiet-time preferences'),
+           title:Text(tt('Working hours & sleep')),
+           subtitle:Text(tt('Set days, hours and quiet-time preferences')),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>_open(context,'Daily schedule',
              const ProfileSettingsScreen(settingsOnly:true,section:'schedule')),
@@ -70,8 +71,8 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
            leading:const Icon(Icons.event_available_outlined),
-           title:const Text('Days off & sleep exceptions'),
-           subtitle:const Text('Share days off on our calendar; adjust bedtime and wake-up'),
+           title:Text(tt('Days off & sleep exceptions')),
+           subtitle:Text(tt('Share days off on our calendar; adjust bedtime and wake-up')),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>Navigator.of(context).push<void>(
              MaterialPageRoute<void>(
@@ -80,8 +81,8 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
           leading:const Icon(Icons.public_outlined),
-          title:const Text('Regional holidays'),
-          subtitle:const Text('Choose which national calendars we see'),
+          title:Text(tt('Regional holidays')),
+          subtitle:Text(tt('Choose which national calendars we see')),
           trailing:const Icon(Icons.chevron_right),
           onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
            builder:(_)=>const _HolidayPreferencesScreen())),
@@ -89,8 +90,8 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
           leading:const Icon(Icons.celebration_outlined),
-          title:const Text('Birthdays, anniversaries & special dates'),
-          subtitle:const Text('Manage milestones and important occasions'),
+          title:Text(tt('Birthdays, anniversaries & special dates')),
+          subtitle:Text(tt('Manage milestones and important occasions')),
           trailing:const Icon(Icons.chevron_right),
           onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
            builder:(_)=>const OccasionsScreen())),
@@ -100,21 +101,21 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
            leading:const Icon(Icons.cloud_outlined),
-           title:const Text('Weather city'),
-           subtitle:const Text('Choose your city; use the phone time zone automatically'),
+           title:Text(tt('Weather city')),
+           subtitle:Text(tt('Choose your city; use the phone time zone automatically')),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>_open(context,'Weather city',
              const ProfileSettingsScreen(settingsOnly:true,section:'weather')),
          ),
        ])),
        const SizedBox(height:16),
-       Text('Affection & notifications',
+       Text(tt('Affection & notifications'),
          style:Theme.of(context).textTheme.titleMedium),
        Card(elevation:0,child:Column(children:[
          ListTile(
            leading:const Icon(Icons.volunteer_activism_outlined),
-           title:const Text('My love gestures'),
-           subtitle:const Text('Manage my gesture types and messages'),
+           title:Text(tt('My love gestures')),
+           subtitle:Text(tt('Manage my gesture types and messages')),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>Navigator.of(context).push<void>(
              MaterialPageRoute<void>(
@@ -122,11 +123,11 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          ),
        ])),
        const SizedBox(height:16),
-       Text('Privacy',style:Theme.of(context).textTheme.titleMedium),
+       Text(tt('Privacy'),style:Theme.of(context).textTheme.titleMedium),
        Card(elevation:0,child:ListTile(
          leading:const Icon(Icons.shield_outlined),
-         title:const Text('Your data and account'),
-         subtitle:const Text('Download my data · Delete my account'),
+         title:Text(tt('Your data and account')),
+         subtitle:Text(tt('Download my data · Delete my account')),
          trailing:const Icon(Icons.chevron_right),
          onTap:()=>Navigator.of(context).push<void>(MaterialPageRoute<void>(
            builder:(_)=>const AccountDataScreen())),
@@ -143,14 +144,14 @@ class _WeatherUnitsTile extends StatelessWidget{
    final prefs=WeatherUnitPreference.instance;
    return ListTile(
     leading:const Icon(Icons.thermostat_outlined),
-    title:const Text('Weather temperature'),
-    subtitle:Text(prefs.fahrenheit?'US · Fahrenheit (°F)':'Metric · Celsius (°C)'),
+    title:Text(tt('Weather temperature')),
+    subtitle:Text(tt(prefs.fahrenheit?tt('US · Fahrenheit (°F)'):tt('Metric · Celsius (°C)'))),
     trailing:PopupMenuButton<bool>(
-     tooltip:'Change temperature unit',
+     tooltip:tt('Change temperature unit'),
      onSelected:(v)=>prefs.setFahrenheit(v),
-     itemBuilder:(_)=>const [
-      PopupMenuItem(value:false,child:Text('Metric · °C')),
-      PopupMenuItem(value:true,child:Text('US · °F')),
+     itemBuilder:(_)=>[
+      PopupMenuItem(value:false,child:Text(tt('Metric · °C'))),
+      PopupMenuItem(value:true,child:Text(tt('US · °F'))),
      ]),
    );
   });
@@ -168,12 +169,12 @@ class _HolidayPreferencesScreenState extends State<_HolidayPreferencesScreen>{
   if(mounted)setState((){space=id;loading=false;});
  }
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:const Text('Regional holidays')),
+  appBar:AppBar(title:Text(tt('Regional holidays'))),
   body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
-   const Text('Choose the countries in our shared calendar.'),
+   Text(tt('Choose the countries in our shared calendar.')),
    const SizedBox(height:12),
    if(loading)const LinearProgressIndicator()
-   else if(space==null)const Text('Connect your shared space first.')
+   else if(space==null)Text(tt('Connect your shared space first.'))
    else HolidaySourcesPanel(spaceId:space!,onChanged:(){}),
   ])));
 }

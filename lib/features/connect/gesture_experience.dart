@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Recognizable emojis are kept within the same colored icon circle.
 class GestureKindSymbol extends StatelessWidget{
@@ -94,12 +95,12 @@ class _GestureHistoryScreenState extends State<GestureHistoryScreen>{
  @override Widget build(BuildContext context){
    final me=Supabase.instance.client.auth.currentUser?.id;
    return Scaffold(
-     appBar:AppBar(title:const Text('Our gestures')),
+     appBar:AppBar(title:Text(tt('Our gestures'))),
      body:Column(children:[
        Padding(padding:const EdgeInsets.all(12),child:SegmentedButton<String>(
-         segments:const [
-           ButtonSegment(value:'received',label:Text('Received'),icon:Icon(Icons.favorite_outline)),
-           ButtonSegment(value:'sent',label:Text('Sent'),icon:Icon(Icons.outgoing_mail)),
+         segments:[
+           ButtonSegment(value:'received',label:Text(tt('Received')),icon:Icon(Icons.favorite_outline)),
+           ButtonSegment(value:'sent',label:Text(tt('Sent')),icon:Icon(Icons.outgoing_mail)),
          ],
          selected:{tab},onSelectionChanged:(v)=>setState(()=>tab=v.first),
        )),
@@ -110,23 +111,23 @@ class _GestureHistoryScreenState extends State<GestureHistoryScreen>{
              .stream(primaryKey:['id']).eq('space_id',space!)
              .order('created_at',ascending:false).limit(100),
            builder:(ctx,s){
-             if(s.hasError)return const Center(child:Text('Unable to load gesture history'));
+             if(s.hasError)return Center(child:Text(tt('Unable to load gesture history')));
              if(!s.hasData)return const Center(child:CircularProgressIndicator());
              final items=s.data!.where((item)=>tab=='sent'?
                item['sender_id']==me:item['recipient_id']==me).toList();
-             if(items.isEmpty)return Center(child:Text('No '+tab+' gestures yet.'));
+             if(items.isEmpty)return Center(child:Text(tt('No ')+tab+' gestures yet.'));
              return ListView.builder(itemCount:items.length,itemBuilder:(ctx,i){
                final item=items[i];
                final style=GestureTheme.forKind(item['kind']?.toString());
-               return Card(elevation:0,margin:const EdgeInsets.fromLTRB(12,4,12,6),
+               return Card(elevation:0,margin:const EdgeInsetsDirectional.fromSTEB(12,4,12,6),
                  child:ListTile(
                    leading:CircleAvatar(
                      backgroundColor:style.color.withValues(alpha:.16),
                      child:GestureKindSymbol(kind:item['kind']?.toString(),color:style.color)),
-                   title:Text(item['message']?.toString()??''),
-                   subtitle:Text(_sentAt(ctx,item['created_at'])+'\n'+
+                   title:Text(tt(item['message']?.toString()??'')),
+                   subtitle:Text(tt(_sentAt(ctx,item['created_at'])+'\n'+
                      (item['automated']==true?
-                       'Scheduled automatically':'Sent personally')),
+                       'Scheduled automatically':'Sent personally'))),
                  ));
              });
            },
@@ -151,22 +152,22 @@ class GestureNotificationDialog {
        icon:CircleAvatar(radius:34,
          backgroundColor:theme.color.withValues(alpha:.16),
          child:GestureKindSymbol(kind:row['kind']?.toString(),size:36,color:theme.color)),
-       title:Text(theme.title,textAlign:TextAlign.center),
+       title:Text(tt(theme.title),textAlign:TextAlign.center),
        content:Column(mainAxisSize:MainAxisSize.min,children:[
-         Text(row['message']?.toString()??'',textAlign:TextAlign.center,
+         Text(tt(row['message']?.toString()??''),textAlign:TextAlign.center,
            style:Theme.of(ctx).textTheme.titleMedium),
          const SizedBox(height:12),
-         Text(row['automated']==true?'A scheduled gesture from your love':
-           'A personal gesture from your love',
+         Text(tt(row['automated']==true?'A scheduled gesture from your love':
+           'A personal gesture from your love'),
            style:Theme.of(ctx).textTheme.bodySmall,
            textAlign:TextAlign.center),
        ]),
        actions:[FilledButton(onPressed:()=>Navigator.pop(ctx),
-         child:const Text('Close'))],
+         child:Text(tt('Close')))],
      ));
    }catch(_){
      if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content:Text('This gesture is no longer available.')));
+       SnackBar(content:Text(tt('This gesture is no longer available.'))));
    }
  }
 }

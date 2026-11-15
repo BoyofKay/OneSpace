@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// R55 (Ahmed, 15 Nov): every "Add new …" / "Edit …" page looks and behaves
 /// the same way.
@@ -35,11 +36,11 @@ class EditorScaffold extends StatelessWidget {
 
   static Future<bool> confirmDiscard(BuildContext context) async =>
       await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-        title: const Text('Discard changes?'),
-        content: const Text('What you changed on this page will not be saved.'),
+        title: Text(tt('Discard changes?')),
+        content: Text(tt('What you changed on this page will not be saved.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep editing')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Discard')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tt('Keep editing'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tt('Discard'))),
         ])) ?? false;
 
   @override Widget build(BuildContext context) => ListenableBuilder(
@@ -56,30 +57,30 @@ class EditorScaffold extends StatelessWidget {
           if (await confirmDiscard(context) && context.mounted) Navigator.of(context).pop();
         },
         child: Scaffold(
-          appBar: AppBar(title: Text(title), actions: actions),
+          appBar: AppBar(title: Text(tt(title)), actions: actions),
           body: body,
           bottomNavigationBar: SafeArea(child: Material(
             elevation: 6,
             color: theme.colorScheme.surface,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 10),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 if (meta != null) Align(alignment: AlignmentDirectional.centerStart, child: meta!),
                 if (missingHint != null && !complete) Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(missingHint!, style: theme.textTheme.bodySmall?.copyWith(
+                  child: Text(tt(missingHint!), style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant))),
                 Row(children: [
                   Expanded(child: OutlinedButton(
                     onPressed: saving ? null : () => Navigator.of(context).maybePop(),
-                    child: const Text('Cancel'))),
+                    child: Text(tt('Cancel')))),
                   const SizedBox(width: 12),
                   Expanded(child: FilledButton(
                     onPressed: canSave ? onSave : null,
                     child: saving
                       ? const SizedBox(width: 18, height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text(saveLabel))),
+                      : Text(tt(saveLabel)))),
                 ]),
               ]),
             ),
@@ -117,7 +118,7 @@ class AddFab extends StatelessWidget {
     heroTag: heroTag ?? label,
     onPressed: onPressed,
     icon: const Icon(Icons.add),
-    label: Text(label));
+    label: Text(tt(label)));
 }
 
 /// One choice in a fold-up add button.
@@ -150,7 +151,7 @@ class _AddFabMenuState extends State<AddFabMenu> {
               elevation: 2, borderRadius: BorderRadius.circular(8),
               color: theme.colorScheme.surfaceContainerHigh,
               child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(o.label, style: theme.textTheme.labelLarge))),
+                child: Text(tt(o.label), style: theme.textTheme.labelLarge))),
             const SizedBox(width: 10),
             FloatingActionButton.small(
               heroTag: 'fab-${o.label}',
@@ -162,7 +163,7 @@ class _AddFabMenuState extends State<AddFabMenu> {
           heroTag: 'fab-${widget.label}',
           onPressed: () => setState(() => open = !open),
           icon: Icon(open ? Icons.close : Icons.add),
-          label: Text(open ? 'Close' : widget.label)),
+          label: Text(tt(open ? 'Close' : widget.label))),
       ]);
   }
 }
@@ -233,7 +234,7 @@ class _FormPageState extends State<_FormPage> {
     onSave: () => Navigator.pop(context, [for (final c in controllers) c.text.trim()]),
     body: ListView(padding: const EdgeInsets.all(18), children: [
       if (widget.intro != null) Padding(padding: const EdgeInsets.only(bottom: 14),
-        child: Text(widget.intro!, style: Theme.of(context).textTheme.bodyMedium)),
+        child: Text(tt(widget.intro!), style: Theme.of(context).textTheme.bodyMedium)),
       for (var i = 0; i < widget.fields.length; i++) Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: TextField(
@@ -266,9 +267,9 @@ class EditorPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: title),
     body: SafeArea(child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 24), child: content)),
+      padding: const EdgeInsetsDirectional.fromSTEB(18, 12, 18, 24), child: content)),
     bottomNavigationBar: SafeArea(child: Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 12),
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface,
         border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant))),
       child: Row(children: [

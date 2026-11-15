@@ -15,6 +15,7 @@ import '../occasions/occasions_screen.dart';
 import '../memories/memories_screen.dart';
 import '../../core/current_space_cache.dart';
 import 'global_search_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// A single RLS-filtered search surface. No cross-space indexing or copying.
 class GlobalSearchScreen extends StatefulWidget {
@@ -179,9 +180,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>target));
  }
  @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:const Text('Search our space'),actions:[
+   appBar:AppBar(title:Text(tt('Search our space')),actions:[
     PopupMenuButton<String>(
-     tooltip:'Filter search results',
+     tooltip:tt('Filter search results'),
      icon:Badge(isLabelVisible:section!='All',smallSize:8,child:const Icon(Icons.tune)),
      initialValue:section,
      onSelected:(v){
@@ -193,7 +194,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        'All','Activity','Calendar','To-do','Note','Letter','Tag',
        'Trip','Experience','Trip item','Travel document','Occasion','Contact','Item to sort',
        'Reminder','Memory',
-      ])PopupMenuItem(value:category,child:Text(category)),
+      ])PopupMenuItem(value:category,child:Text(tt(category))),
      ]),
    ]),
    body:SafeArea(child:Center(child:ConstrainedBox(
@@ -215,19 +216,19 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        },
        decoration:InputDecoration(
          prefixIcon:const Icon(Icons.search),
-         hintText:'Reminders, activities, trips, notes and more',
+         hintText:tt('Reminders, activities, trips, notes and more'),
          border:const OutlineInputBorder(),
-         suffixIcon:IconButton(tooltip:'Clear search',icon:const Icon(Icons.clear),
+         suffixIcon:IconButton(tooltip:tt('Clear search'),icon:const Icon(Icons.clear),
            onPressed:(){query.clear();debounce?.cancel();search('');}),
        ),
      )),
      if(busy)const LinearProgressIndicator(),
      if(error!=null)Padding(padding:const EdgeInsets.all(12),
        child:Row(children:[
-         Expanded(child:Text(error!,
+         Expanded(child:Text(tt(error!),
           style:TextStyle(color:Theme.of(context).colorScheme.error))),
          TextButton(onPressed:busy?null:()=>search(query.text),
-          child:const Text('Retry')),
+          child:Text(tt('Retry'))),
        ])),
      Expanded(child:ListView.builder(
        keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
@@ -247,16 +248,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
            hit.kind=='Travel document'?Icons.attach_file:
            hit.kind=='Trip'||hit.kind=='Trip item'?Icons.flight_outlined:
            hit.kind=='Experience'?Icons.movie_outlined:Icons.mail_outline),
-         title:Text(hit.title,maxLines:2,overflow:TextOverflow.ellipsis),
-         subtitle:Text(hit.kind),
+         title:Text(tt(hit.title),maxLines:2,overflow:TextOverflow.ellipsis),
+         subtitle:Text(tt(hit.kind)),
          trailing:const Icon(Icons.chevron_right),
          onTap:()=>openHit(hit),
        );
      })),
      if(!busy&&hits.isEmpty&&error==null)
        Padding(padding:const EdgeInsets.all(14),
-        child:Text(GlobalSearchRules.canSearch(query.text)
-         ?'No matching items found.':'Type at least two characters to search.',
+        child:Text(tt(GlobalSearchRules.canSearch(query.text)
+         ?'No matching items found.':'Type at least two characters to search.'),
          textAlign:TextAlign.center)),
    ])))),
  );

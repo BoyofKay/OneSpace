@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'scrapbook_templates.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Fixed artboard used for on-screen preview and high-resolution PNG export.
 /// Templates are responsive compositions, not photo thumbnails in a list.
@@ -18,13 +19,13 @@ class ScrapbookPageCanvas extends StatelessWidget {
     decoration:BoxDecoration(color:Colors.white,
      borderRadius:BorderRadius.circular(7),
      boxShadow:const [BoxShadow(color:Color(0x22000000),blurRadius:9,offset:Offset(1,4))]),
-    padding:const EdgeInsets.fromLTRB(6,6,6,15),
+    padding:const EdgeInsetsDirectional.fromSTEB(6,6,6,15),
     child:ClipRRect(borderRadius:BorderRadius.circular(3),
      child:url==null?Container(color:accent.withAlpha(28),
       child:Center(child:Column(mainAxisSize:MainAxisSize.min,children:[
        Icon(Icons.add_photo_alternate_outlined,color:accent,size:30),
        const SizedBox(height:3),
-       Text('PHOTO '+number.toString(),style:TextStyle(
+       Text(tt('PHOTO ')+number.toString(),style:TextStyle(
         fontSize:9,fontWeight:FontWeight.bold,color:accent)),
       ]))):
       Image.network(url,fit:BoxFit.cover,
@@ -68,23 +69,23 @@ class ScrapbookPageCanvas extends StatelessWidget {
   return AspectRatio(aspectRatio:0.76,child:Container(
    decoration:BoxDecoration(color:design.paper,
     borderRadius:BorderRadius.circular(8)),
-   padding:const EdgeInsets.fromLTRB(15,15,15,13),
+   padding:const EdgeInsetsDirectional.fromSTEB(15,15,15,13),
    child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
     Row(children:[
      Icon(design.icon,color:design.accent,size:19),
      const SizedBox(width:7),
-     Expanded(child:Text(design.name.toUpperCase(),
+     Expanded(child:Text(tt(design.name.toUpperCase()),
       style:TextStyle(letterSpacing:2,fontSize:10,
        color:design.accent,fontWeight:FontWeight.w800))),
      Container(width:38,height:2,color:design.accent),
     ]),
     const SizedBox(height:10),
-    Text(text('title').isEmpty?'A chapter of our story':text('title'),
+    Text(tt(text('title').isEmpty?'A chapter of our story':text('title')),
      maxLines:2,overflow:TextOverflow.ellipsis,
      style:TextStyle(fontSize:23,fontWeight:FontWeight.bold,
       color:design.ink,height:1.0)),
     const SizedBox(height:4),
-    Text(text('subtitle').isEmpty?'The moments worth keeping':text('subtitle'),
+    Text(tt(text('subtitle').isEmpty?'The moments worth keeping':text('subtitle')),
      maxLines:2,style:TextStyle(fontSize:11,color:design.ink.withAlpha(180))),
     const SizedBox(height:9),
     Expanded(child:imageSection),
@@ -97,15 +98,15 @@ class ScrapbookPageCanvas extends StatelessWidget {
       style:TextStyle(fontSize:13,fontWeight:FontWeight.bold,
        fontStyle:FontStyle.italic,color:design.accent)),
     if(text('highlight_text').isNotEmpty)const SizedBox(height:5),
-    Text(text('story_text').isEmpty?
-     'Add a few words about what made this day special.':text('story_text'),
+    Text(tt(text('story_text').isEmpty?
+     'Add a few words about what made this day special.':text('story_text')),
      maxLines:key=='little_moments'?4:3,overflow:TextOverflow.ellipsis,
      style:TextStyle(color:design.ink,fontSize:12,height:1.3)),
     const SizedBox(height:5),
     Row(mainAxisAlignment:MainAxisAlignment.end,children:[
      Icon(Icons.favorite,color:design.accent,size:9),
      const SizedBox(width:4),
-     Text('ONE SPACE · OUR STORY',style:TextStyle(
+     Text(tt('ONE SPACE · OUR STORY'),style:TextStyle(
       letterSpacing:1,fontSize:8,fontWeight:FontWeight.bold,color:design.accent)),
     ]),
    ]),

@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'activity_voice_rules.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// One compact audio control, reused by chat bubbles and Activity components.
 /// Playback remains authenticated; no signed URL is persisted or shown publicly.
@@ -94,7 +95,7 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
                   height: 40,
                   child: IconButton(
                     padding: EdgeInsets.zero,
-                    tooltip: playing ? 'Pause recording' : 'Play recording',
+                    tooltip: playing ? tt('Pause recording') : tt('Play recording'),
                     onPressed: loading ? null : toggle,
                     icon: loading
                         ? const SizedBox(width: 20, height: 20,
@@ -105,7 +106,7 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
                 ),
                 Expanded(
                   child: Semantics(
-                    label: 'Voice note playback position',
+                    label: tt('Voice note playback position'),
                     child: Slider(
                       value: shown.toDouble(),
                       min: 0,
@@ -120,9 +121,9 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
                 SizedBox(
                   width: 40,
                   child: Text(
-                    ActivityVoiceRules.durationLabel(
+                    tt(ActivityVoiceRules.durationLabel(
                       ((total - shown) / 1000).ceil(),
-                    ),
+                    )),
                     textAlign: TextAlign.end,
                     style: Theme.of(context).textTheme.labelMedium,
                   ),
@@ -131,7 +132,7 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Text(error!, style: TextStyle(
+                  child: Text(tt(error!), style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                   )),
                 ),

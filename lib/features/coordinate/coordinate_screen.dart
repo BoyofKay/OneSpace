@@ -9,6 +9,7 @@ import '../../core/status_look.dart';
 import 'activity_detail_screen.dart';
 import 'new_activity_screen.dart';
 import 'coordinate_activity_filters.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 // Keep navigation imports from Remember and other existing features working.
 export 'activity_detail_screen.dart' show ActivityScreen;
@@ -92,7 +93,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(12, 5, 5, 5),
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(12, 5, 5, 5),
         leading: (archived ? null : StatusLook.mark(item['stage']?.toString())) ?? Icon(
           archived ? Icons.inventory_2_outlined :
             CoordinateActivityFilters.finished(item)
@@ -101,7 +102,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
               Theme.of(context).colorScheme.secondary,
         ),
         title: Text(
-          item['title']?.toString() ?? '',
+          tt(item['title']?.toString() ?? ''),
           style: StatusLook.title(context, item['stage']?.toString(),
               const TextStyle(fontWeight: FontWeight.w600)),
         ),
@@ -111,7 +112,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
             if (body.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 3),
-                child: Text(body, maxLines: 2,
+                child: Text(tt(body), maxLines: 2,
                     overflow: TextOverflow.ellipsis),
               ),
             const SizedBox(height: 5),
@@ -127,7 +128,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           ],
         ),
         trailing: ItemMenu(kind: 'activity', recordId: item['id'].toString(),
-          title: item['title']?.toString(), openLabel: 'Open',
+          title: item['title']?.toString(), openLabel: tt('Open'),
           onOpen: () async {
             await Navigator.of(context).push<void>(MaterialPageRoute<void>(
               builder: (_) => ActivityScreen(id: item['id'] as String)));
@@ -151,14 +152,14 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
     final shown=CoordinateActivityFilters.visible(inView,view,search,now);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if(showArchived)Text(
-       'Removed Activities · Open one to restore it.',
+       tt('Removed Activities · Open one to restore it.'),
        style:Theme.of(context).textTheme.bodySmall),
       const SizedBox(height: 10),
       TextField(
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           isDense: true,
           prefixIcon: Icon(Icons.search),
-          labelText: 'Search activities',
+          labelText: tt('Search activities'),
           border: OutlineInputBorder(),
         ),
         onChanged: (text) => setState(() => search = text),
@@ -168,7 +169,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 22),
           child: Text(
-            search.isNotEmpty ? 'No matching Activities.' :
+            tt(search.isNotEmpty ? 'No matching Activities.' :
             showArchived ? 'No removed Activities to restore.' :
             selected == CoordinateActivityView.active ?
               'Your shared space begins with an idea. Create an Activity above.' :
@@ -176,7 +177,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
               'Nothing urgent or due soon.' :
               selected == CoordinateActivityView.finished ?
               'Completed decisions and experiences will stay here.' :
-              'No Activities in this view.',
+              'No Activities in this view.'),
             textAlign: TextAlign.center,
           ),
         ),
@@ -188,42 +189,42 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
     floatingActionButton: space == null ? null
-        : AddFab(label: 'Start activity', onPressed: create),
+        : AddFab(label: tt('Start activity'), onPressed: create),
     body: RefreshIndicator(
     onRefresh: load,
     child: ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 96),
       children: [
         Row(children:[
-         Expanded(child:Text('Coordinate',
+         Expanded(child:Text(tt('Coordinate'),
           style:Theme.of(context).textTheme.headlineMedium)),
          RecordListTopActions(
-          historyKinds:const ['activity'],historyTitle:'Activities',
+          historyKinds:const ['activity'],historyTitle:tt('Activities'),
           showHistory:showArchived,
           onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-          groups:[FilterGroupSpec(id:'view',label:'Activities',options:{for(final v in CoordinateActivityView.values)v.name:label(v)},selected:selected.name,defaultValue:CoordinateActivityView.active.name)],
+          groups:[FilterGroupSpec(id:'view',label:tt('Activities'),options:{for(final v in CoordinateActivityView.values)v.name:label(v)},selected:selected.name,defaultValue:CoordinateActivityView.active.name)],
            onApply:(v)=>setState(()=>selected=CoordinateActivityView.values.byName(v['view']!)),
          ),
         ]),
         const SizedBox(height: 3),
-        const Text('Ideas become plans, comparisons, decisions and memories.'),
+        Text(tt('Ideas become plans, comparisons, decisions and memories.')),
         const SizedBox(height: 12),
         if (error != null) ...[
-          Text(error!, style: TextStyle(
+          Text(tt(error!), style: TextStyle(
               color: Theme.of(context).colorScheme.error)),
           const SizedBox(height: 8),
         ],
         if (loading)
           const Center(child: CircularProgressIndicator())
         else if (space == null)
-          const Text('Connect your shared space to start coordinating.')
+          Text(tt('Connect your shared space to start coordinating.'))
         else if (items != null)
           StreamBuilder<List<Map<String,dynamic>>>(
             stream: items,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const Text('Could not load Activities. Pull down to retry.');
+                return Text(tt('Could not load Activities. Pull down to retry.'));
               }
               if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());

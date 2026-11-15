@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'collection_history_screen.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// Server-recorded changes only: who changed which fields, and when.
 /// Never copies private document bodies into another history surface.
@@ -14,7 +15,7 @@ class RecordActionHistoryButton extends StatelessWidget{
  /// R50 (B-14): an item's change log is the shared history page, filtered
  /// to this item, with the same people and action chips.
  @override Widget build(BuildContext context)=>IconButton(
-  tooltip:'Change log',
+  tooltip:tt('Change log'),
   icon:const Icon(Icons.history),
   onPressed:()=>openChangeLog(context,kind:kind,recordId:recordId,
    recordTitle:recordTitle),
@@ -60,28 +61,28 @@ class _RecordActionHistoryViewState extends State<RecordActionHistoryView>{
  @override Widget build(BuildContext context){
   final theme=Theme.of(context);
   return SafeArea(child:Padding(
-   padding:const EdgeInsets.fromLTRB(16,8,16,20),
+   padding:const EdgeInsetsDirectional.fromSTEB(16,8,16,20),
    child:Column(children:[
     Row(children:[
      const Icon(Icons.manage_history_outlined),
      const SizedBox(width:10),
-     Expanded(child:Text('Record action history',
+     Expanded(child:Text(tt('Record action history'),
       style:theme.textTheme.titleLarge)),
-     IconButton(tooltip:'Refresh history',
+     IconButton(tooltip:tt('Refresh history'),
       onPressed:refresh,icon:const Icon(Icons.refresh)),
     ]),
-    const Text('Server-recorded actions since action history was enabled. Older edits may not appear.'),
+    Text(tt('Server-recorded actions since action history was enabled. Older edits may not appear.')),
     const SizedBox(height:10),
     Expanded(child:FutureBuilder<List<Map<String,dynamic>>>(
      future:events,builder:(ctx,snapshot){
       if(snapshot.hasError)return Center(child:Column(
        mainAxisSize:MainAxisSize.min,children:[
-        const Text('History is unavailable or you no longer have access.'),
-        TextButton(onPressed:refresh,child:const Text('Retry')),
+        Text(tt('History is unavailable or you no longer have access.')),
+        TextButton(onPressed:refresh,child:Text(tt('Retry'))),
        ]));
       if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
       final rows=snapshot.data!;
-      if(rows.isEmpty)return const Center(child:Text('No recorded actions yet.'));
+      if(rows.isEmpty)return Center(child:Text(tt('No recorded actions yet.')));
       return ListView.builder(itemCount:rows.length,
        itemBuilder:(ctx,index){
         final row=rows[index];
@@ -102,7 +103,7 @@ class _RecordActionHistoryViewState extends State<RecordActionHistoryView>{
           _=>Icons.edit_note_outlined,
          }),
          title:Text('${row['_actor_name']} · ${row['action']}'),
-         subtitle:Text(when+(fields.isEmpty?'':'\nFields: '+fields.join(', '))),
+         subtitle:Text(tt(when+(fields.isEmpty?'':'\nFields: '+fields.join(', ')))),
          isThreeLine:fields.isNotEmpty,
         );
        });
