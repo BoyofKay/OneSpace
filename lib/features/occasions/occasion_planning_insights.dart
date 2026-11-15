@@ -28,8 +28,6 @@ class OccasionPlanningInsights{
     e['status']!='cancelled').toList();
   final reserved=active.where((e)=>e['status']=='planned').length;
   final purchased=active.where((e)=>e['status']=='purchased').length;
-  final wishes=active.where((e)=>e['status']=='wish'||
-   e['status']=='shortlisted').length;
   if(budget.overBudget){
    suggestions.add(OccasionPlanningInsight(
     code:'over_budget',
@@ -56,17 +54,11 @@ class OccasionPlanningInsights{
      ' item(s) use different currencies. They are not automatically subtracted from this budget.',
     actionLabel:tt('Review items'),action:'review',priority:3));
   }
-  if(wishes>0&&reserved+purchased==0){
-   suggestions.add(OccasionPlanningInsight(
-    code:'promote_wish',
-    message:tt('You have ideas waiting in the wishlist. Reserve your favorite choice to start tracking its cost.'),
-    actionLabel:tt('Review wishes'),action:'review',priority:4));
-  }
   if(active.isEmpty){
    suggestions.add(OccasionPlanningInsight(
     code:'empty',
-    message:tt('Start with a meaningful gift idea, or import an option you already compared in Coordinate.'),
-    actionLabel:tt('Browse Activity ideas'),action:'import',priority:5));
+    message:tt('Start with a gift idea or two. Compare them, then reserve your favorites.'),
+    actionLabel:tt('Add a gift option'),action:'purchase',priority:5));
   }
   if(budget.budget==null){
    suggestions.add(OccasionPlanningInsight(

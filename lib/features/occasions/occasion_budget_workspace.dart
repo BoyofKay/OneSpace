@@ -1,16 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/item_menu.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'occasion_budget_rules.dart';
 import 'occasion_planning_insights.dart';
 import 'occasion_budget_item_editor.dart';
-import 'occasion_option_linker.dart';
 import 'occasion_combination_planner.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 const budgetStages=<String,String>{
  'wish':'Wishlist','shortlisted':'Considering','planned':'Reserved',
- 'purchased':'Purchased','cancelled':'Skipped',
+ 'purchased':'Purchased','cancelled':'Excluded',
 };
 
 /// Embedded in Occasion detail: live wishlist, commitments, spending and history.
@@ -37,11 +38,13 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
   super.didUpdateWidget(old);
   if(old.plan['id']!=widget.plan['id'])_attach();
  }
- Future<void> edit([Map<String,dynamic>? row,String initial='planned'])async{
+ Future<void> edit([Map<String,dynamic>? row])async{
   await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
-   builder:(_)=>OccasionBudgetItemEditor(plan:widget.plan,
-    existing:row,initialStatus:initial,
-    markPurchase:row!=null&&initial=='purchased')));
+   builder:(_)=>OccasionBudgetItemEditor(plan:widget.plan,existing:row,initialStatus:'wish')));
+ }
+ Future<void> purchase(Map<String,dynamic> row)async{
+  await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
+   builder:(_)=>OccasionPurchaseEditor(plan:widget.plan,item:row)));
  }
  Future<void> setStage(Map<String,dynamic> item,String stage)async{
   if(busy)return;
@@ -55,10 +58,23 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
    if(mounted)setState(()=>error='Could not update this item.');
   }finally{if(mounted)setState(()=>busy=false);}
  }
- Future<void> browseOptions()async{
-  await showModalBottomSheet<bool>(context:context,showDragHandle:true,
-   isScrollControlled:true,
-   builder:(_)=>OccasionOptionLinker(plan:widget.plan));
+ Future<void> setRemoved(Map<String,dynamic> item)async{
+  if(busy)return;
+  setState((){busy=true;error=null;});
+  try{
+   await db.from('occasion_budget_items').update({
+    'archived_at':item['archived_at']==null?DateTime.now().toUtc().toIso8601String():null,
+   }).eq('id',item['id']).eq('plan_id',widget.plan['id']);
+  }on PostgrestException catch(e){
+   if(mounted)setState(()=>error=e.message);
+  }catch(_){
+   if(mounted)setState(()=>error='Could not update this item.');
+  }finally{if(mounted)setState(()=>busy=false);}
+ }
+ Future<void> openLink(String link)async{
+  final uri=Uri.tryParse(link);
+  if(uri==null||!['http','https'].contains(uri.scheme))return;
+  try{await launchUrl(uri,mode:LaunchMode.externalApplication);}catch(_){}
  }
  Future<void> compareCombinations(List<Map<String,dynamic>> items)async{
   final saved=await showModalBottomSheet<bool>(context:context,
@@ -71,29 +87,118 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
   switch(action){
    case 'budget':widget.onEditPlan();
    case 'purchase':edit();
-   case 'import':browseOptions();
    default:
     final context=_itemsAnchor.currentContext;
     if(context!=null)Scrollable.ensureVisible(context,
      duration:const Duration(milliseconds:250));
   }
  }
- Future<void> history()async{
-  await showModalBottomSheet<void>(context:context,showDragHandle:true,
-   isScrollControlled:true,builder:(_)=>_BudgetHistory(id:widget.plan['id'].toString()));
+
+ String money(Map<String,dynamic> item){
+  final price=(item['unit_price'] as num?)?.toDouble();
+  final paid=(item['actual_unit_price'] as num?)?.toDouble();
+  final q=(item['quantity'] as num?)?.toInt()??1;
+  final each=item['status']=='purchased'?(paid??price):price;
+  if(each==null)return '';
+  return '${item['currency']} ${each.toStringAsFixed(each%1==0?0:2)}${q>1?' × $q':''}';
  }
+
+ Widget itemCard(Map<String,dynamic> item){
+  final theme=Theme.of(context),colors=theme.colorScheme;
+  final status=(item['status']??'wish').toString();
+  final removed=item['archived_at']!=null;
+  final occasion=DateTime.tryParse(widget.plan['occasion_on']?.toString()??'');
+  final arrives=DateTime.tryParse(item['estimated_delivery']?.toString()??'');
+  final late=arrives!=null&&occasion!=null&&arrives.isAfter(occasion);
+  final link=(item['source_url']??'').toString();
+  return Card(elevation:0,margin:const EdgeInsets.only(bottom:6),child:Padding(
+   padding:const EdgeInsetsDirectional.fromSTEB(12,8,4,10),
+   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[
+     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(tt(item['title'].toString()),style:theme.textTheme.titleMedium?.copyWith(
+       decoration:removed||status=='cancelled'?TextDecoration.lineThrough:null)),
+      Text(tt([
+       budgetStages[status]??'Wishlist',
+       if(money(item).isNotEmpty)money(item),
+       if((item['merchant']??'').toString().isNotEmpty)item['merchant'].toString(),
+       if(item['preference_score']!=null)'★ ${item['preference_score']}',
+       if(item['product_rating']!=null)'Shop ${item['product_rating']}/5',
+       if(removed)'Removed',
+      ].join(' · ')),style:theme.textTheme.bodySmall),
+     ])),
+     AnchoredMenuButton<String>(tooltip:tt('More'),
+      onSelected:(v){
+       switch(v){
+        case 'reserve':setStage(item,'planned');
+        case 'purchase':purchase(item);
+        case 'ideas':setStage(item,'wish');
+        case 'undo':setStage(item,'planned');
+        case 'exclude':setStage(item,'cancelled');
+        case 'link':openLink(link);
+        case 'edit':edit(item);
+        case 'remove':setRemoved(item);
+       }
+      },
+      itemBuilder:(_)=>[
+       if(!removed&&(status=='wish'||status=='shortlisted'))iconMenuItem('reserve',Icons.bookmark_add_outlined,'Reserve'),
+       if(!removed&&status=='planned')iconMenuItem('purchase',Icons.shopping_cart_checkout_outlined,'Mark as purchased'),
+       if(!removed&&status=='purchased')iconMenuItem('purchase',Icons.local_shipping_outlined,'Order and delivery'),
+       if(!removed&&status=='purchased')iconMenuItem('undo',MenuIcons.reopen,'Undo purchase'),
+       if(!removed&&(status=='planned'||status=='cancelled'))iconMenuItem('ideas',Icons.lightbulb_outline,'Back to ideas'),
+       if(!removed&&status!='cancelled'&&status!='purchased')iconMenuItem('exclude',MenuIcons.cancel,'Exclude'),
+       if(link.isNotEmpty)iconMenuItem('link',Icons.open_in_new,'Open product link'),
+       if(!removed)iconMenuItem('edit',MenuIcons.edit,'Edit'),
+       iconMenuItem('remove',removed?MenuIcons.restore:MenuIcons.remove,removed?'Restore':'Remove'),
+      ]),
+    ]),
+    if((status=='planned'||status=='purchased')&&
+      ((item['order_number']??'').toString().isNotEmpty||arrives!=null||item['order_status']!='not_ordered'))
+     Text(tt([
+      if(item['order_status']!=null&&item['order_status']!='not_ordered')
+       (item['order_status']).toString().replaceAll('_',' '),
+      if((item['order_number']??'').toString().isNotEmpty)'#${item['order_number']}',
+      if(arrives!=null)'Arrives ${item['estimated_delivery']}',
+      if(late)'after the occasion',
+     ].join(' · ')),style:TextStyle(color:late?colors.error:null)),
+    if((item['notes']??'').toString().isNotEmpty)
+     Text(tt(item['notes'].toString()),maxLines:2,overflow:TextOverflow.ellipsis,style:theme.textTheme.bodySmall),
+    if(item['source_activity_id']!=null)TextButton.icon(
+     icon:const Icon(Icons.hub_outlined,size:16),label:Text(tt('Source Activity')),
+     onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
+      builder:(_)=>ActivityScreen(id:item['source_activity_id'].toString())))),
+   ])));
+ }
+
+ Widget group(String title,IconData icon,List<Map<String,dynamic>> rows,{String? total}){
+  if(rows.isEmpty)return const SizedBox.shrink();
+  final theme=Theme.of(context);
+  return Card(elevation:0,clipBehavior:Clip.antiAlias,margin:const EdgeInsets.only(bottom:8),
+   color:theme.colorScheme.surfaceContainerLow,
+   child:ExpansionTile(
+    leading:Icon(icon),
+    title:Text(tt(title)+' (${rows.length})',style:theme.textTheme.titleMedium),
+    subtitle:total==null?null:Text(tt(total)),
+    childrenPadding:const EdgeInsets.fromLTRB(8,0,8,8),
+    children:[for(final r in rows)itemCard(r)]));
+ }
+
  @override Widget build(BuildContext context){
   final theme=Theme.of(context),colors=theme.colorScheme;
   return StreamBuilder<List<Map<String,dynamic>>>(stream:stream,
    builder:(context,snapshot){
     final data=snapshot.data??const <Map<String,dynamic>>[];
     final budget=OccasionBudgetRules.summarize(widget.plan,data);
-    final visible=data.where((r)=>showArchived||(
-     r['archived_at']==null&&r['status']!='cancelled')).toList();
+    final live=data.where((r)=>r['archived_at']==null).toList();
+    List<Map<String,dynamic>> of(Set<String> s)=>live.where((r)=>s.contains(r['status'])).toList();
+    final ideas=of({'wish','shortlisted'}),reserved=of({'planned'}),
+     bought=of({'purchased'}),excluded=of({'cancelled'});
+    final removed=data.where((r)=>r['archived_at']!=null).toList();
+    final comparable=[...ideas,...reserved];
     final suggestions=OccasionPlanningInsights.suggest(
      plan:widget.plan,budget:budget,items:data,today:DateTime.now());
     String currency(double? value)=>value==null?'Not set':
-     budget.currency+' '+value.toStringAsFixed(2);
+     budget.currency+' '+value.toStringAsFixed(value%1==0?0:2);
     return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
      Container(padding:const EdgeInsets.all(18),
       decoration:BoxDecoration(
@@ -106,11 +211,9 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
         Icon(Icons.account_balance_wallet_outlined,color:colors.primary),
         const SizedBox(width:8),
         Expanded(child:Text(tt('Occasion budget'),style:theme.textTheme.titleLarge)),
-        IconButton(tooltip:tt('Planning history'),onPressed:history,
-         icon:const Icon(Icons.history_outlined)),
        ]),
        const SizedBox(height:9),
-       Text(tt('Available after reservations and purchases')),
+       Text(tt('Left after reserved and bought gifts')),
        Text(tt(currency(budget.available)),
         style:theme.textTheme.headlineMedium?.copyWith(
          fontWeight:FontWeight.w800,
@@ -122,150 +225,80 @@ class _OccasionBudgetWorkspaceState extends State<OccasionBudgetWorkspace>{
        Wrap(spacing:16,runSpacing:12,children:[
         _BudgetStat(label:tt('Total budget'),amount:currency(budget.budget),
          icon:Icons.savings_outlined),
-        _BudgetStat(label:tt('Reserved'),amount:currency(budget.planned),
-         icon:Icons.shopping_cart_outlined),
-        _BudgetStat(label:tt('Spent'),amount:currency(budget.spent),
-         icon:Icons.receipt_long_outlined),
         _BudgetStat(label:tt('Wishlist (not deducted)'),amount:currency(budget.wishlist),
          icon:Icons.favorite_outline),
+        _BudgetStat(label:tt('Reserved'),amount:currency(budget.planned),
+         icon:Icons.bookmark_border),
+        _BudgetStat(label:tt('Spent'),amount:currency(budget.spent),
+         icon:Icons.receipt_long_outlined),
        ]),
        if(budget.overBudget)Padding(padding:const EdgeInsets.only(top:10),
         child:Text(tt('Over budget by ')+currency(-budget.available!)+
-         '. Review the reserved items or your budget.',
+         tt('. Review the reserved gifts or the budget.'),
          style:TextStyle(color:colors.error))),
        if(budget.foreignCurrency>0||budget.unpriced>0)
         Padding(padding:const EdgeInsets.only(top:10),
          child:Text(tt('Other currencies: ')+budget.foreignCurrency.toString()+
-           ' · Committed items without a price: '+budget.unpriced.toString()+
-           '. Missing exchange rates are never guessed.',
+           tt(' · Without a price: ')+budget.unpriced.toString()+
+           tt('. Exchange rates are never guessed.'),
           style:theme.textTheme.bodySmall)),
       ])),
-     if(suggestions.isNotEmpty)...[
-      const SizedBox(height:12),
-      Card(child:Padding(padding:const EdgeInsets.all(14),
-       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Row(children:[
-         Icon(Icons.auto_awesome_outlined,color:colors.primary),
-         const SizedBox(width:8),
-         Text(tt('Planning intelligence'),style:theme.textTheme.titleMedium),
-        ]),
-        const SizedBox(height:6),
-        for(final hint in suggestions.take(2))Padding(
-         padding:const EdgeInsets.symmetric(vertical:5),
-         child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Expanded(child:Text(tt(hint.message),style:theme.textTheme.bodyMedium)),
+     const SizedBox(height:12),
+     Card(child:Padding(padding:const EdgeInsets.all(14),
+      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+       Row(children:[
+        Icon(Icons.auto_awesome_outlined,color:colors.primary),
+        const SizedBox(width:8),
+        Expanded(child:Text(tt('Planning intelligence'),style:theme.textTheme.titleMedium)),
+        FilledButton.tonalIcon(onPressed:()=>edit(),icon:const Icon(Icons.add),
+         label:Text(tt('Add a gift option'))),
+       ]),
+       for(final hint in suggestions.take(2))Padding(
+        padding:const EdgeInsets.only(top:8),
+        child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+         Expanded(child:Text(tt(hint.message),style:theme.textTheme.bodyMedium)),
+         if(hint.action!='purchase')...[
           const SizedBox(width:8),
           TextButton(onPressed:()=>followInsight(hint.action),
            child:Text(tt(hint.actionLabel))),
-         ])),
-       ]))),
-     ],
-     const SizedBox(height:12),
-     Wrap(spacing:8,runSpacing:8,children:[
-      FilledButton.icon(onPressed:()=>edit(null,'planned'),
-       icon:const Icon(Icons.add_shopping_cart_outlined),
-       label:Text(tt('Add purchase'))),
-      OutlinedButton.icon(onPressed:()=>edit(null,'wish'),
-       icon:const Icon(Icons.favorite_outline),label:Text(tt('Add wish'))),
-      OutlinedButton.icon(onPressed:browseOptions,
-       icon:const Icon(Icons.hub_outlined),label:Text(tt('From Activity'))),
-     ]),
-     OutlinedButton.icon(
-      onPressed:visible.isEmpty?null:()=>compareCombinations(visible),
-      icon:const Icon(Icons.compare_arrows_outlined),
-      label:Text(tt('Compare & save gift combinations'))),
+         ],
+        ])),
+      ]))),
      const SizedBox(height:12),
      _SavedGiftProposals(key:ValueKey('proposals-$_proposalRefresh'),
-      plan:widget.plan),
-     const SizedBox(height:12),
-     Wrap(spacing:10,runSpacing:8,
-      alignment:WrapAlignment.spaceBetween,children:[
-       Text(tt('Shopping & wishlist'),key:_itemsAnchor,style:theme.textTheme.titleLarge),
-       FilterChip(label:Text(tt('Show removed')),selected:showArchived,
-        onSelected:(v)=>setState(()=>showArchived=v)),
+      plan:widget.plan,onUsed:()=>setState(()=>_proposalRefresh++)),
+     const SizedBox(height:8),
+     Row(key:_itemsAnchor,children:[
+      Expanded(child:Text(tt('Gifts'),style:theme.textTheme.titleLarge)),
+      IconButton(tooltip:tt('Compare and save gift lists'),
+       icon:const Icon(Icons.compare_arrows),
+       onPressed:comparable.length<2?null:()=>compareCombinations(comparable)),
+      if(removed.isNotEmpty)IconButton(
+       tooltip:tt(showArchived?'Hide removed':'Show removed'),isSelected:showArchived,
+       icon:const Icon(Icons.delete_outline),selectedIcon:const Icon(Icons.delete),
+       onPressed:()=>setState(()=>showArchived=!showArchived)),
      ]),
      if(snapshot.connectionState==ConnectionState.waiting&&!snapshot.hasData)
       const LinearProgressIndicator(),
      if(snapshot.hasError)
-      Text(tt('Could not load the shopping list. Reopen the occasion to retry.'),
+      Text(tt('Could not load the gifts. Reopen the occasion to retry.'),
        style:TextStyle(color:colors.error)),
      if(error!=null)Text(tt(error!),style:TextStyle(color:colors.error)),
-     if(visible.isEmpty&&!snapshot.hasError)Card(child:Padding(
+     if(live.isEmpty&&!snapshot.hasError)Card(elevation:0,child:Padding(
       padding:const EdgeInsets.all(18),child:Column(children:[
        Icon(Icons.card_giftcard_outlined,size:32,color:colors.primary),
        const SizedBox(height:8),
-       Text(tt('Collect wishes, reserve decisions and track each purchase without losing your budget.'),
+       Text(tt('Add gift options, compare them, then reserve and buy within the budget.'),
         textAlign:TextAlign.center),
       ]))),
-     for(final item in visible)Card(child:Padding(
-      padding:const EdgeInsetsDirectional.fromSTEB(12,10,12,10),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Row(children:[
-        CircleAvatar(child:Icon(item['status']=='purchased'?
-         Icons.check_circle_outline:item['status']=='wish'?
-         Icons.favorite_outline:Icons.shopping_bag_outlined)),
-        const SizedBox(width:10),
-        Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-         Text(tt(item['title'].toString()),style:theme.textTheme.titleMedium),
-         Text(tt(budgetStages[item['status']]??'Reserved'),
-          style:theme.textTheme.bodySmall),
-        ])),
-        IconButton(tooltip:tt('Edit item'),icon:const Icon(Icons.edit_outlined),
-         onPressed:()=>edit(item)),
-       ]),
-       if(item['notes']!=null&&item['notes'].toString().isNotEmpty)
-        Text(tt(item['notes'].toString()),maxLines:3,overflow:TextOverflow.ellipsis),
-       if(item['merchant']!=null&&item['merchant'].toString().isNotEmpty)
-        Text(tt('Retailer: ')+item['merchant'].toString()),
-       if(item['estimated_delivery']!=null)
-        Text(tt('Expected arrival: ')+item['estimated_delivery'].toString()+
-         (DateTime.tryParse(item['estimated_delivery'].toString())?.isAfter(
-          DateTime.tryParse(widget.plan['occasion_on']?.toString()??'')??
-           DateTime(2100))==true?' · AFTER OCCASION':''),
-         style:TextStyle(color:DateTime.tryParse(
-          item['estimated_delivery'].toString())?.isAfter(
-           DateTime.tryParse(widget.plan['occasion_on']?.toString()??'')??
-            DateTime(2100))==true?colors.error:null)),
-       if(item['preference_score']!=null||item['product_rating']!=null)
-        Text(tt([
-         if(item['preference_score']!=null)'My score: '+item['preference_score'].toString()+'/5',
-         if(item['product_rating']!=null)'Retailer rating: '+item['product_rating'].toString()+'/5',
-        ].join(' · '))),
-       if(item['order_status']!='not_ordered')Text(tt('Order: ')+
-        (item['order_status']??'not_ordered').toString().replaceAll('_',' ')+
-         ((item['order_number']??'').toString().isEmpty?'':' · #'+item['order_number'].toString())),
-       if(item['order_status']=='returned'||item['order_status']=='return_requested')
-        Text(tt('Return in progress: review alternatives from your saved options.')),
-       Wrap(spacing:7,runSpacing:5,children:[
-        if(item['unit_price']!=null)Chip(
-         label:Text(tt(item['currency'].toString()+' '+
-          (item['unit_price'] as num).toStringAsFixed(2)+' × '+
-          item['quantity'].toString()))),
-        if(item['actual_unit_price']!=null)Chip(
-         label:Text(tt('Paid ')+item['currency'].toString()+' '+
-          (item['actual_unit_price'] as num).toStringAsFixed(2)+' each')),
-        if(item['source_activity_id']!=null)ActionChip(
-         avatar:const Icon(Icons.hub_outlined,size:16),
-         label:Text(tt('Source Activity')),
-         onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
-          builder:(_)=>ActivityScreen(id:item['source_activity_id'].toString())))),
-       ]),
-       Wrap(spacing:7,runSpacing:5,children:[
-        if(item['status']=='wish'||item['status']=='shortlisted')
-         ActionChip(label:Text(tt('Reserve')),
-          onPressed:busy?null:()=>setStage(item,'planned')),
-        if(item['status']=='planned')
-         ActionChip(label:Text(tt('Mark purchased')),
-          avatar:const Icon(Icons.shopping_cart_checkout_outlined,size:16),
-          onPressed:busy?null:()=>edit(item,'purchased')),
-        if(item['status']=='planned')
-         ActionChip(label:Text(tt('Back to wishlist')),
-          onPressed:busy?null:()=>setStage(item,'wish')),
-        if(item['status']=='purchased')
-         ActionChip(label:Text(tt('Undo purchase')),
-          onPressed:busy?null:()=>setStage(item,'planned')),
-       ]),
-      ]))),
+     group('Ideas',Icons.lightbulb_outline,ideas,
+      total:budget.wishlist>0?currency(budget.wishlist):null),
+     group('Reserved',Icons.bookmark_border,reserved,
+      total:budget.planned>0?currency(budget.planned):null),
+     group('Purchased',Icons.shopping_bag_outlined,bought,
+      total:budget.spent>0?currency(budget.spent):null),
+     group('Excluded',Icons.block,excluded),
+     if(showArchived)group('Removed',Icons.delete_outline,removed),
     ]);
    });
  }
@@ -284,59 +317,56 @@ class _BudgetStat extends StatelessWidget{
     fontWeight:FontWeight.bold)),
   ]));
 }
-class _BudgetHistory extends StatelessWidget{
- const _BudgetHistory({required this.id});
- final String id;
- @override Widget build(BuildContext context){
-  final db=Supabase.instance.client;
-  return SafeArea(child:SizedBox(height:MediaQuery.sizeOf(context).height*.68,
-   child:FutureBuilder<List<Map<String,dynamic>>>(
-    future:db.from('occasion_budget_log')
-     .select('event_kind,after_item,logged_at')
-     .eq('plan_id',id).order('logged_at',ascending:false).limit(80),
-    builder:(context,snapshot){
-     if(snapshot.hasError)return Center(child:Text(tt('Planning log unavailable.')));
-     if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
-     return ListView(padding:const EdgeInsets.all(16),children:[
-      Text(tt('Planning log'),style:Theme.of(context).textTheme.titleLarge),
-      Text(tt('A trail of decisions, changes and purchases.')),
-      for(final entry in snapshot.data!)ListTile(
-       leading:const Icon(Icons.history_outlined),
-       title:Text(tt((entry['after_item'] is Map?
-         (entry['after_item'] as Map)['title']:null)?.toString()??'Item')),
-       subtitle:Text(tt(entry['event_kind'].toString()+' · '+
-        (entry['after_item'] is Map?
-         (entry['after_item'] as Map)['status']?.toString():'') .toString())),
-      ),
-      if(snapshot.data!.isEmpty)Text(tt('No planning changes yet.')),
-     ]);
-    })));
- }
-}
-
 class _SavedGiftProposals extends StatelessWidget{
- const _SavedGiftProposals({super.key,required this.plan});
+ const _SavedGiftProposals({super.key,required this.plan,required this.onUsed});
  final Map<String,dynamic> plan;
+ final VoidCallback onUsed;
+
+ /// R68: "Use this list" reserves every gift in it (its cost moves from
+ /// the wishlist to Reserved); each is then marked as purchased with its
+ /// order number and delivery date.
+ Future<void> use(BuildContext context,Map<String,dynamic> proposal)async{
+  final db=Supabase.instance.client;
+  final messenger=ScaffoldMessenger.of(context);
+  final ids=[for(final link in (proposal['occasion_proposal_items'] as List? ??const []))
+   link['item_id'].toString()];
+  if(ids.isEmpty)return;
+  try{
+   await db.from('occasion_budget_items').update({'status':'planned'})
+    .inFilter('id',ids).inFilter('status',['wish','shortlisted']).eq('plan_id',plan['id']);
+   await db.from('occasion_proposals').update({
+    'status':'approved','updated_at':DateTime.now().toUtc().toIso8601String(),
+   }).eq('id',proposal['id']);
+   messenger.showSnackBar(SnackBar(content:Text(
+    tt('Gifts reserved. Use ⋮ › Mark as purchased on each when you order it.'))));
+   onUsed();
+  }on PostgrestException catch(e){
+   messenger.showSnackBar(SnackBar(content:Text(e.message)));
+  }catch(_){
+   messenger.showSnackBar(SnackBar(content:Text(tt('Could not use this list. Try again.'))));
+  }
+ }
+
  @override Widget build(BuildContext context){
   final db=Supabase.instance.client;
   return FutureBuilder<List<Map<String,dynamic>>>(
    future:db.from('occasion_proposals')
     .select('id,title,notes,status,created_at,occasion_proposal_items('
-      'item_id,occasion_budget_items(title,unit_price,quantity,currency,estimated_delivery,order_status))')
+      'item_id,occasion_budget_items(title,unit_price,quantity,currency,estimated_delivery,order_status,status))')
     .eq('plan_id',plan['id'].toString())
     .order('created_at',ascending:false).limit(30),
    builder:(context,snapshot){
-    if(snapshot.hasError)return Text(tt('Saved proposal lists temporarily unavailable.'));
-    if(!snapshot.hasData)return const LinearProgressIndicator();
+    if(snapshot.hasError||!snapshot.hasData)return const SizedBox.shrink();
     final proposals=snapshot.data!;
-    if(proposals.isEmpty)return Text(tt('No saved combinations yet. Select options to compare and keep your favorites.'));
+    if(proposals.isEmpty)return const SizedBox.shrink();
     final currency=(plan['currency']??'USD').toString();
-    final occasion=DateTime.tryParse(plan['occasion_on']?.toString()??'');
     return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-     Text(tt('Saved proposed lists'),style:Theme.of(context).textTheme.titleMedium),
-     for(final proposal in proposals)Card(child:ExpansionTile(
+     Text(tt('Saved gift lists'),style:Theme.of(context).textTheme.titleMedium),
+     for(final proposal in proposals)Card(elevation:0,clipBehavior:Clip.antiAlias,child:ExpansionTile(
+      leading:Icon(proposal['status']=='approved'?Icons.check_circle:Icons.list_alt_outlined,
+       color:proposal['status']=='approved'?const Color(0xFF2E7D32):null),
       title:Text(tt(proposal['title'].toString())),
-      subtitle:Text(tt('Status: ')+proposal['status'].toString()),
+      subtitle:Text(tt(proposal['status']=='approved'?'In use':'Saved')),
       childrenPadding:const EdgeInsetsDirectional.fromSTEB(12,0,12,12),
       children:[
        if((proposal['notes']??'').toString().isNotEmpty)Text(tt(proposal['notes'].toString())),
@@ -346,28 +376,16 @@ class _SavedGiftProposals extends StatelessWidget{
          if(item is! Map)return const SizedBox.shrink();
          final cost=(item['unit_price'] as num?)?.toDouble();
          final qty=(item['quantity'] as num?)?.toDouble()??1;
-         final late=occasion!=null&&
-          (DateTime.tryParse(item['estimated_delivery']?.toString()??'')?.isAfter(occasion)??false);
-         return ListTile(
-          dense:true,contentPadding:EdgeInsets.zero,
+         return ListTile(dense:true,contentPadding:EdgeInsets.zero,
           title:Text(tt((item['title']??'Option').toString())),
           subtitle:Text(tt([
-           if(cost!=null)(item['currency']??currency).toString()+' '+(cost*qty).toStringAsFixed(2),
-           if(item['estimated_delivery']!=null)'Arrives: '+item['estimated_delivery'].toString(),
-           if(item['order_status']!='not_ordered')item['order_status'].toString().replaceAll('_',' '),
-           if(late)'Arrives after occasion',
-          ].join(' · ')),style:TextStyle(color:late?Theme.of(context).colorScheme.error:null)));
+           budgetStages[item['status']]??'',
+           if(cost!=null)(item['currency']??currency).toString()+' '+(cost*qty).toStringAsFixed(0),
+          ].where((x)=>x.isNotEmpty).join(' · '))));
         }),
-       Wrap(spacing:8,children:[
-        for(final choice in const [('approved','Use this list'),('superseded','Replace list')])
-         if(proposal['status']!=choice.$1)
-          TextButton(onPressed:()async{
-           await db.from('occasion_proposals').update({
-            'status':choice.$1,'updated_at':DateTime.now().toUtc().toIso8601String()
-           }).eq('id',proposal['id']);
-           if(context.mounted)(context as Element).markNeedsBuild();
-          },child:Text(tt(choice.$2))),
-       ]),
+       if(proposal['status']!='approved')Align(alignment:AlignmentDirectional.centerEnd,
+        child:FilledButton.icon(onPressed:()=>use(context,proposal),
+         icon:const Icon(Icons.playlist_add_check),label:Text(tt('Use this list')))),
       ],
      )),
     ]);

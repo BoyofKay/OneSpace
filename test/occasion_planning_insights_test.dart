@@ -19,7 +19,7 @@ void main(){
   final found=OccasionPlanningInsights.suggest(
    plan:plan,budget:b,items:[],today:DateTime(2026,11,13));
   expect(found.any((x)=>x.code=='approaching'),true);
-  expect(found.any((x)=>x.action=='import'),true);
+  expect(found.any((x)=>x.code=='empty'&&x.action=='purchase'),true);
  });
  test('Wishlist price is not counted as actual spending',(){
   final plan={'occasion_on':'2026-12-20','annual':true,
@@ -31,6 +31,7 @@ void main(){
   expect(b.available,100);
   final found=OccasionPlanningInsights.suggest(
    plan:plan,budget:b,items:items,today:DateTime(2026,11,13));
-  expect(found.any((x)=>x.code=='promote_wish'),true);
+  // R68: the "review wishes" nudge was removed (Ahmed's review).
+  expect(found.any((x)=>x.code=='promote_wish'),false);
  });
 }

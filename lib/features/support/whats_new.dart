@@ -7,19 +7,20 @@ import 'package:onespace/l10n/phrases.dart';
 /// Bump [release] and rewrite [_items] when there is something worth telling.
 class WhatsNew {
   const WhatsNew._();
-  static const release = 'r66';
+  static const release = 'r67';
   static const _key = 'whats_new_seen_v1';
 
   static const _items = <(IconData, String, String, String, String)>[
-    (Icons.repeat, 'One way to repeat', 'Reminders, events and to-do lists now repeat the same way — daily, weekdays, chosen days, monthly, yearly, with an end date.',
-      'طريقة واحدة للتكرار', 'التذكيرات والمواعيد وقوائم المهام تتكرر بالطريقة نفسها — يوميًا، أيام العمل، أيام محددة، شهريًا، سنويًا، مع تاريخ انتهاء.'),
-    (Icons.place_outlined, 'Events: place and reminder', 'Add a location (opens in Maps) and "Remind us before" in one tap.',
-      'المواعيد: المكان والتذكير', 'أضف موقعًا (يفتح في الخرائط) و«ذكّرنا قبلها» بضغطة واحدة.'),
-    (Icons.hourglass_bottom_outlined, 'Countdowns on Activities', 'A date can show "N days remaining" on the Activity card. "Remind us" now sends real alerts.',
-      'عد تنازلي في الأنشطة', 'يمكن للتاريخ أن يعرض «متبقٍ N يومًا» على بطاقة النشاط. و«ذكّرنا» يرسل تنبيهات حقيقية الآن.'),
-    (Icons.link, 'Remind me about anything', 'A reminder can be about a list, event, note, occasion, activity or trip — pick the kind, then the item.',
-      'ذكّرني بأي شيء', 'يمكن ربط التذكير بقائمة أو موعد أو ملاحظة أو مناسبة أو نشاط أو رحلة — اختر النوع ثم العنصر.'),
+    (Icons.flight_takeoff_outlined, 'Trips, step by step', 'Airports by code, one way or round trip, who is traveling and passengers. The status moves on by itself: Planning, Booked, Traveling, Past.',
+      'الرحلات خطوة بخطوة', 'المطارات برموزها، ذهاب فقط أو ذهاب وعودة، من سيسافر وعدد المسافرين. وتتغير الحالة تلقائيًا: تخطيط، محجوزة، في السفر، سابقة.'),
+    (Icons.travel_explore, 'Google Flights, filled in', 'Search opens already filled from your trip. Share a flight back to OneSpace and it is read for you.',
+      'Google Flights جاهز', 'يفتح البحث مملوءًا من رحلتك. شارك الرحلة الجوية إلى OneSpace وستُقرأ تفاصيلها تلقائيًا.'),
+    (Icons.card_giftcard_outlined, 'Occasions and gifts', 'Start from a holiday or special date, a reminder to start preparing, and gifts that move from ideas to reserved to bought.',
+      'المناسبات والهدايا', 'ابدأ من عطلة أو تاريخ مميز، مع تذكير لبدء التحضير، وهدايا تنتقل من الأفكار إلى المحجوز إلى المشترى.'),
+    (Icons.format_paint_outlined, 'Easier note formatting', 'Big buttons with words: title, heading, bold, highlight, colours, lists and checklists.',
+      'تنسيق أسهل للملاحظات', 'أزرار كبيرة بأسمائها: عنوان، عنوان فرعي، عريض، تظليل، ألوان، قوائم وقوائم تحقق.'),
   ];
+
 
 
   /// Shows the sheet if this release hasn't been seen on this phone. A brand-new
