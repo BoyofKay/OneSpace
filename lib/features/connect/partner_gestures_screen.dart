@@ -151,7 +151,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      if(!mounted){return;}
      final other=partner?['user_id']?.toString();
      final names=CurrentSpaceCache.instance.memberNamesFor(space);
-     final templates=await db.from('gesture_templates').select('id,title,message,kind,scheduled_moment')
+     final templates=await db.from('gesture_templates').select('id,title,message,kind')
        .eq('space_id',space).eq('creator_id',me).order('created_at',ascending:false);
      final updated=await db.from('gesture_message_overrides')
        .select('kind,message_index,message,disabled')
@@ -277,9 +277,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                ListTile(
                  dense:true,
                  title:Text(item['message']?.toString()??''),
-                 subtitle:Text('My message'+
-                   (item['scheduled_moment']==null?'':
-                     ' · '+item['scheduled_moment'].toString())),
+                 subtitle:const Text('My message'),
                  trailing:Row(mainAxisSize:MainAxisSize.min,children:[
                    IconButton(tooltip:'Edit',icon:const Icon(Icons.edit_outlined),
                      onPressed:()=>_createCustom(item)),
@@ -296,7 +294,6 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
    final name=TextEditingController(text:original?['title']?.toString()??''),
      body=TextEditingController(text:original?['message']?.toString()??'');
    var kind=original?['kind']?.toString()??'hug';
-   String? trigger=original?['scheduled_moment']?.toString();
    try{
      final data=await showDialog<Map<String,String?>>(context:context,
        builder:(ctx)=>StatefulBuilder(builder:(ctx,update)=>AlertDialog(
@@ -312,17 +309,6 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
                items:[for(final option in _options)
                  DropdownMenuItem(value:option.id,child:Text(option.title))],
                onChanged:(v)=>update(()=>kind=v??kind)),
-             DropdownButtonFormField<String>(
-               initialValue:trigger??'manual',
-               decoration:const InputDecoration(labelText:'Optional automatic trigger'),
-               items:const [
-                 DropdownMenuItem(value:'manual',child:Text('Manual only')),
-                 DropdownMenuItem(value:'morning',child:Text('Morning')),
-                 DropdownMenuItem(value:'after_work',child:Text('After work')),
-                 DropdownMenuItem(value:'goodnight',child:Text('Before bed')),
-               ],
-               onChanged:(v)=>update(()=>trigger=v=='manual'?null:v)),
-             const Text('Automatic messages require an enabled ritual and your partner’s consent.'),
            ])),
          actions:[
            TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),
@@ -330,7 +316,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
              if(name.text.trim().isEmpty||body.text.trim().isEmpty)return;
              Navigator.pop(ctx,{
                'title':name.text.trim(),'message':body.text.trim(),
-               'kind':kind,'trigger':trigger,
+               'kind':kind,
              });
            },child:const Text('Save')),
          ],
@@ -340,12 +326,12 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        await db.from('gesture_templates').insert({
          'space_id':spaceId,'recipient_id':recipientId,
          'title':data['title'],'message':data['message'],
-         'kind':data['kind'],'scheduled_moment':data['trigger'],
+         'kind':data['kind'],'scheduled_moment':null,
        });
      }else{
        await db.from('gesture_templates').update({
          'title':data['title'],'message':data['message'],
-         'kind':data['kind'],'scheduled_moment':data['trigger'],
+         'kind':data['kind'],'scheduled_moment':null,
        }).eq('id',original['id'].toString())
          .eq('creator_id',db.auth.currentUser!.id);
      }
@@ -514,7 +500,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
            style:Theme.of(context).textTheme.titleMedium),
          const SizedBox(height:6),
          Text(widget.manageOnly?'Each gesture type has one randomized message pool. Edit or hide built-in messages and add your own.':
-           'Tap a gesture to send it. Your personal library and scheduled rituals are in Settings.'),
+           'Tap a gesture to send it. Manage your gesture library in Settings.'),
          const SizedBox(height:16),
          if(!widget.manageOnly)...[
           FilledButton.tonalIcon(

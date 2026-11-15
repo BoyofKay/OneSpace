@@ -1,9 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import '../profile/profile_settings_screen.dart';
 import '../connect/partner_gestures_screen.dart';
-import '../connect/scheduled_gestures_panel.dart';
 import '../../core/current_space_cache.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../hubs/section_hubs.dart';
 import 'personal_days_off_screen.dart';
 import '../../l10n/onespace_strings.dart';
@@ -115,21 +113,11 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          ListTile(
            leading:const Icon(Icons.volunteer_activism_outlined),
            title:const Text('My love gestures'),
-           subtitle:const Text('Manage my gesture list and thoughtful rituals'),
+           subtitle:const Text('Manage my gesture types and messages'),
            trailing:const Icon(Icons.chevron_right),
            onTap:()=>Navigator.of(context).push<void>(
              MaterialPageRoute<void>(
                builder:(_)=>const PartnerGesturesScreen(manageOnly:true))),
-         ),
-         const Divider(height:1),
-         ListTile(
-           leading:const Icon(Icons.auto_awesome_outlined),
-           title:const Text('Thoughtful little rituals'),
-           subtitle:const Text('Morning, after-work, and goodnight settings'),
-           trailing:const Icon(Icons.chevron_right),
-           onTap:()=>Navigator.of(context).push<void>(
-             MaterialPageRoute<void>(
-               builder:(_)=>const ThoughtfulRitualsScreen())),
          ),
        ])),
      ],
@@ -137,48 +125,6 @@ class OneSpaceSettingsScreen extends StatelessWidget {
  );
 }
 
-
-/// Ritual configuration is separate from the love-gesture message library.
-class ThoughtfulRitualsScreen extends StatefulWidget{
- const ThoughtfulRitualsScreen({super.key});
- @override State<ThoughtfulRitualsScreen> createState()=>
-   _ThoughtfulRitualsScreenState();
-}
-class _ThoughtfulRitualsScreenState extends State<ThoughtfulRitualsScreen>{
- String? space,partner;
- bool loading=true;
- @override void initState(){super.initState();_load();}
- Future<void> _load()async{
-   try{
-     final id=await CurrentSpaceCache.instance.get();
-     final me=Supabase.instance.client.auth.currentUser?.id;
-     if(id==null||me==null){if(mounted)setState(()=>loading=false);return;}
-     final people=await Supabase.instance.client.from('space_members')
-       .select('user_id').eq('space_id',id);
-     final other=people.where((p)=>p['user_id']!=me).firstOrNull;
-     if(mounted)setState((){
-       space=id;partner=other?['user_id']?.toString();loading=false;
-     });
-   }catch(_){if(mounted)setState(()=>loading=false);}
- }
- @override Widget build(BuildContext context)=>Scaffold(
-   appBar:AppBar(title:const Text('Thoughtful little rituals')),
-   body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
-     const Text('A little love, at the right time',
-       style:TextStyle(fontSize:18,fontWeight:FontWeight.w700)),
-     const SizedBox(height:6),
-     const Text('Manage the three optional rituals separately from '
-       'the gesture message library. Their delivery still depends on '
-       'each partner’s consent, schedule and quiet hours.'),
-     const SizedBox(height:14),
-     if(loading)const Center(child:CircularProgressIndicator())
-     else if(space==null||partner==null)
-       const Text('Connect your partner before configuring rituals.')
-     else ScheduledGesturesPanel(
-       spaceId:space!,recipientId:partner!,recipientName:'your partner'),
-   ])),
- );
-}
 
 class _WeatherUnitsTile extends StatelessWidget{
  @override Widget build(BuildContext context)=>AnimatedBuilder(

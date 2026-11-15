@@ -16,6 +16,10 @@ A Flutter companion app for couples, whether living together or apart.
 
 Previous development test content was cleared on 13 November 2026, while two existing login accounts, one shared space and partner memberships remained intact.
 
+## R46 — baseline hygiene (15 Nov 2026)
+
+Automatic love gestures are retired (manual gestures and private self-reminders remain), Shared Goals is removed from the app (data kept), the tagline is "One Life, Two Places", and the Supabase migration history now records schema files 0095–0105. See [R46 notes and test script](docs/R46_BASELINE_HYGIENE_QA.md).
+
 ## Current foundation preview
 
 - Email/password sign up, sign in, session restoration and sign out (Supabase Auth)

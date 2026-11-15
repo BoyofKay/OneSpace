@@ -3,8 +3,8 @@ import 'package:onespace/l10n/onespace_strings.dart';
 
 void main() {
   test('OneSpace uses the approved brand tagline in both locales', () {
-    expect(OneSpaceStrings.forLanguage('en', 'tagline'), 'One Life. Two Places. One Space.');
-    expect(OneSpaceStrings.forLanguage('ar', 'tagline'), 'One Life. Two Places. One Space.');
+    expect(OneSpaceStrings.forLanguage('en', 'tagline'), 'One Life, Two Places');
+    expect(OneSpaceStrings.forLanguage('ar', 'tagline'), 'One Life, Two Places');
   });
 
   test('English and Arabic have matching translation keys', () {

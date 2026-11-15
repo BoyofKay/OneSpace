@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../memories/memories_screen.dart';
-import '../goals/goals_screen.dart';
 import '../checkins/checkins_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
@@ -65,17 +64,13 @@ class SectionHub extends StatelessWidget {
               const SharedExperiencesScreen()),
           _link(context, Icons.photo_library_outlined, 'Memories',
               'Stories and moments worth preserving', const MemoriesScreen()),
-          _link(context, Icons.flag_outlined, 'Shared goals',
-              'Progress and milestones together', const GoalsScreen()),
-          const SizedBox(height: 14),
-          const Text('Daily selfies and connected-app library imports are planned.'),
         ] else ...[
           _link(context, Icons.luggage_outlined,
               'Trips & journeys',
               'Flights, places to stay, plans, booking details and shared travel notes',
               const TripsScreen()),
           const SizedBox(height:12),
-          const Text('People & contacts live in Remember. More of our wider world will appear here.'),
+          const Text('People & contacts live in Remember.'),
         ],
       ],
     );

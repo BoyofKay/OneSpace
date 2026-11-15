@@ -33,7 +33,6 @@ class SharedSpaceScreen extends StatefulWidget {
     this.onOpenNotes,
     this.onOpenCalendar,
     this.onOpenMemories,
-    this.onOpenGoals,
     this.onOpenCheckins,
     this.onOpenLetters,
     this.onOpenCoordinate,
@@ -46,7 +45,6 @@ class SharedSpaceScreen extends StatefulWidget {
   final VoidCallback? onOpenNotes;
   final VoidCallback? onOpenCalendar;
   final VoidCallback? onOpenMemories;
-  final VoidCallback? onOpenGoals;
   final VoidCallback? onOpenCheckins;
   final VoidCallback? onOpenLetters;
   final VoidCallback? onOpenCoordinate;
@@ -73,8 +71,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   int activeNotes = 0;
   int activeCalendarEvents = 0;
   int activeMemories = 0;
-  int activeGoals = 0;
-  int achievedGoals = 0;
   int recentCheckins = 0;
   int activeActivities = 0;
   int completedActivities = 0;
@@ -349,8 +345,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           activeNotes = 0;
           activeCalendarEvents = 0;
           activeMemories = 0;
-          activeGoals = 0;
-          achievedGoals = 0;
           recentCheckins = 0;
           activeActivities = 0;
           completedActivities = 0;
@@ -404,8 +398,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           activeNotes = metric('notes');
           activeCalendarEvents = metric('calendar_entries');
           activeMemories = metric('memories_count');
-          activeGoals = metric('active_goals');
-          achievedGoals = metric('completed_goals');
           recentCheckins = metric('recent_checkins');
           activeActivities = metric('active_activities');
           completedActivities = metric('completed_activities');
@@ -685,7 +677,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text(tr(context,'lastMetLabel'),
               style:Theme.of(context).textTheme.bodySmall),
-            Text(ago>=0?'Coming up':(-ago).toString()+' days ago',
+            Text(ago==0?'Today':ago>0?'Coming up':
+              ago==-1?'Yesterday':(-ago).toString()+' days ago',
               style:Theme.of(context).textTheme.titleSmall),
           ])),
         if(ago!=null&&until!=null)const SizedBox(width:12),
