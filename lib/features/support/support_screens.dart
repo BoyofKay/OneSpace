@@ -294,3 +294,50 @@ class _MySupportRequestsScreenState extends State<MySupportRequestsScreen> {
     );
   }
 }
+
+// ------------------------------------------------------------ About & privacy
+
+/// R64: plain-language privacy summary (also needed for the app stores).
+class AboutPrivacyScreen extends StatelessWidget {
+  const AboutPrivacyScreen({super.key});
+
+  static const _en = <(String, String)>[
+    ('What OneSpace is', 'A private shared space for two people in a relationship. Everything you add belongs to you and your partner.'),
+    ('What we store', 'Your account (name, email, language, time zone), and what you create: notes, lists, reminders, events, trips, occasions, memories, photos, letters, check-ins and gestures. Items marked "Only me" are visible only to you.'),
+    ('What we never do', 'We do not sell data, show ads, track your location or phone activity, or read your content to profile you. Voice commands are handled by your phone\'s speech service and are not stored.'),
+    ('Where it is kept', 'In our database and file storage (Supabase), protected by per-person access rules so only you and your partner can reach your space. Push notifications go through Firebase Cloud Messaging.'),
+    ('Your choices', 'Download everything you created at any time, and delete your account from Me → Your data and account. Shared items stay for your partner; private items are deleted after 7 days.'),
+    ('Help and support', 'Messages you send from Contact us or Report a technical issue are kept so we can answer you. Technical details are only attached when you allow it.'),
+  ];
+  static const _ar = <(String, String)>[
+    ('ما هو OneSpace', 'مساحة خاصة مشتركة لشخصين في علاقة. كل ما تضيفه ملك لك ولشريكك.'),
+    ('ما الذي نحفظه', 'حسابك (الاسم والبريد واللغة والمنطقة الزمنية)، وما تنشئه: الملاحظات والقوائم والتذكيرات والمواعيد والرحلات والمناسبات والذكريات والصور والرسائل والتواصل اليومي واللفتات. العناصر المعلّمة «أنا فقط» تظهر لك وحدك.'),
+    ('ما لا نفعله أبدًا', 'لا نبيع البيانات ولا نعرض إعلانات ولا نتتبع موقعك أو نشاط هاتفك ولا نقرأ محتواك لبناء ملف عنك. الأوامر الصوتية تعالجها خدمة الكلام في هاتفك ولا تُحفظ.'),
+    ('أين تُحفظ', 'في قاعدة بياناتنا وتخزين الملفات (Supabase)، بحماية قواعد وصول لكل شخص بحيث لا يصل إلى مساحتكما سواكما. تمر الإشعارات عبر Firebase Cloud Messaging.'),
+    ('خياراتك', 'نزّل كل ما أنشأته في أي وقت، واحذف حسابك من «أنا» ← «بياناتك وحسابك». تبقى العناصر المشتركة لشريكك؛ وتُحذف العناصر الخاصة بعد 7 أيام.'),
+    ('المساعدة والدعم', 'نحتفظ بالرسائل التي ترسلها عبر «تواصل معنا» أو «الإبلاغ عن مشكلة تقنية» لنرد عليك. لا تُرفق التفاصيل التقنية إلا بإذنك.'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final items = OneSpacePhrases.arabic ? _ar : _en;
+    return Scaffold(
+      appBar: AppBar(title: Text(tt('About and privacy'))),
+      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32), children: [
+        Center(child: Image.asset('assets/branding/mark.png', width: 84, height: 84)),
+        const SizedBox(height: 8),
+        Center(child: Text('OneSpace', style: theme.textTheme.titleLarge)),
+        Center(child: Text('${tr(context, 'tagline')} · ${AppInfo.version}', style: theme.textTheme.bodySmall)),
+        const SizedBox(height: 16),
+        for (final (title, body) in items) Card(elevation: 0, child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
+            const SizedBox(height: 6),
+            Text(body, style: theme.textTheme.bodyMedium),
+          ]))),
+      ]),
+    );
+  }
+}

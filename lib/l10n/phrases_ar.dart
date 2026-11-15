@@ -2,6 +2,8 @@
 // tt('English') looks up here; anything missing stays English.
 
 const Map<String, String> arPhrases = {
+  'About and privacy': 'عن التطبيق والخصوصية',
+  'What we keep, what we never do': 'ما نحفظه، وما لا نفعله أبدًا',
   // R64: help & support, themes.
   'A gentle pattern behind every screen. Seasonal decorations replace it while they are on.': 'نقش هادئ خلف كل الشاشات. تحل الزينة الموسمية محله أثناء تفعيلها.',
   'Account or privacy': 'الحساب أو الخصوصية',
