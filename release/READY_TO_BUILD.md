@@ -1,28 +1,30 @@
-# R53–R54 — Links between items and polish
+# R55 — Consistency pass
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.420 (R49–R52).
+Previous signed preview: 0.1.421 (R53–R54).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.420
-- R53: Create from this (reminder, event, to-do, note, trip and
-  type-specific actions), Linked items strip with Unlink, privacy-safe
-  links, trip completion updates "last time we met" when apart.
-- R54: Activities change log, On this day on Today, "Showing: Removed"
-  line, contacts and Items to sort in search, completed/cancelled look.
+## Included since 0.1.421
+- One filter panel, floating add buttons, full-page editors with pinned
+  Cancel/Save and * fields, one ⋮ menu on list items.
+- Renames (To-do lists, Contact cards, Occasions, Start activity), Calendar
+  clean-up, Today shortcut regroup, built-in love nudge.
+- Daily connection tabs, Shared experiences pop-up + collection pages,
+  Selfie studio, Reminders cards, Letters load fix.
+- Photos/PDFs shared from other apps (Android), Activity purpose steps.
 
 ## Database
 - Applied live before this build (additive, non-destructive):
-  0113 r53_links (+ trip end), 0114 r54 polish.
+  0115 r55 Today last love + realtime publication; 0116 r55 share-in files.
 
 ## Verification
-- "Verify OneSpace iteration" passed on r53-links and r54-polish.
+- "Verify OneSpace iteration" passed on r55-consistency.
 
 ## Two-phone validation
-Follow docs/R53_R54_QA.md (11 steps).
+Follow docs/R55_QA.md (18 steps).
 
-Controlled R53-R54 signed preview candidate, November 15, 2026.
+Controlled R55 signed preview candidate, November 15, 2026.
