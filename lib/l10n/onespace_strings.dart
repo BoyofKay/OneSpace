@@ -470,7 +470,7 @@ class OneSpaceStrings {
     'calendarBirthday':'عيد ميلاد',
     'calendarAnniversary':'ذكرى سنوية',
     'calendarSpecial':'يوم مميز',
-    'tagline': 'نحن الاثنان، مساحة واحدة',
+    'tagline': 'Two of us, One Space',
     'welcome': 'مرحبًا بعودتك',
     'createAccount': 'أنشئ حسابك',
     'yourName': 'الاسم المعروض',
