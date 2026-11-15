@@ -1,3 +1,5 @@
+import '../../core/record_list_top_actions.dart';
+import '../../core/editor_scaffold.dart';
 import '../../core/linked_items.dart';
 import '../../core/collection_history_screen.dart';
 import 'dart:async';
@@ -42,6 +44,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   String? _error;
   bool _loading = true;
   bool _showArchived = false;
+  /// R55 filter: who can see (all / shared / private).
+  String _who = 'all';
+  List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:'Who can see',
+    options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_who,defaultValue:'all')];
   String _view='month';
   Map<String,String> _people=const {};
   List<Map<String, dynamic>> _events = const [];
@@ -300,7 +306,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if(mounted)_refreshExtras();
     },
   ));
-  Future<void> _createOccasion({String kind='birthday'})async{
+)async{
     final id=_spaceId;
     if(id==null)return;
     final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
@@ -341,7 +347,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   List<Map<String, dynamic>> _entriesOn(DateTime day) =>
-    _events.where((e) => (_showArchived || e['archived_at'] == null)
+    _events.where((e) => (_who=='all' || e['visibility']==_who) && (_showArchived || e['archived_at'] == null)
         && _occurs(e, day)).toList();
 
   List<Map<String,dynamic>> _offOn(DateTime day){
@@ -829,48 +835,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
     ]);
   }
 
-  Widget _upcoming() {
-    final today=CalendarRules.day(DateTime.now());
-    final upcoming=<({DateTime date,Widget Function() buildTile})>[];
-    for(final entry in _events){
-      if(entry['archived_at']!=null)continue;
-      final date=_eventDate(entry);
-      if(date==null)continue;
-      final next=CalendarRules.nextOccurrence(
-       original:date,recurrence:entry['recurrence'] as String? ?? 'none',
-       today:today);
-      if(next!=null)upcoming.add((
-       date:next,buildTile:()=>_eventTile(entry,upcoming:true)));
-    }
-    for(final event in _occasions){
-      if(event['archived_at']!=null||event['status']=='cancelled')continue;
-      final origin=DateTime.tryParse(event['occasion_on']?.toString()??'');
-      if(origin==null)continue;
-      final next=OccasionRules.nextDate(
-       original:origin,annual:event['annual']==true,today:today);
-      if(next!=null)upcoming.add((date:next,buildTile:()=>_occasionTile(event)));
-    }
-    for(final holiday in _holidays){
-      if(holiday.date.isBefore(today))continue;
-      upcoming.add((date:holiday.date,buildTile:()=>_holidayTile(holiday)));
-    }
-    upcoming.sort((a,b)=>a.date.compareTo(b.date));
-    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Text(tr(context,'nextOccasions'),
-      style:Theme.of(context).textTheme.titleLarge),
-     const SizedBox(height:8),
-     if(upcoming.isEmpty)Text(tr(context,'noUpcomingEvents')),
-     for(final item in upcoming.take(7))item.buildTile(),
-    ]);
-  }
+
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar:AppBar(title:const Text('Shared calendar'),actions:[
-     IconButton(tooltip:_showArchived?'Hide removed':'Calendar history',
-      icon:Icon(_showArchived?Icons.event_available_outlined:Icons.history_outlined),
-      onPressed:()=>setState(()=>_showArchived=!_showArchived)),
-    ]),
+    appBar:AppBar(title:const Text('Calendar'),actions:[
+     RecordListTopActions(
+      historyKinds:const ['event'],historyTitle:'Calendar',
+      showHistory:_showArchived,
+      onToggleHistory:()=>setState(()=>_showArchived=!_showArchived),
+      groups:_filterGroups(),
+      onApply:(v)=>setState(()=>_who=v['who']!)),
+    ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,
+      onClear:()=>setState((){_showArchived=false;_who='all';}))),
+    floatingActionButton:_spaceId==null?null:AddFab(label:'Add event',onPressed:()=>_openEditor()),
     body:RefreshIndicator(
     onRefresh: _load,
     child: ListView(
@@ -883,16 +861,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
         const SizedBox(height: 12),
         const SeasonalThemePreview(compact:true),
         const SizedBox(height: 12),
-        if(_spaceId!=null)Wrap(spacing:8,runSpacing:8,children:[
-          FilledButton.icon(onPressed:()=>_openEditor(),
-           icon:const Icon(Icons.add),label:Text(tr(context,'newEvent'))),
-          OutlinedButton.icon(onPressed:()=>_createOccasion(kind:'birthday'),
-           icon:const Icon(Icons.cake_outlined),label:Text(tr(context,'calendarBirthday'))),
-          OutlinedButton.icon(onPressed:()=>_createOccasion(kind:'anniversary'),
-           icon:const Icon(Icons.favorite_outline),label:Text(tr(context,'calendarAnniversary'))),
-          OutlinedButton.icon(onPressed:()=>_createOccasion(kind:'other'),
-           icon:const Icon(Icons.celebration_outlined),label:Text(tr(context,'calendarSpecial'))),
-        ]),
         if (_error != null) ...[
           Text(_error!, style:TextStyle(color:Theme.of(context).colorScheme.error)),
           TextButton.icon(
@@ -937,9 +905,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           const SizedBox(height: 12),
           if(_view=='month')_selectedDay(),
           if(_view=='day')_dayTimeline(),
-          const Divider(height: 36),
-          _upcoming(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 24),
 
           if (_showArchived) ..._events.where((e) =>
               e['archived_at'] != null).map((e) => _eventTile(e)),

@@ -115,3 +115,50 @@ class AddFab extends StatelessWidget {
     icon: const Icon(Icons.add),
     label: Text(label));
 }
+
+/// One choice in a fold-up add button.
+class AddFabOption {
+  const AddFabOption(this.label, this.icon, this.onPressed);
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+}
+
+/// An add button that folds up a short menu of choices (e.g. Memories:
+/// Story journal · Daily selfie · Scrapbook studio).
+class AddFabMenu extends StatefulWidget {
+  const AddFabMenu({super.key, required this.label, required this.options});
+  final String label;
+  final List<AddFabOption> options;
+  @override State<AddFabMenu> createState() => _AddFabMenuState();
+}
+
+class _AddFabMenuState extends State<AddFabMenu> {
+  bool open = false;
+  @override Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (open) for (final o in widget.options) Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Material(
+              elevation: 2, borderRadius: BorderRadius.circular(8),
+              color: theme.colorScheme.surfaceContainerHigh,
+              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Text(o.label, style: theme.textTheme.labelLarge))),
+            const SizedBox(width: 10),
+            FloatingActionButton.small(
+              heroTag: 'fab-${o.label}',
+              tooltip: o.label,
+              onPressed: () { setState(() => open = false); o.onPressed(); },
+              child: Icon(o.icon)),
+          ])),
+        FloatingActionButton.extended(
+          heroTag: 'fab-${widget.label}',
+          onPressed: () => setState(() => open = !open),
+          icon: Icon(open ? Icons.close : Icons.add),
+          label: Text(open ? 'Close' : widget.label)),
+      ]);
+  }
+}

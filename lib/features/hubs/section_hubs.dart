@@ -45,7 +45,7 @@ class SectionHub extends StatelessWidget {
         const SizedBox(height: 6),
         Text(isConnect
             ? 'The moments and conversations that keep us close.'
-            : 'Our people, places, travels and the wider context of our lives.'),
+            : 'Every trip we take, from the next reunion to a weekend away.'),
         const SizedBox(height: 16),
         if (isConnect) ...[
           _link(context, Icons.mark_email_unread_outlined,
@@ -69,8 +69,6 @@ class SectionHub extends StatelessWidget {
               'Trips & journeys',
               'Flights, places to stay, plans, booking details and shared travel notes',
               const TripsScreen()),
-          const SizedBox(height:12),
-          const Text('People & contacts live in Remember.'),
         ],
       ],
     );

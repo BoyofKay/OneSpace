@@ -213,6 +213,17 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
     ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
+    floatingActionButton:_spaceId==null?null:AddFabMenu(label:'Add memory',options:[
+      AddFabOption('Story journal',Icons.menu_book_outlined,()=>_edit()),
+      AddFabOption('Daily selfie',Icons.photo_camera_outlined,(){if(!_capturing)_dailySelfie();}),
+      AddFabOption('Scrapbook studio',Icons.auto_stories_outlined,()async{
+        final current=_spaceId;
+        if(current==null)return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(spaceId:current)));
+        if(mounted)await _load();
+      }),
+    ]),
     body: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -237,28 +248,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           else if (_spaceId == null)
             Text(tr(context, 'noSpace'))
           else ...[
-            FilledButton.icon(
-              onPressed: () => _edit(),
-              icon: const Icon(Icons.edit_note),
-              label: Text(tr(context, 'newMemory')),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(onPressed:_capturing?null:_dailySelfie,
-             icon:const Icon(Icons.photo_camera_outlined),
-             label:Text(_capturing?'Saving photo…':'Daily selfie · Camera or Gallery')),
-            const SizedBox(height:8),
-            OutlinedButton.icon(
-              icon:const Icon(Icons.auto_stories_outlined),
-              label:const Text('Scrapbook Studio · Designed pages'),
-              onPressed:() async{
-                final current=_spaceId;
-                if(current==null)return;
-                await Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
-                   spaceId:current)));
-                if(mounted)await _load();
-              },
-            ),
             if(_capturing)const LinearProgressIndicator(),
             const SizedBox(height: 14),
             TextField(controller:_search,decoration:InputDecoration(

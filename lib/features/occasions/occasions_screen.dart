@@ -145,7 +145,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
    return next(a).compareTo(next(b));
   });
   return Scaffold(
-   appBar:AppBar(title:const Text('Occasions & surprises'),actions:[
+   appBar:AppBar(title:const Text('Occasions'),actions:[
     RecordListTopActions(
      historyKinds:const ['occasion'],historyTitle:'Occasions',
      showHistory:archived,
@@ -155,7 +155,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:archived,onClear:()=>setState((){archived=false;filter='upcoming';}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
-    onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Plan an occasion')),
+    onPressed:()=>edit(),icon:const Icon(Icons.add),label:const Text('Add occasion')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
@@ -167,7 +167,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      onChanged:(value)=>setState(()=>query=value),
      decoration:const InputDecoration(
       prefixIcon:Icon(Icons.search),
-      labelText:'Search occasions and surprises',
+      labelText:'Search occasions',
       hintText:'Title, person, occasion type or notes',
       border:OutlineInputBorder())),
     const SizedBox(height:10),

@@ -952,47 +952,33 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         ),
       ]);
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Row(children:[
-        Expanded(child:Text('Our space',
-          style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700))),
-        FilledButton.tonalIcon(
-          onPressed:spaceId==null?null:()async{
-            await showQuickAdd(context,spaceId:spaceId!);
-            if(mounted)await _load();
-          },
-          icon:const Icon(Icons.add),
-          label:const Text('Quick add')),
-      ]),
-      group('Remember',colors.primary,[
+      Text('Our space',
+        style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700)),
+      // R55: grouped by what you are doing, not by tab, so no group has one tile.
+      group('Plan together',colors.primary,[
         _Shortcut('Calendar',Icons.calendar_month_outlined,widget.onOpenCalendar),
-        _Shortcut('To-do & Checklists',Icons.checklist_outlined,widget.onOpenPlans),
+        _Shortcut('To-do lists',Icons.checklist_outlined,widget.onOpenPlans),
         _Shortcut('Reminders',Icons.alarm_outlined,
           ()=>_push(const RemindersScreen()),badge:dueReminders),
-        _Shortcut('Notes',Icons.sticky_note_2_outlined,widget.onOpenNotes),
-        _Shortcut('Occasions & surprises',Icons.card_giftcard_outlined,
-          ()=>_push(const OccasionsScreen())),
-        _Shortcut('People',Icons.contacts_outlined,
-          ()=>_push(const WorldContactsScreen())),
-      ]),
-      group('Coordinate',colors.secondary,[
         _Shortcut('Activities',Icons.hub_outlined,widget.onOpenCoordinate),
+        _Shortcut('Trips',Icons.flight_takeoff_outlined,
+          ()=>_push(const TripsScreen())),
+        _Shortcut('Occasions',Icons.card_giftcard_outlined,
+          ()=>_push(const OccasionsScreen())),
+        _Shortcut('Notes',Icons.sticky_note_2_outlined,widget.onOpenNotes),
+        _Shortcut('Contact cards',Icons.contacts_outlined,
+          ()=>_push(const WorldContactsScreen())),
+        ..._extraTools(),
       ]),
-      group('Connect',colors.tertiary,[
+      group('Stay close',colors.tertiary,[
         _Shortcut('Letters',Icons.mark_email_unread_outlined,widget.onOpenLetters,
           badge:lettersBadge),
         _Shortcut('A little love',Icons.volunteer_activism_outlined,
           ()=>_push(const PartnerGesturesScreen())),
-        _Shortcut('Check-ins',Icons.favorite_outline,widget.onOpenCheckins),
+        _Shortcut('Daily connection',Icons.favorite_outline,widget.onOpenCheckins),
         _Shortcut('Shared experiences',Icons.movie_outlined,
           ()=>_push(const SharedExperiencesScreen())),
         _Shortcut('Memories',Icons.auto_stories_outlined,widget.onOpenMemories),
-      ]),
-      group('World',colors.primary,[
-        _Shortcut('Trips & journeys',Icons.flight_takeoff_outlined,
-          ()=>_push(const TripsScreen())),
-      ]),
-      group('Tools',colors.secondary,[
-        ..._extraTools(),
         _Shortcut('Search our space',Icons.search,
           ()=>_push(const GlobalSearchScreen())),
       ]),
@@ -1031,7 +1017,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   @override
   Widget build(BuildContext context) {
     final theme=Theme.of(context);
-    return RefreshIndicator(
+    return Scaffold(
+      backgroundColor:Colors.transparent,
+      floatingActionButton:spaceId==null?null:FloatingActionButton.extended(
+        heroTag:'quick-add',
+        onPressed:()async{
+          await showQuickAdd(context,spaceId:spaceId!);
+          if(mounted)await _load();
+        },
+        icon:const Icon(Icons.add),
+        label:const Text('Quick add')),
+      body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16,16,16,24),
@@ -1168,10 +1164,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               leading:[if(_onThisDayTile() case final Widget tile)tile]),
             const SizedBox(height:4),
             _shortcuts(),
+            const SizedBox(height:72),
           ],
         ],
       ),
-    );
+    ));
   }
 
   Widget _invitePanel()=>_panel(

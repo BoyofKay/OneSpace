@@ -149,7 +149,7 @@ class _TripsScreenState extends State<TripsScreen> {
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;filter='upcoming';}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
-    icon:const Icon(Icons.add),label:const Text('Plan a trip'),onPressed:()=>edit()),
+    icon:const Icon(Icons.add),label:const Text('Add trip'),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,12,16,90),children:[
@@ -560,7 +560,6 @@ class _TripDetailState extends State<TripDetail>{
     if(t!=null&&t['space_id']!=null)CreateFromThisButton(kind:LinkKind.trip,id:widget.tripId,spaceId:t['space_id'].toString(),title:t['title'].toString(),date:DateTime.tryParse(t['start_on']?.toString()??''),shared:t['visibility']!='private',stripKey:_links),
     if(t!=null)RecordActionHistoryButton(
      kind:'trip',recordId:widget.tripId),
-    IconButton(tooltip:'Refresh trip',icon:const Icon(Icons.refresh),onPressed:load),
     if(t!=null)IconButton(tooltip:'Edit trip',icon:const Icon(Icons.edit_outlined),onPressed:editTrip),
     if(t!=null)IconButton(tooltip:t['archived_at']==null?'Remove trip':'Restore trip',
      icon:Icon(t['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined),

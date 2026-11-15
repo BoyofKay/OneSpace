@@ -318,7 +318,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;status='all';kind='all';mutualOnly=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:()=>edit(),icon:const Icon(Icons.add),
-    label:const Text('Add an experience')),
+    label:const Text('Add experience')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,12,16,110),children:[

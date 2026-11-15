@@ -376,7 +376,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
    floatingActionButton:space==null?null:FloatingActionButton.extended(
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
-    label:const Text('New reminder')),
+    label:const Text('Add reminder')),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsets.fromLTRB(16,16,16,95),children:[

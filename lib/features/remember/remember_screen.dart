@@ -187,13 +187,13 @@ class _RememberScreenState extends State<RememberScreen> {
             ),
             _destination(
               icon:Icons.card_giftcard_outlined,
-              title:'Occasions & surprises',
+              title:'Occasions',
               subtitle:'Gifts, holidays, budgets and early preparation',
               destination:const OccasionsScreen(),
             ),
             _destination(
               icon:Icons.contacts_outlined,
-              title:'People & saved contacts',
+              title:'Contact cards',
               subtitle:'Family, friends, useful contacts and shared context',
               destination:const WorldContactsScreen(),
             ),

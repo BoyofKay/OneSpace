@@ -1,3 +1,4 @@
+import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -125,6 +126,7 @@ class _NotesScreenState extends State<NotesScreen> {
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
       ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,onClear:()=>setState((){_showArchived=false;_scope='all';}))),
+      floatingActionButton:_spaceId==null?null:AddFab(label:'Add note',onPressed:()=>_openEditor()),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -142,17 +144,11 @@ class _NotesScreenState extends State<NotesScreen> {
           else if (_spaceId == null)
             Text(tr(context, 'noSpace'))
           else ...[
-            FilledButton.icon(
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.note_add_outlined),
-              label: Text(tr(context, 'newNote')),
-            ),
-            const SizedBox(height: 14),
             TextField(
               controller:_search,
               onChanged:(value)=>setState(()=>_query=value),
               decoration:InputDecoration(
-               labelText:'Search your notes',
+               labelText:'Search notes',
                hintText:'Search titles and note text',
                prefixIcon:const Icon(Icons.search),
                suffixIcon:_query.isEmpty?null:IconButton(
