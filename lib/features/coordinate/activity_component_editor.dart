@@ -5,6 +5,7 @@ import '../calendar/calendar_rules.dart';
 import 'activity_countdown_rules.dart';
 import 'activity_contact.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/form_kit.dart';
 
 /// Type-specific inputs produce a reusable structured JSON payload.
 /// The Activity itself requires only a title and details; everything below
@@ -42,6 +43,8 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
   List<String> existingTags=[];
   bool tagsLoading=false;
   bool _repeatYearly=false;
+  /// R66: Date and Countdown are one component — a date can show a countdown.
+  bool _countdown=false;
 
   Map<String, dynamic> get original =>
       Map<String, dynamic>.from(widget.existing?['payload'] as Map? ?? const {});
@@ -51,6 +54,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     super.initState();
     final p = original;
     _repeatYearly=p['repeat_yearly']==true;
+    _countdown=widget.kind=='countdown'||p['countdown']==true;
     if(widget.kind=='tag')_loadTags();
     title = TextEditingController(text: widget.existing?['label']?.toString() ?? '');
     value = TextEditingController(text: p['value']?.toString() ?? '');
@@ -255,6 +259,9 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
         payload.putIfAbsent('status', () => 'open');
       case 'countdown':
         payload['repeat_yearly']=_repeatYearly;
+      case 'date':
+        payload['countdown']=_countdown;
+        payload['repeat_yearly']=_countdown&&_repeatYearly;
     }
     Navigator.of(context).pop({'label': label, 'payload': payload});
   }
@@ -313,19 +320,21 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
                 icon: const Icon(Icons.calendar_today_outlined),
                 label: Text(tt(value.text.isEmpty ? 'Choose a date' : value.text)),
               ),
-              if (kind == 'reminder')
-                Text(tt('Appears in Today and Remember. Phone alerts are not yet enabled.')),
-              if(kind=='countdown')...[
-                SwitchListTile(
-                  contentPadding:EdgeInsets.zero,
-                  title:Text(tt('Repeat every year')),
-                  subtitle:Text(tt('For birthdays and annual celebrations')),
-                  value:_repeatYearly,
-                  onChanged:(next)=>setState(()=>_repeatYearly=next)),
-                input(details,'What makes this moment special? (optional)',
-                  max:1000,lines:2),
-                Text(tt('Milestones use calendar dates, so both '
-                  'partners see the same date in different time zones.')),
+              if(kind=='date'||kind=='countdown')...[
+                const SizedBox(height:10),
+                Wrap(spacing:8,runSpacing:6,children:[
+                  if(kind=='date')OptionChip(label:'Show a countdown',icon:Icons.hourglass_bottom_outlined,
+                    value:_countdown,help:'Shows “N days remaining” on the Activity card',
+                    onChanged:(v)=>setState(()=>_countdown=v)),
+                  if(_countdown)OptionChip(label:'Every year',icon:Icons.event_repeat,
+                    value:_repeatYearly,help:'For birthdays and annual celebrations',
+                    onChanged:(v)=>setState(()=>_repeatYearly=v)),
+                ]),
+                const SizedBox(height:8),
+                input(details,'What makes this date special? (optional)',max:1000,lines:2),
+                Text(tt('Dates are calendar dates, so both '
+                  'partners see the same day in different time zones.'),
+                  style:Theme.of(context).textTheme.bodySmall),
               ],
             ] else if (kind == 'image') ...[
               Text(tt('This photo remains private to authorized partners.')),

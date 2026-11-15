@@ -90,9 +90,11 @@ class MetaRules {
 class MetaStrip extends StatelessWidget {
   const MetaStrip({super.key, required this.value, required this.onChanged, this.people,
     this.showVisibility = true, this.showBelongs = true, this.showDate = true,
-    this.dateLabel = 'Date', this.withTime = false, this.enabled = true});
+    this.dateLabel = 'Date', this.withTime = false, this.enabled = true, this.extras = const []});
   /// false = shown but not changeable (e.g. who can see a saved reminder).
   final bool enabled;
+  /// R66: extra chips that live in the strip too (e.g. Pin on notes).
+  final List<Widget> extras;
   final MetaValues value;
   final ValueChanged<MetaValues> onChanged;
   final SpacePeople? people;
@@ -147,6 +149,7 @@ class MetaStrip extends StatelessWidget {
         tooltip: dateLabel,
         onPressed: () => _pickDate(context),
         onDeleted: value.date == null ? null : () => onChanged(value.copyWith(date: null))),
+      ...extras,
     ];
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(

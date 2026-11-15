@@ -444,7 +444,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
 class ReminderEditorScreen extends StatefulWidget{
  const ReminderEditorScreen({super.key,required this.spaceId,this.existing,
   this.initialTitle='',this.initialDetails='',this.initialDue,this.initialShared=false,
-  this.onCreated});
+  this.onCreated,this.initialSourceKind,this.initialSourceId});
+ /// R66: pre-linked source (e.g. "Remind us" in an Activity).
+ final String? initialSourceKind,initialSourceId;
  final String spaceId;
  final Map<String,dynamic>? existing;
  /// R52: pre-filled from shared content ("Items to sort").
@@ -465,6 +467,14 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
  late DateTime due;
  late String visibility,audience;
  String? sourceKind,sourceId,error;
+ /// R66: "About an item" is picked in two steps — the kind, then the item.
+ String? linkType;
+ static const linkKinds=['task','calendar','note','occasion','activity','trip'];
+ static const linkLabels={'task':'To-do lists','calendar':'Events','note':'Notes',
+  'occasion':'Occasions','activity':'Activities','trip':'Trips'};
+ static const linkIcons={'task':Icons.checklist,'calendar':Icons.event_outlined,
+  'note':Icons.sticky_note_2_outlined,'occasion':Icons.celebration_outlined,
+  'activity':Icons.lightbulb_outline,'trip':Icons.flight_takeoff};
  bool saving=false,loadingLinks=true,urgent=false;
  List<Map<String,dynamic>> links=[];
  ReminderRepeat repeat=const ReminderRepeat();
@@ -490,8 +500,9 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    ??widget.initialDue??DateTime.now().add(const Duration(hours:1));
   visibility=prior?['visibility']?.toString()??(widget.initialShared?'shared':'private');
   audience=prior?['audience']?.toString()??(widget.initialShared?'both':'me');
-  sourceKind=prior?['source_kind']?.toString();
-  sourceId=prior?['source_id']?.toString();
+  sourceKind=prior?['source_kind']?.toString()??widget.initialSourceKind;
+  linkType=sourceKind;
+  sourceId=prior?['source_id']?.toString()??widget.initialSourceId;
   repeat=ReminderRepeat.fromRule(prior?['repeat_rule'],start:due);
   urgent=prior?['urgent']==true;
   loadLinks();
@@ -553,11 +564,19 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   try{
    final lists=await Future.wait([
     db.from('tasks').select('id,title,visibility')
-     .eq('space_id',widget.spaceId).isFilter('migrated_to_list',null).limit(100),
+     .eq('space_id',widget.spaceId).isFilter('migrated_to_list',null).eq('status','open').limit(100),
     db.from('space_events').select('id,title,visibility')
+     .eq('space_id',widget.spaceId).isFilter('archived_at',null).limit(100),
+    db.from('notes').select('id,title,visibility')
      .eq('space_id',widget.spaceId).isFilter('archived_at',null).limit(100),
     db.from('occasion_plans').select('id,title,visibility')
      .eq('space_id',widget.spaceId).isFilter('archived_at',null).limit(100),
+    db.from('activities').select('id,title,visibility')
+     .eq('space_id',widget.spaceId).isFilter('archived_at',null)
+     .not('stage','in','(completed,cancelled)').limit(100),
+    db.from('shared_trips').select('id,title,visibility')
+     .eq('space_id',widget.spaceId).isFilter('archived_at',null)
+     .not('status','in','(completed,cancelled)').limit(100),
    ]);
    if(!mounted)return;
    setState((){
@@ -565,7 +584,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
      for(var i=0;i<lists.length;i++)
       for(final row in lists[i]){
        'id':row['id'],'title':row['title'],'visibility':row['visibility'],
-       'kind':['task','calendar','occasion'][i],
+       'kind':linkKinds[i],
       },
     ];loadingLinks=false;
    });
@@ -631,8 +650,9 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    item['visibility']=='shared').toList();
   final options={
    for(final item in eligible)
+    if(linkType==null||item['kind']==linkType)
     item['kind'].toString()+':'+item['id'].toString():
-      item['title'].toString()+' · '+(item['kind']=='task'?'To-do list':item['kind']=='calendar'?tt('Calendar'):tt('Occasion')),
+      item['title'].toString(),
   };
   final selected=sourceKind==null||sourceId==null?null:
    sourceKind!+':'+sourceId!;
@@ -679,8 +699,13 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
       enabled:!saving)),
     const SizedBox(height:10),
     if(loadingLinks)const LinearProgressIndicator(),
-    if(!editing)ChoicePickerField<String>(label:tt('About an item (optional)'),
-     icon:Icons.link,noneLabel:tt('Not linked'),options:options,
+    if(!editing)ChoiceRow<String>(label:tt('About an item (optional)'),
+     options:{for(final k in linkKinds)k:linkLabels[k]!},icons:linkIcons,
+     selected:linkType,allowNone:true,
+     onSelected:(v)=>setState((){linkType=v;
+      if(sourceKind!=v){sourceKind=null;sourceId=null;}})),
+    if(!editing&&linkType!=null)ChoicePickerField<String>(label:tt(linkLabels[linkType]!),
+     icon:linkIcons[linkType]!,noneLabel:tt('Choose one'),options:options,
      selected:selected!=null&&options.containsKey(selected)?selected:null,
      onSelected:(v)=>setState((){
       if(v==null){sourceKind=null;sourceId=null;}
