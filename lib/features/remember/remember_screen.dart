@@ -10,6 +10,8 @@ import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../world/world_contacts_screen.dart';
 import '../occasions/occasions_screen.dart';
+import '../places/places_screen.dart';
+import '../counters/counters_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// The Remember section keeps daily reference information visible in one place.
@@ -185,6 +187,19 @@ class _RememberScreenState extends State<RememberScreen> {
               subtitle: tr(context, 'rememberNotesSubtitle'),
               count: _count('notes_count'),
               destination: const NotesScreen(),
+            ),
+            // R77: our places and our counters.
+            _destination(
+              icon:Icons.place_outlined,
+              title:tt('Our places'),
+              subtitle:tt('Where we have been together, and our bucket list'),
+              destination:const PlacesScreen(),
+            ),
+            _destination(
+              icon:Icons.hourglass_bottom_rounded,
+              title:tt('Counters'),
+              subtitle:tt('Days since and days until the moments that matter'),
+              destination:const CountersScreen(),
             ),
             _destination(
               icon:Icons.card_giftcard_outlined,
