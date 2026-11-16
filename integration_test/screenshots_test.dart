@@ -28,7 +28,6 @@ import 'package:onespace/features/world/trips_screen.dart';
 import 'package:onespace/features/occasions/occasions_screen.dart';
 import 'package:onespace/features/connect/couple_letters_screen.dart';
 import 'package:onespace/features/connect/partner_gestures_screen.dart';
-import 'package:onespace/features/connect/shared_experiences_screen.dart';
 import 'package:onespace/features/notifications/notifications_screen.dart';
 import 'package:onespace/theme/appearance_settings_screen.dart';
 
@@ -287,13 +286,6 @@ void main() {
       await open(const CoupleLettersScreen(), 'letters');
       await open(const PartnerGesturesScreen(), 'love');
       await open(const AppearanceSettingsScreen(), 'appearance');
-      // Last: this screen opens a suggestion card; close it first.
-      nav().push(MaterialPageRoute<void>(builder: (_) => const SharedExperiencesScreen()));
-      await wait(4);
-      final close = find.byIcon(Icons.close);
-      if (close.evaluate().isNotEmpty) { await tester.tap(close.first); await wait(1.5); }
-      await shot('experiences');
-      while (nav().canPop()) { nav().pop(); await wait(0.6); }
 
     }
     expect(count, greaterThan(0));
