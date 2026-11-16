@@ -2652,4 +2652,16 @@ const Map<String, String> arPhrases = {
   'Your email *': 'بريدك *',
   'Your shared events, trips, occasions and special dates appear in a separate "OneSpace" calendar in your phone\'s calendar app (Google, Samsung or iPhone). It updates when you open OneSpace.': 'تظهر مواعيدكما ورحلاتكما ومناسباتكما وتواريخكما المميزة في تقويم منفصل باسم «OneSpace» في تطبيق التقويم على هاتفك (Google أو Samsung أو iPhone). ويتحدّث عند فتح OneSpace.',
   'Signing in': 'تسجيل الدخول',
+  // R75
+  'Low': 'متضايق',
+  'Plans': 'الخطط',
+  'Messages': 'الرسائل',
+  'Earlier this week': 'في وقت سابق هذا الأسبوع',
+  'Earlier': 'أقدم',
+  'High priority': 'أولوية عالية',
+  'Selfie': 'سيلفي',
+  'No longer available': 'لم يعد متاحًا',
+  '+{} more updates like this': '+{} تحديثات أخرى مثل هذا',
+  'Notifications, {} unread': 'الإشعارات، {} غير مقروءة',
+  'back today': 'يعود اليوم',
 };

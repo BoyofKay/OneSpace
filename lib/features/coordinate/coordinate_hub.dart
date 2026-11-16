@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 import '../world/trips_screen.dart';
 import 'coordinate_screen.dart';
@@ -25,9 +26,9 @@ class CoordinateHubState extends State<CoordinateHub> with SingleTickerProviderS
 
   @override
   Widget build(BuildContext context) => Column(children: [
-    TabBar(controller: tabs, tabs: const [
-      Tab(icon: Icon(Icons.hub_outlined), text: 'Activities'),
-      Tab(icon: Icon(Icons.flight_takeoff_outlined), text: 'Trips'),
+    TabBar(controller: tabs, tabs: [
+      Tab(icon: const Icon(Icons.hub_outlined), text: tt('Activities')),
+      Tab(icon: const Icon(Icons.flight_takeoff_outlined), text: tt('Trips')),
     ]),
     Expanded(child: TabBarView(controller: tabs, children: const [
       CoordinateScreen(),

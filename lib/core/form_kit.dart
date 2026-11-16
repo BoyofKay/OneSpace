@@ -143,7 +143,7 @@ class MetaStrip extends StatelessWidget {
         onSelected: (v) => onChanged(MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me))),
       if (showDate) InputChip(
         avatar: const Icon(Icons.event_outlined, size: 18),
-        label: Text(tt(value.date == null ? 'Add ${dateLabel.toLowerCase()}'
+        label: Text(value.date == null ? (OneSpacePhrases.arabic ? '${tt('Add')} ${tt(dateLabel)}' : 'Add ${dateLabel.toLowerCase()}') : tt(value.date == null ? ''
           : withTime ? '${loc.formatShortDate(value.date!)} ${loc.formatTimeOfDay(TimeOfDay.fromDateTime(value.date!))}'
           : loc.formatShortDate(value.date!))),
         tooltip: dateLabel,

@@ -148,4 +148,6 @@ const Map<String, String> arTemplates = {
   '{} MB': '{} م.ب',
   'back in {} days': 'يعود بعد {} أيام',
   'back in {} day': 'يعود بعد يوم',
+  '{} min ago': 'قبل {} دقيقة',
+  '{} h ago': 'قبل {} ساعة',
 };
