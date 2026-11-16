@@ -22,11 +22,12 @@ for spec in ${SHOT_SETS//,/ }; do
     rec_pid=$!
     rm -f /tmp/stop_rec
   fi
+  adb shell setprop debug.onespace.shots "$spec"
+  adb shell setprop debug.onespace.pw "$DEMO_PASSWORD"
   if ! flutter drive -d emulator-5554 \
       --driver=test_driver/integration_test.dart \
       --target=integration_test/screenshots_test.dart \
-      --dart-define=DEMO_PASSWORD="$DEMO_PASSWORD" \
-      --dart-define=SHOT_SET="$set_name" --dart-define=SHOT_LANG="$lang" \
+      --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk \
       2>&1 | tee "build/logs/$spec.log"; then
     echo "::warning::Screens $spec failed"; status=1
   fi
