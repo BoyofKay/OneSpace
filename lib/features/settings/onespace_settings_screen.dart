@@ -8,7 +8,7 @@ import '../../l10n/onespace_strings.dart';
 import '../../theme/appearance_settings_screen.dart';
 import '../../core/weather_unit_preference.dart';
 import '../calendar/holiday_sources_panel.dart';
-import '../occasions/occasions_screen.dart';
+import 'special_dates.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Central configuration hub, distinct from personal profile details.
@@ -89,11 +89,11 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          const Divider(height:1),
          ListTile(
           leading:const Icon(Icons.celebration_outlined),
-          title:Text(tt('Birthdays, anniversaries & special dates')),
-          subtitle:Text(tt('Manage milestones and important occasions')),
+          title:Text(tt('Birthdays, anniversary & special dates')),
+          subtitle:Text(tt('Your birthday, your partner\'s, your anniversary and your own dates')),
           trailing:const Icon(Icons.chevron_right),
           onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
-           builder:(_)=>const OccasionsScreen())),
+           builder:(_)=>const SpecialDatesScreen())),
          ),
          const Divider(height:1),
          _WeatherUnitsTile(),

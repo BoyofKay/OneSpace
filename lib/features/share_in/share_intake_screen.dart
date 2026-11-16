@@ -1,3 +1,4 @@
+import '../../core/preferred_currency.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
 import 'package:material_ui/material_ui.dart';
@@ -55,7 +56,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     url = TextEditingController(text: tray?['link']?.toString() ?? content?.link ?? '');
     notes = TextEditingController(text: tray?['note']?.toString() ?? content?.note ?? '');
     price = TextEditingController();
-    currency = TextEditingController(text: 'USD');
+    currency = TextEditingController(text: PreferredCurrency.code);
     specs = TextEditingController();
     // Shared-in content is private by default until a destination is chosen.
     onlyMe = tray == null ? false : tray['visibility'] != 'shared';

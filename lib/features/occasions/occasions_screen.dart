@@ -1,3 +1,4 @@
+import '../../core/preferred_currency.dart';
 import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
@@ -240,7 +241,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   honoree=TextEditingController(text:(p['honoree_name']??'').toString());
   notes=TextEditingController(text:(p['notes']??'').toString());
   budget=TextEditingController(text:(p['budget']??'').toString());
-  currency=TextEditingController(text:(p['currency']??'SAR').toString());
+  currency=TextEditingController(text:(p['currency']??PreferredCurrency.code).toString());
   date=DateTime.tryParse((p['occasion_on']??'').toString())??widget.initialDate;
   kind=(p['kind']??widget.initialKind??'birthday').toString();
   visibility=(p['visibility']??'private').toString();
@@ -280,7 +281,10 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   setState((){
    sourceKind=s.kind;sourceRef=s.ref;sourceLabel=s.title;
    title.text=s.title;date=s.date;kind=s.occasionKind;
-   if(s.occasionKind=='holiday')forWhom='us';
+   if(s.occasionKind=='holiday'||s.occasionKind=='anniversary'){forWhom='us';}
+   else if(s.occasionKind=='birthday'&&people!=null){
+    forWhom=s.title.startsWith(people!.partnerName)?'partner':'me';
+   }
   });
  }
  String get honoreeValue=>switch(forWhom){
@@ -325,6 +329,8 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   }
   setState((){busy=true;error=null;});
   try{
+   // R69: no Kind chips; the kind follows the picked date, or the words.
+   if(sourceKind==null)kind=OccasionSourceRules.kindFor(title.text.trim());
    final values=<String,dynamic>{
     'title':title.text.trim(),'kind':kind,'honoree_name':honoreeValue,
     'occasion_on':CalendarRules.sqlDate(on),'prep_lead_days':prepDays,
@@ -367,7 +373,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
      leading:Icon(sourceKind==null?Icons.event_available_outlined:Icons.link,color:theme.colorScheme.secondary),
      title:Text(tt(sourceKind==null?'Pick a special date or holiday':sourceLabel??'Linked')),
      subtitle:Text(tt(sourceKind==null?'Or type your own below.'
-      :sourceKind=='holiday'?'Linked to a holiday':'Linked to a special date in the calendar')),
+      :sourceKind=='holiday'?'Linked to a holiday':'Linked to a special date')),
      trailing:sourceKind==null?const Icon(Icons.chevron_right):IconButton(tooltip:tt('Unlink'),
       icon:const Icon(Icons.close),onPressed:()=>setState((){sourceKind=null;sourceRef=null;sourceLabel=null;})),
      onTap:pickSource)),
@@ -375,10 +381,6 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    TextField(controller:title,maxLength:160,textCapitalization:TextCapitalization.sentences,
     decoration:InputDecoration(labelText:tt('What are we celebrating? *'),
      hintText:tt('Kay’s birthday, our anniversary…'),border:const OutlineInputBorder())),
-   ChoiceRow<String>(label:tt('Kind'),options:occasionKinds,selected:kind,
-    icons:const {'birthday':Icons.cake_outlined,'anniversary':Icons.favorite_border,
-     'holiday':Icons.celebration_outlined,'celebration':Icons.emoji_events_outlined,'other':Icons.star_outline},
-    onSelected:(v){if(v!=null)setState(()=>kind=v);}),
    Text(tt('For whom'),style:theme.textTheme.labelLarge),
    const SizedBox(height:6),
    Wrap(spacing:8,runSpacing:6,children:[

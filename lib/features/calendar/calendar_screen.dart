@@ -1,3 +1,5 @@
+import '../settings/special_dates.dart';
+import 'holiday_sources_panel.dart';
 import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/editor_scaffold.dart';
@@ -236,9 +238,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
        'id,title,honoree_name,occasion_on,annual,kind,visibility,status,archived_at')
        .eq('space_id',space).limit(300);
       if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
-      setState(()=>_occasions=List<Map<String,dynamic>>.from(rows));
+      // R69: saved birthdays, anniversary and special dates, every year.
+      final special=<Map<String,dynamic>>[];
+      try{
+        for(final d in await loadSpecialDates(space)){
+          special.add({'id':d.id,'special':true,'kind':d.kind,'annual':true,'visibility':'shared',
+           'status':'planning','title':SpecialDateRules.label(d,(id)=>((_people[id]??'').split(' ').first.isEmpty?'Partner':(_people[id]??'').split(' ').first)),
+           'year':d.year,
+           'occasion_on':'${(d.year??2000).toString().padLeft(4,'0')}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}'});
+        }
+      }catch(_){}
+      if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
+      setState(()=>_occasions=[...List<Map<String,dynamic>>.from(rows),...special]);
     }catch(_){ /* Main calendar remains usable. */ }
     try{
+      await HolidayDefaults.ensure(space);
       final sources=await _client.from('space_holiday_sources')
        .select('country_code,enabled').eq('space_id',space);
       if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
@@ -292,7 +306,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     title:Text(tt(day.name)),
     subtitle:Text(tt(HolidayCatalog.label(day.country)+' · Regional holiday · '+day.source)),
   ));
-  Widget _occasionTile(Map<String,dynamic> row)=>Card(elevation:0,child:ListTile(
+  Widget _occasionTile(Map<String,dynamic> row)=>row['special']==true?Card(elevation:0,child:ListTile(
+    leading:Icon(row['kind']=='birthday'?Icons.cake_outlined:row['kind']=='anniversary'?Icons.favorite:Icons.star_outline,
+     color:Theme.of(context).colorScheme.primary),
+    title:Text(tt(row['title'].toString())),
+    subtitle:Text(tt('Special date')),
+    trailing:const Icon(Icons.chevron_right),
+    onTap:()=>Navigator.of(context).push<void>(MaterialPageRoute(builder:(_)=>const SpecialDatesScreen())),
+  )):Card(elevation:0,child:ListTile(
     leading:Icon(Icons.cake_outlined,color:Theme.of(context).colorScheme.primary),
     title:Text(tt(row['title'].toString())),
     subtitle:Text(tt('Personal occasion · ')+

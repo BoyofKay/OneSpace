@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
+import '../../core/preferred_currency.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/device_time_zone.dart';
 import '../../core/device_weather_service.dart';
@@ -26,6 +27,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   bool _loading = true;
   bool _saving = false;
   String _language = 'en';
+  String _currency = 'SAR';
   String? _timeZone;
   bool _shareCityWeather = false;
   bool _weatherBusy = false;
@@ -59,7 +61,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       final id = _client.auth.currentUser!.id;
       final profile =
-          await _client.from('profiles').select('display_name,locale,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,partner_labels,work_start_local,work_end_local,sleep_start_local,sleep_end_local,work_days').eq('id', id).single();
+          await _client.from('profiles').select('display_name,locale,preferred_currency,time_zone,city_weather_shared,city_name,temperature_c,weather_code,weather_high_c,weather_low_c,weather_rain_pct,partner_label,partner_labels,work_start_local,work_end_local,sleep_start_local,sleep_end_local,work_days').eq('id', id).single();
       if (!mounted) return;
       setState(() {
         _name.text = (profile['display_name'] as String?) ?? '';
@@ -71,6 +73,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _wakeTime=_parseTime(profile['sleep_end_local']);
         _workDays={for(final day in (profile['work_days'] as List<dynamic>? ?? const [])) if(day is num) day.toInt()};
         _language = (profile['locale'] as String?) ?? 'en';
+        _currency = (profile['preferred_currency'] as String?) ?? PreferredCurrency.code;
         _timeZone = profile['time_zone']?.toString();
         _shareCityWeather = profile['city_weather_shared'] == true;
         _city = profile['city_name']?.toString();
@@ -183,6 +186,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await _client.from('profiles').update({
         if(!widget.settingsOnly)'display_name': name,
         'locale': _language,
+        if(widget.section=='language')'preferred_currency': _currency,
         'partner_label':_partnerLabel.text.trim().isEmpty?null:_partnerLabel.text.trim(),
         'partner_labels':_partnerLabels,
         'work_start_local':_formatTime(_workStart),
@@ -192,6 +196,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         'work_days':_workDays.toList()..sort(),
       }).eq('id', _client.auth.currentUser!.id);
       OneSpaceLocaleController.instance.selectLanguage(_language);
+      if(widget.section=='language')await PreferredCurrency.save(_currency);
       if (mounted) setState(() => _status = tr(context, 'profileSaved'));
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -327,7 +332,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         if(widget.settingsOnly)...[
           Text(tt(widget.section=='labels'?'Preferred names':
             widget.section=='schedule'?'Schedule & days off':
-            widget.section=='language'?'Language':'Weather city'),
+            widget.section=='language'?'Language and currency':'Weather city'),
             style:Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height:6),
           Text(tt('These settings belong to your account. '
@@ -347,6 +352,20 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           onChanged: (value) {
             if (value != null) setState(() => _language = value);
           },
+        ),
+        const SizedBox(height:16),
+        // R69: the currency every money field starts with.
+        DropdownButtonFormField<String>(
+          key: ValueKey('currency-$_currency'),
+          initialValue: PreferredCurrency.choices.containsKey(_currency) ? _currency : null,
+          isExpanded: true,
+          decoration: InputDecoration(labelText: tt('Preferred currency'),
+            prefixIcon: const Icon(Icons.payments_outlined),
+            helperText: tt('Budgets, prices and costs start with this currency.'),
+            border: const OutlineInputBorder()),
+          items: [for (final e in PreferredCurrency.choices.entries)
+            DropdownMenuItem(value: e.key, child: Text(tt(e.value)))],
+          onChanged: (value) { if (value != null) setState(() => _currency = value); },
         ),
         const SizedBox(height:12),
         ],

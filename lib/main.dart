@@ -1,3 +1,4 @@
+import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
 import 'core/voice.dart';
@@ -270,6 +271,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     WidgetsBinding.instance.addPostFrameCallback((_){
       if(mounted)_takeIncomingShare();
       if(mounted)_checkPendingDeletion();
+      PreferredCurrency.load();
       if(mounted)WhatsNew.maybeShow(context);
       // R61: "Voice command" from a long-press on the app icon.
       if(Voice.enabled)Voice.init((){if(mounted)VoiceAssistant.start(context,goToday:()=>navigate(0));});

@@ -1,3 +1,4 @@
+import '../../core/preferred_currency.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
 import 'package:material_ui/material_ui.dart';
@@ -36,7 +37,7 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor> wit
   title=TextEditingController(text:(p['title']??'').toString());
   qty=TextEditingController(text:(p['quantity']??1).toString());
   price=TextEditingController(text:(p['unit_price']??'').toString());
-  currency=TextEditingController(text:(p['currency']??widget.plan['currency']??'SAR').toString());
+  currency=TextEditingController(text:(p['currency']??widget.plan['currency']??PreferredCurrency.code).toString());
   notes=TextEditingController(text:(p['notes']??'').toString());
   url=TextEditingController(text:(p['source_url']??'').toString());
   merchant=TextEditingController(text:(p['merchant']??'').toString());
