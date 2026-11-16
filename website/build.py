@@ -27,6 +27,8 @@ def head(title, title_ar, desc, path):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-ar="{escape(title_ar)}">{escape(title)}</title>
 <meta name="description" content="{escape(desc)}">
+<link rel="canonical" href="https://boyofkay.github.io/onespace-app/{'' if path == 'index' else path + '.html'}">
+<meta name="robots" content="index,follow">
 <meta property="og:title" content="{escape(title)}">
 <meta property="og:description" content="{escape(desc)}">
 <meta property="og:image" content="https://boyofkay.github.io/onespace-app/assets/icon-512.png">
@@ -165,6 +167,8 @@ def index():
     <div class="mini"><div class="ico c3">🤍</div><div style="flex:1"><b data-i18n="l.c3">Until we meet again</b><div class="bar"><i style="width:78%"></i></div></div><div class="big" data-i18n="l.c3b">12 days</div></div>
   </div>
 </div></section>
+
+<section><div class="wrap"><h2>Explore OneSpace for your relationship</h2><p>Discover how OneSpace helps couples organize life together, wherever they live.</p><div class="grid"><div class="card"><h3>Couples app</h3><p>Shared planning, decisions and connection.</p><a href="couples-app.html">Explore OneSpace for couples</a></div><div class="card"><h3>Long-distance relationships</h3><p>Two schedules, one shared space.</p><a href="long-distance-relationship-app.html">Explore long-distance planning</a></div><div class="card"><h3>Shared calendar</h3><p>Important dates and plans in one place.</p><a href="shared-calendar-for-couples.html">Explore the calendar</a></div></div></div></section>
 
 <section id="privacy"><div class="wrap"><div class="band">
   {t('priv.title', 'Private by design', 'الخصوصية في التصميم', 'h2')}
@@ -360,5 +364,5 @@ open('assets/ar.js', 'w', encoding='utf-8').write('window.ONESPACE_AR = ' + json
 open('robots.txt', 'w').write('User-agent: *\nAllow: /\nSitemap: https://boyofkay.github.io/onespace-app/sitemap.xml\n')
 base = 'https://boyofkay.github.io/onespace-app/'
 open('sitemap.xml', 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + ''.join(f'  <url><loc>{base}{"" if n == "index.html" else n}</loc></url>\n' for n in list(pages) + ['feature-tour.html', 'getting-started.html'] if n != '404.html') + '</urlset>\n')
+    + ''.join(f'  <url><loc>{base}{"" if n == "index.html" else n}</loc></url>\n' for n in list(pages) + ['feature-tour.html', 'getting-started.html', 'couples-app.html', 'long-distance-relationship-app.html', 'shared-calendar-for-couples.html'] if n != '404.html') + '</urlset>\n')
 print('built', ', '.join(pages), '·', len(AR), 'Arabic strings')
