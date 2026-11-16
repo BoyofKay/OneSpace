@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'invitation_code.dart';
 import 'space_task_summary.dart';
@@ -568,7 +569,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         'create_invitation',
         params: {'p_space_id': id},
       ) as String;
-      await Clipboard.setData(ClipboardData(text: token));
+      await Clipboard.setData(ClipboardData(text: invitationMessage(token)));
       if (!mounted) return;
       await showDialog<void>(
         context: context,
@@ -589,8 +590,27 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ),
           ),
           actions: [
+            // R71: send the invitation in one tap.
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              for (final way in const [
+                ('whatsapp', Icons.chat_outlined, 'WhatsApp'),
+                ('sms', Icons.sms_outlined, 'Text message'),
+                ('email', Icons.email_outlined, 'Email'),
+              ])
+                OutlinedButton.icon(
+                  icon: Icon(way.$2, size: 18), label: Text(tt(way.$3)),
+                  onPressed: () async {
+                    final text = invitationMessage(token);
+                    final uri = switch (way.$1) {
+                      'whatsapp' => Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}'),
+                      'sms' => Uri.parse('sms:?body=${Uri.encodeComponent(text)}'),
+                      _ => Uri(scheme: 'mailto', queryParameters: {'subject': 'Join me on OneSpace', 'body': text}),
+                    };
+                    try { await launchUrl(uri, mode: LaunchMode.externalApplication); } catch (_) {}
+                  }),
+            ]),
             TextButton.icon(
-              onPressed: () => Clipboard.setData(ClipboardData(text: token)),
+              onPressed: () => Clipboard.setData(ClipboardData(text: invitationMessage(token))),
               icon: const Icon(Icons.copy),
               label: Text(tr(context, 'copyAgain')),
             ),

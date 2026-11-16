@@ -2522,4 +2522,18 @@ const Map<String, String> arPhrases = {
   'Tip: save birthdays and your anniversary in Settings › Birthdays, anniversary & special dates, and they appear here.': 'نصيحة: احفظ أعياد الميلاد وذكرى زواجكما في الإعدادات › أعياد الميلاد والذكرى السنوية والتواريخ المميزة لتظهر هنا.',
   'Your birthday, your partner\'s, your anniversary and your own dates': 'عيد ميلادك وميلاد شريكك وذكرى زواجكما وتواريخكما الخاصة',
   'Special date': 'تاريخ مميز',
+  // R71
+  'Movie': 'فيلم',
+  'TV show': 'مسلسل',
+  'Music': 'موسيقى',
+  'Book': 'كتاب',
+  'Cinema': 'السينما',
+  'Paper book': 'كتاب ورقي',
+  'Work (company, job title)': 'العمل (الشركة، المسمى الوظيفي)',
+  'Until (for several days)': 'حتى (لعدة أيام)',
+  'Optional: a vacation or a long weekend': 'اختياري: إجازة أو عطلة نهاية أسبوع طويلة',
+  'Daily feeling': 'شعور اليوم',
+  'Text message': 'رسالة نصية',
+  'WhatsApp': 'واتساب',
+  'Join me on OneSpace': 'انضم إليّ في OneSpace',
 };

@@ -4,6 +4,7 @@
 const Map<String, String> arTemplates = {
   '{} days remaining': 'متبقٍ {} يومًا',
   '{} adults': '{} بالغين',
+  '{} days off': '{} أيام إجازة',
   "{}'s birthday": 'عيد ميلاد {}',
   'turns {}': 'يُتم {}',
   '{} years': '{} سنوات',

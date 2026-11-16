@@ -33,9 +33,9 @@ void main() {
     expect(ActivityPurpose.note.sectionsFor('a1'), isEmpty);
   });
 
-  test('quick add offers the eight spec choices in order', () {
+  test('quick add offers the same places as share-in (R71), in order', () {
     expect(QuickAddKind.values.map((k) => k.label).toList(), [
       'Reminder', 'To-do', 'Event', 'Note', 'Something to research',
-      'Gift idea', 'Trip', 'Memory']);
+      'Gift idea', 'Trip', 'Story', 'Daily feeling', 'Letter']);
   });
 }

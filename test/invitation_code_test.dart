@@ -15,4 +15,10 @@ void main() {
     expect(normalizedInvitationCode('12345'), isNull);
     expect(normalizedInvitationCode(List.filled(64, 'x').join()), isNull);
   });
+
+  test('R71: the code is found inside a whole pasted message', () {
+    const code = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+    expect(normalizedInvitationCode(invitationMessage(code)), code);
+    expect(normalizedInvitationCode('Code: ${code}ff'), isNull);
+  });
 }

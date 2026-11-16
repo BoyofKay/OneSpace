@@ -142,9 +142,14 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
        FormSection(tt('Where and when')),
        field(address,'Address',max:1000,lines:2,icon:Icons.place_outlined),
        field(hours,'Opening or working hours',max:800,lines:2,icon:Icons.schedule),
-       FormSection(tt('Work')),
-       field(company,'Company',icon:Icons.business_outlined),
-       field(role,'Job title or role',icon:Icons.work_outline),
+       // R71: rarely used for clinics and shops, so folded until needed.
+       ExpansionTile(tilePadding:EdgeInsets.zero,
+        initiallyExpanded:company.text.isNotEmpty||role.text.isNotEmpty,
+        leading:const Icon(Icons.work_outline),title:Text(tt('Work (company, job title)')),
+        children:[
+         field(company,'Company',icon:Icons.business_outlined),
+         field(role,'Job title or role',icon:Icons.work_outline),
+        ]),
        FormSection(tt('Notes')),
        field(notes,'Notes',max:3000,lines:3),
        if(error!=null)Padding(padding:const EdgeInsets.symmetric(vertical:8),

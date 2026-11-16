@@ -3,13 +3,16 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'memory_photo_service.dart';
 import 'memory_photo_layouts.dart';
+import 'memory_photo_layout_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// A private, RLS-backed gallery. The layout changes presentation only.
 class MemoryPhotoGallery extends StatefulWidget{
  const MemoryPhotoGallery({super.key,required this.memoryId,
-  required this.editable,required this.layout});
+  required this.editable,required this.layout,this.onLayoutChanged});
  final String memoryId,layout;
+ /// R71: when set, the layout choice shows here once there are photos.
+ final ValueChanged<String>? onLayoutChanged;
  final bool editable;
  @override State<MemoryPhotoGallery> createState()=>_MemoryPhotoGalleryState();
 }
@@ -204,6 +207,13 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
     if(!snapshot.hasData)const Center(child:CircularProgressIndicator()),
     if(active.isEmpty&&snapshot.hasData)Padding(padding:EdgeInsets.all(8),
      child:Text(tt('Add daily selfies, a favorite memory, or several photos for a collage.'))),
+    if(active.isNotEmpty&&widget.onLayoutChanged!=null&&widget.editable)SizedBox(height:44,
+     child:ListView(scrollDirection:Axis.horizontal,children:[
+      for(final e in MemoryPhotoLayoutRules.names.entries)Padding(
+       padding:const EdgeInsetsDirectional.only(end:6),
+       child:ChoiceChip(label:Text(tt(e.value)),selected:widget.layout==e.key,
+        onSelected:(_)=>widget.onLayoutChanged!(e.key))),
+     ])),
     if(active.isNotEmpty)_layout(active),
     if(widget.editable)SwitchListTile(contentPadding:EdgeInsets.zero,
      title:Text(tt('Show removed photos')),value:showRemoved,

@@ -1,25 +1,23 @@
-# R69 — Settings (currency, special dates, holidays) and Memories
+# R71 — the rest of the forms review
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.434 (R67+R68).
+Previous signed preview: 0.1.435 (R69+R70).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.434
-- Preferred currency; Birthdays/anniversary/special dates configuration; built-in Saudi/Egypt/UAE holidays with expected Islamic dates; countries turned on automatically; no Kind chips.
-- Memories: view modes, PDF/email, two-way daily selfie, 9 photo layouts, scrapbook save/remove pages/inline editing/22 designs, page-order bug fixed.
+## Included since 0.1.435
+- Shared experiences Kind/Status + platform chips; Contact Work folded; Days off as a range; Quick add = Share-in list + Daily feeling + Letter; story layout inside the photo area; partner invitation by WhatsApp/SMS/email.
 
 ## Database
-- 0123_r69_special_dates_currency (applied and tested).
-- 0124_r70_memories (applied and tested): story layouts, 22 scrapbook designs, photo_4_id, remove_scrapbook_page.
+- None in this build. 0125 (letters Open on, story place) is prepared in supabase/schema and waits for approval.
 
 ## Verification
-- "Verify OneSpace iteration" passed on r69-settings-memories.
+- "Verify OneSpace iteration" passed on r71-forms-rest.
 
 ## Two-phone validation
-Follow docs/R69_QA.md.
+Follow docs/R71_QA.md.
 
-Controlled R69 signed preview candidate, November 15, 2026.
+Controlled R71 signed preview candidate, November 15, 2026.
