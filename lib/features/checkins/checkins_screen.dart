@@ -457,9 +457,9 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
           if(v.containsKey('talks'))_requestFilter=v['talks']!;
           if(v.containsKey('who'))_filter=v['who']!;
         })),
-    ],bottom:TabBar(controller:_tabs,tabs:const [
-      Tab(text:'Daily check-in'),
-      Tab(text:'Feelings journal'),
+    ],bottom:TabBar(controller:_tabs,tabs:[
+      Tab(text:tt('Daily check-in')),
+      Tab(text:tt('Feelings journal')),
     ])),
     floatingActionButton:_space==null?null:_tabs.index==0
       ?AddFab(label:'Check on ${_partnerName??'your partner'}',onPressed:_askPartner,heroTag:'fab-checkin')
@@ -526,7 +526,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
         margin:const EdgeInsets.only(bottom:10),
         child:ExpansionTile(
           leading:Icon(_moodIcons[mood-1],color:color,size:34),
-          title:Text('${own?'You':_partnerName??'Your partner'} · ${_moodWords[mood-1]}',
+          title:Text('${own?tt('You'):_partnerName??tt('Your partner')} · ${tt(_moodWords[mood-1])}',
             style:theme.textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w700)),
           subtitle:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             if(message.isNotEmpty)Text(tt(message),maxLines:2,overflow:TextOverflow.ellipsis,

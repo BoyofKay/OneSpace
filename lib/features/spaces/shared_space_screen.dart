@@ -724,7 +724,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     final part=hour<5?'Good evening':hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
     final me=FirstName.of(clockMembers.where((m)=>m['is_me']==true)
       .map((m)=>m['name']).firstOrNull);
-    return '$part, $me';
+    // R75: translate the greeting itself; the name stays as typed.
+    return '${tt(part)}${OneSpacePhrases.arabic?'، ':', '}$me';
   }
 
   /// "Your space with your love" (an endearment) or "Your space with Kay".
@@ -987,7 +988,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     Widget group(String label,Color color,List<_Shortcut> tiles)=>Column(
       crossAxisAlignment:CrossAxisAlignment.start,children:[
         Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,10,2,6),
-          child:Text(tt(label.toUpperCase()),style:theme.textTheme.labelSmall?.copyWith(
+          child:Text(tt(label).toUpperCase(),style:theme.textTheme.labelSmall?.copyWith(
             color:color,fontWeight:FontWeight.w800,letterSpacing:.8))),
         GridView.count(
           crossAxisCount:3,

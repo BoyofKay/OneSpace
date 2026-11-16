@@ -1,24 +1,21 @@
-# R74 — Ready for test couples
+# R75 — Notes fix, Arabic, love gestures, notifications
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.438 (R73).
+Previous signed preview: 0.1.439 (R74).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.438
-- Terms of use on sign-up (and once for existing accounts).
-- Google / Apple sign-in (buttons appear once enabled in Supabase).
-- Help, Contact us and Report a problem on the sign-in screen.
-- Automatic error reports (no content).
-- Show in my phone calendar (one way, separate OneSpace calendar; calendar permission).
-- Tablet layout frame.
-- Fix: email confirmation and password-reset links now return to the installed app.
+## Included since 0.1.439
+- Fix: notes crashed when tapping a word.
+- Arabic: greeting, shortcut headers, tabs, moods, Add due date.
+- Love gestures in a logical order; no distance messages for couples living together.
+- Notifications with details, day groups, filters, swipe to mark read.
 
 ## Database
-- 0128_r74_terms_public_help_errors (applied 16 Nov, tested).
+- 0129_r75_gestures_together (applied 16 Nov, verified).
 
 ## Verification
-- "Verify OneSpace iteration" and "iOS build" passed on r74-testers-ready.
+- "Verify OneSpace iteration" passed on r75-polish.

@@ -24,6 +24,14 @@ class _GestureOption {
  final List<String> messages;
 }
 const _options=[
+ // R75: in a logical order — everyday love, the day's rhythm, care and support,
+ // plans and moments, then missing each other (only when you live apart).
+ _GestureOption('love_you','I love you',Icons.favorite,[
+   "I love you. Simply, completely, always.",
+   "Just a reminder: I love you more today than yesterday.",
+   "I love you — in every language and every time zone.",
+   "You are my favorite person. I love you.",
+ ]),
  _GestureOption('hug','Send a hug',Icons.volunteer_activism_outlined,[
    'Sending you a big, warm hug.',
    'A hug is on its way to you, my love.',
@@ -32,13 +40,11 @@ const _options=[
    "Here is a hug that lasts all day.",
    "Hold on — a long, tight hug is coming your way.",
  ]),
- _GestureOption('miss_you','I miss you',Icons.heart_broken_outlined,[
-   'I miss you more than words can say.',
-   'Wish you were here with me right now.',
-   'Across the distance, I am missing you.',
-   // R64: more messages (appended, so edited/hidden ones keep their place).
-   "Everything reminds me of you today.",
-   "Counting down until I can see you again.",
+ _GestureOption('kiss','Send a kiss',Icons.emoji_emotions_outlined,[
+   "Sending you a kiss.",
+   "A little kiss, delivered right to your heart.",
+   "Close your eyes — that was a kiss from me.",
+   "Kisses across the miles, just for you.",
  ]),
  _GestureOption('thinking','Thinking of you',Icons.favorite_outline,[
    'Just wanted you to know I am thinking about you.',
@@ -56,6 +62,15 @@ const _options=[
    "Remembering your laugh made my whole day.",
    "You have a way of making everything lighter.",
  ]),
+ _GestureOption('lucky','Lucky to have you',Icons.stars_outlined,[
+   'I feel so lucky to have you in my life.',
+   'Of all the people in the world, I get to love you.',
+   'Being yours is one of my favorite things.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Out of everyone, I got you. Lucky me.",
+   "Loving you is the best thing that ever happened to me.",
+ ]),
+ // The day's rhythm.
  _GestureOption('morning','Good morning',Icons.wb_sunny_outlined,[
    'Good morning, my love. I hope your day is kind to you.',
    'Wishing you a gentle and beautiful morning.',
@@ -94,6 +109,15 @@ const _options=[
    "Goodnight. I will meet you in our dreams.",
    "Sleep well. I am right here in your heart.",
  ]),
+ // Care and support.
+ _GestureOption('thanks','Thank you',Icons.handshake_outlined,[
+   'Thank you for being there for me.',
+   'I notice all the little things you do. Thank you, love.',
+   'Thank you for making my life warmer.',
+   // R64: more messages (appended, so edited/hidden ones keep their place).
+   "Thank you for loving me the way you do.",
+   "Thank you for every little thing, every day.",
+ ]),
  _GestureOption('proud','Proud of you',Icons.auto_awesome_outlined,[
    'I am so proud of you.',
    'I see everything you do, and I appreciate you.',
@@ -121,21 +145,51 @@ const _options=[
    "Whatever today brings, we face it together.",
    "Breathe. You are stronger than you think.",
  ]),
- _GestureOption('thanks','Thank you',Icons.handshake_outlined,[
-   'Thank you for being there for me.',
-   'I notice all the little things you do. Thank you, love.',
-   'Thank you for making my life warmer.',
-   // R64: more messages (appended, so edited/hidden ones keep their place).
-   "Thank you for loving me the way you do.",
-   "Thank you for every little thing, every day.",
+ _GestureOption('get_well','Feel better soon',Icons.local_florist_outlined,[
+   "Feel better soon. Rest, drink water, and let me spoil you.",
+   "Sending healing hugs and a warm blanket of love.",
+   "I wish I could take care of you right now. Get well soon.",
+   "Take it easy today. Your only job is to rest.",
  ]),
- _GestureOption('lucky','Lucky to have you',Icons.stars_outlined,[
-   'I feel so lucky to have you in my life.',
-   'Of all the people in the world, I get to love you.',
-   'Being yours is one of my favorite things.',
+ _GestureOption('sorry','I am sorry',Icons.healing_outlined,[
+   "I am sorry. You matter more to me than being right.",
+   "I did not handle that well. I am sorry, my love.",
+   "Can we start again? I am sorry.",
+   "I hear you, and I am sorry I hurt you.",
+ ]),
+ // Plans and moments.
+ _GestureOption('celebrate','Congratulations!',Icons.celebration_outlined,[
+   "Congratulations! I knew you could do it.",
+   "So proud of this moment — let us celebrate!",
+   "You did it! Cheering for you so loudly.",
+   "Today is your day. Congratulations, my love.",
+ ]),
+ _GestureOption('date_night','Cannot wait for our date',Icons.wine_bar_outlined,[
+   "I cannot wait for our date.",
+   "Counting the hours until our date night.",
+   "Save your best smile for tonight — it is a date.",
+   "Our date is the best part of my week.",
+ ]),
+ _GestureOption('call_me','Call me when you can',Icons.call_outlined,[
+   "Call me when you can — I miss your voice.",
+   "No rush. Whenever you are free, I would love to talk.",
+   "I have something to tell you. Call me when you can?",
+   "Your voice would make my day. Call me later?",
+ ]),
+ _GestureOption('safe_travels','Safe travels',Icons.flight_takeoff,[
+   "Safe travels, my love. Text me when you land.",
+   "Every mile brings you closer. Travel safe.",
+   "Wishing you smooth skies and an easy journey.",
+   "Have a safe trip. My heart is traveling with you.",
+ ]),
+ // Missing each other.
+ _GestureOption('miss_you','I miss you',Icons.heart_broken_outlined,[
+   'I miss you more than words can say.',
+   'Wish you were here with me right now.',
+   'Across the distance, I am missing you.',
    // R64: more messages (appended, so edited/hidden ones keep their place).
-   "Out of everyone, I got you. Lucky me.",
-   "Loving you is the best thing that ever happened to me.",
+   "Everything reminds me of you today.",
+   "Counting down until I can see you again.",
  ]),
  _GestureOption('miss_together','I miss us together',Icons.people_alt_outlined,[
    'I miss the simple moments when we are side by side.',
@@ -169,55 +223,6 @@ const _options=[
    "Tell our furry ones I will be home soon.",
    "A scratch behind the ears from me, please.",
  ]),
- // R64: new gesture types.
- _GestureOption('love_you','I love you',Icons.favorite,[
-   "I love you. Simply, completely, always.",
-   "Just a reminder: I love you more today than yesterday.",
-   "I love you — in every language and every time zone.",
-   "You are my favorite person. I love you.",
- ]),
- _GestureOption('kiss','Send a kiss',Icons.emoji_emotions_outlined,[
-   "Sending you a kiss.",
-   "A little kiss, delivered right to your heart.",
-   "Close your eyes — that was a kiss from me.",
-   "Kisses across the miles, just for you.",
- ]),
- _GestureOption('sorry','I am sorry',Icons.healing_outlined,[
-   "I am sorry. You matter more to me than being right.",
-   "I did not handle that well. I am sorry, my love.",
-   "Can we start again? I am sorry.",
-   "I hear you, and I am sorry I hurt you.",
- ]),
- _GestureOption('celebrate','Congratulations!',Icons.celebration_outlined,[
-   "Congratulations! I knew you could do it.",
-   "So proud of this moment — let us celebrate!",
-   "You did it! Cheering for you so loudly.",
-   "Today is your day. Congratulations, my love.",
- ]),
- _GestureOption('get_well','Feel better soon',Icons.local_florist_outlined,[
-   "Feel better soon. Rest, drink water, and let me spoil you.",
-   "Sending healing hugs and a warm blanket of love.",
-   "I wish I could take care of you right now. Get well soon.",
-   "Take it easy today. Your only job is to rest.",
- ]),
- _GestureOption('safe_travels','Safe travels',Icons.flight_takeoff,[
-   "Safe travels, my love. Text me when you land.",
-   "Every mile brings you closer. Travel safe.",
-   "Wishing you smooth skies and an easy journey.",
-   "Have a safe trip. My heart is traveling with you.",
- ]),
- _GestureOption('call_me','Call me when you can',Icons.call_outlined,[
-   "Call me when you can — I miss your voice.",
-   "No rush. Whenever you are free, I would love to talk.",
-   "I have something to tell you. Call me when you can?",
-   "Your voice would make my day. Call me later?",
- ]),
- _GestureOption('date_night','Cannot wait for our date',Icons.wine_bar_outlined,[
-   "I cannot wait for our date.",
-   "Counting the hours until our date night.",
-   "Save your best smile for tonight — it is a date.",
-   "Our date is the best part of my week.",
- ]),
 ];
 
 class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
@@ -228,6 +233,8 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  bool loading=true;
  List<Map<String,dynamic>> custom=[];
  List<Map<String,dynamic>> overrides=[];
+ /// R75: living together — no "from miles away" messages, no missing-home types.
+ bool together=false;
 
  @override void initState(){super.initState();_load();}
  Future<void> _load() async {
@@ -240,6 +247,8 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      }
      final members=await db.from('space_members').select('user_id')
        .eq('space_id',space);
+     final mode=await db.from('spaces').select('relationship_mode').eq('id',space).maybeSingle();
+     final livingTogether=mode?['relationship_mode']=='living_together';
      final partner=members.where((m)=>m['user_id']!=me).firstOrNull;
      if(!mounted){return;}
      final other=partner?['user_id']?.toString();
@@ -277,6 +286,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
        recipientName=other==null?null:(names?[other]??'your partner');
        custom=templates;
        overrides=updated;
+       together=livingTogether;
        loading=false;
      });
    }catch(_){
@@ -316,8 +326,10 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  List<String> pool(_GestureOption option)=>
    GesturePoolRules.activeMessages(
      kind:option.id,builtIn:option.messages,
-     overrides:overrides,custom:custom,
+     overrides:overrides,custom:custom,together:together,
    );
+ List<_GestureOption> get sendable=>together
+   ?_options.where((o)=>!GesturePoolRules.apartOnly.contains(o.id)).toList():_options;
  Future<void> editPreset(_GestureOption option,int index) async{
    final old=overrides.where((o)=>o['kind']==option.id&&
       o['message_index']==index).firstOrNull;
@@ -529,12 +541,12 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
            if(!widget.manageOnly)const SizedBox(height:12),
            if(!widget.manageOnly)LayoutBuilder(builder:(ctx,size)=>GridView.builder(
              shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),
-             itemCount:_options.length,
+             itemCount:sendable.length,
              gridDelegate:SliverGridDelegateWithFixedCrossAxisCount(
                crossAxisCount:size.maxWidth>640?3:2,
                childAspectRatio:1.28,crossAxisSpacing:9,mainAxisSpacing:9),
              itemBuilder:(ctx,index){
-               final option=_options[index],color=_tint(option.id);
+               final option=sendable[index],color=_tint(option.id);
                return Card(
                  elevation:0,clipBehavior:Clip.antiAlias,
                  color:Color.alphaBlend(color.withValues(alpha:.15),

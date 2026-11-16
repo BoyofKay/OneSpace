@@ -42,6 +42,10 @@ class OneSpacePhrases {
 
   static final _edges = RegExp(r'^([^A-Za-z]*)(.*?)([\s:·•,.!?…]*)$', dotAll: true);
 
+  static final Map<String, String> _caseless = {
+    for (final e in arPhrases.entries) e.key.toLowerCase(): e.value,
+  };
+
   static String translate(String en) {
     if (lang != 'ar' || en.isEmpty) return en;
     final exact = arPhrases[en];
@@ -61,6 +65,9 @@ class OneSpacePhrases {
         if (changed) return out.join(sep);
       }
     }
+    // R75: "PLAN TOGETHER", "low" — same phrase in another letter case.
+    final cased = _caseless[en.toLowerCase()];
+    if (cased != null) return cased;
     final m = _edges.firstMatch(en);
     if (m == null) return en;
     final core = arPhrases[m.group(2)!] ?? arPhrases['${m.group(2)}.'];

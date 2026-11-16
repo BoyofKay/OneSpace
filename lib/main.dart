@@ -10,6 +10,10 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
+// R75: the notes editor (flutter_quill) and text selection menus still use
+// Flutter's built-in Material, which needs its own localizations.
+import 'package:flutter_localizations/flutter_localizations.dart' as sdk
+    show GlobalMaterialLocalizations, GlobalCupertinoLocalizations;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -233,6 +237,8 @@ class OneSpaceApp extends StatelessWidget {
             supportedLocales:const [Locale('en'),Locale('ar')],
             localizationsDelegates:const [
               GlobalMaterialLocalizations.delegate,
+              sdk.GlobalMaterialLocalizations.delegate,
+              sdk.GlobalCupertinoLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               FlutterQuillLocalizations.delegate,
             ],

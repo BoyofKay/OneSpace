@@ -14,6 +14,7 @@ import '../occasions/occasions_screen.dart';
 import '../memories/scrapbook_studio_screen.dart';
 import '../memories/memories_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
+import 'notification_context.dart';
 
 /// One stable realtime subscription per signed-in account, not per frame.
 class NotificationBell extends StatefulWidget {
@@ -43,7 +44,7 @@ class _NotificationBellState extends State<NotificationBell> {
    builder:(context,snapshot){
     final unread=snapshot.data?.where((n)=>n['read_at']==null).length??0;
     return IconButton(
-     tooltip:unread==0?tt('Notifications'):'Notifications, $unread unread',
+     tooltip:unread==0?tt('Notifications'):tt('Notifications, {} unread').replaceFirst('{}','$unread'),
      onPressed:()=>Navigator.of(context).push(MaterialPageRoute<void>(
       builder:(_)=>const NotificationsScreen())),
      icon:Badge(isLabelVisible:unread>0,label:Text(tt(unread>99?'99+':'$unread')),
@@ -146,8 +147,31 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
  final db=Supabase.instance.client;
- bool unreadOnly=false;
+ String filter=NotificationCategories.all;
  bool saving=false;
+ /// R75: live details per notification id ("Thu 20 Nov · 7:00 PM · Home").
+ Map<String,NotificationContext> details={};
+ String _detailsFor='';
+
+ void _ensureDetails(List<Map<String,dynamic>> items){
+   final key=items.map((n)=>n['id']).join(',');
+   if(key==_detailsFor)return;
+   _detailsFor=key;
+   WidgetsBinding.instance.addPostFrameCallback((_) async {
+     if(!mounted)return;
+     final loaded=await loadNotificationContext(context,items);
+     if(mounted&&_detailsFor==key)setState(()=>details=loaded);
+   });
+ }
+
+ Future<void> _markRead(Map<String,dynamic> item,String userId) async {
+   if(item['read_at']!=null||item['id']==null)return;
+   try{
+     await db.from('space_notifications')
+       .update({'read_at':DateTime.now().toUtc().toIso8601String()})
+       .eq('id',item['id'].toString()).eq('recipient_id',userId);
+   }catch(_){}
+ }
  String? error;
  Stream<List<Map<String,dynamic>>>? _stream;
  String? _streamUser;
@@ -178,22 +202,72 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
    await openNotificationTarget(context,item);
  }
 
+ Widget _tile(Map<String,dynamic> item,String userId,ThemeData theme){
+   final kind=item['kind']?.toString()??'';
+   final unreadItem=item['read_at']==null;
+   final title=tt((item['push_title']??item['headline'])?.toString()??'Update');
+   final rawBody=(item['push_body']?.toString().trim().isNotEmpty??false)
+     ?item['push_body'].toString():item['headline']?.toString()??'';
+   final detail=(item['detail']??'').toString().trim();
+   final body=[
+     if(rawBody.isNotEmpty&&rawBody!=title)rawBody,
+     if(detail.isNotEmpty&&detail!=rawBody)detail,
+   ].join(' · ');
+   final extra=details[item['id']?.toString()];
+   final more=(item['batch_count'] as num?)?.toInt()??1;
+   final color=theme.colorScheme.primary;
+   return Dismissible(
+     key:ValueKey('n-${item['id']}'),
+     direction:unreadItem?DismissDirection.endToStart:DismissDirection.none,
+     background:Container(color:theme.colorScheme.primaryContainer,
+       alignment:AlignmentDirectional.centerEnd,padding:const EdgeInsets.symmetric(horizontal:20),
+       child:Row(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.done),const SizedBox(width:6),Text(tt('Mark read'))])),
+     confirmDismiss:(_) async {await _markRead(item,userId);return false;},
+     child:Material(
+       color:unreadItem?color.withValues(alpha:.06):Colors.transparent,
+       child:InkWell(onTap:()=>_open(item,userId),child:Padding(
+         padding:const EdgeInsetsDirectional.fromSTEB(16,10,12,10),
+         child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+           kind=='gesture'&&item['object_id']!=null
+             ?GestureNotificationIcon(gestureId:item['object_id'].toString())
+             :CircleAvatar(radius:20,backgroundColor:color.withValues(alpha:.12),
+               child:Icon(notificationIcon(item),color:color,size:20)),
+           const SizedBox(width:12),
+           Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+             Text(title,maxLines:2,overflow:TextOverflow.ellipsis,
+               style:theme.textTheme.titleSmall?.copyWith(fontWeight:unreadItem?FontWeight.w700:FontWeight.w500)),
+             if(body.isNotEmpty)Padding(padding:const EdgeInsets.only(top:2),
+               child:Text(kind=='gesture'||kind=='message'||kind=='trip_message'||kind=='experience_comment'||kind=='reply'
+                   ?'“${tt(body)}”':tt(body),
+                 maxLines:3,overflow:TextOverflow.ellipsis,style:theme.textTheme.bodyMedium)),
+             if(extra!=null&&extra.text.isNotEmpty)Padding(padding:const EdgeInsets.only(top:4),
+               child:Row(children:[
+                 Icon(extra.icon,size:15,color:theme.colorScheme.secondary),
+                 const SizedBox(width:5),
+                 Flexible(child:Text(extra.text,maxLines:2,overflow:TextOverflow.ellipsis,
+                   style:theme.textTheme.bodySmall?.copyWith(color:theme.colorScheme.secondary))),
+               ])),
+             if(more>1)Padding(padding:const EdgeInsets.only(top:2),
+               child:Text(tt('+{} more updates like this').replaceFirst('{}','${more-1}'),
+                 style:theme.textTheme.bodySmall)),
+           ])),
+           const SizedBox(width:8),
+           Column(crossAxisAlignment:CrossAxisAlignment.end,children:[
+             Text(tt(notificationAge(item['created_at'])),style:theme.textTheme.labelSmall),
+             if(unreadItem)Padding(padding:const EdgeInsets.only(top:6),
+               child:Icon(Icons.circle,size:9,color:color)),
+           ]),
+         ]))),
+     ),
+   );
+ }
+
  @override Widget build(BuildContext context){
    final userId=db.auth.currentUser?.id;
    if(userId==null)return Scaffold(
      body:Center(child:Text(tt('Sign in required'))));
    return Scaffold(
-     appBar:AppBar(title:Text(tt('Notifications')),actions:[
-      PopupMenuButton<String>(
-       tooltip:tt('Notification filters'),
-       icon:Badge(isLabelVisible:unreadOnly,smallSize:7,child:const Icon(Icons.tune)),
-       initialValue:unreadOnly?'unread':'all',
-       onSelected:(choice)=>setState(()=>unreadOnly=choice=='unread'),
-       itemBuilder:(_)=>[
-        PopupMenuItem(value:'all',child:Text(tt('All notifications'))),
-        PopupMenuItem(value:'unread',child:Text(tt('Unread only'))),
-       ]),
-     ]),
+     appBar:AppBar(title:Text(tt('Notifications'))),
      body:StreamBuilder<List<Map<String,dynamic>>>(
        stream:_feed(userId),
        builder:(context,snapshot){
@@ -203,55 +277,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
            child:CircularProgressIndicator());
          final all=snapshot.data!;
          final unread=all.where((item)=>item['read_at']==null).length;
-         final shown=unreadOnly?
-           all.where((item)=>item['read_at']==null).toList():all;
+         final shown=all.where((n)=>NotificationCategories.matches(n,filter)).toList();
+         _ensureDetails(all.take(60).toList());
+         final theme=Theme.of(context);
+         final rows=<Widget>[];
+         String? lastDay;
+         for(final item in shown){
+           final day=notificationDay(item['created_at']);
+           if(day!=lastDay){
+             lastDay=day;
+             rows.add(Padding(padding:const EdgeInsetsDirectional.fromSTEB(16,14,16,4),
+               child:Text(tt(day),style:theme.textTheme.labelLarge?.copyWith(color:theme.colorScheme.primary))));
+           }
+           rows.add(_tile(item,userId,theme));
+         }
          return Column(children:[
-           Padding(
-             padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),
-             child:Wrap(spacing:8,runSpacing:4,
-              alignment:WrapAlignment.spaceBetween,
-              crossAxisAlignment:WrapCrossAlignment.center,children:[
-               Text('${tt('Unread')}: $unread',
-                 style:Theme.of(context).textTheme.labelLarge),
-               TextButton.icon(
-                 onPressed:unread==0||saving?null:()=>_markAllRead(userId),
-                 icon:const Icon(Icons.done_all),
-                 label:Text(tt('Mark all read'))),
-             ]),
-           ),
-           if(error!=null)Text(tt(error!),style:TextStyle(
-             color:Theme.of(context).colorScheme.error)),
+           SizedBox(height:52,child:ListView(scrollDirection:Axis.horizontal,
+             padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),children:[
+               for(final e in NotificationCategories.labels.entries)Padding(
+                 padding:const EdgeInsetsDirectional.only(end:6),
+                 child:ChoiceChip(
+                   label:Text(e.key==NotificationCategories.unread&&unread>0
+                     ?'${tt(e.value)} ($unread)':tt(e.value)),
+                   selected:filter==e.key,
+                   onSelected:(_)=>setState(()=>filter=e.key))),
+             ])),
+           if(unread>0)Align(alignment:AlignmentDirectional.centerEnd,child:TextButton.icon(
+             onPressed:saving?null:()=>_markAllRead(userId),
+             icon:const Icon(Icons.done_all),label:Text(tt('Mark all read')))),
+           if(error!=null)Text(tt(error!),style:TextStyle(color:theme.colorScheme.error)),
            Expanded(
-             child:shown.isEmpty?
-               Center(child:Text(tt(unreadOnly?tt('No unread notifications.'):tt('All caught up.')))):
-               ListView.builder(
-                 itemCount:shown.length,
-                 itemBuilder:(context,i){
-                   final item=shown[i];
-                   final kind=item['kind']?.toString()??'';
-                   final unreadItem=item['read_at']==null;
-                   return ListTile(
-                     leading:kind=='gesture'&&item['object_id']!=null?
-                       GestureNotificationIcon(
-                         gestureId:item['object_id'].toString()):
-                       Icon(notificationIcon(item)),
-                     title:Text(
-                       tt((item['push_title']??item['headline'])?.toString()??'Update'),
-                       maxLines:2,overflow:TextOverflow.ellipsis,
-                       style:TextStyle(fontWeight:unreadItem?
-                         FontWeight.bold:FontWeight.normal)),
-                     subtitle:Text(
-                       tt([
-                         (item['push_body']?.toString().trim().isNotEmpty??false)
-                           ?item['push_body'].toString():item['headline']?.toString()??'',
-                         notificationAge(item['created_at']),
-                       ].where((part)=>part.isNotEmpty).join(' · ')),
-                       maxLines:3,overflow:TextOverflow.ellipsis),
-                     trailing:unreadItem?const Icon(Icons.circle,size:8):null,
-                     onTap:()=>_open(item,userId),
-                   );
-                 },
-               ),
+             child:shown.isEmpty
+               ?Center(child:Text(tt(filter==NotificationCategories.unread?'No unread notifications.':'All caught up.')))
+               :ListView(padding:const EdgeInsets.only(bottom:24),children:rows),
            ),
          ]);
        },
