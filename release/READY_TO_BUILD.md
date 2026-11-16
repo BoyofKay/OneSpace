@@ -1,21 +1,24 @@
-# R73 — Experiences polish, support screenshot, invitation QR, Arabic sweep
+# R74 — Ready for test couples
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.437 (R72).
+Previous signed preview: 0.1.438 (R73).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.437
-- Shared experiences: ratings on cards, tap a pick again to clear it, one ⋮ on the page, no notes panel, Activity-style conversation with replies.
-- Report a technical issue: attach a screenshot.
-- Invitation: QR code to scan, and a scanner on the join screen (camera permission).
-- Arabic: joined lines translated piece by piece, ~60 sentence patterns, ~70 phrases.
+## Included since 0.1.438
+- Terms of use on sign-up (and once for existing accounts).
+- Google / Apple sign-in (buttons appear once enabled in Supabase).
+- Help, Contact us and Report a problem on the sign-in screen.
+- Automatic error reports (no content).
+- Show in my phone calendar (one way, separate OneSpace calendar; calendar permission).
+- Tablet layout frame.
+- Fix: email confirmation and password-reset links now return to the installed app.
 
 ## Database
-- 0126_r73_experience_replies, 0127_r73_support_screenshot (applied 16 Nov, tested).
+- 0128_r74_terms_public_help_errors (applied 16 Nov, tested).
 
 ## Verification
-- "Verify OneSpace iteration" passed on r73-experiences-polish.
+- "Verify OneSpace iteration" and "iOS build" passed on r74-testers-ready.

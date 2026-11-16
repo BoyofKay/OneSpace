@@ -7,10 +7,14 @@ import 'package:onespace/l10n/phrases.dart';
 /// Bump [release] and rewrite [_items] when there is something worth telling.
 class WhatsNew {
   const WhatsNew._();
-  static const release = 'r73';
+  static const release = 'r74';
   static const _key = 'whats_new_seen_v1';
 
   static const _items = <(IconData, String, String, String, String)>[
+    (Icons.event_available_outlined, 'In your phone calendar', 'Turn on Me › Settings › Show in my phone calendar to see your events, trips and special dates in Google, Samsung or iPhone calendar.',
+      'في تقويم هاتفك', 'فعّل «أنا» ← «الإعدادات» ← «عرض في تقويم هاتفي» لترى مواعيدكما ورحلاتكما وتواريخكما المميزة في تقويم Google أو Samsung أو iPhone.'),
+    (Icons.support_agent_outlined, 'Help, even when signed out', 'Questions and answers, Contact us and Report a problem are now on the sign-in screen too.',
+      'مساعدة حتى دون تسجيل الدخول', 'الأسئلة والأجوبة و«تواصل معنا» و«الإبلاغ عن مشكلة» موجودة الآن في شاشة الدخول أيضًا.'),
     (Icons.forum_outlined, 'Talk about experiences', 'Each movie, show or book has a real conversation now — reply to a message, mention your partner — and your ratings show on the card. Tap a pick again to clear it.',
       'تحدّثا عن التجارب', 'لكل فيلم أو مسلسل أو كتاب محادثة حقيقية الآن — ردّ على رسالة وأشِر إلى شريكك — وتظهر تقييماتكما على البطاقة. اضغط على اختيارك مرة أخرى لإلغائه.'),
     (Icons.qr_code_2_outlined, 'Invite with a QR code', 'Your partner can scan the invitation from your phone. Reports of a technical issue can include a screenshot.',
