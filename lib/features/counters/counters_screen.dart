@@ -194,7 +194,7 @@ class _CountersScreenState extends State<CountersScreen> {
           source: source, yearly: true, yearKnown: known, birthday: birthday));
       }
       final sp = await db.from('spaces').select('relationship_mode,last_met_on,next_meet_on').eq('id', s).maybeSingle();
-      if (sp != null && sp['relationship_mode'] == 'apart') {
+      if (sp != null && (sp['relationship_mode'] ?? '').toString().startsWith('apart')) {
         final last = DateTime.tryParse((sp['last_met_on'] ?? '').toString());
         final next = DateTime.tryParse((sp['next_meet_on'] ?? '').toString());
         if (last != null) out.add(CounterPoint(id: 'last-met', title: tt('Since we last met'), emoji: '🫂', date: last, source: 'How we live'));
