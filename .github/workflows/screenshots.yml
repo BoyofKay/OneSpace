@@ -14,7 +14,7 @@ on:
         required: false
 
 permissions:
-  contents: read
+  contents: write   # pushes the images to the 'app-screens' branch
 
 concurrency:
   group: onespace-demo-space   # one robot at a time: they share the demo space
@@ -88,3 +88,26 @@ jobs:
             build/screenshots/
             build/logs/
           retention-days: 14
+      - name: Publish to the app-screens branch (read by the website build)
+        if: always()
+        shell: bash
+        run: |
+          set -e
+          [ -d build/screenshots ] || exit 0
+          out=$(mktemp -d)
+          cp -r build/screenshots "$out/" ; cp -r build/logs "$out/" 2>/dev/null || true
+          [ -d build/videos ] && cp -r build/videos "$out/" || true
+          cd "$out"
+          git init -q -b app-screens
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          if git fetch -q --depth 1 origin app-screens; then
+            git checkout -q -B app-screens FETCH_HEAD
+            cp -r "$GITHUB_WORKSPACE"/build/screenshots/. screenshots/ 2>/dev/null || true
+            cp -r "$GITHUB_WORKSPACE"/build/logs/. logs/ 2>/dev/null || true
+            [ -d "$GITHUB_WORKSPACE/build/videos" ] && mkdir -p videos && cp -r "$GITHUB_WORKSPACE"/build/videos/. videos/ || true
+          fi
+          git add -A
+          git commit -q -m "Screens from run ${{ github.run_id }} (${{ inputs.sets }})" || exit 0
+          git push -q origin HEAD:app-screens
