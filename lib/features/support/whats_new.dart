@@ -7,19 +7,20 @@ import 'package:onespace/l10n/phrases.dart';
 /// Bump [release] and rewrite [_items] when there is something worth telling.
 class WhatsNew {
   const WhatsNew._();
-  static const release = 'r67';
+  static const release = 'r69';
   static const _key = 'whats_new_seen_v1';
 
   static const _items = <(IconData, String, String, String, String)>[
-    (Icons.flight_takeoff_outlined, 'Trips, step by step', 'Airports by code, one way or round trip, who is traveling and passengers. The status moves on by itself: Planning, Booked, Traveling, Past.',
-      'الرحلات خطوة بخطوة', 'المطارات برموزها، ذهاب فقط أو ذهاب وعودة، من سيسافر وعدد المسافرين. وتتغير الحالة تلقائيًا: تخطيط، محجوزة، في السفر، سابقة.'),
-    (Icons.travel_explore, 'Google Flights, filled in', 'Search opens already filled from your trip. Share a flight back to OneSpace and it is read for you.',
-      'Google Flights جاهز', 'يفتح البحث مملوءًا من رحلتك. شارك الرحلة الجوية إلى OneSpace وستُقرأ تفاصيلها تلقائيًا.'),
-    (Icons.card_giftcard_outlined, 'Occasions and gifts', 'Start from a holiday or special date, a reminder to start preparing, and gifts that move from ideas to reserved to bought.',
-      'المناسبات والهدايا', 'ابدأ من عطلة أو تاريخ مميز، مع تذكير لبدء التحضير، وهدايا تنتقل من الأفكار إلى المحجوز إلى المشترى.'),
-    (Icons.format_paint_outlined, 'Easier note formatting', 'Big buttons with words: title, heading, bold, highlight, colours, lists and checklists.',
-      'تنسيق أسهل للملاحظات', 'أزرار كبيرة بأسمائها: عنوان، عنوان فرعي، عريض، تظليل، ألوان، قوائم وقوائم تحقق.'),
+    (Icons.cake_outlined, 'Birthdays & special dates', 'Settings now has places for your birthday, your partner\'s, your anniversary and your own dates. They show in the calendar and start occasions.',
+      'أعياد الميلاد والتواريخ المميزة', 'في الإعدادات أماكن لعيد ميلادك وميلاد شريكك وذكرى زواجكما وتواريخكما الخاصة. تظهر في التقويم وتبدأ منها المناسبات.'),
+    (Icons.payments_outlined, 'Your currency', 'Choose a preferred currency next to the language; every price and budget starts with it. Holidays now include Ramadan and the Eids.',
+      'عملتك', 'اختر عملتك المفضلة بجانب اللغة؛ تبدأ بها كل الأسعار والميزانيات. وأصبحت العطلات تشمل رمضان والأعياد.'),
+    (Icons.photo_camera_front_outlined, 'Selfies together', 'Your daily selfie and your partner\'s sit side by side in the same day. Memories open to read, with PDF and email.',
+      'سيلفي معًا', 'سيلفي اليوم لك ولشريكك جنبًا إلى جنب في اليوم نفسه. والذكريات تُفتح للقراءة مع PDF والبريد.'),
+    (Icons.auto_stories_outlined, 'Scrapbooks, reworked', '22 designs, type and tap right on the page, a Save button, remove pages, and read page by page.',
+      'دفاتر الذكريات من جديد', '22 تصميمًا، اكتب واضغط على الصفحة مباشرة، زر حفظ، حذف الصفحات، وتصفّح صفحة بصفحة.'),
   ];
+
 
 
 
