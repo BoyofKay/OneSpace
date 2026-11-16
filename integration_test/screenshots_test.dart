@@ -37,7 +37,7 @@ const _url = 'https://ugwrpeduzyzrujkizqfo.supabase.co';
 const _key = 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe';
 const _email = String.fromEnvironment('DEMO_EMAIL', defaultValue: 'demo.omar@example.com');
 const _password = String.fromEnvironment('DEMO_PASSWORD');
-const _set = String.fromEnvironment('SHOT_SET', defaultValue: 'core'); // core | themes | together
+const _set = String.fromEnvironment('SHOT_SET', defaultValue: 'core'); // core | themes | together | video
 const _lang = String.fromEnvironment('SHOT_LANG', defaultValue: 'en'); // en | ar
 
 /// Fresh demo content before the app starts, so nothing is cached from a
@@ -116,7 +116,103 @@ void main() {
 
     Future<void> today() => tab(Icons.today_outlined, Icons.today, 'today', settle: 6);
 
-    if (_set == 'themes') {
+    // Video set: tools/screenshots/run.sh records the screen; these markers
+    // (device clock) tell tools/screenshots/cut_clips.py where each clip is.
+    Future<void> clip(String name, Future<void> Function() body) async {
+      debugPrint('CLIP_START $name ${DateTime.now().millisecondsSinceEpoch}');
+      await wait(0.8);
+      await body();
+      await wait(0.8);
+      debugPrint('CLIP_END $name ${DateTime.now().millisecondsSinceEpoch}');
+    }
+    Future<void> scroll(double dy, {double seconds = 1.6}) async {
+      final s = find.byType(Scrollable);
+      if (s.evaluate().isEmpty) return;
+      await tester.timedDrag(s.first, Offset(0, dy), Duration(milliseconds: (seconds * 1000).round()));
+      await wait(0.8);
+    }
+    Future<void> push(Widget screen, {double settle = 3}) async {
+      nav().push(MaterialPageRoute<void>(builder: (_) => screen));
+      await wait(settle);
+    }
+    Future<void> popAll() async { while (nav().canPop()) { nav().pop(); await wait(0.8); } }
+    Future<void> tapIcon(IconData a, IconData b, {double settle = 2.5}) async {
+      final f = find.byIcon(a).evaluate().isNotEmpty ? find.byIcon(a) : find.byIcon(b);
+      if (f.evaluate().isNotEmpty) { await tester.tap(f.first); await wait(settle); }
+    }
+
+    if (_set == 'video') {
+      await clip('tour', () async {
+        await wait(1.5);
+        await scroll(-420); await scroll(-420); await scroll(840, seconds: 1.2);
+        await tapIcon(Icons.bookmark_border, Icons.bookmark);
+        await tapIcon(Icons.hub_outlined, Icons.hub);
+        await tapIcon(Icons.favorite_border, Icons.favorite);
+        await tapIcon(Icons.today_outlined, Icons.today);
+      });
+      await clip('quickadd', () async {
+        final fab = find.byType(FloatingActionButton);
+        if (fab.evaluate().isNotEmpty) { await tester.tap(fab.first); await wait(3); nav().maybePop(); await wait(1); }
+      });
+      await clip('counters', () async {
+        await push(const CountersScreen(), settle: 3.5);
+        await scroll(-500, seconds: 2); await wait(1); await scroll(500, seconds: 1.4);
+        await popAll();
+      });
+      final weekend = await idOf('activities', 'title', ar ? 'عطلة نهاية الأسبوع' : 'Weekend away');
+      if (weekend != null) {
+        await clip('plan', () async {
+          await push(ActivityScreen(id: weekend), settle: 3.5);
+          await scroll(-450, seconds: 1.8); await wait(1);
+          await popAll();
+          await push(ActivityScreen(id: weekend, focusConversation: true), settle: 4);
+          await wait(1.5);
+          await popAll();
+        });
+      }
+      await clip('places', () async {
+        await push(const PlacesScreen(), settle: 3);
+        await scroll(-300); await scroll(300, seconds: 1);
+        final map = find.byIcon(Icons.map_outlined);
+        if (map.evaluate().isNotEmpty) {
+          await tester.tap(map.first); await wait(6);
+          final m = find.byType(Scrollable).evaluate().isEmpty ? find.byType(Listener) : find.byType(Scrollable);
+          if (m.evaluate().isNotEmpty) { await tester.timedDrag(m.first, const Offset(-160, 60), const Duration(milliseconds: 1500)); await wait(2); }
+        }
+        await popAll();
+      });
+      final trip = await idOf('shared_trips', 'title', ar ? 'لقاء إسطنبول' : 'Istanbul reunion');
+      if (trip != null) {
+        await clip('trip', () async {
+          await push(TripDetail(tripId: trip), settle: 3.5);
+          await scroll(-500, seconds: 2); await scroll(-500, seconds: 2); await wait(1);
+          await popAll();
+        });
+      }
+      await clip('love', () async {
+        await push(const PartnerGesturesScreen(), settle: 3.5);
+        await scroll(-400, seconds: 1.8); await wait(1); await scroll(400, seconds: 1.2);
+        await popAll();
+      });
+      await clip('letters', () async {
+        await push(const CoupleLettersScreen(), settle: 3.5);
+        await wait(2);
+        await popAll();
+      });
+      await clip('themes', () async {
+        await push(const AppearanceSettingsScreen(), settle: 3);
+        for (final p in [OneSpacePalette.softRose, OneSpacePalette.oceanTeal, OneSpacePalette.lavenderDusk, OneSpacePalette.midnightBlue, OneSpacePalette.desertSand, OneSpacePalette.cleanLight]) {
+          await OneSpaceAppearance.instance.setPalette(p);
+          await wait(1.6);
+        }
+        await popAll();
+        await OneSpaceAppearance.instance.setPalette(OneSpacePalette.midnightBlue);
+        await wait(2.5);
+        await OneSpaceAppearance.instance.setPalette(OneSpacePalette.cleanLight);
+        await wait(1.5);
+      });
+      await shot('video_done');
+    } else if (_set == 'themes') {
       for (final palette in OneSpacePalette.values) {
         await OneSpaceAppearance.instance.setPalette(palette);
         await wait(2);
