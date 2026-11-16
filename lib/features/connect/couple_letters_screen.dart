@@ -17,6 +17,8 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   // realtime publication, so the stream failed a little after opening
   // ("Unable to load letters"). Reloads on return and pull-to-refresh.
   List<Map<String,dynamic>>? letters;
+  /// R72: letters waiting for their day (no title or words, just the date).
+  List<Map<String,dynamic>> sealed=const [];
   String view='inbox';
   String? error;
   bool loading=true;
@@ -29,8 +31,13 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
       final rows=id==null?null:List<Map<String,dynamic>>.from(
         await db.from('couple_letters').select().eq('space_id',id)
           .order('updated_at',ascending:false).limit(300));
+      var waiting=const <Map<String,dynamic>>[];
+      try{
+        waiting=List<Map<String,dynamic>>.from(await db.rpc('sealed_letters') as List);
+      }catch(_){}
       if(!mounted)return;
       setState((){
+        sealed=waiting;
         spaceId=id;
         loading=false;
         error=null;
@@ -123,7 +130,15 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
                   textAlign:TextAlign.center,
                 ),
               );}
+              final loc=MaterialLocalizations.of(context);
               return Column(children:[
+                if(view=='inbox')for(final s in sealed)Card(elevation:0,
+                  color:Theme.of(context).colorScheme.tertiaryContainer,
+                  child:ListTile(
+                    leading:const Icon(Icons.mark_email_unread_outlined),
+                    title:Text(tt('A letter is waiting for you')),
+                    subtitle:Text(tt('It opens on ')+loc.formatFullDate(DateTime.parse(s['open_on'].toString()))),
+                    trailing:const Icon(Icons.lock_clock_outlined))),
                 for(final letter in data)
                   Card(elevation:0,child:ListTile(
                     leading:Icon(letter['status']=='draft'
@@ -135,7 +150,9 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
                         letter['body']?.toString()??'')),
                         maxLines:2,overflow:TextOverflow.ellipsis),
                       const SizedBox(height:3),
-                      Text(tt(_stamp(letter)),style:Theme.of(context).textTheme.labelSmall),
+                      Text(tt(_stamp(letter))+(letter['open_on']!=null&&letter['status']=='sent'
+                        ?' · '+tt('Opens on ')+loc.formatMediumDate(DateTime.parse(letter['open_on'].toString())):''),
+                        style:Theme.of(context).textTheme.labelSmall),
                     ]),
                     isThreeLine:true,
                     trailing:const Icon(Icons.chevron_right),
@@ -168,6 +185,8 @@ class CoupleLetterEditor extends StatefulWidget {
 class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
   late final TextEditingController title;
   late final TextEditingController body;
+  /// R72: deliver on a chosen day (null = now).
+  DateTime? openOn;
   bool saving=false;
   String? error;
 
@@ -178,6 +197,7 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
         ?? (widget.parent==null?'':CoupleLetterRules.replyTitle(
           widget.parent!['title']?.toString()??'Letter')));
     body=TextEditingController(text:widget.existing?['body']?.toString()??'');
+    openOn=DateTime.tryParse(widget.existing?['open_on']?.toString()??'');
   }
   @override
   void dispose(){title.dispose();body.dispose();super.dispose();}
@@ -194,6 +214,7 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
         'title':title.text.trim(),
         'body':body.text.trim(),
         'status':send?'sent':'draft',
+        'open_on':openOn==null?null:'${openOn!.year.toString().padLeft(4,'0')}-${openOn!.month.toString().padLeft(2,'0')}-${openOn!.day.toString().padLeft(2,'0')}',
       };
       final old=widget.existing;
       if(old!=null){
@@ -245,13 +266,28 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
         decoration:InputDecoration(
           labelText:tt('Your letter'),hintText:tt('What do you want them to know?'),
           alignLabelWithHint:true,border:OutlineInputBorder())),
+      // R72: a letter can wait for a special day.
+      Card(elevation:0,child:ListTile(
+        leading:Icon(openOn==null?Icons.schedule_send_outlined:Icons.lock_clock_outlined),
+        title:Text(openOn==null?tt('Open on a special day (optional)')
+          :tt('Opens on ')+MaterialLocalizations.of(context).formatFullDate(openOn!)),
+        subtitle:Text(tt(openOn==null?'Your partner sees a sealed envelope until that day.'
+          :'Until then your partner sees only a sealed envelope with the date.')),
+        trailing:openOn==null?const Icon(Icons.chevron_right):IconButton(tooltip:tt('Clear'),
+          icon:const Icon(Icons.close),onPressed:()=>setState(()=>openOn=null)),
+        onTap:()async{
+          final now=DateTime.now();
+          final d=await showDatePicker(context:context,initialDate:openOn??now.add(const Duration(days:1)),
+            firstDate:now.add(const Duration(days:1)),lastDate:now.add(const Duration(days:3650)));
+          if(d!=null)setState(()=>openOn=d);
+        })),
       if(error!=null)Text(tt(error!),
         style:TextStyle(color:Theme.of(context).colorScheme.error)),
       const SizedBox(height:12),
       FilledButton.icon(
-        icon:const Icon(Icons.send_outlined),
+        icon:Icon(openOn==null?Icons.send_outlined:Icons.schedule_send_outlined),
         onPressed:saving?null:()=>save(send:true),
-        label:Text(tt(saving?tt('Saving…'):tt('Send to my partner')))),
+        label:Text(tt(saving?tt('Saving…'):openOn==null?tt('Send to my partner'):tt('Send for that day')))),
       const SizedBox(height:7),
       OutlinedButton.icon(
         icon:const Icon(Icons.save_outlined),

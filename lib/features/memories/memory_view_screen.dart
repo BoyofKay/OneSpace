@@ -194,7 +194,8 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
         : RefreshIndicator(onRefresh: load, child: ListView(padding: const EdgeInsets.fromLTRB(18, 12, 18, 30), children: [
             Text(tt(m['title'].toString()), style: theme.textTheme.headlineSmall),
             const SizedBox(height: 4),
-            Text(tt([dateLabel(), who(m['created_by']?.toString()),
+            Text(tt([dateLabel(), if ((m['place'] ?? '').toString().isNotEmpty) m['place'].toString(),
+              who(m['created_by']?.toString()),
               m['visibility'] == 'private' ? 'Only me' : 'Both of us'].map(tt).join(' · ')),
               style: theme.textTheme.bodySmall),
             const SizedBox(height: 14),

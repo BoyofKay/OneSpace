@@ -166,7 +166,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       ...(p['people_tags'] as List? ??const []).map((v)=>v.toString()),
       ...(p['other_tags'] as List? ??const []).map((v)=>v.toString()),
     ]).join(' ');
-   final content=((memory['title']??'').toString()+' '+(memory['body']??'').toString()+' '+tags).toLowerCase();
+   final content=((memory['title']??'').toString()+' '+(memory['body']??'').toString()+' '+(memory['place']??'').toString()+' '+tags).toLowerCase();
    return words.every(content.contains);
   }
 
@@ -322,11 +322,13 @@ class MemoryEditorScreen extends StatefulWidget {
 
 class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChangeTracker<MemoryEditorScreen> {
  /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[_title.text,_body.text,_date,_visibility,_pinned,_memoryType,_photoLayout].join('|');
+ @override String get signature=>[_title.text,_body.text,_place.text,_date,_visibility,_pinned,_memoryType,_photoLayout].join('|');
 
   final _client = Supabase.instance.client;
   late final TextEditingController _title;
   late final TextEditingController _body;
+  /// R72: where it happened.
+  late final TextEditingController _place;
   late DateTime _date;
   late String _visibility;
   late bool _pinned;
@@ -354,6 +356,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
       text: widget.existing?['title'] as String? ?? '');
     _body = TextEditingController(
       text: widget.existing?['body'] as String? ?? '');
+    _place = TextEditingController(text: widget.existing?['place']?.toString() ?? '');
     _date = DateTime.tryParse(widget.existing?['memory_date'] as String? ?? '')
         ?? DateTime.now();
     _visibility = widget.existing?['visibility'] as String? ?? 'shared';
@@ -384,6 +387,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     _grants?.cancel();
     _title.dispose();
     _body.dispose();
+    _place.dispose();
     super.dispose();
   }
 
@@ -395,7 +399,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     setState(() { _busy = true; _error = null; });
     try {
       final row = await _client.from('memories').insert({
-        'title': title, 'body': _body.text.trim(), 'memory_date': CalendarRules.sqlDate(_date),
+        'title': title, 'body': _body.text.trim(), 'place': _place.text.trim(), 'memory_date': CalendarRules.sqlDate(_date),
         'pinned': _pinned, 'memory_type': _memoryType, 'photo_layout': _photoLayout,
         'space_id': widget.spaceId, 'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
       }).select().single();
@@ -418,7 +422,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     setState(() { _busy = true; _error = null; });
     try {
       final fields = <String,dynamic>{
-        'title': title, 'body': body,
+        'title': title, 'body': body, 'place': _place.text.trim(),
         'memory_date': CalendarRules.sqlDate(_date),
         'pinned': _pinned,
         'memory_type':_memoryType,'photo_layout':_photoLayout,
@@ -456,7 +460,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
   Widget build(BuildContext context) => EditorScaffold(
    title:_editing?tt('Edit story'):tt('New story'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
-   listenTo:[_title,_body],saving:_busy,onSave:_save,
+   listenTo:[_title,_body,_place],saving:_busy,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),showBelongs:false,showDate:false,
      enabled:!_editing&&!_busy,onChanged:(v)=>setState(()=>_visibility=v.shared?'shared':'private')),
    body: SafeArea(
@@ -478,6 +482,11 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           DateField(label: tt('When did it happen?'), required: true, value: _date,
             first: DateTime(1950), last: DateTime.now(),
             onChanged: (v) { if (v != null && _editable && !_busy) setState(() => _date = v); }),
+          TextField(controller: _place, readOnly: !_editable, maxLength: 160,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(labelText: tt('Where did it happen? (optional)'),
+              hintText: tt('A café, a city, home…'), prefixIcon: const Icon(Icons.place_outlined),
+              border: const OutlineInputBorder())),
           TextField(
             controller: _body,
             readOnly: !_editable,
