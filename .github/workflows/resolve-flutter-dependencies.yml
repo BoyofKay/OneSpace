@@ -2,15 +2,18 @@ name: Resolve reviewed Flutter Quill dependency
 
 on:
   push:
-    branches: [main]
+    # R70: also on iteration branches, so CI can verify a new package
+    # before merging (the lock is committed back to the same branch).
+    branches: [main, 'r[0-9]*']
     paths:
       - pubspec.yaml
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: onespace-dependency-resolution
+  group: onespace-dependency-resolution-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -38,18 +41,19 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add pubspec.lock
-          git commit -m 'Lock Flutter Quill dependency graph for OneSpace Notes 2.0'
+          git commit -m 'Lock Flutter dependency graph'
           # Flutter also updates generated plugin files. The committed lock
           # is the only output this workflow is allowed to retain.
           git restore --worktree .
           # Allow concurrent source commits without rewriting history.
+          branch="${GITHUB_REF_NAME}"
           for attempt in 1 2 3 4 5; do
-            git fetch origin main
-            git rebase origin/main
-            if git push origin HEAD:main; then
+            git fetch origin "$branch"
+            git rebase "origin/$branch"
+            if git push origin "HEAD:$branch"; then
               exit 0
             fi
             sleep 2
           done
-          echo 'Main moved repeatedly; lockfile was not committed.' >&2
+          echo 'The branch moved repeatedly; lockfile was not committed.' >&2
           exit 1
