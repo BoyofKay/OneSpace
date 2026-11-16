@@ -2536,4 +2536,14 @@ const Map<String, String> arPhrases = {
   'Text message': 'رسالة نصية',
   'WhatsApp': 'واتساب',
   'Join me on OneSpace': 'انضم إليّ في OneSpace',
+  // R72
+  'A letter is waiting for you': 'رسالة تنتظرك',
+  'It opens on ': 'تُفتح في ',
+  'Opens on ': 'تُفتح في ',
+  'Open on a special day (optional)': 'تُفتح في يوم مميز (اختياري)',
+  'Your partner sees a sealed envelope until that day.': 'يرى شريكك ظرفًا مغلقًا حتى ذلك اليوم.',
+  'Until then your partner sees only a sealed envelope with the date.': 'حتى ذلك الحين يرى شريكك ظرفًا مغلقًا مع التاريخ فقط.',
+  'Send for that day': 'أرسلها لذلك اليوم',
+  'Where did it happen? (optional)': 'أين حدث ذلك؟ (اختياري)',
+  'A café, a city, home…': 'مقهى، مدينة، البيت…',
 };
