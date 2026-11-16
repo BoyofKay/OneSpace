@@ -121,8 +121,7 @@ void main() {
     }
     Future<void> tab(IconData outlined, IconData filled, String name, {double settle = 4}) async {
       final f = find.byIcon(outlined).evaluate().isNotEmpty ? find.byIcon(outlined) : find.byIcon(filled);
-      if (f.evaluate().isEmpty) return;
-      await tester.tap(f.first);
+      if (f.evaluate().isNotEmpty) await tester.tap(f.first);
       await wait(settle);
       await shot(name);
     }
@@ -239,6 +238,7 @@ void main() {
         await open(const PartnerGesturesScreen(), 'love_${palette.name}');
       }
     } else if (_set == 'together') {
+      await wait(4);
       await today();
       await open(const PartnerGesturesScreen(), 'love');
       await open(const PlansScreen(), 'lists');
