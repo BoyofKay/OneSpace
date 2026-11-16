@@ -20,6 +20,8 @@ import '../mentions/partner_mention_button.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
+/// R71: short names for the Kind chips in the form.
+const experienceKinds={'movie':'Movie','show':'TV show','music':'Music','book':'Book','game':'Game','other':'Other'};
 const experienceStates={'suggested':'Suggested','planned':'Planned','enjoyed':'Enjoyed'};
 
 class SharedExperiencesScreen extends StatefulWidget {
@@ -560,6 +562,13 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    catch(_){if(mounted)setState(()=>error='Could not save experience.');}
    finally{if(mounted)setState(()=>saving=false);}
  }
+ static const platformChoices=<String,List<String>>{
+  'movie':['Netflix','Cinema','Shahid','Prime Video','Disney+','Apple TV','OSN+'],
+  'show':['Netflix','Shahid','Prime Video','Disney+','Apple TV','OSN+','YouTube'],
+  'music':['Spotify','Anghami','Apple Music','YouTube Music','SoundCloud'],
+  'book':['Kindle','Audible','Jarir','Paper book'],
+  'game':['PlayStation','Xbox','Nintendo Switch','PC','Phone'],
+ };
  Map<String,String> get words=>switch(kind){
   'movie'=>{'title':'Movie title','platform':'Where to watch','hint':'Netflix, cinema…'},
   'show'=>{'title':'Show title','platform':'Where to watch','hint':'Netflix, Shahid…'},
@@ -576,7 +585,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    meta:MetaStrip(value:MetaValues(date:planned),showVisibility:false,showBelongs:false,
     dateLabel:tt('Plan a date'),onChanged:(v)=>setState(()=>planned=v.date)),
    body:ListView(padding:const EdgeInsets.all(18),children:[
-   ChoiceRow<String>(label:tt('Watchlist'),options:experienceTypes,selected:kind,
+   ChoiceRow<String>(label:tt('Kind'),options:experienceKinds,selected:kind,
     icons:{for(final k in experienceTypes.keys)k:switch(k){
      'movie'=>Icons.movie_creation_outlined,'show'=>Icons.live_tv_outlined,
      'music'=>Icons.queue_music_outlined,'book'=>Icons.menu_book_outlined,
@@ -586,7 +595,15 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     textCapitalization:TextCapitalization.sentences,
     decoration:InputDecoration(labelText:'${w['title']} *',border:const OutlineInputBorder())),
    const SizedBox(height:6),
+   // R71: the usual places for this kind are one tap; anything else can be typed.
+   if((platformChoices[kind]??const []).isNotEmpty)Padding(padding:const EdgeInsets.only(bottom:8),
+    child:Wrap(spacing:6,runSpacing:4,children:[
+     for(final p in platformChoices[kind]!)ChoiceChip(label:Text(tt(p)),
+      selected:platform.text.trim()==p,
+      onSelected:(on)=>setState(()=>platform.text=on?p:'')),
+    ])),
    TextField(controller:platform,maxLength:100,
+    onChanged:(_)=>setState((){}),
     decoration:InputDecoration(labelText:w['platform'],hintText:w['hint']!.isEmpty?null:w['hint'],
      prefixIcon:const Icon(Icons.live_tv_outlined),border:const OutlineInputBorder())),
    const SizedBox(height:10),
@@ -594,7 +611,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     decoration:InputDecoration(labelText:tt('Link'),prefixIcon:Icon(Icons.link),
      border:OutlineInputBorder())),
    const SizedBox(height:10),
-   ChoiceRow<String>(label:tt('Progress'),options:experienceStates,selected:status,
+   ChoiceRow<String>(label:tt('Status'),options:experienceStates,selected:status,
     icons:const {'suggested':Icons.lightbulb_outline,'planned':Icons.event_available_outlined,
      'enjoyed':Icons.task_alt},
     onSelected:(v){if(v!=null)setState((){

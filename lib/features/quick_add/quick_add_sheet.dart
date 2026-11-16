@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../calendar/calendar_event_editor.dart';
+import '../checkins/checkins_screen.dart';
+import '../connect/couple_letters_screen.dart';
 import '../coordinate/new_activity_screen.dart';
 import '../memories/memories_screen.dart';
 import '../notes/quill_note_editor_screen.dart';
@@ -10,7 +12,8 @@ import '../reminders/reminders_screen.dart';
 import '../world/trips_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
-/// The eight Quick add choices, in the order the spec lists them (2.1).
+/// The Quick add choices (R71: + Daily feeling and Letter, so Quick add and
+/// Share-in offer the same places).
 enum QuickAddKind {
   reminder('Reminder', Icons.alarm_add_outlined),
   todo('To-do', Icons.add_task_outlined),
@@ -19,7 +22,9 @@ enum QuickAddKind {
   research('Something to research', Icons.travel_explore_outlined),
   gift('Gift idea', Icons.card_giftcard_outlined),
   trip('Trip', Icons.flight_takeoff_outlined),
-  memory('Memory', Icons.add_photo_alternate_outlined);
+  memory('Story', Icons.add_photo_alternate_outlined),
+  feeling('Daily feeling', Icons.mood_outlined),
+  letter('Letter', Icons.mail_outline);
 
   const QuickAddKind(this.label, this.icon);
   final String label;
@@ -75,6 +80,8 @@ Future<void> openQuickAdd(BuildContext context, QuickAddKind kind,
     QuickAddKind.gift => const OccasionsScreen(),
     QuickAddKind.trip => TripEditor(spaceId: spaceId),
     QuickAddKind.memory => MemoryEditorScreen(spaceId: spaceId),
+    QuickAddKind.feeling => CheckinEditor(spaceId: spaceId),
+    QuickAddKind.letter => CoupleLetterEditor(spaceId: spaceId),
   };
   return Navigator.of(context).push<void>(MaterialPageRoute<void>(builder: (_) => page));
 }

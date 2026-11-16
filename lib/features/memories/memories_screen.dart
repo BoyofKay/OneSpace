@@ -493,17 +493,10 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
             icon: Icons.push_pin_outlined, value: _pinned,
             onChanged: !_editable || _busy ? null : (v) => setState(() => _pinned = v))),
           FormSection(tt('Photos')),
-          ChoiceRow<String>(label: tt('Layout'), options: MemoryPhotoLayoutRules.names,
-            icons: const {'grid': Icons.grid_view, 'feature': Icons.view_agenda_outlined,
-              'polaroid': Icons.photo_outlined, 'overlap': Icons.layers_outlined,
-              'carousel': Icons.view_carousel_outlined, 'mosaic': Icons.dashboard_outlined,
-              'film': Icons.theaters_outlined, 'scatter': Icons.collections_outlined,
-              'timeline': Icons.timeline},
-            selected: _photoLayout,
-            onSelected: (v) { if (_editable && !_busy && v != null) setState(() => _photoLayout = v); }),
           if(_record!=null&&!_archived)MemoryPhotoGallery(
            memoryId:_record!['id'].toString(),
-           editable:_editable,layout:_photoLayout)
+           editable:_editable,layout:_photoLayout,
+           onLayoutChanged:(v){if(_editable&&!_busy)setState(()=>_photoLayout=v);})
           else if(_record==null)Align(alignment:AlignmentDirectional.centerStart,child:ActionChip(
            avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
            label:Text(tt('Add photos')),onPressed:_busy?null:_ensureSaved)),

@@ -40,7 +40,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
    if(space==null)return;
    var date=DateTime.tryParse(existing?['off_date']?.toString()??'')??
      DateTime.now();
-   final result=await Navigator.of(context).push<(DateTime,String)>(MaterialPageRoute(
+   final result=await Navigator.of(context).push<(DateTime,String,DateTime?)>(MaterialPageRoute(
      builder:(_)=>DayOffEditorPage(date:date,label:existing?['label']?.toString()??'',
        isNew:existing==null)));
    try{
@@ -54,7 +54,16 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
        'label':label.isEmpty?'Day off':label,
      };
      if(existing==null){
-       await db.from('personal_days_off').insert(values);
+       // R71: a range adds one day off per day (days already set are kept).
+       final until=result.$3;
+       final taken={for(final d in days)d['off_date'].toString()};
+       final rows=<Map<String,dynamic>>[];
+       for(var d=date;!d.isAfter(until??date)&&rows.length<62;d=DateTime(d.year,d.month,d.day+1)){
+         final key=CalendarRules.sqlDate(d);
+         if(taken.contains(key))continue;
+         rows.add({...values,'off_date':key});
+       }
+       if(rows.isNotEmpty)await db.from('personal_days_off').insert(rows);
      }else{
        await db.from('personal_days_off').update({
          'off_date':CalendarRules.sqlDate(date),
@@ -136,13 +145,14 @@ class DayOffEditorPage extends StatefulWidget{
 }
 class _DayOffEditorPageState extends State<DayOffEditorPage>{
  late DateTime date=widget.date;
+ DateTime? until;
  late final label=TextEditingController(text:widget.label);
  @override void dispose(){label.dispose();super.dispose();}
  @override Widget build(BuildContext context)=>EditorScaffold(
    title:widget.isNew?tt('Add day off'):tt('Edit day off'),isNew:widget.isNew,
-   isChanged:()=>label.text!=widget.label||!DateUtils.isSameDay(date,widget.date),
+   isChanged:()=>label.text!=widget.label||!DateUtils.isSameDay(date,widget.date)||until!=null,
    isComplete:()=>true,listenTo:[label],saveLabel:tt('Save day off'),
-   onSave:()=>Navigator.pop(context,(date,label.text.trim())),
+   onSave:()=>Navigator.pop(context,(date,label.text.trim(),until)),
    body:ListView(padding:const EdgeInsets.all(18),children:[
      Card(elevation:0,child:ListTile(
        leading:const Icon(Icons.event_outlined),
@@ -152,7 +162,19 @@ class _DayOffEditorPageState extends State<DayOffEditorPage>{
        onTap:()async{
          final picked=await showDatePicker(context:context,initialDate:date,
            firstDate:DateTime(2020),lastDate:DateTime(2100));
-         if(picked!=null)setState(()=>date=picked);
+         if(picked!=null)setState((){date=picked;if(until!=null&&until!.isBefore(picked))until=null;});
+       })),
+     if(widget.isNew)Card(elevation:0,child:ListTile(
+       leading:const Icon(Icons.date_range_outlined),
+       title:Text(tt(until==null?'Until (for several days)':MaterialLocalizations.of(context).formatFullDate(until!))),
+       subtitle:Text(tt(until==null?'Optional: a vacation or a long weekend':
+         '${until!.difference(date).inDays+1} days off')),
+       trailing:until==null?const Icon(Icons.add):IconButton(tooltip:tt('Clear'),
+         icon:const Icon(Icons.close),onPressed:()=>setState(()=>until=null)),
+       onTap:()async{
+         final picked=await showDatePicker(context:context,initialDate:until??date.add(const Duration(days:1)),
+           firstDate:date,lastDate:date.add(const Duration(days:61)));
+         if(picked!=null)setState(()=>until=picked);
        })),
      const SizedBox(height:12),
      TextField(controller:label,maxLength:120,
