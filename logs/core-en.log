@@ -1,0 +1,551 @@
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.79 (1.4.0 available)
+  archive 4.0.9 (4.7.1 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  firebase_core 5.1.0 (5.2.0 available)
+  firebase_core_platform_interface 8.1.1 (8.2.0 available)
+  firebase_core_web 4.1.0 (4.2.0 available)
+  firebase_messaging 17.0.1 (17.1.0 available)
+  firebase_messaging_platform_interface 4.11.1 (4.12.0 available)
+  firebase_messaging_web 4.3.1 (4.4.0 available)
+  flutter_keyboard_visibility_linux 1.0.0 (2.0.0 available)
+  flutter_keyboard_visibility_macos 1.0.0 (2.0.0 available)
+  flutter_keyboard_visibility_platform_interface 2.0.0 (3.0.0 available)
+  flutter_keyboard_visibility_windows 1.0.0 (2.0.0 available)
+  image 4.5.4 (4.13.1 available)
+  latlong2 0.9.1 (0.10.1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  pdf 3.11.3 (3.13.1 available)
+  qr 3.0.3 (4.0.1 available)
+  record 7.1.1 (7.2.0 available)
+  test_api 0.7.14 (0.7.15 available)
+  uuid 4.5.2 (4.6.0 available)
+  vector_math 2.4.3 (2.4.4 available)
+  xml 6.6.1 (7.1.0 available)
+Got dependencies!
+24 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Installing build/app/outputs/flutter-apk/app-debug.apk...          24.4s
+D/FLTFireContextHolder( 2999): received application context.
+I/TextToSpeech( 2999): Sucessfully bound to com.google.android.tts
+W/nespace.previe( 2999): Accessing hidden method Landroid/view/accessibility/AccessibilityNodeInfo;->getSourceNodeId()J (unsupported,test-api, reflection, allowed)
+W/nespace.previe( 2999): Accessing hidden method Landroid/view/accessibility/AccessibilityRecord;->getSourceNodeId()J (unsupported, reflection, allowed)
+W/nespace.previe( 2999): Accessing hidden field Landroid/view/accessibility/AccessibilityNodeInfo;->mChildNodeIds:Landroid/util/LongArray; (unsupported, reflection, allowed)
+W/nespace.previe( 2999): Accessing hidden method Landroid/util/LongArray;->get(I)J (unsupported, reflection, allowed)
+D/AccessibilityBridge( 2999): Setting not found: accessibility_display_inversion_enabled, using default: 0
+D/FlutterRenderer( 2999): Width is zero. 0,0
+I/Choreographer( 2999): Skipped 446 frames!  The application may be doing too much work on its main thread.
+I/nespace.previe( 2999): Waiting for a blocking GC ClassLinker
+I/nespace.previe( 2999): Background young concurrent copying GC freed 2272(247KB) AllocSpace objects, 0(0B) LOS objects, 4% free, 3149KB/3306KB, paused 12us,9us total 119.385ms
+I/nespace.previe( 2999): WaitForGcToComplete blocked ClassLinker on Background for 33.451ms
+I/nespace.previe( 2999): Background concurrent copying GC freed 1254(238KB) AllocSpace objects, 0(0B) LOS objects, 49% free, 2960KB/5921KB, paused 11us,10us total 105.198ms
+D/FlutterRenderer( 2999): Width is zero. 0,0
+D/HostConnection( 2999): createUnique: call
+D/HostConnection( 2999): HostConnection::get() New Host Connection established 0x76cbba3f79d0, tid 3049
+D/HostConnection( 2999): HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_has_shared_slots_host_memory_allocator ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_vulkan_queue_submit_with_commands ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_read_color_buffer_dma ANDROID_EMU_hwc_color_transform GL_OES_EGL_image_external_essl3 GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_3_0 
+W/OpenGLRenderer( 2999): Failed to initialize 101010-2 format, error = EGL_SUCCESS
+D/EGL_emulation( 2999): eglCreateContext: 0x76cbba3f7850: maj 3 min 0 rcv 3
+D/EGL_emulation( 2999): eglMakeCurrent: 0x76cbba3f7850: ver 3 0 (tinfo 0x76cdcd76d180) (first time)
+D/FlutterJNI( 2999): Sending viewport metrics to the engine.
+I/Gralloc4( 2999): mapper 4.x is not supported
+D/HostConnection( 2999): createUnique: call
+D/HostConnection( 2999): HostConnection::get() New Host Connection established 0x76cbba3fa010, tid 3049
+D/goldfish-address-space( 2999): allocate: Ask for block of size 0x100
+D/goldfish-address-space( 2999): allocate: ioctl allocate returned offset 0x3f3ffe000 size 0x2000
+W/Gralloc4( 2999): allocator 4.x is not supported
+D/HostConnection( 2999): HostComposition ext ANDROID_EMU_CHECKSUM_HELPER_v1 ANDROID_EMU_native_sync_v2 ANDROID_EMU_dma_v1 ANDROID_EMU_direct_mem ANDROID_EMU_host_composition_v1 ANDROID_EMU_host_composition_v2 ANDROID_EMU_vulkan ANDROID_EMU_deferred_vulkan_commands ANDROID_EMU_vulkan_null_optional_strings ANDROID_EMU_vulkan_create_resources_with_requirements ANDROID_EMU_YUV_Cache ANDROID_EMU_vulkan_ignored_handles ANDROID_EMU_has_shared_slots_host_memory_allocator ANDROID_EMU_vulkan_free_memory_sync ANDROID_EMU_vulkan_shader_float16_int8 ANDROID_EMU_vulkan_async_queue_submit ANDROID_EMU_vulkan_queue_submit_with_commands ANDROID_EMU_sync_buffer_data ANDROID_EMU_vulkan_async_qsri ANDROID_EMU_read_color_buffer_dma ANDROID_EMU_hwc_color_transform GL_OES_EGL_image_external_essl3 GL_OES_vertex_array_object GL_KHR_texture_compression_astc_ldr ANDROID_EMU_host_side_tracing ANDROID_EMU_gles_max_version_3_0 
+I/Choreographer( 2999): Skipped 112 frames!  The application may be doing too much work on its main thread.
+D/FlutterJNI( 2999): Sending viewport metrics to the engine.
+D/ProfileInstaller( 2999): Installing profile for com.onespace.onespace.preview
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:42817/V83aqf_q-N0=/
+VMServiceFlutterDriver: Isolate found with number: 3673724073505163
+VMServiceFlutterDriver: Isolate 3673724073505163 is runnable.
+VMServiceFlutterDriver: Isolate is paused at start.
+VMServiceFlutterDriver: Attempting to resume isolate
+I/flutter ( 2999): 00:00 +0: OneSpace screenshots
+VMServiceFlutterDriver: Connected to Flutter application.
+I/Choreographer( 2999): Skipped 83 frames!  The application may be doing too much work on its main thread.
+I/Choreographer( 2999): Skipped 89 frames!  The application may be doing too much work on its main thread.
+I/TextToSpeech( 2999): Connected to TTS engine
+I/flutter ( 2999): SHOTS core en
+I/TextToSpeech( 2999): Setting up the connection to TTS engine...
+I/OpenGLRenderer( 2999): Davey! duration=829ms; Flags=1, FrameTimelineVsyncId=2217, IntendedVsync=127092326825, Vsync=127392326813, InputEventId=0, HandleInputStart=127393850852, AnimationStart=127393852174, PerformTraversalsStart=127393852635, DrawStart=127401116620, FrameDeadline=127108993491, FrameInterval=127393842680, FrameStartTime=16666666, SyncQueued=127405340728, SyncStart=127406016447, IssueDrawCommandsStart=127406469791, SwapBuffers=127437336919, FrameCompleted=127922156346, DequeueBufferDuration=3714920, QueueBufferDuration=2810256, GpuCompleted=127918386803, SwapBuffersCompleted=127922156346, DisplayPresentTime=0, 
+VMServiceFlutterDriver: request_data message is taking a long time to complete...
+W/nespace.previe( 2999): Verification of com.it_nomads.fluttersecurestorage.ciphers.KeyCipherAlgorithm com.it_nomads.fluttersecurestorage.ciphers.StorageCipherFactory.getSavedKeyAlgorithm() took 108.632ms (27.62 bytecodes/s) (1448B approximate peak alloc)
+D/FlutterJNI( 2999): Sending viewport metrics to the engine.
+D/EGL_emulation( 2999): app_time_stats: avg=3998.87ms min=479.46ms max=10888.40ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=167.04ms min=99.73ms max=246.63ms count=6
+I/flutter ( 2999): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+D/EGL_emulation( 2999): app_time_stats: avg=4178.91ms min=4178.91ms max=4178.91ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=309.10ms min=277.53ms max=345.93ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=309.07ms min=219.59ms max=381.76ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=300.76ms min=227.82ms max=383.20ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=328.38ms min=232.72ms max=384.64ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=293.40ms min=206.09ms max=369.54ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=306.98ms min=246.49ms max=375.44ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=275.37ms min=227.27ms max=347.02ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=487.47ms min=242.57ms max=935.53ms count=3
+I/flutter ( 2999): OneSpace push integration inactive; in-app alerts remain available.
+I/nespace.previe( 2999): Background young concurrent copying GC freed 14520(1231KB) AllocSpace objects, 14(728KB) LOS objects, 32% free, 3996KB/5921KB, paused 130us,10us total 205.582ms
+D/EGL_emulation( 2999): app_time_stats: avg=348.40ms min=256.61ms max=439.04ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=645.59ms min=361.31ms max=929.87ms count=2
+D/EGL_emulation( 2999): app_time_stats: avg=361.85ms min=234.42ms max=477.01ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=595.16ms min=295.58ms max=1127.95ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=400.70ms min=241.86ms max=563.72ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=463.86ms min=341.66ms max=681.76ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=550.16ms min=479.58ms max=620.73ms count=2
+D/EGL_emulation( 2999): app_time_stats: avg=309.08ms min=276.86ms max=331.49ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=321.34ms min=294.12ms max=373.48ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=304.17ms min=259.51ms max=347.44ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=338.17ms min=218.33ms max=401.18ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=336.25ms min=262.60ms max=409.46ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=364.21ms min=340.91ms max=385.79ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=298.65ms min=239.00ms max=339.96ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=331.78ms min=275.18ms max=377.69ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=311.59ms min=236.53ms max=392.90ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=338.88ms min=299.16ms max=373.14ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=306.07ms min=288.20ms max=343.86ms count=4
+I/Choreographer( 2999): Skipped 39 frames!  The application may be doing too much work on its main thread.
+D/EGL_emulation( 2999): app_time_stats: avg=24172.62ms min=19602.23ms max=28743.01ms count=2
+I/OpenGLRenderer( 2999): Davey! duration=735ms; Flags=0, FrameTimelineVsyncId=3749, IntendedVsync=175542324887, Vsync=176192324861, InputEventId=0, HandleInputStart=176197884203, AnimationStart=176197885445, PerformTraversalsStart=176197886006, DrawStart=176239993374, FrameDeadline=175558991553, FrameInterval=176197819387, FrameStartTime=16666666, SyncQueued=176248945563, SyncStart=176249661703, IssueDrawCommandsStart=176249697816, SwapBuffers=176250460249, FrameCompleted=176278971071, DequeueBufferDuration=3715, QueueBufferDuration=1119073, GpuCompleted=176278866145, SwapBuffersCompleted=176278971071, DisplayPresentTime=0, 
+D/EGL_emulation( 2999): app_time_stats: avg=252.85ms min=218.59ms max=273.08ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=329.30ms min=237.47ms max=549.31ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=360.26ms min=327.47ms max=417.73ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=234.11ms min=211.78ms max=277.13ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=287.48ms min=216.20ms max=470.96ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=263.16ms min=225.18ms max=316.92ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=258.46ms min=225.99ms max=273.91ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=252.07ms min=241.84ms max=265.16ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=240.94ms min=209.71ms max=265.63ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=229.35ms min=210.49ms max=285.48ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=253.23ms min=220.01ms max=306.98ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=266.24ms min=224.33ms max=323.38ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=254.18ms min=235.44ms max=285.97ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=273.02ms min=252.20ms max=319.72ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=301.17ms min=280.21ms max=323.53ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=292.20ms min=282.79ms max=310.13ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=309.95ms min=302.17ms max=320.62ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=297.15ms min=254.94ms max=359.13ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=284.67ms min=272.53ms max=290.98ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=290.56ms min=242.80ms max=325.69ms count=4
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 5976(415KB) AllocSpace objects, 7(136KB) LOS objects, 49% free, 3935KB/7871KB, paused 21us,10us total 229.464ms
+D/EGL_emulation( 2999): app_time_stats: avg=23529.36ms min=23529.36ms max=23529.36ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=663.95ms min=464.19ms max=863.71ms count=2
+D/EGL_emulation( 2999): app_time_stats: avg=268.64ms min=209.17ms max=310.81ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=243.17ms min=220.20ms max=271.50ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=272.39ms min=248.05ms max=306.46ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=264.42ms min=223.84ms max=306.76ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=251.83ms min=239.53ms max=263.10ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=256.34ms min=231.22ms max=274.10ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=275.46ms min=266.94ms max=286.09ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=276.96ms min=260.07ms max=296.44ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=260.68ms min=234.13ms max=349.28ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=11215.95ms min=11215.95ms max=11215.95ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=684.10ms min=384.14ms max=1208.66ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=338.77ms min=225.68ms max=446.08ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=292.31ms min=222.46ms max=327.17ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=286.75ms min=218.60ms max=364.83ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=283.46ms min=205.37ms max=374.62ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=313.39ms min=238.81ms max=404.84ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=235.53ms min=219.74ms max=260.28ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=252.99ms min=236.78ms max=274.94ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=253.29ms min=219.73ms max=330.15ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=248.23ms min=210.64ms max=277.22ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=258.24ms min=225.34ms max=299.37ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=257.89ms min=211.62ms max=336.49ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=234.12ms min=205.13ms max=263.71ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=252.59ms min=212.50ms max=303.59ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=290.67ms min=243.81ms max=317.74ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=289.42ms min=255.13ms max=318.20ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=19332.86ms min=19332.86ms max=19332.86ms count=1
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 4900(436KB) AllocSpace objects, 24(2480KB) LOS objects, 49% free, 3963KB/7927KB, paused 14us,12us total 643.308ms
+D/EGL_emulation( 2999): app_time_stats: avg=646.58ms min=261.37ms max=1352.22ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=344.81ms min=222.27ms max=436.81ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=286.65ms min=239.37ms max=313.79ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=250.45ms min=228.95ms max=276.11ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=242.27ms min=215.01ms max=270.50ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=236.76ms min=199.19ms max=270.05ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=245.27ms min=208.36ms max=343.42ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=270.76ms min=221.30ms max=302.14ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=254.21ms min=230.15ms max=272.60ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=223.14ms min=200.80ms max=251.68ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=241.06ms min=215.15ms max=281.95ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=266.06ms min=204.65ms max=313.64ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=304.91ms min=271.91ms max=330.94ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=16082.54ms min=16082.54ms max=16082.54ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=534.94ms min=209.68ms max=1802.50ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.61ms min=188.79ms max=267.18ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=277.47ms min=219.57ms max=329.33ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=224.19ms min=203.12ms max=242.71ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=231.29ms min=213.97ms max=263.36ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=246.64ms min=211.28ms max=297.92ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=241.39ms min=227.09ms max=278.32ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=226.29ms min=211.77ms max=270.22ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.66ms min=208.35ms max=246.94ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=229.70ms min=194.90ms max=271.64ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=251.66ms min=210.87ms max=283.48ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=243.30ms min=226.16ms max=274.37ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=14793.36ms min=14793.36ms max=14793.36ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=383.08ms min=275.72ms max=658.24ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=227.23ms min=206.96ms max=270.86ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=243.82ms min=210.53ms max=298.10ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=252.74ms min=230.80ms max=299.47ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=232.79ms min=191.35ms max=269.34ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=255.97ms min=202.83ms max=313.90ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=230.27ms min=204.28ms max=254.75ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=250.31ms min=227.82ms max=281.66ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=226.27ms min=205.84ms max=275.76ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=226.02ms min=205.75ms max=254.89ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=231.99ms min=195.83ms max=271.13ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=237.96ms min=220.17ms max=251.43ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=13970.11ms min=13970.11ms max=13970.11ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=461.99ms min=212.54ms max=746.66ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=310.69ms min=223.40ms max=531.79ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=558.10ms min=289.62ms max=1048.30ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=297.96ms min=242.17ms max=342.47ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=233.38ms min=212.40ms max=265.82ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=218.55ms min=209.47ms max=237.91ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=238.38ms min=209.70ms max=285.57ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.06ms min=189.03ms max=255.76ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=252.63ms min=230.08ms max=271.47ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=233.36ms min=208.10ms max=274.45ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=243.35ms min=209.64ms max=267.20ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=226.19ms min=213.62ms max=243.45ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.87ms min=200.87ms max=288.33ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=232.77ms min=210.09ms max=263.80ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=246.02ms min=228.57ms max=286.26ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.63ms min=195.40ms max=258.10ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=250.15ms min=235.75ms max=283.45ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=20359.57ms min=20359.57ms max=20359.57ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=964.79ms min=249.92ms max=2374.61ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=369.06ms min=326.70ms max=433.19ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=269.58ms min=211.99ms max=327.63ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=243.29ms min=223.91ms max=305.61ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=251.98ms min=211.51ms max=298.87ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=238.62ms min=219.77ms max=284.43ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=244.65ms min=222.03ms max=327.17ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=241.12ms min=207.53ms max=298.44ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=246.76ms min=187.66ms max=282.88ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=251.48ms min=227.77ms max=279.51ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=209.49ms min=191.32ms max=231.26ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=216.40ms min=209.16ms max=228.54ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.86ms min=212.03ms max=259.32ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=223.32ms min=210.03ms max=254.52ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=18019.31ms min=18019.31ms max=18019.31ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=273.29ms min=210.78ms max=369.46ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=1315.98ms min=1315.98ms max=1315.98ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=297.80ms min=225.05ms max=481.48ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=265.85ms min=186.70ms max=348.87ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=221.56ms min=194.42ms max=271.49ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=277.39ms min=206.14ms max=435.94ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=252.21ms min=206.66ms max=306.55ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=231.54ms min=212.62ms max=265.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=217.21ms min=194.46ms max=240.07ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=237.72ms min=209.60ms max=306.42ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=212.45ms min=196.28ms max=226.89ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=211.72ms min=199.35ms max=230.11ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=219.81ms min=180.06ms max=241.48ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.83ms min=205.30ms max=272.06ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=220.64ms min=200.82ms max=252.13ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=282.41ms min=248.69ms max=315.71ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=18092.66ms min=18092.66ms max=18092.66ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=229.80ms min=193.01ms max=288.21ms count=5
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 7018(401KB) AllocSpace objects, 22(4308KB) LOS objects, 49% free, 3964KB/7929KB, paused 17us,19us total 516.065ms
+D/EGL_emulation( 2999): app_time_stats: avg=527.33ms min=289.19ms max=765.48ms count=2
+D/EGL_emulation( 2999): app_time_stats: avg=238.09ms min=192.27ms max=297.31ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=215.09ms min=169.79ms max=263.08ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=219.30ms min=189.95ms max=240.66ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=221.96ms min=200.54ms max=234.76ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=219.15ms min=188.31ms max=277.90ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=216.94ms min=183.79ms max=273.18ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=253.58ms min=216.34ms max=341.63ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=205.24ms min=184.78ms max=238.73ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=200.67ms min=177.33ms max=243.47ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=201.91ms min=178.68ms max=234.42ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=206.92ms min=186.82ms max=220.86ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=206.64ms min=182.20ms max=236.75ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=214.60ms min=187.90ms max=234.47ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=16119.89ms min=16119.89ms max=16119.89ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=255.01ms min=223.07ms max=305.42ms count=4
+I/flutter ( 2999):   [1m[flutter_map][0m
+I/flutter ( 2999):     We want to help keep OpenStreetMap available for everyone. Our examples
+I/flutter ( 2999):     and demo app use the public tile servers, but they are NOT free to use by
+I/flutter ( 2999):     everyone! Please review whether the OpenStreetMap tile servers are suitable
+I/flutter ( 2999):     for your project.
+I/flutter ( 2999):     See:
+I/flutter ( 2999):       * https://operations.osmfoundation.org/policies/tiles (OSM Tile Usage Policy)
+I/flutter ( 2999):       * https://docs.fleaflet.dev/osm-warn for more information about this warning
+D/EGL_emulation( 2999): app_time_stats: avg=1045.17ms min=782.87ms max=1307.46ms count=2
+D/EGL_emulation( 2999): app_time_stats: avg=299.15ms min=222.21ms max=428.30ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=250.34ms min=237.15ms max=269.12ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=279.65ms min=257.60ms max=337.91ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=288.07ms min=254.18ms max=328.89ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=292.96ms min=248.18ms max=359.67ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=315.66ms min=288.22ms max=348.07ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=291.86ms min=279.92ms max=310.13ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=285.92ms min=268.99ms max=317.76ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=302.12ms min=269.54ms max=326.58ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=245.62ms min=213.30ms max=276.55ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=276.23ms min=261.50ms max=286.17ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=256.77ms min=229.91ms max=279.52ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=261.94ms min=241.50ms max=271.29ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=261.27ms min=248.74ms max=275.48ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=263.31ms min=243.38ms max=287.31ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=294.42ms min=264.33ms max=335.67ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=261.47ms min=237.02ms max=282.82ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=265.79ms min=230.55ms max=318.70ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=275.86ms min=236.65ms max=312.35ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=251.48ms min=245.85ms max=254.27ms count=4
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 3746(235KB) AllocSpace objects, 16(2372KB) LOS objects, 49% free, 3955KB/7910KB, paused 14us,17us total 212.290ms
+D/EGL_emulation( 2999): app_time_stats: avg=25290.76ms min=25290.76ms max=25290.76ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=409.60ms min=283.98ms max=694.51ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=232.47ms min=186.94ms max=270.09ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=241.32ms min=206.71ms max=272.61ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=262.95ms min=180.62ms max=350.01ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=209.56ms min=191.09ms max=230.15ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=208.17ms min=167.90ms max=229.24ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=213.79ms min=183.16ms max=241.70ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=215.53ms min=183.61ms max=241.56ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=212.32ms min=185.08ms max=240.82ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=207.47ms min=193.17ms max=228.53ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=203.18ms min=177.43ms max=235.55ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=210.20ms min=193.35ms max=248.77ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=222.29ms min=177.87ms max=254.27ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=214.42ms min=181.57ms max=258.42ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=208.98ms min=180.31ms max=225.75ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.01ms min=204.53ms max=258.55ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=17525.91ms min=17525.91ms max=17525.91ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=376.39ms min=223.66ms max=597.59ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=239.64ms min=211.81ms max=289.59ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=296.32ms min=244.40ms max=339.62ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=203.29ms min=166.83ms max=254.09ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=239.68ms min=223.87ms max=267.76ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=213.96ms min=174.08ms max=271.63ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=267.33ms min=220.77ms max=323.89ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=209.81ms min=200.99ms max=222.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=205.15ms min=186.25ms max=222.18ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.27ms min=171.96ms max=229.88ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=208.59ms min=188.90ms max=234.46ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=210.06ms min=180.01ms max=229.97ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=208.39ms min=187.53ms max=226.48ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=208.29ms min=178.50ms max=225.97ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=210.47ms min=190.99ms max=236.29ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=16522.23ms min=16522.23ms max=16522.23ms count=1
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 6873(364KB) AllocSpace objects, 17(3112KB) LOS objects, 49% free, 3991KB/7983KB, paused 30us,15us total 604.871ms
+D/EGL_emulation( 2999): app_time_stats: avg=411.44ms min=233.77ms max=664.30ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=258.31ms min=198.73ms max=347.94ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=254.78ms min=194.80ms max=322.08ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=216.35ms min=190.38ms max=286.00ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=189.30ms min=175.31ms max=208.19ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=220.28ms min=183.20ms max=238.98ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=215.20ms min=178.39ms max=247.64ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=226.64ms min=200.23ms max=238.64ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.10ms min=173.75ms max=219.33ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=220.03ms min=199.54ms max=233.15ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=213.73ms min=165.93ms max=244.12ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=213.73ms min=195.66ms max=234.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=195.13ms min=165.41ms max=242.50ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=202.82ms min=180.30ms max=231.52ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=15505.46ms min=15505.46ms max=15505.46ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=219.55ms min=180.17ms max=281.28ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=418.05ms min=280.60ms max=648.83ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=251.51ms min=182.62ms max=382.43ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=218.68ms min=183.44ms max=268.75ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=209.89ms min=174.97ms max=267.79ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=200.00ms min=191.68ms max=212.29ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=238.53ms min=205.84ms max=268.94ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=198.77ms min=174.74ms max=224.21ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=203.47ms min=180.42ms max=238.08ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=226.01ms min=189.13ms max=280.40ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=204.29ms min=187.93ms max=225.05ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=201.06ms min=172.07ms max=239.57ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=208.60ms min=188.00ms max=228.58ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=209.83ms min=198.64ms max=221.03ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=205.06ms min=185.67ms max=227.00ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=15835.34ms min=15835.34ms max=15835.34ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=367.02ms min=220.45ms max=608.03ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=256.14ms min=202.95ms max=370.37ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=242.97ms min=184.92ms max=324.68ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=213.14ms min=166.15ms max=240.22ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=197.18ms min=180.61ms max=212.00ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=201.20ms min=170.20ms max=233.17ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=210.27ms min=190.10ms max=226.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=200.00ms min=171.57ms max=243.23ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=204.54ms min=176.68ms max=230.16ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=221.95ms min=176.37ms max=269.57ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=215.78ms min=184.12ms max=280.09ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=200.63ms min=177.23ms max=219.07ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=209.33ms min=163.04ms max=237.54ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=205.02ms min=180.94ms max=229.71ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=15554.51ms min=15554.51ms max=15554.51ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=333.61ms min=202.55ms max=632.92ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=234.42ms min=211.28ms max=292.12ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=284.68ms min=191.39ms max=457.49ms count=4
+I/nespace.previe( 2999): Background young concurrent copying GC freed 8447(388KB) AllocSpace objects, 9(1968KB) LOS objects, 35% free, 5134KB/7983KB, paused 95us,136us total 100.127ms
+D/EGL_emulation( 2999): app_time_stats: avg=212.73ms min=186.43ms max=243.84ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=228.75ms min=188.89ms max=313.85ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=200.37ms min=178.43ms max=225.55ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=200.77ms min=167.95ms max=224.00ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=201.38ms min=180.32ms max=214.86ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=211.19ms min=197.21ms max=226.08ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=214.69ms min=189.00ms max=233.12ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=211.60ms min=186.74ms max=230.99ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=206.42ms min=186.43ms max=224.31ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=201.28ms min=180.06ms max=225.41ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=225.60ms min=196.99ms max=310.89ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=217.59ms min=172.38ms max=267.07ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=15872.73ms min=15872.73ms max=15872.73ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=397.70ms min=270.22ms max=617.26ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=302.40ms min=180.20ms max=675.83ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=216.94ms min=183.27ms max=258.60ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.30ms min=195.96ms max=277.05ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.90ms min=187.21ms max=243.69ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=204.41ms min=171.64ms max=251.67ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=214.88ms min=183.18ms max=243.45ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=223.98ms min=172.70ms max=253.00ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=217.95ms min=171.28ms max=273.74ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=198.05ms min=173.90ms max=231.68ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=188.21ms min=161.94ms max=220.45ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=239.93ms min=229.81ms max=256.96ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=204.72ms min=183.10ms max=237.00ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.71ms min=182.45ms max=265.24ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=16161.37ms min=16161.37ms max=16161.37ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=381.38ms min=226.76ms max=646.81ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=256.22ms min=208.63ms max=293.52ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=254.75ms min=221.61ms max=300.97ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=256.30ms min=225.11ms max=289.67ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=219.74ms min=205.80ms max=233.64ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=217.38ms min=198.98ms max=239.62ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=206.63ms min=179.22ms max=252.09ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=212.24ms min=207.07ms max=219.23ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=217.70ms min=174.99ms max=244.39ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=205.37ms min=187.89ms max=249.89ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=236.56ms min=196.77ms max=277.91ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=244.58ms min=202.27ms max=309.80ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=204.70ms min=170.72ms max=231.86ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=212.46ms min=197.47ms max=227.18ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.24ms min=209.21ms max=236.27ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=16514.33ms min=16514.33ms max=16514.33ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=386.10ms min=230.15ms max=765.20ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=229.54ms min=187.87ms max=316.92ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=231.79ms min=192.09ms max=280.14ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.49ms min=187.59ms max=215.08ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=205.90ms min=169.96ms max=252.22ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=218.63ms min=190.24ms max=254.05ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=215.61ms min=179.30ms max=245.75ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=214.78ms min=177.01ms max=292.99ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=192.59ms min=179.59ms max=219.77ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=188.91ms min=163.27ms max=213.69ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=179.46ms min=162.89ms max=206.57ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=200.65ms min=173.95ms max=226.53ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.03ms min=172.16ms max=257.55ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=193.98ms min=170.10ms max=248.04ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=15182.12ms min=15182.12ms max=15182.12ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=414.56ms min=260.86ms max=563.80ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=248.22ms min=199.02ms max=362.26ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=206.35ms min=172.77ms max=248.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.44ms min=175.76ms max=226.65ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=208.19ms min=167.85ms max=237.24ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=193.97ms min=175.27ms max=240.82ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=211.11ms min=169.72ms max=278.76ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=203.09ms min=174.97ms max=229.27ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=224.87ms min=210.83ms max=245.31ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=194.72ms min=181.97ms max=214.89ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=200.53ms min=174.55ms max=220.69ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=184.38ms min=153.48ms max=214.94ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=184.50ms min=168.72ms max=211.04ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=15153.90ms min=15153.90ms max=15153.90ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=297.36ms min=196.20ms max=555.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=230.45ms min=195.44ms max=277.82ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=222.81ms min=171.17ms max=285.85ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=205.99ms min=176.24ms max=239.74ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=213.22ms min=199.14ms max=235.12ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=251.67ms min=205.93ms max=322.40ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=208.30ms min=176.03ms max=239.82ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=228.44ms min=205.88ms max=240.66ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=207.69ms min=188.84ms max=240.83ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=222.57ms min=201.02ms max=246.70ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=204.93ms min=173.57ms max=246.84ms count=6
+D/EGL_emulation( 2999): app_time_stats: avg=211.87ms min=191.53ms max=230.95ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=210.52ms min=188.91ms max=253.59ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=224.36ms min=204.69ms max=234.65ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=15936.65ms min=15936.65ms max=15936.65ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=267.13ms min=220.83ms max=358.96ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=380.46ms min=266.81ms max=568.92ms count=3
+D/EGL_emulation( 2999): app_time_stats: avg=257.50ms min=197.14ms max=321.25ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=240.19ms min=209.98ms max=290.62ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.27ms min=205.89ms max=253.58ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=228.75ms min=190.28ms max=251.96ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=222.77ms min=195.97ms max=243.95ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=223.82ms min=193.57ms max=244.16ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=211.97ms min=200.17ms max=229.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=222.48ms min=208.16ms max=239.63ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=224.03ms min=210.86ms max=248.67ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.60ms min=224.72ms max=243.66ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=237.85ms min=195.85ms max=306.07ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=226.21ms min=200.03ms max=252.54ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=225.34ms min=194.40ms max=254.36ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=16877.40ms min=16877.40ms max=16877.40ms count=1
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 10980(612KB) AllocSpace objects, 22(4148KB) LOS objects, 49% free, 3953KB/7907KB, paused 15us,15us total 543.841ms
+D/EGL_emulation( 2999): app_time_stats: avg=303.56ms min=200.88ms max=542.97ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=251.07ms min=185.31ms max=303.19ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=258.01ms min=217.22ms max=298.07ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=269.19ms min=191.94ms max=398.34ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=248.13ms min=186.26ms max=318.50ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=222.11ms min=204.95ms max=242.08ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=207.54ms min=185.64ms max=234.39ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=211.99ms min=196.89ms max=229.78ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=230.97ms min=177.22ms max=259.82ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=202.39ms min=185.65ms max=236.44ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=227.50ms min=185.90ms max=291.85ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=215.90ms min=180.46ms max=236.20ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=259.88ms min=234.25ms max=309.34ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=217.55ms min=188.01ms max=254.05ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=213.77ms min=187.62ms max=249.28ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=233.16ms min=179.58ms max=308.75ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=18312.69ms min=18312.69ms max=18312.69ms count=1
+D/EGL_emulation( 2999): app_time_stats: avg=315.62ms min=210.77ms max=672.57ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=238.57ms min=209.41ms max=272.94ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=594.61ms min=370.05ms max=819.17ms count=2
+D/EGL_emulation( 2999): app_time_stats: avg=261.13ms min=202.99ms max=403.64ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=213.35ms min=182.58ms max=252.35ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=250.20ms min=222.51ms max=272.76ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=213.17ms min=180.13ms max=238.67ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=223.90ms min=192.70ms max=262.03ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=234.45ms min=204.23ms max=300.11ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=223.74ms min=194.26ms max=304.19ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=228.45ms min=208.06ms max=243.17ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=221.60ms min=186.53ms max=273.72ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=229.74ms min=191.82ms max=340.00ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=244.99ms min=222.19ms max=279.41ms count=5
+D/EGL_emulation( 2999): app_time_stats: avg=265.84ms min=236.32ms max=302.80ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=263.83ms min=236.45ms max=326.91ms count=4
+D/EGL_emulation( 2999): app_time_stats: avg=17648.72ms min=17648.72ms max=17648.72ms count=1
+I/nespace.previe( 2999): NativeAlloc concurrent copying GC freed 5893(329KB) AllocSpace objects, 17(2896KB) LOS objects, 49% free, 3993KB/7985KB, paused 13us,12us total 673.080ms
+Unhandled exception:
+DriverError: Failed to fulfill RequestData due to remote error
+Original error: ext.flutter.driver: (112) Service has disappeared
+Original stack trace:
+#0      new _OutstandingRequest (package:vm_service/src/vm_service.dart:280:34)
+#1      VmService._call.<anonymous closure> (package:vm_service/src/vm_service.dart:1962:25)
+#2      VmService._call (package:vm_service/src/vm_service.dart:1974:8)
+#3      VmService.callServiceExtension (package:vm_service/src/vm_service.dart:1913:14)
+#4      VMServiceFlutterDriver.sendCommand (package:flutter_driver/src/driver/vmservice_driver.dart:325:12)
+#5      FlutterDriver.requestData (package:flutter_driver/src/driver/driver.dart:584:45)
+#6      integrationDriver (package:integration_test/integration_test_driver_extended.dart:87:38)
+<asynchronous suspension>
+
+
+#0      VMServiceFlutterDriver.sendCommand (package:flutter_driver/src/driver/vmservice_driver.dart:338:7)
+<asynchronous suspension>
+#1      FlutterDriver.requestData (package:flutter_driver/src/driver/driver.dart:584:39)
+<asynchronous suspension>
+#2      integrationDriver (package:integration_test/integration_test_driver_extended.dart:87:25)
+<asynchronous suspension>
+Failed to stop app
+adb uninstall failed: ProcessException: Process exited abnormally with exit code 1:
+adb: device offline
+  Command: /usr/local/lib/android/sdk/platform-tools/adb -s emulator-5554 uninstall com.onespace.onespace.preview
+Failed to uninstall app
