@@ -1,13 +1,5 @@
-// Host side of the screenshot robot: saves each screenshot the app sends.
-import 'dart:io';
+// Host side of the screenshot robot. Screenshots are taken by
+// tools/screenshots/watch.py with adb when the app prints a SNAP line.
+import 'package:integration_test/integration_test_driver.dart';
 
-import 'package:integration_test/integration_test_driver_extended.dart';
-
-Future<void> main() => integrationDriver(
-      onScreenshot: (String name, List<int> bytes, [Map<String, Object?>? args]) async {
-        final file = File('build/screenshots/$name.png');
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(bytes);
-        return true;
-      },
-    );
+Future<void> main() => integrationDriver();

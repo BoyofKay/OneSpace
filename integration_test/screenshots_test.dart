@@ -70,7 +70,7 @@ Future<void> _resetDemoSpace() async {
 }
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('OneSpace screenshots', (tester) async {
     final spec = await _prop('debug.onespace.shots', 'core-en');
@@ -103,13 +103,15 @@ void main() {
     // Wait for the home screen (bottom navigation) to appear.
     for (var i = 0; i < 60 && find.byType(NavigationBar).evaluate().isEmpty; i++) { await wait(1); }
     await wait(5);
-    if (Platform.isAndroid) await binding.convertFlutterSurfaceToImage();
-    await wait(1);
 
+    // The host (tools/screenshots/watch.py) sees SNAP lines and runs
+    // `adb exec-out screencap`, so the real status bar is included and the app
+    // doesn't have to render a copy of itself (much lighter on the emulator).
     var count = 0;
     Future<void> shot(String name) async {
       await wait(1.5);
-      await binding.takeScreenshot('${_set}_${_lang}_$name');
+      debugPrint('SNAP ${_set}_${_lang}_$name');
+      await wait(2.5);
       count++;
     }
     NavigatorState nav() => tester.state<NavigatorState>(find.byType(Navigator).first);

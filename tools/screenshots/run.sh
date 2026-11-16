@@ -6,6 +6,15 @@ mkdir -p build/screenshots build/logs
 adb shell settings put global window_animation_scale 1 || true
 adb shell settings put global transition_animation_scale 1 || true
 adb shell settings put global animator_duration_scale 1 || true
+# A lighter, phone-like screen (360×800 dp) and a tidy status bar (9:41, full battery).
+adb shell wm size 720x1600 || true
+adb shell wm density 320 || true
+adb shell settings put global sysui_demo_allowed 1 || true
+adb shell am broadcast -a com.android.systemui.demo -e command enter >/dev/null || true
+adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941 >/dev/null || true
+adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false >/dev/null || true
+adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile show -e datatype none -e level 4 >/dev/null || true
+adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false >/dev/null || true
 status=0
 for spec in ${SHOT_SETS//,/ }; do
   set_name="${spec%-*}"; lang="${spec#*-}"
@@ -28,7 +37,7 @@ for spec in ${SHOT_SETS//,/ }; do
       --driver=test_driver/integration_test.dart \
       --target=integration_test/screenshots_test.dart \
       --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk \
-      2>&1 | tee "build/logs/$spec.log"; then
+      2>&1 | python3 tools/screenshots/watch.py "build/logs/$spec.log"; then
     echo "::warning::Screens $spec failed"; status=1
   fi
   if [ "$set_name" = "video" ]; then
