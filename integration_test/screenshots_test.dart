@@ -27,11 +27,9 @@ import 'package:onespace/features/coordinate/activity_detail_screen.dart';
 import 'package:onespace/features/world/trips_screen.dart';
 import 'package:onespace/features/occasions/occasions_screen.dart';
 import 'package:onespace/features/connect/couple_letters_screen.dart';
-import 'package:onespace/features/checkins/checkins_screen.dart';
 import 'package:onespace/features/connect/partner_gestures_screen.dart';
 import 'package:onespace/features/connect/shared_experiences_screen.dart';
 import 'package:onespace/features/notifications/notifications_screen.dart';
-import 'package:onespace/features/memories/memories_screen.dart';
 import 'package:onespace/theme/appearance_settings_screen.dart';
 
 const _url = 'https://ugwrpeduzyzrujkizqfo.supabase.co';
@@ -287,11 +285,16 @@ void main() {
       final occasion = await idOf('occasion_plans', 'title', ar ? 'عيد ميلاد لينا' : "Lina's birthday");
       if (occasion != null) await open(OccasionDetail(id: occasion), 'occasion');
       await open(const CoupleLettersScreen(), 'letters');
-      await open(const CheckinsScreen(), 'checkins');
       await open(const PartnerGesturesScreen(), 'love');
-      await open(const SharedExperiencesScreen(), 'experiences');
-      await open(const MemoriesScreen(), 'memories');
       await open(const AppearanceSettingsScreen(), 'appearance');
+      // Last: this screen opens a suggestion card; close it first.
+      nav().push(MaterialPageRoute<void>(builder: (_) => const SharedExperiencesScreen()));
+      await wait(4);
+      final close = find.byIcon(Icons.close);
+      if (close.evaluate().isNotEmpty) { await tester.tap(close.first); await wait(1.5); }
+      await shot('experiences');
+      while (nav().canPop()) { nav().pop(); await wait(0.6); }
+
     }
     expect(count, greaterThan(0));
   }, timeout: const Timeout(Duration(minutes: 25)));

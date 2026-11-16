@@ -216,7 +216,8 @@ begin
   perform private.demo_as(l);
   insert into public.couple_letters (space_id, author_id, title, body, status, sent_at, open_on) values
     (sp, l, 'For the day you land', 'Open this at the airport. I''ll be the one waving too much.', 'sent', now() - interval '2 days', d + 6),
-    (sp, l, 'For our anniversary', 'Six years. Open it with coffee.', 'sent', now() - interval '1 day', d + 164);
+    (sp, l, 'For our anniversary', 'Six years. Open it with coffee.', 'sent', now() - interval '1 day', d + 164),
+    (sp, l, 'Thinking of you', 'Rainy London, warm thoughts. Five more sleeps until Istanbul.', 'sent', now() - interval '5 hours', null);
   perform private.demo_as(o);
   insert into public.couple_letters (space_id, author_id, title, body, status, sent_at) values
     (sp, o, 'Just because', 'I was thinking about the book fair today. Thank you for reaching for the same book.', 'sent', now() - interval '13 days');
@@ -287,7 +288,7 @@ begin
    ('For the day you land','ليوم وصولك'),('Open this at the airport. I''ll be the one waving too much.','افتحها في المطار. سأكون التي تلوّح كثيرًا.'),('For our anniversary','لذكرانا'),('Six years. Open it with coffee.','ست سنوات. افتحها مع القهوة.'),
    ('Just because','بلا مناسبة'),('I was thinking about the book fair today. Thank you for reaching for the same book.','كنت أفكر اليوم في معرض الكتاب. شكرًا لأنكِ مددتِ يدكِ إلى الكتاب نفسه.'),
    ('Good morning, sunshine ☀️ Good luck today!','صباح الخير يا شمسي ☀️ بالتوفيق اليوم!'),('So proud of you for booking everything!','فخورة بك لأنك حجزت كل شيء!'),('Sending you a big, warm hug.','أرسل لك حضنًا كبيرًا ودافئًا.'),
-   ('Wedding anniversary','ذكرى الزواج');
+   ('Wedding anniversary','ذكرى الزواج'),('Thinking of you','أفكر فيك'),('Rainy London, warm thoughts. Five more sleeps until Istanbul.','لندن ممطرة وأفكاري دافئة. خمس ليالٍ فقط حتى إسطنبول.');
   update public.space_counters c set title = coalesce((select ar from demo_tr where en = c.title), title), description = coalesce((select ar from demo_tr where en = c.description), description), place_text = coalesce((select ar from demo_tr where en = c.place_text), place_text), people = array['عمر','لينا'] where space_id = sp;
   update public.space_special_dates c set title = coalesce((select ar from demo_tr where en = c.title), title) where space_id = sp;
   update public.places c set name = coalesce((select ar from demo_tr where en = c.name), name), city = coalesce((select ar from demo_tr where en = c.city), city), country = coalesce((select ar from demo_tr where en = c.country), country), notes = coalesce((select ar from demo_tr where en = c.notes), notes) where space_id = sp;

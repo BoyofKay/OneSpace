@@ -7,8 +7,11 @@ adb shell settings put global window_animation_scale 1 || true
 adb shell settings put global transition_animation_scale 1 || true
 adb shell settings put global animator_duration_scale 1 || true
 # A lighter, phone-like screen (360×800 dp) and a tidy status bar (9:41, full battery).
+adb root >/dev/null 2>&1 || true; sleep 2
+adb shell setprop persist.sys.timezone Asia/Riyadh || true      # Omar lives in Riyadh
+adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true   # thin gesture bar
 adb shell wm size 720x1600 || true
-adb shell wm density 320 || true
+adb shell wm density 300 || true                                # 384 × 853 dp, a typical phone
 adb shell settings put global sysui_demo_allowed 1 || true
 adb shell am broadcast -a com.android.systemui.demo -e command enter >/dev/null || true
 adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941 >/dev/null || true
