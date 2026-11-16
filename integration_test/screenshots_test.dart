@@ -2,9 +2,10 @@
 // resets their space to fresh demo content, then captures real app screens for
 // the website and the app stores. Runs only in .github/workflows/screenshots.yml.
 //
+//   flutter build apk --debug -t integration_test/screenshots_test.dart
+//   adb shell setprop debug.onespace.shots core-en; adb shell setprop debug.onespace.pw ...
 //   flutter drive --driver=test_driver/integration_test.dart \
-//     --target=integration_test/screenshots_test.dart \
-//     --dart-define=DEMO_PASSWORD=... --dart-define=SHOT_SET=core --dart-define=SHOT_LANG=en
+//     --target=integration_test/screenshots_test.dart --use-application-binary=<apk>
 import 'dart:convert';
 import 'dart:io';
 
@@ -35,10 +36,23 @@ import 'package:onespace/theme/appearance_settings_screen.dart';
 
 const _url = 'https://ugwrpeduzyzrujkizqfo.supabase.co';
 const _key = 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe';
-const _email = String.fromEnvironment('DEMO_EMAIL', defaultValue: 'demo.omar@example.com');
-const _password = String.fromEnvironment('DEMO_PASSWORD');
-const _set = String.fromEnvironment('SHOT_SET', defaultValue: 'core'); // core | themes | together | video
-const _lang = String.fromEnvironment('SHOT_LANG', defaultValue: 'en'); // en | ar
+const _email = 'demo.omar@example.com';
+// Set by tools/screenshots/run.sh with `adb shell setprop` so one prebuilt APK
+// serves every run: debug.onespace.shots = <set>-<lang>, debug.onespace.pw.
+//   set: core | themes | together | video     lang: en | ar
+late String _password;
+late String _set;
+late String _lang;
+
+Future<String> _prop(String key, String fallback) async {
+  try {
+    final r = await Process.run('getprop', [key]);
+    final v = (r.stdout as String).trim();
+    return v.isEmpty ? fallback : v;
+  } catch (_) {
+    return fallback;
+  }
+}
 
 /// Fresh demo content before the app starts, so nothing is cached from a
 /// previous run. Uses plain HTTP with the public key and the demo login.
@@ -58,7 +72,12 @@ Future<void> _resetDemoSpace() async {
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('OneSpace screenshots ($_set, $_lang)', (tester) async {
+  testWidgets('OneSpace screenshots', (tester) async {
+    final spec = await _prop('debug.onespace.shots', 'core-en');
+    _set = spec.split('-').first;
+    _lang = spec.endsWith('-ar') ? 'ar' : 'en';
+    _password = await _prop('debug.onespace.pw', '');
+    debugPrint('SHOTS $_set $_lang');
     await _resetDemoSpace();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('appearance.palette.v1', 'cleanLight');
