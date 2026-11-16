@@ -7,11 +7,35 @@ adb shell settings put global window_animation_scale 1 || true
 adb shell settings put global transition_animation_scale 1 || true
 adb shell settings put global animator_duration_scale 1 || true
 # A lighter, phone-like screen (360×800 dp) and a tidy status bar (9:41, full battery).
-adb root >/dev/null 2>&1 || true; sleep 2
-adb shell setprop persist.sys.timezone Asia/Riyadh || true      # Omar lives in Riyadh
-adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true   # thin gesture bar
-adb shell wm size 720x1600 || true
-adb shell wm density 300 || true                                # 384 × 853 dp, a typical phone
+prepare_device() {
+  adb wait-for-device
+  until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do sleep 2; done
+  adb root >/dev/null 2>&1 || true
+  sleep 3; adb wait-for-device
+  until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do sleep 2; done
+  adb shell setprop persist.sys.timezone Asia/Riyadh || true      # Omar lives in Riyadh
+  adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true   # thin gesture bar
+  adb shell wm size 720x1600 || true
+  adb shell wm density 300 || true                                # 384 × 853 dp, a typical phone
+  adb shell settings put global window_animation_scale 1 || true
+  adb shell settings put global sysui_demo_allowed 1 || true
+  adb shell am broadcast -a com.android.systemui.demo -e command enter >/dev/null || true
+  adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941 >/dev/null || true
+  adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false >/dev/null || true
+  adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile show -e datatype none -e level 4 >/dev/null || true
+  adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false >/dev/null || true
+}
+# If the emulator died during a set, start it again before the next one.
+revive() {
+  if [ "$(adb get-state 2>/dev/null)" != "device" ]; then
+    echo "::warning::Emulator was lost — restarting it"
+    adb emu kill >/dev/null 2>&1 || true; sleep 5
+    nohup "$ANDROID_HOME/emulator/emulator" -avd test -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot >/dev/null 2>&1 &
+    sleep 20
+    prepare_device
+  fi
+}
+prepare_device
 adb shell settings put global sysui_demo_allowed 1 || true
 adb shell am broadcast -a com.android.systemui.demo -e command enter >/dev/null || true
 adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941 >/dev/null || true
@@ -21,6 +45,7 @@ adb shell am broadcast -a com.android.systemui.demo -e command notifications -e 
 status=0
 for spec in ${SHOT_SETS//,/ }; do
   set_name="${spec%-*}"; lang="${spec#*-}"
+  revive
   echo "::group::Screens $set_name ($lang)"
   if [ "$set_name" = "video" ]; then
     mkdir -p build/videos
