@@ -15,6 +15,8 @@ import '../memories/scrapbook_studio_screen.dart';
 import '../memories/memories_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 import 'notification_context.dart';
+import '../places/places_screen.dart';
+import '../counters/counters_screen.dart';
 
 /// One stable realtime subscription per signed-in account, not per frame.
 class NotificationBell extends StatefulWidget {
@@ -101,6 +103,10 @@ Future<void> openNotificationTarget(BuildContext context,
  }else if(type=='experience'){
    screen=SharedExperiencesScreen(initialExperienceId:
      (item['experience_id']??objectId)?.toString());
+ }else if(type=='place'){
+   screen=PlacesScreen(initialId:objectId);
+ }else if(type=='counter'){
+   screen=CountersScreen(initialId:objectId);
  }else if(type=='letter'){
    screen=const CoupleLettersScreen();
  }else if(type=='checkin_request'){
@@ -348,6 +354,8 @@ IconData notificationIcon(Map<String,dynamic> item){
    case 'trip': return Icons.flight_takeoff_outlined;
    case 'occasion': return Icons.card_giftcard_outlined;
    case 'experience': return Icons.movie_outlined;
+   case 'place': return Icons.place_outlined;
+   case 'counter': return Icons.hourglass_bottom_rounded;
  }
  return Icons.event_outlined;
 }

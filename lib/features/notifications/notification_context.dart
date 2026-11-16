@@ -25,7 +25,7 @@ class NotificationCategories {
         kind == 'mention' || kind == 'reply') {
       return talk;
     }
-    if (object == 'memory' || object == 'scrapbook' || kind == 'scrapbook_invite') return memories;
+    if (object == 'memory' || object == 'scrapbook' || object == 'place' || object == 'counter' || kind == 'scrapbook_invite') return memories;
     return plans;
   }
 

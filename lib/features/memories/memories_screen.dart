@@ -311,8 +311,14 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 /// Dated journal entry editor. Viewer-only recipients cannot edit, pin or
 /// archive someone else's private memory.
 class MemoryEditorScreen extends StatefulWidget {
-  const MemoryEditorScreen({super.key,required this.spaceId,this.existing,this.initialType});
+  const MemoryEditorScreen({super.key,required this.spaceId,this.existing,this.initialType,
+    this.prefill,this.onSaved});
   final String spaceId;
+  /// R77: title / place / memory_date for a new story (from a place or counter).
+  final Map<String,String>? prefill;
+  /// R77: called with the memory id once it is saved, so a place visit or a
+  /// counter can link to it.
+  final void Function(String id)? onSaved;
   final Map<String,dynamic>? existing;
   final String? initialType;
 
@@ -353,11 +359,11 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
   void initState() {
     super.initState();
     _title = TextEditingController(
-      text: widget.existing?['title'] as String? ?? '');
+      text: widget.existing?['title'] as String? ?? widget.prefill?['title'] ?? '');
     _body = TextEditingController(
       text: widget.existing?['body'] as String? ?? '');
-    _place = TextEditingController(text: widget.existing?['place']?.toString() ?? '');
-    _date = DateTime.tryParse(widget.existing?['memory_date'] as String? ?? '')
+    _place = TextEditingController(text: widget.existing?['place']?.toString() ?? widget.prefill?['place'] ?? '');
+    _date = DateTime.tryParse(widget.existing?['memory_date'] as String? ?? widget.prefill?['memory_date'] ?? '')
         ?? DateTime.now();
     _visibility = widget.existing?['visibility'] as String? ?? 'shared';
     _pinned = widget.existing?['pinned'] == true;
@@ -404,6 +410,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
         'space_id': widget.spaceId, 'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
       }).select().single();
       if (mounted) setState(() => _record = row);
+      widget.onSaved?.call(row['id'].toString());
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -428,12 +435,13 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
         'memory_type':_memoryType,'photo_layout':_photoLayout,
       };
       if (_record == null) {
-        await _client.from('memories').insert({
+        final created = await _client.from('memories').insert({
           ...fields,
           'space_id': widget.spaceId,
           'created_by': _client.auth.currentUser!.id,
           'visibility': _visibility,
-        });
+        }).select('id').single();
+        widget.onSaved?.call(created['id'].toString());
       } else {
         final existing = _record!;
         final result = await _client.from('memories')
