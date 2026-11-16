@@ -13,7 +13,7 @@ prepare_device() {
   adb root >/dev/null 2>&1 || true
   sleep 3; adb wait-for-device
   until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do sleep 2; done
-  adb shell setprop persist.sys.timezone Asia/Riyadh || true      # Omar lives in Riyadh
+  adb shell setprop persist.sys.timezone America/Toronto || true  # Omar lives in Toronto
   adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true   # thin gesture bar
   adb shell wm size 720x1600 || true
   adb shell wm density 300 || true                                # 384 × 853 dp, a typical phone
