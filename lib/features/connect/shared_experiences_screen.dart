@@ -6,6 +6,7 @@ import '../../core/linked_items.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
@@ -14,8 +15,6 @@ import '../../core/record_list_top_actions.dart';
 import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
 import 'experience_comment_rules.dart';
-import '../notes/related_notes_panel.dart';
-import '../../core/record_action_history_view.dart';
 import '../mentions/partner_mention_button.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -38,6 +37,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  String kind='all',status='open',search='';
  int suggestionOffset=0;
  List<Map<String,dynamic>> rows=[],interests=[];
+ /// R73: both people's ratings, shown on the cards.
+ List<Map<String,dynamic>> ratings=[];
+ SpacePeople? people;
  RealtimeChannel? _changes;
  Timer? _refreshTimer;
  String? _watchedSpace;
@@ -169,8 +171,16 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     List<Map<String,dynamic>>.from(
      await db.from('shared_experience_interests')
       .select('experience_id,user_id,choice').inFilter('experience_id',ids));
+   var currentRatings=<Map<String,dynamic>>[];
+   if(ids.isNotEmpty){
+    try{
+     currentRatings=List<Map<String,dynamic>>.from(await db.from('shared_experience_reviews')
+      .select('experience_id,user_id,rating').inFilter('experience_id',ids));
+    }catch(_){}
+   }
+   final pp=await SpacePeople.load();
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
-   setState((){space=id;rows=currentRows;interests=currentInterests;
+   setState((){space=id;rows=currentRows;interests=currentInterests;ratings=currentRatings;people=pp;
     loading=false;error=null;});
    _watch(id);
    if(!opened&&widget.initialExperienceId!=null){
@@ -465,6 +475,17 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
         statusActions:[ItemMenuAction(tt('Rate & review'),Icons.star_outline,()=>quickRate(r))],
         onOpen:()=>edit(r),removed:r['archived_at']!=null,onRemove:()=>archiveFromList(r)),
        onTap:()=>open(r)),
+      // R73: ratings on the card (each of you).
+      if(ratings.any((x)=>x['experience_id']==r['id']&&x['rating']!=null))
+       Padding(padding:const EdgeInsetsDirectional.only(start:6,bottom:6),child:Wrap(spacing:14,children:[
+        for(final x in ratings.where((x)=>x['experience_id']==r['id']&&x['rating']!=null))
+         Row(mainAxisSize:MainAxisSize.min,children:[
+          Text(tt(x['user_id']==db.auth.currentUser?.id?'You':(people?.partnerName??'Partner'))+' ',
+           style:Theme.of(context).textTheme.labelMedium),
+          for(var i=1;i<=5;i++)Icon(i<=(x['rating'] as num).toInt()?Icons.star:Icons.star_border,
+           size:15,color:const Color(0xFFF2A900)),
+         ]),
+       ])),
       if(ExperienceInterestRules.summary(interests,r['id'])!='No picks yet')
        Padding(padding:const EdgeInsetsDirectional.only(start:6,bottom:8),child:Row(children:[
         Icon(ExperienceInterestRules.mutuallyInterested(interests,r['id'])?
@@ -646,11 +667,14 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  bool loading=true,busy=false,showAudit=false,showMyRetracted=false;
  String commentSearch='';
  bool _reviewDraftDirty=false;
+ /// R73: replying to a message, Activity-style.
+ Map<String,dynamic>? replyingTo;
+ SpacePeople? people;
  String? error;
  RealtimeChannel? _changes;
  Timer? _refreshTimer;
  int _loadVersion=0;
- @override void initState(){super.initState();load();}
+ @override void initState(){super.initState();load();SpacePeople.load().then((p){if(mounted)setState(()=>people=p);});}
  @override void dispose(){
   _loadVersion++;
   _refreshTimer?.cancel();
@@ -685,7 +709,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    if(mounted)unawaited(load());
   });
  }
- String who(Object? id)=>id==db.auth.currentUser?.id?'You':'Partner';
+ String who(Object? id)=>id==db.auth.currentUser?.id?'You':(people?.partnerName??'Partner');
  Future<void> load()async{
   final request=++_loadVersion;
   final account=db.auth.currentUser?.id;
@@ -743,10 +767,12 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   }finally{if(mounted)setState(()=>busy=false);}
   return false;
  }
- Future<void> setInterest(String choice)async{
+ Future<void> setInterest(String pick)async{
+  var choice=pick;
   if(busy||db.auth.currentUser==null)return;
   final me=db.auth.currentUser!.id;
-  if(ExperienceInterestRules.choiceForUser(interests,widget.id,me)==choice)return;
+  // R73: tapping the chip that is already chosen clears the pick.
+  if(ExperienceInterestRules.choiceForUser(interests,widget.id,me)==choice)choice='undecided';
   await mutate(()async{
    final present=interests.any((row)=>row['user_id']==me);
    if(present){
@@ -793,8 +819,10 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  Future<void> send()async{
   final body=comment.text.trim();if(body.isEmpty)return;
   await mutate(()async{
-   await db.from('shared_experience_comments').insert({'experience_id':widget.id,'body':body});
+   await db.from('shared_experience_comments').insert({'experience_id':widget.id,'body':body,
+    if(replyingTo!=null)'reply_to':replyingTo!['id']});
    comment.clear();
+   replyingTo=null;
   });
  }
  Future<void> editComment(Map<String,dynamic> row)async{
@@ -871,20 +899,112 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   final u=Uri.tryParse((item?['source_url']??'').toString());
   if(u!=null&&['http','https'].contains(u.scheme))await launchUrl(u,mode:LaunchMode.externalApplication);
  }
+ String _when(Object? raw){
+  final at=DateTime.tryParse((raw??'').toString())?.toLocal();
+  if(at==null)return '';
+  final loc=MaterialLocalizations.of(context);
+  final today=DateUtils.dateOnly(DateTime.now());
+  final time=loc.formatTimeOfDay(TimeOfDay.fromDateTime(at));
+  return DateUtils.isSameDay(at,today)?time:'${loc.formatShortMonthDay(at)} · $time';
+ }
+ /// R73: the conversation looks and works like an Activity's: bubbles,
+ /// tap to reply, long-press for Reply · Copy · Edit · Remove.
+ Widget bubble(Map<String,dynamic> x,String? myId){
+  final theme=Theme.of(context);
+  final mine=x['created_by']==myId;
+  final retracted=ExperienceCommentRules.isRetracted(x);
+  final quoted=x['reply_to']==null?null:comments.where((c)=>c['id']==x['reply_to']).firstOrNull;
+  final name=who(x['created_by']);
+  return Align(
+   alignment:mine?AlignmentDirectional.centerEnd:AlignmentDirectional.centerStart,
+   child:GestureDetector(
+    onTap:retracted?null:()=>setState(()=>replyingTo=x),
+    onLongPress:()async{
+     final action=await showModalBottomSheet<String>(context:context,showDragHandle:true,
+      builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,children:[
+       if(!retracted)ListTile(leading:const Icon(Icons.reply_outlined),title:Text(tt('Reply')),
+        onTap:()=>Navigator.pop(ctx,'reply')),
+       if(!retracted)ListTile(leading:const Icon(Icons.copy_outlined),title:Text(tt('Copy message')),
+        onTap:()=>Navigator.pop(ctx,'copy')),
+       if(ExperienceCommentRules.canEdit(x,myId))ListTile(leading:const Icon(MenuIcons.edit),
+        title:Text(tt('Edit')),onTap:()=>Navigator.pop(ctx,'edit')),
+       if(ExperienceCommentRules.isAuthor(x,myId))ListTile(
+        leading:Icon(retracted?MenuIcons.restore:MenuIcons.remove),
+        title:Text(tt(retracted?'Restore':'Remove')),onTap:()=>Navigator.pop(ctx,'archive')),
+      ])));
+     if(!mounted)return;
+     if(action=='reply'){setState(()=>replyingTo=x);}
+     else if(action=='copy'){await Clipboard.setData(ClipboardData(text:(x['body']??'').toString()));}
+     else if(action=='edit'){await editComment(x);}
+     else if(action=='archive'){await changeCommentArchive(x);}
+    },
+    child:Container(
+     constraints:const BoxConstraints(maxWidth:350),
+     margin:const EdgeInsets.only(bottom:7),
+     padding:const EdgeInsets.symmetric(horizontal:12,vertical:9),
+     decoration:BoxDecoration(
+      color:retracted?theme.colorScheme.surfaceContainerLow:
+       mine?theme.colorScheme.primaryContainer:theme.colorScheme.surfaceContainerHigh,
+      borderRadius:BorderRadius.circular(13)),
+     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Wrap(crossAxisAlignment:WrapCrossAlignment.center,spacing:6,children:[
+       CircleAvatar(radius:12,backgroundColor:theme.colorScheme.surface,
+        child:Text(name.isEmpty?'?':name.characters.first.toUpperCase(),
+         style:theme.textTheme.labelSmall?.copyWith(fontWeight:FontWeight.bold,color:theme.colorScheme.primary))),
+       Text(_when(x['created_at']),style:theme.textTheme.labelSmall),
+       if(retracted)Text(tt('Removed · only you see it'),style:theme.textTheme.labelSmall),
+      ]),
+      if(quoted!=null)Container(
+       margin:const EdgeInsets.only(top:4),
+       padding:const EdgeInsetsDirectional.fromSTEB(8,4,6,4),
+       decoration:BoxDecoration(border:BorderDirectional(start:BorderSide(width:2,color:theme.colorScheme.outline))),
+       child:Text(tt((quoted['body']??'').toString()),maxLines:2,overflow:TextOverflow.ellipsis,
+        style:theme.textTheme.labelSmall)),
+      const SizedBox(height:4),
+      Text(tt((x['body']??'').toString()),style:theme.textTheme.bodyMedium?.copyWith(
+       decoration:retracted?TextDecoration.lineThrough:null)),
+     ]))));
+ }
+ Widget composer(String? spaceId)=>SafeArea(top:false,child:Container(
+  padding:const EdgeInsetsDirectional.fromSTEB(9,5,9,8),
+  decoration:BoxDecoration(color:Theme.of(context).colorScheme.surface,
+   border:Border(top:BorderSide(color:Theme.of(context).colorScheme.outlineVariant))),
+  child:Column(mainAxisSize:MainAxisSize.min,children:[
+   if(replyingTo!=null)Row(children:[
+    Expanded(child:Text(tt('Replying to: ')+(replyingTo!['body']??'').toString(),
+     maxLines:1,overflow:TextOverflow.ellipsis,style:Theme.of(context).textTheme.labelSmall)),
+    IconButton(icon:const Icon(Icons.close,size:16),tooltip:tt('Cancel reply'),
+     onPressed:()=>setState(()=>replyingTo=null)),
+   ]),
+   Row(children:[
+    if(spaceId!=null)PartnerMentionButton(spaceId:spaceId,controller:comment),
+    Expanded(child:TextField(controller:comment,minLines:1,maxLines:4,maxLength:2000,
+     textCapitalization:TextCapitalization.sentences,
+     decoration:InputDecoration(hintText:tt('Message your partner…'),isDense:true,counterText:'',
+      contentPadding:const EdgeInsets.symmetric(horizontal:12,vertical:10),border:const OutlineInputBorder()))),
+    IconButton(tooltip:tt('Send message'),onPressed:busy?null:send,icon:const Icon(Icons.send_rounded)),
+   ]),
+  ])));
+
  @override Widget build(BuildContext context){
   final r=item;
   final myId=db.auth.currentUser?.id;
   final myPick=ExperienceInterestRules.choiceForUser(interests,widget.id,myId);
   final partnerPick=interests.where((x)=>x['user_id']!=myId)
    .map((x)=>x['choice']?.toString()??'undecided').firstOrNull??'undecided';
+  // R73 (Ahmed): one ⋮ in the top bar, like every other page.
   return Scaffold(appBar:AppBar(title:Text(tt('Our experience')),actions:[
-   if(r!=null&&r['space_id']!=null)CreateFromThisButton(kind:LinkKind.experience,id:widget.id,spaceId:r['space_id'].toString(),title:r['title'].toString(),date:DateTime.tryParse(r['planned_on']?.toString()??''),shared:r['visibility']!='private',stripKey:_links),
-    if(r!=null)RecordActionHistoryButton(kind:'experience',recordId:widget.id),
-   if(r!=null)IconButton(tooltip:tt('Edit'),onPressed:edit,icon:const Icon(Icons.edit_outlined)),
-   if(r!=null)IconButton(tooltip:tt('Remove or restore'),onPressed:archive,
-    icon:Icon(r['archived_at']==null?Icons.archive_outlined:Icons.restore_outlined)),
+   if(r!=null)ItemMenu(kind:'experience',recordId:widget.id,title:r['title']?.toString(),
+    onOpen:edit,
+    moreActions:[
+     if(r['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
+      ()=>createFromThis(context,kind:LinkKind.experience,id:widget.id,spaceId:r['space_id'].toString(),
+       title:r['title'].toString(),date:DateTime.tryParse(r['planned_on']?.toString()??''),
+       shared:r['visibility']!='private',onLinked:()=>_links.currentState?.reload())),
+    ],
+    removed:r['archived_at']!=null,onRemove:busy?null:archive),
   ]),body:loading?const Center(child:CircularProgressIndicator()):
-   r==null?Center(child:Text(tt(error??'Not found'))):ListView(
+   r==null?Center(child:Text(tt(error??'Not found'))):Column(children:[Expanded(child:ListView(
     padding:const EdgeInsets.all(16),children:[
     Text(tt(r['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
@@ -898,20 +1018,19 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     if((r['source_url']??'').toString().isNotEmpty)TextButton.icon(
      onPressed:openLink,icon:const Icon(Icons.open_in_new),label:Text(tt('Open link'))),
     const Divider(height:28),
-    RelatedNotesPanel(sourceKind:'experience',sourceId:widget.id),
-    const SizedBox(height:12),
     Text(tt('Our picks'),style:Theme.of(context).textTheme.titleLarge),
     const SizedBox(height:6),
     Text(tt('Each of you chooses independently. A mutual pick means you both selected Interested.')),
     const SizedBox(height:8),
     Wrap(spacing:8,runSpacing:6,children:[
      for(final entry in ExperienceInterestRules.choices.entries)
-      ChoiceChip(label:Text(tt(entry.value)),selected:myPick==entry.key,
+      if(entry.key!='undecided')ChoiceChip(label:Text(tt(entry.value)),selected:myPick==entry.key,
        onSelected:busy?null:(_)=>setInterest(entry.key)),
     ]),
     const SizedBox(height:6),
-    Text(tt('You: ')+(ExperienceInterestRules.choices[myPick]??'Clear pick')+
-     ' · Partner: '+(ExperienceInterestRules.choices[partnerPick]??'No pick yet')),
+    Text(tt('You: ')+tt(myPick=='undecided'?'No pick yet':ExperienceInterestRules.choices[myPick]??'No pick yet')+
+     ' · '+tt(people?.partnerName??'Partner')+': '+tt(partnerPick=='undecided'?'No pick yet':ExperienceInterestRules.choices[partnerPick]??'No pick yet')),
+    Text(tt('Tap your choice again to clear it.'),style:Theme.of(context).textTheme.bodySmall),
     if(ExperienceInterestRules.mutuallyInterested(interests,widget.id))
      Padding(padding:const EdgeInsets.only(top:8),child:Row(children:[
       Icon(Icons.favorite,color:Theme.of(context).colorScheme.primary,size:20),
@@ -936,45 +1055,20 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton(
      onPressed:busy?null:saveReview,child:Text(tt('Save my review')))),
     const Divider(height:28),
-    Text(tt('Our conversation'),style:Theme.of(context).textTheme.titleLarge),
-    TextField(onChanged:(value)=>setState(()=>commentSearch=value),
-     decoration:InputDecoration(prefixIcon:Icon(Icons.search),
-      labelText:tt('Search conversation'))),
-    Align(alignment:AlignmentDirectional.centerStart,child:OptionChip(label:tt('Show my removed comments'),
-     icon:Icons.delete_outline,help:tt('Only you can see and restore them'),
-     value:showMyRetracted,onChanged:(v)=>setState(()=>showMyRetracted=v))),
-    for(final x in ExperienceCommentRules.visible(
-     comments,myId,showMyRetracted:showMyRetracted,query:commentSearch))
-     Card(elevation:0,child:ListTile(
-      title:Text(tt(who(x['created_by'])+
-       (ExperienceCommentRules.isRetracted(x)?' · Retracted':''))),
-      subtitle:Text(tt(x['body'].toString())),
-      trailing:ExperienceCommentRules.isAuthor(x,myId)?
-       PopupMenuButton<String>(tooltip:tt('More'),
-        onSelected:(action){
-         if(action=='edit')editComment(x);
-         if(action=='archive')changeCommentArchive(x);
-         if(action=='history')showModalBottomSheet<void>(
-          context:context,showDragHandle:true,isScrollControlled:true,
-          builder:(_)=>FractionallySizedBox(heightFactor:.78,
-           child:RecordActionHistoryView(kind:'experience_comment',
-            recordId:x['id'].toString())));
-        },
-        itemBuilder:(_)=>[
-         if(ExperienceCommentRules.canEdit(x,myId))
-          iconMenuItem('edit',MenuIcons.edit,'Edit'),
-         ExperienceCommentRules.isRetracted(x)?iconMenuItem('archive',MenuIcons.restore,'Restore')
-          :iconMenuItem('archive',MenuIcons.remove,'Remove'),
-         iconMenuItem('history',MenuIcons.changeLog,'Change log'),
-        ]):null)),
-    TextField(controller:comment,maxLength:2000,maxLines:3,
-     decoration:InputDecoration(labelText:tt('Share your thoughts'))),
-    if(r['space_id']!=null)PartnerMentionButton(
-     spaceId:r['space_id'].toString(),controller:comment),
-    Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(
-     onPressed:busy?null:send,icon:const Icon(Icons.send_outlined),
-     label:Text(tt('Send')))),
+    Row(children:[
+     Expanded(child:Text(tt('Conversation'),style:Theme.of(context).textTheme.titleMedium)),
+     if(comments.any((c)=>ExperienceCommentRules.isRetracted(c)&&ExperienceCommentRules.isAuthor(c,myId)))
+      IconButton(tooltip:tt(showMyRetracted?'Hide my removed messages':'Show my removed messages'),
+       isSelected:showMyRetracted,icon:const Icon(Icons.delete_outline),selectedIcon:const Icon(Icons.delete),
+       onPressed:()=>setState(()=>showMyRetracted=!showMyRetracted)),
+    ]),
+    const SizedBox(height:6),
+    if(ExperienceCommentRules.visible(comments,myId,showMyRetracted:showMyRetracted,query:'').isEmpty)
+     Padding(padding:const EdgeInsets.symmetric(vertical:10),
+      child:Text(tt('Start talking here. Every message stays with this experience.'))),
+    for(final x in ExperienceCommentRules.visible(comments,myId,showMyRetracted:showMyRetracted,query:''))
+     bubble(x,myId),
     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
-  ]));
+  ])),composer(r['space_id']?.toString())]));
  }
 }
