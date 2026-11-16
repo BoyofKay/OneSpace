@@ -250,7 +250,7 @@ begin
     city_name = case when city_name = 'London' then 'لندن' else 'الرياض' end where id = l;
   update public.spaces set name = 'عمر ولينا' where id = sp;
   create temporary table if not exists demo_tr (en text primary key, ar text) on commit drop;
-  delete from demo_tr;
+  delete from demo_tr where true;  -- PostgREST requests forbid DELETE without WHERE
   insert into demo_tr values
    ('The day we met','يوم التقينا'),('A rainy book fair. You reached for the same book.','معرض كتاب ممطر. مددتِ يدكِ إلى الكتاب نفسه.'),('Riyadh Book Fair','معرض الرياض للكتاب'),
    ('Wedding day','يوم الزفاف'),('The best day. Then the best years.','أجمل يوم. ثم أجمل السنوات.'),('Jeddah','جدة'),('Our first date','موعدنا الأول'),('Nook Café','مقهى الزاوية'),
