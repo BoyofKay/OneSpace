@@ -41,7 +41,8 @@ class PlaceRules {
   static Map<String, String> tripPrefill(List<Map<String, dynamic>> places) {
     final names = places.map((p) => p['name'].toString()).toList();
     final cities = places.map((p) => (p['city'] ?? '').toString().trim()).where((c) => c.isNotEmpty).toSet();
-    final title = cities.length == 1 ? 'Trip to ${cities.first}'
+    final sameCity = cities.length == 1 && places.every((p) => (p['city'] ?? '').toString().trim() == cities.first);
+    final title = sameCity ? 'Trip to ${cities.first}'
       : names.length == 1 ? 'Trip to ${names.first}'
       : 'Trip to ${names.take(2).join(' & ')}${names.length > 2 ? ' +${names.length - 2}' : ''}';
     final notes = [
