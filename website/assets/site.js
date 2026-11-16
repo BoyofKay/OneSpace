@@ -42,6 +42,27 @@
   const y = document.getElementById('year');
   if (y) y.textContent = new Date().getFullYear();
 
+
+  // Theme controls: no account or analytics needed; preferences remain on-device.
+  const themeNames = {light:'Clean Light',midnight:'Midnight Blue',monochrome:'Monochrome',rose:'Soft Rose'};
+  const accents = {default:'Default',coral:'Coral',violet:'Violet',mint:'Mint'};
+  const chosenTheme = themeNames[safeGet('onespace-site-theme')] ? safeGet('onespace-site-theme') : 'light';
+  const chosenAccent = accents[safeGet('onespace-site-accent')] ? safeGet('onespace-site-accent') : 'default';
+  function applyTheme(theme, accent) {
+    document.documentElement.dataset.siteTheme = theme;
+    document.documentElement.dataset.siteAccent = accent;
+    safeSet('onespace-site-theme',theme); safeSet('onespace-site-accent',accent);
+  }
+  applyTheme(chosenTheme,chosenAccent);
+  document.querySelectorAll('[data-site-theme-select]').forEach(function(el) {
+    el.value = chosenTheme;
+    el.addEventListener('change',function(){applyTheme(el.value,document.documentElement.dataset.siteAccent);});
+  });
+  document.querySelectorAll('[data-site-accent-select]').forEach(function(el) {
+    el.value = chosenAccent;
+    el.addEventListener('change',function(){applyTheme(document.documentElement.dataset.siteTheme,el.value);});
+  });
+
   // Support / account-deletion forms.
   document.querySelectorAll('form[data-support]').forEach(function (form) {
     form.addEventListener('submit', async function (e) {
