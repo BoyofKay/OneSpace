@@ -54,6 +54,7 @@ dependencies:
   timezone: 0.11.2
   flutter_timezone: 5.1.1
   http: 1.6.0
+  pdf: 3.11.3 # R70: memories, selfies and scrapbooks as PDF
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +82,8 @@ flutter:
   assets:
     - assets/branding/mark.png
     - assets/airports.txt
+    - assets/fonts/NotoSans-Regular.ttf
+    - assets/fonts/NotoNaskhArabic-Regular.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

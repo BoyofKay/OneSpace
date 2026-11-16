@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import MessageUI
 import UniformTypeIdentifiers
 import AVFoundation
 import Speech
@@ -146,6 +147,25 @@ import ContactsUI
 
     FlutterMethodChannel(name: "onespace/scrapbook_export", binaryMessenger: messenger)
       .setMethodCallHandler { [weak self] call, result in
+        if call.method == "sharePdf",
+           let args = call.arguments as? [String: Any],
+           let bytes = args["bytes"] as? FlutterStandardTypedData {
+          // R70: memories, selfies and scrapbooks as PDF (share sheet or Mail).
+          let raw = (args["name"] as? String) ?? "OneSpace-Memory"
+          let safe = raw.components(separatedBy: CharacterSet(charactersIn: "/\\:?%*|\"<>")).joined(separator: "-")
+          let file = String(safe.prefix(80)) + ".pdf"
+          if (args["email"] as? Bool) == true, MFMailComposeViewController.canSendMail(), let top = self?.topViewController() {
+            let mail = MFMailComposeViewController()
+            mail.mailComposeDelegate = self
+            mail.setSubject((args["subject"] as? String) ?? raw)
+            mail.addAttachmentData(bytes.data, mimeType: "application/pdf", fileName: file)
+            top.present(mail, animated: true)
+            result(true)
+          } else {
+            self?.shareFile(name: file, data: bytes.data, result: result, doneLabel: nil)
+          }
+          return
+        }
         guard call.method == "saveAndShare",
               let args = call.arguments as? [String: Any],
               let bytes = args["bytes"] as? FlutterStandardTypedData else {
@@ -478,5 +498,14 @@ import ContactsUI
 
   func contactViewController(_ viewController: CNContactViewController, didCompleteWith contact: CNContact?) {
     viewController.dismiss(animated: true)
+  }
+}
+
+
+// R70: closes the Mail composer opened for "Send by email".
+extension AppDelegate: MFMailComposeViewControllerDelegate {
+  func mailComposeController(_ controller: MFMailComposeViewController,
+                             didFinishWith result: MFMailComposeResult, error: Error?) {
+    controller.dismiss(animated: true)
   }
 }

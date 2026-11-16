@@ -18,6 +18,8 @@ import '../sharing/share_grant_watcher.dart';
 import 'memory_photo_gallery.dart';
 import 'memory_photo_layout_rules.dart';
 import 'scrapbook_studio_screen.dart';
+import 'scrapbook_viewer_screen.dart';
+import 'memory_view_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 class MemoriesScreen extends StatefulWidget {
@@ -99,7 +101,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
          .eq('space_id',id).eq('id',widget.initialMemoryId!).limit(1);
         if(mounted&&rows.isNotEmpty){
          WidgetsBinding.instance.addPostFrameCallback((_){
-          if(mounted)_edit(existing:rows.first);
+          if(mounted)_view(rows.first);
          });
         }
        }catch(_){}
@@ -128,6 +130,19 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
          initialType:selfie?'daily_selfie':null)),
     );
     if (mounted && changed == true) await _load();
+  }
+
+  /// R70: a memory opens to read (story, daily selfie, scrapbook); editing
+  /// is a button there or in ⋮.
+  Future<void> _view(Map<String,dynamic> memory)async{
+    final id=_spaceId;
+    if(id==null)return;
+    final type=memory['memory_type']?.toString();
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>type=='scrapbook'
+      ?ScrapbookViewerScreen(spaceId:id,memoryId:memory['id'].toString())
+      :MemoryViewScreen(spaceId:id,memoryId:memory['id'].toString(),
+        onEdit:(m)=>_edit(existing:m))));
+    if(mounted)await _load();
   }
 
   /// R55: Daily selfie opens its own studio (front camera, polaroid
@@ -252,9 +267,9 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                     child: Column(children: [
                       ListTile(
                         leading: Icon(memory['memory_type']=='scrapbook'
-                            ? Icons.collections_bookmark_outlined :
-                              (memory['pinned'] == true
-                            ? Icons.push_pin : Icons.auto_stories_outlined)),
+                            ? Icons.collections_bookmark_outlined
+                            : memory['memory_type']=='daily_selfie' ? Icons.photo_camera_front_outlined
+                            : (memory['pinned'] == true ? Icons.push_pin : Icons.auto_stories_outlined)),
                         title: Text(tt(memory['title'] as String? ?? '')),
                         subtitle: Text(tt([
                           date,
@@ -264,10 +279,12 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                         ].join(' • ')), maxLines: 3, overflow: TextOverflow.ellipsis),
                         trailing: ItemMenu(kind: 'memory', recordId: memory['id'].toString(),
                           title: memory['title']?.toString(),
-                          onOpen: () => _edit(existing: memory), openLabel: editable ? 'Edit' : 'Open',
+                          onOpen: () => memory['memory_type']=='daily_selfie'||!editable
+                            ? _view(memory) : _edit(existing: memory),
+                          openLabel: memory['memory_type']=='daily_selfie'||!editable ? 'Open' : 'Edit',
                           table: editable ? 'memories' : null,
                           removed: memory['archived_at'] != null, onChanged: _load),
-                        onTap: () => _edit(existing: memory),
+                        onTap: () => _view(memory),
                       ),
                       if (ownerShare) Align(
                         alignment: AlignmentDirectional.centerEnd,
@@ -319,6 +336,9 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
   String? _error;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
 
+  /// R70: the saved story: the one opened, or the one saved quietly when
+  /// photos are added to a new story.
+  Map<String,dynamic>? _record;
   bool get _editing => widget.existing != null;
   bool get _archived => widget.existing?['archived_at'] != null;
   bool get _editable => !_editing || ObjectPermissions.canEdit(
@@ -339,6 +359,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     _visibility = widget.existing?['visibility'] as String? ?? 'shared';
     _pinned = widget.existing?['pinned'] == true;
     _memoryType=(widget.existing?['memory_type']??widget.initialType??'story').toString();
+    _record=widget.existing;
     _photoLayout=MemoryPhotoLayoutRules.safe(widget.existing?['photo_layout']);
     if (_editing && !_editable) {
       _grants = watchObjectShares(
@@ -366,6 +387,26 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     super.dispose();
   }
 
+  /// Saves a new story without leaving, so photos can be added.
+  Future<void> _ensureSaved() async {
+    if (_record != null || _busy) return;
+    final title = _title.text.trim();
+    if (title.isEmpty) { setState(() => _error = 'Give it a title first.'); return; }
+    setState(() { _busy = true; _error = null; });
+    try {
+      final row = await _client.from('memories').insert({
+        'title': title, 'body': _body.text.trim(), 'memory_date': CalendarRules.sqlDate(_date),
+        'pinned': _pinned, 'memory_type': _memoryType, 'photo_layout': _photoLayout,
+        'space_id': widget.spaceId, 'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
+      }).select().single();
+      if (mounted) setState(() => _record = row);
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _save() async {
     if (_busy || !_editable || _archived) return;
     final title = _title.text.trim();
@@ -382,7 +423,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
         'pinned': _pinned,
         'memory_type':_memoryType,'photo_layout':_photoLayout,
       };
-      if (!_editing) {
+      if (_record == null) {
         await _client.from('memories').insert({
           ...fields,
           'space_id': widget.spaceId,
@@ -390,7 +431,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           'visibility': _visibility,
         });
       } else {
-        final existing = widget.existing!;
+        final existing = _record!;
         final result = await _client.from('memories')
           .update(fields)
           .eq('id',existing['id'] as String)
@@ -413,7 +454,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
 
   @override
   Widget build(BuildContext context) => EditorScaffold(
-   title:_editing?tt('Edit memory'):tt('New story'),
+   title:_editing?tt('Edit story'):tt('New story'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body],saving:_busy,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),showBelongs:false,showDate:false,
@@ -452,17 +493,20 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
             icon: Icons.push_pin_outlined, value: _pinned,
             onChanged: !_editable || _busy ? null : (v) => setState(() => _pinned = v))),
           FormSection(tt('Photos')),
-          ChoiceRow<String>(label: tt('Layout'), options: const {
-              'grid': 'Grid', 'feature': 'One large', 'polaroid': 'Polaroids', 'overlap': 'Stack'},
+          ChoiceRow<String>(label: tt('Layout'), options: MemoryPhotoLayoutRules.names,
             icons: const {'grid': Icons.grid_view, 'feature': Icons.view_agenda_outlined,
-              'polaroid': Icons.photo_outlined, 'overlap': Icons.layers_outlined},
+              'polaroid': Icons.photo_outlined, 'overlap': Icons.layers_outlined,
+              'carousel': Icons.view_carousel_outlined, 'mosaic': Icons.dashboard_outlined,
+              'film': Icons.theaters_outlined, 'scatter': Icons.collections_outlined,
+              'timeline': Icons.timeline},
             selected: _photoLayout,
             onSelected: (v) { if (_editable && !_busy && v != null) setState(() => _photoLayout = v); }),
-          if(_editing&&!_archived)MemoryPhotoGallery(
-           memoryId:widget.existing!['id'].toString(),
+          if(_record!=null&&!_archived)MemoryPhotoGallery(
+           memoryId:_record!['id'].toString(),
            editable:_editable,layout:_photoLayout)
-          else if(!_editing)Text(tt('Save the story first, then add photos to it.'),
-           style: Theme.of(context).textTheme.bodySmall),
+          else if(_record==null)Align(alignment:AlignmentDirectional.centerStart,child:ActionChip(
+           avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
+           label:Text(tt('Add photos')),onPressed:_busy?null:_ensureSaved)),
           if(_editing&&_visibility=='shared')Padding(
            padding:const EdgeInsets.symmetric(vertical:6),
            child:Text(tt('Shared memories are written together: both of you can add photos, captions and tags.'),

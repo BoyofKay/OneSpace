@@ -16,9 +16,11 @@ import 'package:onespace/l10n/phrases.dart';
 /// it, and a 7-day strip showing which days each of you posted. Nothing is
 /// saved until Save, so cancelling never leaves an empty memory behind.
 class SelfieStudioScreen extends StatefulWidget {
-  const SelfieStudioScreen({super.key, required this.spaceId, this.partnerName});
+  const SelfieStudioScreen({super.key, required this.spaceId, this.partnerName, this.addToMemoryId});
   final String spaceId;
   final String? partnerName;
+  /// R70: add my photo to this day's selfie (made together, two ways).
+  final String? addToMemoryId;
   @override
   State<SelfieStudioScreen> createState() => _SelfieStudioScreenState();
 }
@@ -31,11 +33,15 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   bool _private = false, _saving = false;
   String? _error;
   List<Map<String, dynamic>> _week = const [];
+  /// R70: today's shared selfie from my partner that still waits for mine.
+  String? _joinId;
 
   @override
   void initState() {
     super.initState();
+    _joinId = widget.addToMemoryId;
     _loadWeek();
+    if (_joinId == null) _findTodayToJoin();
     WidgetsBinding.instance.addPostFrameCallback((_) => _take(ImageSource.camera));
   }
 
@@ -56,6 +62,25 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
           .gte('memory_date', from);
       if (mounted) setState(() => _week = List<Map<String, dynamic>>.from(rows));
     } catch (_) {/* the strip is a nicety; the studio still works */}
+  }
+
+  Future<void> _findTodayToJoin() async {
+    final me = _db.auth.currentUser?.id;
+    if (me == null) return;
+    try {
+      final rows = await _db.from('memories').select('id,created_by,memory_photos(created_by,archived_at)')
+          .eq('space_id', widget.spaceId).eq('memory_type', 'daily_selfie')
+          .eq('visibility', 'shared').isFilter('archived_at', null)
+          .eq('memory_date', CalendarRules.sqlDate(DateTime.now())).limit(5);
+      for (final r in rows) {
+        final pics = (r['memory_photos'] as List? ?? const [])
+            .where((p) => p is Map && p['archived_at'] == null).toList();
+        if (r['created_by'] != me && !pics.any((p) => (p as Map)['created_by'] == me)) {
+          if (mounted) setState(() => _joinId = r['id'].toString());
+          return;
+        }
+      }
+    } catch (_) {/* a new selfie is made instead */}
   }
 
   Future<void> _take(ImageSource source) async {
@@ -81,6 +106,16 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
     try {
       final today = CalendarRules.sqlDate(DateTime.now());
       final caption = _caption.text.trim();
+      final join = _joinId;
+      if (join != null) {
+        // Two ways: my photo joins the same day's selfie.
+        final photoId = await MemoryPhotoService(_db).addFileReturningId(join, photo);
+        if (caption.isNotEmpty) {
+          await _db.from('memory_photos').update({'caption': caption}).eq('id', photoId);
+        }
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
       final row = await _db.from('memories').insert({
         'space_id': widget.spaceId, 'created_by': user,
         'title': caption.isEmpty ? 'Daily selfie · $today' : caption,
@@ -89,7 +124,10 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
         'memory_type': 'daily_selfie', 'photo_layout': 'polaroid',
       }).select('id').single();
       created = row['id'].toString();
-      await MemoryPhotoService(_db).addFiles(created, [photo]);
+      final photoId = await MemoryPhotoService(_db).addFileReturningId(created, photo);
+      if (caption.isNotEmpty) {
+        await _db.from('memory_photos').update({'caption': caption}).eq('id', photoId);
+      }
       if (mounted) Navigator.pop(context, true);
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = 'Selfie could not be saved: ${e.message}');
@@ -151,9 +189,13 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       saveLabel: tt('Save selfie'),
       listenTo: [_caption],
       onSave: _save,
-      meta: MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
+      meta: _joinId != null ? null : MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
         enabled: !_saving, onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [
+        if (_joinId != null) Card(elevation: 0, color: scheme.secondaryContainer,
+          child: ListTile(leading: const Icon(Icons.favorite_outline),
+            title: Text(tt('Add yours to today’s selfie')),
+            subtitle: Text(tt('Your photo sits next to ${widget.partnerName ?? 'your partner'}’s in the same memory.')))),
         Center(child: GestureDetector(
           onTap: () => _take(ImageSource.camera),
           child: Container(
