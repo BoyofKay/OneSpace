@@ -45,6 +45,7 @@ def head(title, title_ar, desc, path):
   <nav class="nav">
     <a class="hide-sm" href="./#features">{t('nav.features', 'Features', 'المزايا')}</a>
     <a class="hide-sm" href="./#privacy">{t('nav.privacy', 'Privacy', 'الخصوصية')}</a>
+    <a href="getting-started.html">{t('nav.guides', 'Guides', 'الدليل')}</a>
     <a href="support.html">{t('nav.support', 'Support', 'الدعم')}</a>
     <button class="lang" type="button">العربية</button>
   </nav>
@@ -352,11 +353,12 @@ def not_found():
 
 pages = {'index.html': index(), 'privacy.html': privacy(), 'terms.html': terms(),
          'support.html': support(), 'delete-account.html': delete_account(), '404.html': not_found()}
+AR['nav.guides'] = 'الدليل'
 for name, html in pages.items():
     open(name, 'w', encoding='utf-8').write(html)
 open('assets/ar.js', 'w', encoding='utf-8').write('window.ONESPACE_AR = ' + json.dumps(AR, ensure_ascii=False, indent=0) + ';\n')
 open('robots.txt', 'w').write('User-agent: *\nAllow: /\nSitemap: https://boyofkay.github.io/onespace-app/sitemap.xml\n')
 base = 'https://boyofkay.github.io/onespace-app/'
 open('sitemap.xml', 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + ''.join(f'  <url><loc>{base}{"" if n == "index.html" else n}</loc></url>\n' for n in pages if n != '404.html') + '</urlset>\n')
+    + ''.join(f'  <url><loc>{base}{"" if n == "index.html" else n}</loc></url>\n' for n in list(pages) + ['feature-tour.html', 'getting-started.html'] if n != '404.html') + '</urlset>\n')
 print('built', ', '.join(pages), '·', len(AR), 'Arabic strings')
