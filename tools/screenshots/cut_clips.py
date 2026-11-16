@@ -14,7 +14,7 @@ lang = sys.argv[1]
 V = Path('build/videos')
 segs = []
 for line in (V / f'segments_{lang}.txt').read_text().split('\n'):
-    if line.strip():
+    if len(line.split()) == 2:
         n, t = line.split()
         f = V / f'rec_{lang}_{n}.mp4'
         if f.exists():
