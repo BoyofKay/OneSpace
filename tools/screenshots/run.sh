@@ -50,11 +50,11 @@ for spec in ${SHOT_SETS//,/ }; do
   if [ "$set_name" = "video" ]; then
     mkdir -p build/videos
     : > "build/videos/segments_$lang.txt"
-    ( for i in $(seq 1 12); do
+    ( for i in $(seq 1 60); do
         [ -f /tmp/stop_rec ] && break
         t=$(adb shell 'echo $EPOCHREALTIME' | tr -d '\r')
         echo "$i $t" >> "build/videos/segments_$lang.txt"
-        adb shell screenrecord --bit-rate 8000000 --size 720x1600 --time-limit 175 "/sdcard/rec_${lang}_$i.mp4" || break
+        adb shell screenrecord --bit-rate 8000000 --size 720x1600 --time-limit 40 "/sdcard/rec_${lang}_$i.mp4" || break
       done ) &
     rec_pid=$!
     rm -f /tmp/stop_rec
@@ -72,6 +72,7 @@ for spec in ${SHOT_SETS//,/ }; do
     touch /tmp/stop_rec
     adb shell pkill -INT screenrecord || true
     sleep 4; kill "$rec_pid" 2>/dev/null || true
+    revive   # the finished segments survive an emulator crash on /sdcard
     for f in $(adb shell ls /sdcard/ | tr -d '\r' | grep "^rec_${lang}_"); do adb pull "/sdcard/$f" "build/videos/$f" >/dev/null; done
     cp "build/logs/$spec.log" "build/videos/markers_$lang.log"
     python3 tools/screenshots/cut_clips.py "$lang" || echo "::warning::clip cutting failed"
