@@ -1,21 +1,18 @@
-# R75 — Notes fix, Arabic, love gestures, notifications
+# R76 — Experience conversation: mention inside the box
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.439 (R74).
+Previous signed preview: 0.1.440 (R75).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.439
-- Fix: notes crashed when tapping a word.
-- Arabic: greeting, shortcut headers, tabs, moods, Add due date.
-- Love gestures in a logical order; no distance messages for couples living together.
-- Notifications with details, day groups, filters, swipe to mark read.
+## Included since 0.1.440
+- Shared experiences conversation: the "Mention" button is gone; type @ in the message box and tap your partner's name (same as Activities). The box is full width.
 
 ## Database
-- 0129_r75_gestures_together (applied 16 Nov, verified).
+- None.
 
 ## Verification
-- "Verify OneSpace iteration" passed on r75-polish.
+- "Verify OneSpace iteration" passed on r76-experience-composer.

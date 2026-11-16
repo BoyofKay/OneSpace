@@ -129,4 +129,5 @@ Companion documents in this folder:
 | R73 | Experiences polish (ratings on cards, toggle picks, one ⋮, Activity-style conversation), support screenshot, invitation QR, Arabic sweep (joined lines, patterns) | Built 16 Nov 2026 (docs/R73_QA.md) |
 | R74 | Testers ready: audit, terms, Google/Apple sign-in, help without login, error reports, phone calendar, tablet frame, backups | Built 16 Nov 2026 (docs/R74_QA.md, docs/R74_SETUP.md) |
 | R75 | Notes crash, Arabic gaps, love gestures order + together rule, informative notifications | Built 16 Nov 2026 (docs/R75_QA.md) |
+| R76 | Experience conversation: @mention inside the text box (InlineMentionField) | Built 16 Nov 2026 |
 | Later | Search coverage (contacts, checklist items, chat), Calendar session, Trips offline documents, smart love reminders, occasion timing rule (salary month), settings consolidation, iOS signing/TestFlight and Share Extension (waiting on Apple account), AI level 2 | |

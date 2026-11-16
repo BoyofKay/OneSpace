@@ -16,6 +16,7 @@ import 'experience_picker_rules.dart';
 import 'experience_interest_rules.dart';
 import 'experience_comment_rules.dart';
 import '../mentions/partner_mention_button.dart';
+import '../mentions/inline_mention_field.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 const experienceTypes={'movie':'Movie Watchlist','show':'TV Shows','music':'Music Playlist','book':'Books and articles','game':'Games','other':'Others'};
@@ -976,12 +977,9 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     IconButton(icon:const Icon(Icons.close,size:16),tooltip:tt('Cancel reply'),
      onPressed:()=>setState(()=>replyingTo=null)),
    ]),
-   Row(children:[
-    if(spaceId!=null)PartnerMentionButton(spaceId:spaceId,controller:comment),
-    Expanded(child:TextField(controller:comment,minLines:1,maxLines:4,maxLength:2000,
-     textCapitalization:TextCapitalization.sentences,
-     decoration:InputDecoration(hintText:tt('Message your partner…'),isDense:true,counterText:'',
-      contentPadding:const EdgeInsets.symmetric(horizontal:12,vertical:10),border:const OutlineInputBorder()))),
+   Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
+    // R76 (Ahmed): the mention lives inside the box — type @.
+    Expanded(child:InlineMentionField(spaceId:spaceId,controller:comment)),
     IconButton(tooltip:tt('Send message'),onPressed:busy?null:send,icon:const Icon(Icons.send_rounded)),
    ]),
   ])));

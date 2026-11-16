@@ -2664,4 +2664,6 @@ const Map<String, String> arPhrases = {
   '+{} more updates like this': '+{} تحديثات أخرى مثل هذا',
   'Notifications, {} unread': 'الإشعارات، {} غير مقروءة',
   'back today': 'يعود اليوم',
+  // R76
+  'Message… type @ to mention': 'اكتب رسالة… واكتب @ للإشارة إلى شريكك',
 };
