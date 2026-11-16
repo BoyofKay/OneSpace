@@ -1,21 +1,20 @@
-# R78 — Share from Maps, places map, counters visuals
+# R80 — counters fix and theme cards (demo couple, screenshot robot)
 
 Require-Firebase-Config: true
 
-Previous signed preview: 0.1.442 (R77).
+Previous signed preview: R78 (0.1.443).
 Preserve the existing com.onespace.onespace.preview Android package,
 same signing certificate, Firebase config, biometrics, all account and
 partner pairing data, checklists, notes, memories and user documents.
 INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
 
-## Included since 0.1.442
-- Share a place from Google/Apple Maps into Our places (been there or bucket list), with its pin.
-- Our map (OpenStreetMap): pins for every place, a small map on each place page.
-- Counters: the day itself vs its anniversary, progress bars, a Today line, age bars for past dates, linked dates drawn on a line.
-- Our places and Counters on the Today shortcuts.
+## Included since R78
+- Counters: the reunion counter is correct in every "living apart" mode.
+- Appearance: theme preview cards are taller and no longer overflow on narrower phones.
+- Developer only (not in the user experience): fictional demo couple support for the website screenshots, screenshot/clip robot test target.
 
 ## Database
-- 0131_r78_place_coordinates (applied 16 Nov).
+- 0132_demo_couple, 0133_demo_couple_global (demo accounts only; no change for real users).
 
 ## Verification
-- "Verify OneSpace iteration" and "iOS build" passed on r78-places-map-counters (new packages flutter_map 8.3.2, latlong2 0.9.1).
+- "Verify OneSpace iteration" passed on the R80 branches; screenshots robot ran the full app on an emulator (core, together, themes, video sets) on 16–17 Nov.
