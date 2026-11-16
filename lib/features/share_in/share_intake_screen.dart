@@ -17,6 +17,8 @@ import '../world/trip_flight_options_section.dart';
 import 'items_to_sort_screen.dart';
 import 'share_intake_rules.dart';
 import 'share_suggestions.dart';
+import '../places/place_location.dart';
+import '../places/places_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// R52 (spec 4.1, backlog B-16): everything shared into OneSpace lands here.
@@ -248,6 +250,25 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           if (!mounted) return;
           done = await editFlightOption(context, tripId: trip['id'].toString(), trip: trip, draft: draft);
           next = TripDetail(tripId: trip['id'].toString());
+        case ShareDestination.placeVisited:
+        case ShareDestination.placeWishlist:
+          // R78: name and address from the shared text; the pin from the link.
+          final parts = MapsLinkRules.splitShare(name, body, link);
+          final loc = await PlaceLocator.fromLink(link);
+          if (!mounted) return;
+          final placeName = (parts.name.isNotEmpty ? parts.name : (MapsLinkRules.nameIn(link) ?? name)).trim();
+          done = await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
+            builder: (_) => PlaceEditor(spaceId: spaceId!,
+              initialStatus: d == ShareDestination.placeWishlist ? 'wishlist' : 'visited',
+              prefill: {
+                'name': placeName.length > 120 ? placeName.substring(0, 120) : placeName,
+                'address': parts.address.length > 300 ? parts.address.substring(0, 300) : parts.address,
+                'map_url': link.length > 1000 ? '' : link,
+                'status': d == ShareDestination.placeWishlist ? 'wishlist' : 'visited',
+                if (loc != null) 'latitude': loc.latitude,
+                if (loc != null) 'longitude': loc.longitude,
+              }))) == true;
+          next = const PlacesScreen();
         case ShareDestination.trip:
           // R67: a shared flight starts the trip with its airports and dates.
           final draft = await readFlight('$name\n$body\n$link');

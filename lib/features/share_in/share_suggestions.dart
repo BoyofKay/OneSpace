@@ -13,7 +13,10 @@ enum ShareDestination {
   trip('Trip', Icons.flight_takeoff_outlined),
   note('Note', Icons.sticky_note_2_outlined),
   reminder('Reminder', Icons.alarm_outlined),
-  event('Event', Icons.event_outlined);
+  event('Event', Icons.event_outlined),
+  // R78: from Google/Apple Maps into Our places.
+  placeVisited('Place we have been', Icons.favorite_outline),
+  placeWishlist('Bucket list place', Icons.explore_outlined);
 
   const ShareDestination(this.label, this.icon);
   final String label;
@@ -80,8 +83,8 @@ class ShareSuggestions {
           ShareDestination.trip, ShareDestination.note],
         ShareContentKind.travel => const [ShareDestination.trip,
           ShareDestination.newActivity, ShareDestination.note],
-        ShareContentKind.maps => const [ShareDestination.newActivity,
-          ShareDestination.trip, ShareDestination.event],
+        ShareContentKind.maps => const [ShareDestination.placeWishlist,
+          ShareDestination.placeVisited, ShareDestination.newActivity],
         ShareContentKind.website => const [ShareDestination.newActivity,
           ShareDestination.note, ShareDestination.activityOption],
         ShareContentKind.datedText => const [ShareDestination.reminder,

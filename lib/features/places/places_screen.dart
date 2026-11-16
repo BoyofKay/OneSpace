@@ -12,6 +12,8 @@ import '../counters/smart_duration.dart';
 import '../memories/memories_screen.dart';
 import '../memories/memory_view_screen.dart';
 import '../world/trips_screen.dart';
+import 'place_location.dart';
+import 'places_map_screen.dart';
 
 /// R77 (Ahmed's friend's idea): our places — where we've been together
 /// (visits with dates, captions, photos and stories) and our bucket list.
@@ -136,7 +138,14 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
       && (!favoritesOnly || p['favorite'] == true)).toList();
     final usedCategories = {for (final p in places.where((p) => p['status'] == status)) p['category'].toString()};
     return Scaffold(
-      appBar: AppBar(title: Text(tt('Our places')), bottom: TabBar(controller: tabs, tabs: [
+      appBar: AppBar(title: Text(tt('Our places')), actions: [
+        IconButton(tooltip: tt('Our map'), icon: const Icon(Icons.map_outlined),
+          onPressed: space == null ? null : () async {
+            await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) =>
+              PlacesMapScreen(spaceId: space!, places: places, visits: visits)));
+            await _load();
+          }),
+      ], bottom: TabBar(controller: tabs, tabs: [
         Tab(icon: const Icon(Icons.favorite_outline), text: tt('Been there')),
         Tab(icon: const Icon(Icons.explore_outlined), text: tt('Bucket list')),
       ])),
@@ -329,6 +338,16 @@ class _PlaceDetailState extends State<PlaceDetail> {
 
   Future<void> _openMaps() async {
     final p = place!;
+    final link = (p['map_url'] ?? '').toString().trim();
+    if (link.isNotEmpty) {
+      await launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
+      return;
+    }
+    if (p['latitude'] != null) {
+      await launchUrl(Uri.parse('https://www.google.com/maps/search/?api=1&query=${p['latitude']},${p['longitude']}'),
+        mode: LaunchMode.externalApplication);
+      return;
+    }
     final q = [p['name'], p['address'], p['city'], p['country']]
       .map((x) => (x ?? '').toString().trim()).where((x) => x.isNotEmpty).join(', ');
     await launchUrl(Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(q)}'),
@@ -379,6 +398,10 @@ class _PlaceDetailState extends State<PlaceDetail> {
           ])),
         ]),
         const SizedBox(height: 12),
+        // R78: where it is.
+        if (p['latitude'] != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: PlaceMiniMap(
+          latitude: (p['latitude'] as num).toDouble(), longitude: (p['longitude'] as num).toDouble(),
+          wishlist: wish, onTap: _openMaps)),
         if (p['rating'] != null) Row(children: [
           for (var i = 0; i < 5; i++) Icon(i < (p['rating'] as num) ? Icons.star_rounded : Icons.star_border_rounded, color: Colors.amber),
         ]),
@@ -434,9 +457,11 @@ class _PlaceDetailState extends State<PlaceDetail> {
 }
 
 class PlaceEditor extends StatefulWidget {
-  const PlaceEditor({super.key, required this.spaceId, this.existing, this.initialStatus = 'visited'});
+  const PlaceEditor({super.key, required this.spaceId, this.existing, this.initialStatus = 'visited', this.prefill});
   final String spaceId;
   final Map<String, dynamic>? existing;
+  /// R78: from a Google/Apple Maps share (name, address, map_url, coordinates).
+  final Map<String, dynamic>? prefill;
   final String initialStatus;
   @override
   State<PlaceEditor> createState() => _PlaceEditorState();
@@ -444,7 +469,10 @@ class PlaceEditor extends StatefulWidget {
 
 class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceEditor> {
   final db = Supabase.instance.client;
-  late final TextEditingController name, city, country, address, notes;
+  late final TextEditingController name, city, country, address, notes, mapUrl;
+  double? lat, lng;
+  String? foundLabel;
+  bool locating = false;
   late String status, category;
   int? rating;
   DateTime? wishBy, firstVisit;
@@ -455,13 +483,16 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
 
   @override
   String get signature => [name.text, city.text, country.text, address.text, notes.text, status, category,
-    rating, wishBy, firstVisit, favorite, shared].join('|');
+    rating, wishBy, firstVisit, favorite, shared, mapUrl.text, lat, lng].join('|');
 
   @override
   void initState() {
     super.initState();
-    final e = widget.existing ?? const <String, dynamic>{};
+    final e = widget.existing ?? widget.prefill ?? const <String, dynamic>{};
     name = TextEditingController(text: (e['name'] ?? '').toString());
+    mapUrl = TextEditingController(text: (e['map_url'] ?? '').toString());
+    lat = (e['latitude'] as num?)?.toDouble();
+    lng = (e['longitude'] as num?)?.toDouble();
     city = TextEditingController(text: (e['city'] ?? '').toString());
     country = TextEditingController(text: (e['country'] ?? '').toString());
     address = TextEditingController(text: (e['address'] ?? '').toString());
@@ -477,12 +508,31 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
 
   @override
   void dispose() {
-    name.dispose(); city.dispose(); country.dispose(); address.dispose(); notes.dispose();
+    name.dispose(); city.dispose(); country.dispose(); address.dispose(); notes.dispose(); mapUrl.dispose();
     super.dispose();
+  }
+
+  /// R78: from the map link, else by name with city and country.
+  Future<bool> _locate({bool quiet = false}) async {
+    setState(() => locating = true);
+    final found = await PlaceLocator.locate(link: mapUrl.text, name: name.text, city: city.text, country: country.text);
+    if (!mounted) return false;
+    setState(() {
+      locating = false;
+      if (found != null) { lat = found.latitude; lng = found.longitude; foundLabel = found.label; }
+      else if (!quiet) { foundLabel = null; }
+    });
+    if (found == null && !quiet) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+        tt('Could not find it. Paste a Google Maps link, or add the city and country.'))));
+    }
+    return found != null;
   }
 
   Future<void> _save() async {
     if (saving || name.text.trim().isEmpty) return;
+    if (lat == null && (mapUrl.text.trim().isNotEmpty || city.text.trim().isNotEmpty)) await _locate(quiet: true);
+    if (!mounted) return;
     setState(() { saving = true; error = null; });
     final values = <String, dynamic>{
       'name': name.text.trim(), 'city': city.text.trim(), 'country': country.text.trim(),
@@ -490,6 +540,7 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
       'rating': status == 'visited' ? rating : null, 'favorite': favorite,
       'wish_by': status == 'wishlist' && wishBy != null ? CalendarRules.sqlDate(wishBy!) : null,
       'visibility': shared ? 'shared' : 'private',
+      'map_url': mapUrl.text.trim(), 'latitude': lat, 'longitude': lng,
     };
     try {
       if (widget.existing == null) {
@@ -518,7 +569,7 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
     final isNew = widget.existing == null;
     return EditorScaffold(
       title: isNew ? (status == 'wishlist' ? 'New dream place' : 'New place') : 'Edit place',
-      isNew: isNew, saving: saving, listenTo: [name, city, country, address, notes],
+      isNew: isNew, saving: saving || locating, listenTo: [name, city, country, address, notes, mapUrl],
       isChanged: () => changed, isComplete: () => name.text.trim().isNotEmpty, onSave: _save,
       meta: MetaStrip(value: MetaValues(shared: shared), people: people, showBelongs: false, showDate: false,
         onChanged: (v) => setState(() => shared = v.shared)),
@@ -541,8 +592,23 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
             decoration: InputDecoration(labelText: tt('Country'), border: const OutlineInputBorder()))),
         ]),
         TextField(controller: address, maxLength: 300,
-          decoration: InputDecoration(labelText: tt('Address or map link'), prefixIcon: const Icon(Icons.place_outlined),
+          decoration: InputDecoration(labelText: tt('Address'), prefixIcon: const Icon(Icons.place_outlined),
             border: const OutlineInputBorder())),
+        TextField(controller: mapUrl, maxLength: 1000, keyboardType: TextInputType.url,
+          onChanged: (_) => setState(() { lat = null; lng = null; foundLabel = null; }),
+          decoration: InputDecoration(labelText: tt('Google Maps link (optional)'), prefixIcon: const Icon(Icons.link),
+            helperText: tt('In Google Maps: Share › OneSpace, or copy the link here'),
+            border: const OutlineInputBorder())),
+        Card(elevation: 0, child: ListTile(
+          leading: Icon(lat == null ? Icons.location_off_outlined : Icons.location_on, color: lat == null ? null : Colors.redAccent),
+          title: Text(tt(lat == null ? 'Not on the map yet' : 'On our map')),
+          subtitle: lat == null ? Text(tt('We look it up when you save, or tap Find.'))
+            : Text(foundLabel?.isNotEmpty == true ? foundLabel! : '${lat!.toStringAsFixed(5)}, ${lng!.toStringAsFixed(5)}',
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+          trailing: locating ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            : lat == null ? TextButton(onPressed: () => _locate(), child: Text(tt('Find')))
+            : IconButton(tooltip: tt('Remove from the map'), icon: const Icon(Icons.close),
+                onPressed: () => setState(() { lat = null; lng = null; foundLabel = null; })))),
         ChoiceRow<String>(label: 'Kind', selected: category, options: PlaceCategories.labels,
           icons: PlaceCategories.icons, onSelected: (v) => setState(() => category = v ?? category)),
         if (status == 'visited') ...[

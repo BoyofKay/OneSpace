@@ -28,19 +28,59 @@ class CounterCategories {
 }
 
 /// One point on the screen: a saved counter or one that comes from elsewhere.
+///
+/// R78 (Ahmed): a date that repeats every year shows as TWO points — the day
+/// itself (in the past: "5 years 6 months ago") and its next anniversary
+/// (coming up: "6th anniversary · in 5 months") — so they never get mixed up.
 class CounterPoint {
   CounterPoint({required this.id, required this.title, required this.date, this.emoji = '',
-    this.row, this.source, this.yearly = false, this.pinned = false});
+    this.row, this.source, this.yearly = false, this.pinned = false, this.start,
+    this.yearKnown = true, this.birthday = false, this.original});
   final String id, title, emoji;
+  /// The day itself (for an anniversary point: the original date).
   final DateTime date;
   final Map<String, dynamic>? row;
   /// "Anniversary", "Birthday", "Trip"… for points that come from elsewhere.
   final String? source;
+  /// This point is the yearly return of [date].
   final bool yearly, pinned;
+  /// When the wait began, for the progress bar of an upcoming point.
+  final DateTime? start;
+  /// False when only day and month are known (a birthday without the year).
+  final bool yearKnown;
+  final bool birthday;
+  /// For the "day itself" point of a yearly counter: its anniversary twin id.
+  final String? original;
   bool get saved => row != null;
 
   /// Yearly points count to their next time round.
-  DateTime target(DateTime today) => yearly ? CounterMilestone.nextYearly(date, today) : date;
+  DateTime target(DateTime today) {
+    if (!yearly) return date;
+    final t = DateTime(today.year, today.month, today.day);
+    // A yearly date that hasn't happened yet counts to the first time.
+    return date.isAfter(t) ? date : CounterMilestone.nextYearly(date, today);
+  }
+
+  /// "6th anniversary" / "turns 31" for a yearly point; null otherwise.
+  String? occasionLabel(DateTime today) {
+    if (!yearly || !yearKnown) return null;
+    final n = target(today).year - date.year;
+    if (n <= 0) return null;
+    if (birthday) return tt('turns {}').replaceFirst('{}', '$n');
+    return OneSpacePhrases.arabic ? 'الذكرى رقم $n' : '${CountersRules.ordinal(n)} anniversary';
+  }
+
+  /// Progress of the wait from [start] (or the previous time round) to the target.
+  double? progress(DateTime today) {
+    final t = DateTime(today.year, today.month, today.day);
+    final end = target(t);
+    if (end.isBefore(t)) return null;
+    final from = yearly ? DateTime(end.year - 1, end.month, end.day) : start;
+    if (from == null || !from.isBefore(end)) return null;
+    final total = end.difference(from).inDays;
+    if (total <= 0) return null;
+    return (t.difference(from).inDays / total).clamp(0.0, 1.0);
+  }
 }
 
 class CountersRules {
@@ -52,6 +92,35 @@ class CountersRules {
     final past = all.where((p) => p.target(t).isBefore(t)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
     return [...upcoming, ...past];
+  }
+
+  static String ordinal(int n) {
+    final mod100 = n % 100;
+    final suffix = mod100 >= 11 && mod100 <= 13 ? 'th'
+      : switch (n % 10) { 1 => 'st', 2 => 'nd', 3 => 'rd', _ => 'th' };
+    return '$n$suffix';
+  }
+
+  /// How far back a past point is, relative to the oldest one (0…1).
+  static double ageShare(DateTime date, DateTime oldest, DateTime today) {
+    final total = today.difference(oldest).inDays;
+    if (total <= 0) return 0;
+    return (today.difference(date).inDays / total).clamp(0.0, 1.0);
+  }
+
+  /// A saved counter → its point(s): yearly counters give the day itself and
+  /// the next anniversary.
+  static List<CounterPoint> fromRow(Map<String, dynamic> r) {
+    final id = r['id'].toString();
+    final date = DateTime.parse(r['on_date'].toString());
+    final created = DateTime.tryParse((r['created_at'] ?? '').toString())?.toLocal();
+    final base = (String pid, bool yearly) => CounterPoint(id: pid, title: (r['title'] ?? '').toString(),
+      date: date, emoji: (r['emoji'] ?? '').toString(), row: r, yearly: yearly, pinned: r['pinned'] == true,
+      start: created, original: yearly ? null : (r['yearly'] == true ? 'yearly:$id' : null));
+    if (r['yearly'] != true) return [base(id, false)];
+    final today = DateTime.now();
+    final pastDay = !DateTime(date.year, date.month, date.day).isAfter(DateTime(today.year, today.month, today.day));
+    return [if (pastDay) base(id, false), base('yearly:$id', true)];
   }
 }
 
@@ -85,16 +154,13 @@ class _CountersScreenState extends State<CountersScreen> {
       final rows = await db.from('space_counters').select().eq('space_id', s)
         .isFilter('archived_at', null).order('on_date');
       final out = <CounterPoint>[
-        for (final r in rows)
-          CounterPoint(id: r['id'].toString(), title: (r['title'] ?? '').toString(),
-            date: DateTime.parse(r['on_date'].toString()), emoji: (r['emoji'] ?? '').toString(),
-            row: Map<String, dynamic>.from(r), yearly: r['yearly'] == true, pinned: r['pinned'] == true),
+        for (final r in rows) ...CountersRules.fromRow(Map<String, dynamic>.from(r)),
       ];
       out.addAll(await _fromElsewhere(s, p));
       if (!mounted) return;
       setState(() { space = s; people = p; points = out; loading = false; error = null; });
       if (openInitial && widget.initialId != null) {
-        final hit = out.where((x) => x.id == widget.initialId).firstOrNull;
+        final hit = out.where((x) => x.id == widget.initialId || x.id == 'yearly:${widget.initialId}').firstOrNull;
         if (hit != null) _open(hit);
       }
     } catch (_) {
@@ -102,35 +168,47 @@ class _CountersScreenState extends State<CountersScreen> {
     }
   }
 
-  /// Anniversary, birthdays, last met / next meet and the next trip.
+  /// Anniversary, birthdays, special dates, last met / next meet and the next trip.
   Future<List<CounterPoint>> _fromElsewhere(String s, SpacePeople? p) async {
     final out = <CounterPoint>[];
     try {
+      final today = DateTime.now();
       for (final d in await loadSpecialDates(s)) {
-        if (d.kind == 'anniversary' && d.year != null) {
-          out.add(CounterPoint(id: 'special:${d.id}', title: tt('Together'), emoji: '💞',
-            date: DateTime(d.year!, d.month, d.day), source: 'Anniversary'));
-          out.add(CounterPoint(id: 'special-next:${d.id}', title: tt('Our anniversary'), emoji: '💍',
-            date: DateTime(d.year!, d.month, d.day), source: 'Anniversary', yearly: true));
-        } else {
-          final name = SpecialDateRules.label(d, (id) => id == p?.me ? '' : (p?.partnerName ?? ''));
-          out.add(CounterPoint(id: 'special:${d.id}', title: tt(name), emoji: d.kind == 'birthday' ? '🎂' : '⭐',
-            date: DateTime(d.year ?? DateTime.now().year, d.month, d.day), source: 'Special date', yearly: true));
+        final label = SpecialDateRules.label(d, (id) => id == p?.me ? '' : (p?.partnerName ?? ''));
+        final birthday = d.kind == 'birthday';
+        final emoji = birthday ? '🎂' : d.kind == 'anniversary' ? '💍' : '⭐';
+        final source = birthday ? 'Birthday' : d.kind == 'anniversary' ? 'Anniversary' : 'Special date';
+        final known = d.year != null;
+        final day = DateTime(d.year ?? today.year, d.month, d.day);
+        // The day itself, when the year is known and it has happened.
+        if (known && !day.isAfter(today)) {
+          out.add(CounterPoint(id: 'special:${d.id}', date: day, emoji: emoji, source: source,
+            original: 'special-next:${d.id}',
+            title: birthday
+              ? (d.personId == p?.me ? tt('The day I was born')
+                  : tt('The day {} was born').replaceFirst('{}', p?.partnerName ?? tt('Partner')))
+              : d.kind == 'anniversary' ? tt('The day we became us') : tt(label)));
         }
+        // Its next time round.
+        out.add(CounterPoint(id: 'special-next:${d.id}', title: tt(label), emoji: emoji, date: day,
+          source: source, yearly: true, yearKnown: known, birthday: birthday));
       }
       final sp = await db.from('spaces').select('relationship_mode,last_met_on,next_meet_on').eq('id', s).maybeSingle();
       if (sp != null && sp['relationship_mode'] == 'apart') {
         final last = DateTime.tryParse((sp['last_met_on'] ?? '').toString());
         final next = DateTime.tryParse((sp['next_meet_on'] ?? '').toString());
         if (last != null) out.add(CounterPoint(id: 'last-met', title: tt('Since we last met'), emoji: '🫂', date: last, source: 'How we live'));
-        if (next != null) out.add(CounterPoint(id: 'next-meet', title: tt('Until we meet again'), emoji: '🤍', date: next, source: 'How we live'));
+        if (next != null) {
+          out.add(CounterPoint(id: 'next-meet', title: tt('Until we meet again'), emoji: '🤍', date: next,
+            source: 'How we live', start: last));
+        }
       }
-      final today = CalendarRules.sqlDate(DateTime.now());
-      final trip = await db.from('shared_trips').select('id,title,start_on').eq('space_id', s)
-        .isFilter('archived_at', null).gte('start_on', today).order('start_on').limit(1).maybeSingle();
+      final trip = await db.from('shared_trips').select('id,title,start_on,created_at').eq('space_id', s)
+        .isFilter('archived_at', null).gte('start_on', CalendarRules.sqlDate(today)).order('start_on').limit(1).maybeSingle();
       if (trip != null) {
         out.add(CounterPoint(id: 'trip:${trip['id']}', title: (trip['title'] ?? '').toString(), emoji: '✈️',
-          date: DateTime.parse(trip['start_on'].toString()), source: 'Next trip'));
+          date: DateTime.parse(trip['start_on'].toString()), source: 'Next trip',
+          start: DateTime.tryParse((trip['created_at'] ?? '').toString())?.toLocal()));
       }
     } catch (_) {}
     return out;
@@ -141,7 +219,7 @@ class _CountersScreenState extends State<CountersScreen> {
     if (s == null) return;
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
       builder: (_) => CounterEditor(spaceId: s, existing: row, initialDate: date,
-        others: [for (final p in points) if (p.saved && p.id != row?['id']) p])));
+        others: [for (final p in points) if (p.saved && !p.yearly && p.row?['id'] != row?['id']) p])));
     if (changed == true) await _load();
   }
 
@@ -153,6 +231,8 @@ class _CountersScreenState extends State<CountersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = MaterialLocalizations.of(context);
     final today = DateTime.now();
     final t = DateTime(today.year, today.month, today.day);
     final shown = CountersRules.sortForList(points.where((p) => switch (filter) {
@@ -160,7 +240,19 @@ class _CountersScreenState extends State<CountersScreen> {
       'past' => p.target(t).isBefore(t),
       _ => true,
     }).toList(), today);
-    final pinned = shown.where((p) => p.pinned).toList();
+    final pinned = shown.where((p) => p.pinned && !p.target(t).isBefore(t)).toList();
+    final rest = shown.where((p) => !pinned.contains(p)).toList();
+    final upcoming = rest.where((p) => !p.target(t).isBefore(t)).toList();
+    final past = rest.where((p) => p.target(t).isBefore(t)).toList();
+    final oldest = past.isEmpty ? t : past.map((p) => p.date).reduce((a, b) => a.isBefore(b) ? a : b);
+    Widget todayLine() => Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Row(children: [
+      Icon(Icons.radio_button_checked, size: 16, color: theme.colorScheme.primary),
+      const SizedBox(width: 6),
+      Text('${tt('Today')} · ${loc.formatMediumDate(today)}',
+        style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700)),
+      const SizedBox(width: 8),
+      Expanded(child: Divider(color: theme.colorScheme.primary, thickness: 2)),
+    ]));
     return Scaffold(
       appBar: AppBar(title: Text(tt('Counters')), actions: [
         IconButton(tooltip: tt(timeline ? 'Show as cards' : 'Show as a timeline'),
@@ -188,7 +280,15 @@ class _CountersScreenState extends State<CountersScreen> {
             else if (timeline) CounterTimeline(points: shown, onTap: _open)
             else ...[
               for (final p in pinned) CounterHeroCard(point: p, onTap: () => _open(p)),
-              for (final p in shown.where((p) => !p.pinned)) CounterCard(point: p, onTap: () => _open(p)),
+              if (upcoming.isNotEmpty && filter != 'past') Padding(padding: const EdgeInsets.only(top: 8, bottom: 2),
+                child: Text(tt('Coming up'), style: theme.textTheme.titleSmall)),
+              for (final p in upcoming) CounterCard(point: p, onTap: () => _open(p)),
+              // R78: the line between what is coming and what is behind us.
+              if (filter == 'all' && (upcoming.isNotEmpty || pinned.isNotEmpty) && past.isNotEmpty) todayLine(),
+              if (past.isNotEmpty && filter == 'past') Padding(padding: const EdgeInsets.only(top: 8, bottom: 2),
+                child: Text(tt('Looking back'), style: theme.textTheme.titleSmall)),
+              for (final p in past) CounterCard(point: p, onTap: () => _open(p),
+                ageShare: CountersRules.ageShare(p.date, oldest, t)),
             ],
           ])),
     );
@@ -198,37 +298,70 @@ class _CountersScreenState extends State<CountersScreen> {
 Widget _emoji(CounterPoint p, {double size = 22}) => Text(
   p.emoji.isEmpty ? '📌' : p.emoji, style: TextStyle(fontSize: size));
 
+/// The small line under a title: which date it is and where it comes from.
+String _subtitle(BuildContext context, CounterPoint point) {
+  final loc = MaterialLocalizations.of(context);
+  final now = DateTime.now();
+  final occasion = point.occasionLabel(now);
+  if (point.yearly) {
+    return [
+      loc.formatMediumDate(point.target(now)),
+      if (occasion != null) occasion,
+      if (point.yearKnown) tt('first on {}').replaceFirst('{}', loc.formatMediumDate(point.date))
+      else tt('every year'),
+    ].join(' · ');
+  }
+  return [
+    loc.formatMediumDate(point.date),
+    if (point.original != null) tt('the day itself'),
+    if (point.source != null) tt(point.source!),
+  ].join(' · ');
+}
+
 class CounterCard extends StatelessWidget {
-  const CounterCard({super.key, required this.point, required this.onTap});
+  const CounterCard({super.key, required this.point, required this.onTap, this.ageShare});
   final CounterPoint point;
   final VoidCallback onTap;
+  /// Past points: how far back, relative to the oldest (drawn as a soft bar).
+  final double? ageShare;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final loc = MaterialLocalizations.of(context);
-    final span = SmartSpan.between(DateTime.now(), point.target(DateTime.now()));
+    final now = DateTime.now();
+    final span = SmartSpan.between(now, point.target(now));
     final (major, minor) = span.parts();
     final color = span.future || span.isToday ? theme.colorScheme.primary : theme.colorScheme.tertiary;
-    return Card(elevation: 0, child: InkWell(borderRadius: BorderRadius.circular(12), onTap: onTap,
-      child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [
-        CircleAvatar(radius: 22, backgroundColor: color.withValues(alpha: .12), child: _emoji(point)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(point.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
-          const SizedBox(height: 2),
-          Text([
-            loc.formatMediumDate(point.yearly ? point.target(DateTime.now()) : point.date),
-            if (point.yearly) tt('every year'),
-            if (point.source != null) tt(point.source!),
-          ].join(' · '), style: theme.textTheme.bodySmall),
-        ])),
-        const SizedBox(width: 8),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(major, style: theme.textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.w700)),
-          if (minor.isNotEmpty) Text(minor, style: theme.textTheme.bodySmall?.copyWith(color: color)),
-          if (span.caption.isNotEmpty) Text(span.caption, style: theme.textTheme.labelSmall),
+    final progress = point.progress(now);
+    return Card(elevation: 0, clipBehavior: Clip.antiAlias, child: InkWell(onTap: onTap, child: Stack(children: [
+      if (ageShare != null && ageShare! > 0) Positioned.fill(child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FractionallySizedBox(widthFactor: ageShare, heightFactor: 1,
+          child: ColoredBox(color: theme.colorScheme.tertiary.withValues(alpha: .13))))),
+      Padding(padding: const EdgeInsets.all(14), child: Column(children: [
+        Row(children: [
+          CircleAvatar(radius: 22, backgroundColor: color.withValues(alpha: .12), child: _emoji(point)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(point.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 2),
+            Text(_subtitle(context, point), style: theme.textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ])),
+          const SizedBox(width: 8),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(major, style: theme.textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.w700)),
+            if (minor.isNotEmpty) Text(minor, style: theme.textTheme.bodySmall?.copyWith(color: color)),
+            if (span.caption.isNotEmpty) Text(span.caption, style: theme.textTheme.labelSmall),
+          ]),
         ]),
-      ]))));
+        // R78: how much of the wait is already behind us.
+        if (progress != null) Padding(padding: const EdgeInsets.only(top: 10), child: Row(children: [
+          Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(
+            value: progress, minHeight: 7, color: color, backgroundColor: color.withValues(alpha: .15)))),
+          const SizedBox(width: 8),
+          Text('${(progress * 100).round()}%', style: theme.textTheme.labelSmall),
+        ])),
+      ])),
+    ])));
   }
 }
 
@@ -239,8 +372,10 @@ class CounterHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final span = SmartSpan.between(DateTime.now(), point.target(DateTime.now()));
+    final now = DateTime.now();
+    final span = SmartSpan.between(now, point.target(now));
     final (major, minor) = span.parts();
+    final progress = point.progress(now);
     return Card(elevation: 0, color: theme.colorScheme.primaryContainer,
       child: InkWell(borderRadius: BorderRadius.circular(12), onTap: onTap, child: Padding(
         padding: const EdgeInsets.all(20),
@@ -250,12 +385,17 @@ class CounterHeroCard extends StatelessWidget {
             Expanded(child: Text(point.title, style: theme.textTheme.titleMedium)),
             Icon(Icons.push_pin, size: 18, color: theme.colorScheme.onPrimaryContainer),
           ]),
+          Align(alignment: AlignmentDirectional.centerStart,
+            child: Text(_subtitle(context, point), style: theme.textTheme.bodySmall)),
           const SizedBox(height: 12),
           Text(major, style: theme.textTheme.displaySmall?.copyWith(
             color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.w700)),
           if (minor.isNotEmpty) Text(minor, style: theme.textTheme.titleMedium),
           if (span.caption.isNotEmpty) Text(span.caption, style: theme.textTheme.labelLarge),
           if (span.totalDays > 13) Text(SmartUnits.format(span.totalDays, 'day'), style: theme.textTheme.bodySmall),
+          if (progress != null) Padding(padding: const EdgeInsets.only(top: 12), child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(value: progress, minHeight: 9))),
         ]))));
   }
 }
@@ -304,6 +444,57 @@ class CounterTimeline extends StatelessWidget {
   }
 }
 
+/// R78: two linked dates (and today) on one line, with the time between them.
+class LinkedDatesLine extends StatelessWidget {
+  const LinkedDatesLine({super.key, required this.a, required this.b, required this.aLabel, required this.bLabel});
+  final DateTime a, b;
+  final String aLabel, bLabel;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = MaterialLocalizations.of(context);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final first = a.isBefore(b) ? a : b, last = a.isBefore(b) ? b : a;
+    final firstLabel = a.isBefore(b) ? aLabel : bLabel, lastLabel = a.isBefore(b) ? bLabel : aLabel;
+    final from = [first, today].reduce((x, y) => x.isBefore(y) ? x : y);
+    final to = [last, today].reduce((x, y) => x.isAfter(y) ? x : y);
+    final total = to.difference(from).inDays.clamp(1, 1 << 30);
+    double at(DateTime d) => d.difference(from).inDays / total;
+    final between = SmartSpan.between(first, last);
+    final primary = theme.colorScheme.primary;
+    return LayoutBuilder(builder: (context, box) {
+      final w = box.maxWidth - 24;
+      double x(DateTime d) => 12 + w * at(d);
+      Widget dot(DateTime d, Color c, double r) => Positioned(left: x(d) - r, top: 40 - r,
+        child: Container(width: r * 2, height: r * 2, decoration: BoxDecoration(color: c, shape: BoxShape.circle,
+          border: Border.all(color: theme.colorScheme.surface, width: 2))));
+      Widget label(DateTime d, String text, {bool below = false, TextAlign align = TextAlign.center}) {
+        const width = 110.0;
+        final left = (x(d) - width / 2).clamp(0.0, box.maxWidth - width);
+        return Positioned(left: left, top: below ? 52 : 0, width: width, child: Text(text, textAlign: align,
+          maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall));
+      }
+      return SizedBox(height: 92, child: Stack(clipBehavior: Clip.none, children: [
+        Positioned(left: 12, right: 12, top: 38, child: Container(height: 4,
+          decoration: BoxDecoration(color: theme.colorScheme.outlineVariant, borderRadius: BorderRadius.circular(2)))),
+        Positioned(left: x(first), width: (x(last) - x(first)).clamp(2.0, double.infinity), top: 36,
+          child: Container(height: 8, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(4)))),
+        dot(first, primary, 8),
+        dot(last, primary, 8),
+        if (!today.isAtSameMomentAs(first) && !today.isAtSameMomentAs(last))
+          dot(today, theme.colorScheme.tertiary, 6),
+        label(first, '$firstLabel\n${loc.formatShortDate(first)}'),
+        label(last, '$lastLabel\n${loc.formatShortDate(last)}'),
+        if (!today.isAtSameMomentAs(first) && !today.isAtSameMomentAs(last)) label(today, tt('Today'), below: true),
+        Positioned(left: x(first), width: (x(last) - x(first)).clamp(60.0, double.infinity), top: 70,
+          child: Text(between.label, textAlign: TextAlign.center,
+            style: theme.textTheme.labelLarge?.copyWith(color: primary, fontWeight: FontWeight.w700))),
+      ]));
+    });
+  }
+}
+
 class CounterDetail extends StatefulWidget {
   const CounterDetail({super.key, required this.point, required this.all, required this.spaceId, this.onEdit});
   final CounterPoint point;
@@ -343,9 +534,8 @@ class _CounterDetailState extends State<CounterDetail> {
     final r = await db.from('space_counters').select().eq('id', id).maybeSingle();
     if (r == null) { if (mounted) Navigator.of(context).pop(); return; }
     if (mounted) {
-      setState(() => point = CounterPoint(id: r['id'].toString(), title: r['title'].toString(),
-        date: DateTime.parse(r['on_date'].toString()), emoji: (r['emoji'] ?? '').toString(),
-        row: Map<String, dynamic>.from(r), yearly: r['yearly'] == true, pinned: r['pinned'] == true));
+      final fresh = CountersRules.fromRow(Map<String, dynamic>.from(r));
+      setState(() => point = fresh.where((x) => x.yearly == point.yearly).firstOrNull ?? fresh.last);
     }
   }
 
@@ -369,7 +559,7 @@ class _CounterDetailState extends State<CounterDetail> {
   }
 
   Future<void> _pickCompare() async {
-    final others = widget.all.where((x) => x.id != point.id).toList();
+    final others = widget.all.where((x) => x.id != point.id && !x.yearly).toList();
     final hit = await showModalBottomSheet<CounterPoint>(context: context, showDragHandle: true,
       builder: (ctx) => SafeArea(child: ListView(shrinkWrap: true, children: [
         ListTile(title: Text(tt('Measure the time between this and…'), style: const TextStyle(fontWeight: FontWeight.w700))),
@@ -388,7 +578,6 @@ class _CounterDetailState extends State<CounterDetail> {
     final target = point.target(now);
     final span = SmartSpan.between(now, target);
     final (major, minor) = span.parts();
-    final since = point.yearly ? SmartSpan.between(now, point.date) : null;
     final milestone = CounterMilestone.next(point.date, now);
     final r = point.row;
     final people = r == null ? const <String>[] : List<String>.from(r['people'] as List? ?? const []);
@@ -410,8 +599,24 @@ class _CounterDetailState extends State<CounterDetail> {
         Center(child: _emoji(point, size: 48)),
         const SizedBox(height: 8),
         Text(point.title, textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
-        Text([loc.formatFullDate(point.date), if (at.length >= 5) at.substring(0, 5)].join(' · '),
-          textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+        Text([
+          loc.formatFullDate(point.yearly ? target : point.date),
+          if (point.occasionLabel(now) != null) point.occasionLabel(now)!,
+          if (at.length >= 5) at.substring(0, 5),
+        ].join(' · '), textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+        // R78: the day itself and its anniversary, side by side and clearly named.
+        if (point.yearly && point.yearKnown || point.original != null) Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(children: [
+            Expanded(child: _dayCard(theme, loc, tt('The day itself'), point.date,
+              SmartSpan.between(now, point.date), highlighted: !point.yearly)),
+            const SizedBox(width: 8),
+            Expanded(child: _dayCard(theme, loc,
+              point.occasionLabel(now) ?? tt('Next anniversary'),
+              CounterPoint(id: '', title: '', date: point.date, yearly: true).target(now),
+              SmartSpan.between(now, CounterPoint(id: '', title: '', date: point.date, yearly: true).target(now)),
+              highlighted: point.yearly)),
+          ])),
         const SizedBox(height: 16),
         Card(elevation: 0, color: theme.colorScheme.primaryContainer, child: Padding(
           padding: const EdgeInsets.all(20),
@@ -429,9 +634,13 @@ class _CounterDetailState extends State<CounterDetail> {
               if (span.totalDays < 60) Text(SmartUnits.format(span.totalDays * 24, 'hour')),
             ]),
           ]))),
-        if (since != null && !since.future && since.totalDays > 0) Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(tt('Since the first one: {}').replaceFirst('{}', since.label), textAlign: TextAlign.center)),
+        if (point.progress(now) != null) Padding(padding: const EdgeInsets.only(top: 10), child: Column(children: [
+          ClipRRect(borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(value: point.progress(now), minHeight: 10)),
+          const SizedBox(height: 4),
+          Text(tt('{}% of the wait is behind us').replaceFirst('{}', '${(point.progress(now)! * 100).round()}'),
+            style: theme.textTheme.bodySmall),
+        ])),
         if (milestone != null) Card(elevation: 0, child: ListTile(
           leading: const Text('🎉', style: TextStyle(fontSize: 24)),
           title: Text(tt('Next milestone: {}').replaceFirst('{}', milestone.label)),
@@ -456,6 +665,8 @@ class _CounterDetailState extends State<CounterDetail> {
             subtitle: Text(compareWith == null ? tt('Pick another counter to compare')
               : '${compareWith!.title} ↔ ${point.title}'),
             trailing: TextButton(onPressed: _pickCompare, child: Text(tt(compareWith == null ? 'Pick' : 'Change')))),
+          if (compareWith != null) Padding(padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: LinkedDatesLine(a: compareWith!.date, b: point.date, aLabel: compareWith!.title, bLabel: point.title)),
           if (compareWith != null) Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Text(
             () {
               final between = SmartSpan.between(compareWith!.date, point.date);
@@ -469,6 +680,18 @@ class _CounterDetailState extends State<CounterDetail> {
     );
   }
 }
+
+Widget _dayCard(ThemeData theme, MaterialLocalizations loc, String title, DateTime date, SmartSpan span,
+    {bool highlighted = false}) => Card(
+  elevation: 0,
+  color: highlighted ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerHighest,
+  child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(title, style: theme.textTheme.labelLarge),
+    Text(loc.formatMediumDate(date), style: theme.textTheme.bodySmall),
+    const SizedBox(height: 4),
+    Text(span.isToday ? tt('Today') : span.sentence,
+      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+  ])));
 
 class CounterEditor extends StatefulWidget {
   const CounterEditor({super.key, required this.spaceId, this.existing, this.initialDate, this.others = const []});

@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'invitation_code.dart';
 import 'invitation_qr.dart';
+import '../places/places_screen.dart';
+import '../counters/counters_screen.dart';
 import '../../core/phone_calendar_sync.dart';
 import 'space_task_summary.dart';
 import 'today_attention_rules.dart';
@@ -1027,6 +1029,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         _Shortcut(tt('Shared experiences'),Icons.movie_outlined,
           ()=>_push(const SharedExperiencesScreen())),
         _Shortcut(tt('Memories'),Icons.auto_stories_outlined,widget.onOpenMemories),
+        // R78: our places and counters.
+        _Shortcut(tt('Our places'),Icons.place_outlined,()=>_push(const PlacesScreen())),
+        _Shortcut(tt('Counters'),Icons.hourglass_bottom_rounded,()=>_push(const CountersScreen())),
         _Shortcut(tt('Search our space'),Icons.search,
           ()=>_push(const GlobalSearchScreen())),
       ]),
