@@ -27,7 +27,7 @@ class ThemeConceptCard extends StatelessWidget{
        Theme.of(context).colorScheme.outlineVariant,width:selected?2.5:1)),
      padding:const EdgeInsets.all(9),
      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      AspectRatio(aspectRatio:.91,child:ClipRRect(
+      AspectRatio(aspectRatio:.78,child:ClipRRect( // R80: taller so small phones (≤384 dp) don’t overflow
        borderRadius:BorderRadius.circular(15),
        child:ColoredBox(color:base,child:Padding(
         padding:const EdgeInsets.all(10),
