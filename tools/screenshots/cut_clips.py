@@ -48,4 +48,20 @@ for name, start in starts.items():
             print('clip', out, f'{length:.1f}s')
             break
     else:
-        print('no segment covers', name)
+        # The clip crosses a recording boundary: join the two segments (≈1 s gap).
+        for (t0, f), (t1, g) in zip(segs, segs[1:]):
+            if t0 <= start < t1 <= end:
+                joined = V / f'join_{lang}_{name}.mp4'
+                lst = V / f'join_{lang}_{name}.txt'
+                lst.write_text(f"file '{f.resolve()}'\nfile '{g.resolve()}'\n")
+                subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', str(lst), '-c', 'copy', str(joined)], check=True)
+                ss = max(0, (start - t0) / 1000 + 0.3)
+                out = V / f'{lang}_{name}.mp4'
+                subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{ss:.2f}', '-i', str(joined), '-t', f'{(end - start) / 1000:.2f}',
+                                '-an', '-vf', 'fps=30,scale=720:-2', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24',
+                                '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(out)], check=True)
+                joined.unlink(); lst.unlink()
+                print('clip (joined)', out)
+                break
+        else:
+            print('no segment covers', name)
