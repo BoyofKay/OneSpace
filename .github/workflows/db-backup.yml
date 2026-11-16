@@ -1,0 +1,58 @@
+name: Back up OneSpace database
+
+# R74: the Supabase Free plan has no automatic backups. Every night this dumps
+# the database (schema + data, including auth users), encrypts it with
+# BACKUP_PASSPHRASE and keeps it as a private workflow artifact for 14 days.
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     Supabase → Connect → Session pooler connection string (with the password)
+#   BACKUP_PASSPHRASE   any long passphrase; keep a copy somewhere safe
+# Restore: gpg -d backup.sql.gz.gpg | gunzip | psql "<target connection string>"
+on:
+  schedule:
+    - cron: '41 23 * * *'   # 02:41 Riyadh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PASS" ]; then
+            echo "::warning::SUPABASE_DB_URL or BACKUP_PASSPHRASE is not set yet — skipping the backup."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Dump, compress and encrypt
+        if: steps.check.outputs.ready == 'true'
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%dT%H%MZ)
+          mkdir out
+          docker run --rm -e DB="$DB" postgres:17 \
+            sh -c 'pg_dump "$DB" --no-owner --no-privileges --schema=public --schema=private --schema=auth --schema=storage --quote-all-identifiers' \
+            | gzip -9 > out/onespace.sql.gz
+          test "$(stat -c %s out/onespace.sql.gz)" -gt 10000
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 \
+            -o "out/onespace-$stamp.sql.gz.gpg" out/onespace.sql.gz
+          rm out/onespace.sql.gz
+          ls -la out
+      - name: Keep for 14 days
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: onespace-db-backup
+          path: out/*.gpg
+          retention-days: 14

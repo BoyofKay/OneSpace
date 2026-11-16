@@ -115,6 +115,19 @@ class MainActivity : FlutterFragmentActivity() {
         r.startListening(intent)
     }
 
+    // R74: calendar permission for the one-way "OneSpace" phone calendar.
+    private var pendingCalendarAccess: MethodChannel.Result? = null
+    private val calendarPermission = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val pending = pendingCalendarAccess ?: return@registerForActivityResult
+        pendingCalendarAccess = null
+        pending.success(grants.values.all { it })
+    }
+    private fun hasCalendarAccess(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
+        ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+
     private val contactsPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -636,6 +649,44 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/phone_calendar")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "requestAccess" -> {
+                        if (hasCalendarAccess()) result.success(true)
+                        else if (pendingCalendarAccess != null) result.error("BUSY", "Already asking", null)
+                        else {
+                            pendingCalendarAccess = result
+                            calendarPermission.launch(arrayOf(Manifest.permission.READ_CALENDAR,
+                                Manifest.permission.WRITE_CALENDAR))
+                        }
+                    }
+                    "replaceAll" -> {
+                        if (!hasCalendarAccess()) {
+                            result.error("PERMISSION_DENIED", "Calendar permission is off", null)
+                        } else {
+                            val args = call.arguments as? Map<*, *> ?: emptyMap<String, Any>()
+                            val name = args["name"]?.toString() ?: "OneSpace"
+                            val items = (args["items"] as? List<*>)?.filterIsInstance<Map<*, *>>() ?: emptyList()
+                            Thread {
+                                try {
+                                    val n = PhoneCalendar.replaceAll(applicationContext, name, items)
+                                    runOnUiThread { result.success(n) }
+                                } catch (e: Exception) {
+                                    runOnUiThread { result.error("CALENDAR_FAILED", e.message, null) }
+                                }
+                            }.start()
+                        }
+                    }
+                    "removeCalendar" -> {
+                        try {
+                            if (hasCalendarAccess()) PhoneCalendar.removeCalendar(applicationContext)
+                            result.success(null)
+                        } catch (e: Exception) { result.error("CALENDAR_FAILED", e.message, null) }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/device_contacts")
             .setMethodCallHandler { call, result ->
                 when (call.method) {

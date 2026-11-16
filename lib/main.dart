@@ -6,6 +6,7 @@ import 'features/support/whats_new.dart';
 import 'core/voice_assistant.dart';
 import 'features/coordinate/coordinate_hub.dart';
 import 'features/profile/me_screen.dart';
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     show GlobalWidgetsLocalizations;
@@ -31,6 +32,7 @@ import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
+import 'core/error_reporter.dart';
 
 import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
@@ -48,6 +50,16 @@ Future<void> main() async {
   // Replace Flutter's unreadable black/red build-error surface with a
   // recoverable diagnostic card. Never hide the underlying exception.
   ErrorWidget.builder=(details)=>OneSpaceErrorFallback(details:details);
+  // R74: errors are reported automatically (no content) so testers' problems
+  // are seen even when nobody writes to us.
+  FlutterError.onError=(details){
+    FlutterError.presentError(details);
+    ErrorReporter.report(details.exception,details.stack,context:details.context?.toDescription());
+  };
+  PlatformDispatcher.instance.onError=(error,stack){
+    ErrorReporter.report(error,stack);
+    return false;
+  };
   final timer = Stopwatch()..start();
   // Render a real frame before initializing secure storage and the network
   // session. Previously OneSpace displayed a blank startup while awaiting
@@ -232,7 +244,8 @@ class OneSpaceApp extends StatelessWidget {
             themeMode:appearance.mode,
             builder:(context,child){
               OneSpacePhrases.follow(context);
-              return OneSpaceCanvas(season:activeSeason,style:appearance.background,child:child??const SizedBox.shrink());
+              return OneSpaceCanvas(season:activeSeason,style:appearance.background,
+                child:TabletFrame(child:child??const SizedBox.shrink()));
             },
             themeAnimationDuration:
               WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations
@@ -520,3 +533,24 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     ));
   }
 }
+
+/// R74: on tablets and wide windows the app is laid out at phone-like reading
+/// width in the middle of the screen (pages, sheets and dialogs alike), so
+/// forms, chips and lists keep the proportions they were designed for.
+class TabletFrame extends StatelessWidget {
+  const TabletFrame({super.key,required this.child});
+  final Widget child;
+  static const maxWidth=720.0;
+  @override
+  Widget build(BuildContext context){
+    final media=MediaQuery.of(context);
+    if(media.size.width<=maxWidth+120)return child;
+    final line=Theme.of(context).colorScheme.outlineVariant;
+    return Center(child:SizedBox(width:maxWidth,child:DecoratedBox(
+      decoration:BoxDecoration(border:Border.symmetric(vertical:BorderSide(color:line))),
+      child:ClipRect(child:MediaQuery(
+        data:media.copyWith(size:Size(maxWidth,media.size.height)),
+        child:child)))));
+  }
+}
+

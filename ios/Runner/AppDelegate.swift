@@ -6,6 +6,7 @@ import AVFoundation
 import Speech
 import Contacts
 import ContactsUI
+import EventKit
 
 /// R63: iOS counterparts of every Android platform channel.
 ///  - onespace/travel_documents  pick a PDF/image (≤10 MB)
@@ -183,6 +184,32 @@ import ContactsUI
         case "pickContact": self.pickContact(result: result)
         case "saveToPhone": self.saveContact(call.arguments as? [String: Any] ?? [:], result: result)
         case "takePendingVcard": result(nil)
+        default: result(FlutterMethodNotImplemented)
+        }
+      }
+
+    // R74: one-way "OneSpace" calendar in the iPhone Calendar app.
+    FlutterMethodChannel(name: "onespace/phone_calendar", binaryMessenger: messenger)
+      .setMethodCallHandler { call, result in
+        switch call.method {
+        case "requestAccess":
+          PhoneCalendar.shared.requestAccess { result($0) }
+        case "replaceAll":
+          let args = call.arguments as? [String: Any] ?? [:]
+          let items = args["items"] as? [[String: Any]] ?? []
+          let name = args["name"] as? String ?? "OneSpace"
+          DispatchQueue.global(qos: .utility).async {
+            do {
+              let n = try PhoneCalendar.shared.replaceAll(name: name, items: items)
+              DispatchQueue.main.async { result(n) }
+            } catch let error as NSError where error.domain == "PERMISSION_DENIED" {
+              DispatchQueue.main.async { result(FlutterError(code: "PERMISSION_DENIED", message: "Calendar access is off", details: nil)) }
+            } catch {
+              DispatchQueue.main.async { result(FlutterError(code: "CALENDAR_FAILED", message: error.localizedDescription, details: nil)) }
+            }
+          }
+        case "removeCalendar":
+          PhoneCalendar.shared.removeCalendar(); result(nil)
         default: result(FlutterMethodNotImplemented)
         }
       }
@@ -507,5 +534,94 @@ extension AppDelegate: MFMailComposeViewControllerDelegate {
   func mailComposeController(_ controller: MFMailComposeViewController,
                              didFinishWith result: MFMailComposeResult, error: Error?) {
     controller.dismiss(animated: true)
+  }
+}
+
+
+/// R74: one-way export into a separate "OneSpace" calendar. Only that calendar
+/// is created, replaced or removed — other calendars are never read.
+final class PhoneCalendar {
+  static let shared = PhoneCalendar()
+  private let store = EKEventStore()
+  private let key = "onespace_phone_calendar_id"
+
+  func requestAccess(_ done: @escaping (Bool) -> Void) {
+    if #available(iOS 17.0, *) {
+      store.requestFullAccessToEvents { granted, _ in DispatchQueue.main.async { done(granted) } }
+    } else {
+      store.requestAccess(to: .event) { granted, _ in DispatchQueue.main.async { done(granted) } }
+    }
+  }
+
+  private var hasAccess: Bool {
+    let status = EKEventStore.authorizationStatus(for: .event)
+    if #available(iOS 17.0, *) { return status == .fullAccess }
+    return status == .authorized
+  }
+
+  private func calendar(named name: String) throws -> EKCalendar {
+    if let id = UserDefaults.standard.string(forKey: key), let existing = store.calendar(withIdentifier: id) {
+      return existing
+    }
+    let cal = EKCalendar(for: .event, eventStore: store)
+    cal.title = name
+    cal.cgColor = UIColor(red: 0.88, green: 0.38, blue: 0.49, alpha: 1).cgColor
+    let sources = store.sources
+    cal.source = sources.first(where: { $0.sourceType == .calDAV && $0.title.lowercased().contains("icloud") })
+      ?? store.defaultCalendarForNewEvents?.source
+      ?? sources.first(where: { $0.sourceType == .local })
+    try store.saveCalendar(cal, commit: true)
+    UserDefaults.standard.set(cal.calendarIdentifier, forKey: key)
+    return cal
+  }
+
+  private func day(_ s: String) -> Date? {
+    let f = DateFormatter()
+    f.calendar = Calendar(identifier: .gregorian)
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone.current
+    f.dateFormat = "yyyy-MM-dd"
+    return f.date(from: s)
+  }
+
+  func replaceAll(name: String, items: [[String: Any]]) throws -> Int {
+    guard hasAccess else { throw NSError(domain: "PERMISSION_DENIED", code: 1) }
+    let cal = try calendar(named: name)
+    let from = Calendar.current.date(byAdding: .year, value: -2, to: Date())!
+    let to = Calendar.current.date(byAdding: .year, value: 2, to: Date())!
+    for e in store.events(matching: store.predicateForEvents(withStart: from, end: to, calendars: [cal])) {
+      try store.remove(e, span: .thisEvent, commit: false)
+    }
+    var count = 0
+    for item in items {
+      guard let title = item["title"] as? String, !title.isEmpty else { continue }
+      let e = EKEvent(eventStore: store)
+      e.calendar = cal
+      e.title = title
+      e.notes = (item["notes"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+      e.location = (item["location"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+      if (item["allDay"] as? Bool) == true {
+        guard let s = (item["startDate"] as? String).flatMap(day),
+              let end = (item["endDate"] as? String).flatMap(day) else { continue }
+        e.isAllDay = true
+        e.startDate = s
+        e.endDate = end.addingTimeInterval(-1)
+      } else {
+        guard let s = item["startMs"] as? NSNumber, let end = item["endMs"] as? NSNumber else { continue }
+        e.startDate = Date(timeIntervalSince1970: s.doubleValue / 1000)
+        e.endDate = Date(timeIntervalSince1970: end.doubleValue / 1000)
+      }
+      try store.save(e, span: .thisEvent, commit: false)
+      count += 1
+    }
+    try store.commit()
+    return count
+  }
+
+  func removeCalendar() {
+    guard hasAccess, let id = UserDefaults.standard.string(forKey: key),
+          let cal = store.calendar(withIdentifier: id) else { return }
+    try? store.removeCalendar(cal, commit: true)
+    UserDefaults.standard.removeObject(forKey: key)
   }
 }
