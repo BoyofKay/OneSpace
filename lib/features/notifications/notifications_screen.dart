@@ -268,7 +268,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
      body:Center(child:Text(tt('Sign in required'))));
    return Scaffold(
      appBar:AppBar(title:Text(tt('Notifications'))),
-     ]),
      body:StreamBuilder<List<Map<String,dynamic>>>(
        stream:_feed(userId),
        builder:(context,snapshot){
