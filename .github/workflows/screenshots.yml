@@ -9,6 +9,9 @@ on:
         description: 'Comma-separated sets: core|themes|together - en|ar'
         default: 'core-en,core-ar,together-en,together-ar,themes-en,themes-ar'
         required: true
+      demo_password:
+        description: 'Only if the DEMO_PASSWORD secret is not set yet'
+        required: false
 
 permissions:
   contents: read
@@ -53,10 +56,19 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Demo login
+        id: demo
+        env:
+          FROM_SECRET: ${{ secrets.DEMO_PASSWORD }}
+          FROM_INPUT: ${{ inputs.demo_password }}
+        run: |
+          pw="${FROM_SECRET:-$FROM_INPUT}"
+          if [ -z "$pw" ]; then echo "::error::Add the DEMO_PASSWORD secret"; exit 1; fi
+          echo "::add-mask::$pw"
+          echo "DEMO_PASSWORD=$pw" >> "$GITHUB_ENV"
       - name: Run the robot on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         env:
-          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
           SHOT_SETS: ${{ inputs.sets }}
         with:
           api-level: 31
