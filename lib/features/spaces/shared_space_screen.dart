@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'invitation_code.dart';
+import 'invitation_qr.dart';
 import 'space_task_summary.dart';
 import 'today_attention_rules.dart';
 import 'today_attention_section.dart';
@@ -581,6 +582,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(tr(context, 'inviteCopied')),
+                const SizedBox(height: 12),
+                // R73: or your partner scans it from this screen.
+                Text(tt('Or let your partner scan this in OneSpace › Join your partner:'),
+                  style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
+                InvitationQr(code: token),
                 const SizedBox(height: 16),
                 SelectableText(
                   token,
@@ -1156,6 +1163,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                     ),
                   ),
                   const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: Text(tt('Scan your partner’s QR code')),
+                    onPressed: working ? null : () async {
+                      final code = await scanInvitation(context);
+                      if (code == null || !mounted) return;
+                      invitationController.text = code;
+                      await _accept();
+                    }),
+                  const SizedBox(height: 6),
                   FilledButton.tonal(
                     onPressed: working ? null : _accept,
                     child: Text(tr(context, 'joinSpace')),

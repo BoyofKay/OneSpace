@@ -48,6 +48,19 @@ class OneSpacePhrases {
     if (exact != null) return exact;
     final templated = _template(en);
     if (templated != null) return templated;
+    // R73: pieces joined with " · " or line breaks ("Birthday · Planning ·
+    // In 3 days") are translated one by one.
+    for (final sep in const [' · ', '\n']) {
+      if (en.contains(sep)) {
+        final parts = en.split(sep);
+        final out = parts.map(translate).toList();
+        var changed = false;
+        for (var i = 0; i < parts.length; i++) {
+          if (out[i] != parts[i]) changed = true;
+        }
+        if (changed) return out.join(sep);
+      }
+    }
     final m = _edges.firstMatch(en);
     if (m == null) return en;
     final core = arPhrases[m.group(2)!] ?? arPhrases['${m.group(2)}.'];
@@ -59,24 +72,27 @@ class OneSpacePhrases {
 
 /// R65: sentence patterns ("Every {} days"), longest first so the most
 /// specific one wins.
-final List<(RegExp, String)> _templates = (() {
+final List<(RegExp, String, bool)> _templates = (() {
   final keys = arTemplates.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
   return [
     for (final k in keys)
-      (RegExp('^${k.split('{}').map(RegExp.escape).join('(.+?)')}\$', dotAll: true), arTemplates[k]!),
+      (RegExp('^${k.split('{}').map(RegExp.escape).join('(.+?)')}\$', dotAll: true), arTemplates[k]!, k.contains(' · ')),
   ];
 })();
 
 String? _template(String en) {
   if (!en.contains(RegExp(r'[0-9]|\s'))) return null;
-  for (final (re, ar) in _templates) {
+  final joined = en.contains(' · ') || en.contains('\n');
+  for (final (re, ar, dotted) in _templates) {
+    // R73: a joined line ("A · B · 3 days to go") is split instead.
+    if (joined && !dotted) continue;
     final m = re.firstMatch(en);
     if (m == null) continue;
     var i = 0;
     return ar.replaceAllMapped('{}', (_) {
       i++;
       final part = m.group(i) ?? '';
-      return arPhrases[part] ?? part;
+      return OneSpacePhrases.translate(part);
     });
   }
   return null;

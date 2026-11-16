@@ -369,7 +369,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                 if(item['response_mood']!=null)ListTile(
                   contentPadding:EdgeInsets.zero,
                   leading:const Icon(Icons.favorite_outline),
-                  title:Text(tt('How they felt · ')+_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1]),
+                  title:Text(tt('How they felt · ')+tt(_moodWords[(item['response_mood'] as num).toInt().clamp(1,5).toInt()-1])),
                   subtitle:Text(tt('Answered ')+_dateTime(item['responded_at'])),
                 ),
                 if((item['response_message']?.toString()??'').isNotEmpty)

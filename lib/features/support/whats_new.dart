@@ -7,10 +7,14 @@ import 'package:onespace/l10n/phrases.dart';
 /// Bump [release] and rewrite [_items] when there is something worth telling.
 class WhatsNew {
   const WhatsNew._();
-  static const release = 'r71';
+  static const release = 'r73';
   static const _key = 'whats_new_seen_v1';
 
   static const _items = <(IconData, String, String, String, String)>[
+    (Icons.forum_outlined, 'Talk about experiences', 'Each movie, show or book has a real conversation now — reply to a message, mention your partner — and your ratings show on the card. Tap a pick again to clear it.',
+      'تحدّثا عن التجارب', 'لكل فيلم أو مسلسل أو كتاب محادثة حقيقية الآن — ردّ على رسالة وأشِر إلى شريكك — وتظهر تقييماتكما على البطاقة. اضغط على اختيارك مرة أخرى لإلغائه.'),
+    (Icons.qr_code_2_outlined, 'Invite with a QR code', 'Your partner can scan the invitation from your phone. Reports of a technical issue can include a screenshot.',
+      'دعوة برمز QR', 'يمكن لشريكك مسح الدعوة من هاتفك. ويمكن إرفاق لقطة شاشة عند الإبلاغ عن مشكلة تقنية.'),
     (Icons.bolt_outlined, 'Quicker everyday forms', 'Days off as a range, platform chips for movies and music, Daily feeling and Letter in Quick add, and send the partner invitation by WhatsApp, SMS or email.',
       'نماذج أسرع', 'الإجازات كفترة، اختيارات جاهزة للمنصات، شعور اليوم والرسالة في الإضافة السريعة، وإرسال دعوة الشريك عبر واتساب أو رسالة أو بريد.'),
     (Icons.cake_outlined, 'Birthdays & special dates', 'Settings now has places for your birthday, your partner\'s, your anniversary and your own dates. They show in the calendar and start occasions.',

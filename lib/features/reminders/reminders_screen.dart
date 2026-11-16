@@ -376,7 +376,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
        when(event['recorded_at']),
        if((event['note']??'').toString().isNotEmpty)event['note'].toString(),
        if((event['action']=='snooze'||event['action']=='deferred')&&event['next_alert_at']!=null)
-        'Until '+when(event['next_alert_at']),
+        tt('Until')+' '+when(event['next_alert_at']),
        if(event['action']=='missed'&&event['next_alert_at']!=null)
         'Occurrence of '+when(event['next_alert_at']),
       ].join(' · '))),

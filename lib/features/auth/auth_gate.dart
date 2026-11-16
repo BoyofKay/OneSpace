@@ -344,8 +344,8 @@ class _SignInScreenState extends State<SignInScreen> {
     if(loading)return;
     if(widget.onSessionUnlocked==null ||
        Supabase.instance.client.auth.currentSession==null){
-      setState(()=>info='Sign in with your password first. After sign-in, '+
-       'you can unlock a saved session with your fingerprint or phone PIN.');
+      setState(()=>info=tt('Sign in with your password first. After sign-in, '
+       'you can unlock a saved session with your fingerprint or phone PIN.'));
       return;
     }
     setState((){loading=true;info=null;error=null;});
@@ -359,8 +359,8 @@ class _SignInScreenState extends State<SignInScreen> {
       if(granted){
         widget.onSessionUnlocked!();
       }else{
-        setState(()=>info='Device verification was cancelled or did not succeed. '+
-         'You can use the password instead.');
+        setState(()=>info=tt('Device verification was cancelled or did not succeed. '
+         'You can use the password instead.'));
       }
     }catch(_){
       if(mounted)setState(()=>error='Device unlock unavailable. Use your password.');
