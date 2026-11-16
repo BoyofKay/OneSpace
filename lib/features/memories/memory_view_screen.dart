@@ -164,7 +164,7 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
           if (p != null && (p['caption'] ?? '').toString().isNotEmpty)
             Text(tt(p['caption'].toString()), maxLines: 2, textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFF3B3533), fontSize: 12)),
-        ])))));
+        ]))));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         polaroid(mine.firstOrNull, 'You', onAdd: shared || memory?['created_by'] == me ? addMySelfie : null),
