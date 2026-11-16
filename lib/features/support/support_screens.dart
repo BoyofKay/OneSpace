@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 
 import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
@@ -135,6 +137,9 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
   String topic = '';
   bool attachDetails = true;
   bool saving = false;
+  /// R73: an optional screenshot (private; only you and support can see it).
+  XFile? screenshot;
+  Uint8List? screenshotBytes;
   String? error;
 
   bool get issue => kind == 'issue';
@@ -157,6 +162,15 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
     setState(() { saving = true; error = null; });
     try {
       final details = issue && attachDetails ? await collectDiagnostics(context) : null;
+      String? shotPath;
+      final shot = screenshot, bytes = screenshotBytes;
+      if (issue && shot != null && bytes != null) {
+        final db = Supabase.instance.client;
+        final ext = shot.name.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+        shotPath = '${db.auth.currentUser!.id}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+        await db.storage.from('onespace-support').uploadBinary(shotPath, bytes,
+          fileOptions: FileOptions(contentType: ext == 'png' ? 'image/png' : 'image/jpeg'));
+      }
       final title = [if (topic.isNotEmpty) topic, subject.text.trim()].join(' · ');
       await Supabase.instance.client.from('support_requests').insert({
         'kind': issue ? 'issue' : (topic == 'Idea' ? 'idea' : 'contact'),
@@ -168,6 +182,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
         'locale': OneSpacePhrases.lang,
         'diagnostics': details == null ? null
           : (details.length > 8000 ? details.substring(0, 8000) : details),
+        if (shotPath != null) 'screenshot_path': shotPath,
       });
       if (!mounted) return;
       await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
@@ -236,9 +251,29 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
           OptionChip(label: 'Include technical details', value: attachDetails, icon: Icons.memory,
             help: 'App version, phone type, language and loading times. No content or names.',
             onChanged: (v) => setState(() => attachDetails = v)),
-          const SizedBox(height: 6),
-          Text(tt('Tip: a screenshot helps. Send it with Contact us after this report, or reply to our email with it.'),
-            style: theme.textTheme.bodySmall),
+          const SizedBox(height: 10),
+          if (screenshotBytes == null)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(tt('Add a screenshot')),
+              onPressed: saving ? null : () async {
+                final picked = await ImagePicker().pickImage(source: ImageSource.gallery,
+                  imageQuality: 85, maxWidth: 2000, maxHeight: 2000);
+                if (picked == null) return;
+                final bytes = await picked.readAsBytes();
+                if (bytes.length > 6 * 1024 * 1024) {
+                  if (mounted) setState(() => error = tt('That picture is too large (6 MB at most).'));
+                  return;
+                }
+                if (mounted) setState(() { screenshot = picked; screenshotBytes = bytes; });
+              })
+          else Card(elevation: 0, child: ListTile(
+            leading: ClipRRect(borderRadius: BorderRadius.circular(6),
+              child: Image.memory(screenshotBytes!, width: 48, height: 48, fit: BoxFit.cover)),
+            title: Text(tt('Screenshot attached')),
+            subtitle: Text(tt('Only you and the support team can see it.')),
+            trailing: IconButton(tooltip: tt('Remove'), icon: const Icon(Icons.close),
+              onPressed: () => setState(() { screenshot = null; screenshotBytes = null; })))),
         ],
         if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
           child: Text(error!, style: TextStyle(color: theme.colorScheme.error))),
