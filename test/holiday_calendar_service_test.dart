@@ -3,10 +3,27 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:onespace/features/calendar/holiday_calendar_service.dart';
 void main(){
- test('Saudi civic days are date-only; no invented Eid dates',(){
+ test('Saudi civic days are date-only',(){
   final days=HolidayCatalog.saudiCivicDays(2027);
   expect(days.map((x)=>x.dayKey),['2027-02-22','2027-09-23']);
   expect(days.every((x)=>x.country=='SA'),true);
+ });
+ test('R69: built-in Saudi and Egypt calendars include the Eids, marked expected',(){
+  final sa=HolidayCatalog.builtInDays(2026,'SA');
+  expect(sa.map((d)=>d.dayKey),containsAll(['2026-02-22','2026-03-20','2026-05-26','2026-05-27','2026-09-23']));
+  expect(sa.where((d)=>d.name.startsWith('Eid')).every((d)=>d.name.contains('expected')),true);
+  final eg=HolidayCatalog.builtInDays(2026,'EG');
+  expect(eg.any((d)=>d.name=='Sham el-Nessim'&&d.dayKey=='2026-04-13'),true);
+  expect(eg.any((d)=>d.dayKey=='2026-01-07'),true);
+  expect(HolidayCatalog.builtInDays(2040,'SA').length,2);
+ });
+ test('R69: orthodox Easter and time zone countries',(){
+  expect(HolidayCatalog.orthodoxEaster(2025),DateTime(2025,4,20));
+  expect(HolidayCatalog.orthodoxEaster(2027),DateTime(2027,5,2));
+  expect(HolidayCatalog.countryForTimeZone('Asia/Riyadh'),'SA');
+  expect(HolidayCatalog.countryForTimeZone('America/New_York'),'US');
+  expect(HolidayCatalog.countryForTimeZone('America/Toronto'),'CA');
+  expect(HolidayCatalog.countryForTimeZone('Asia/Tokyo'),isNull);
  });
  test('Holiday feed ignores subdivision-only dates and optional observances',(){
   final result=HolidayCatalog.parseNager(
@@ -33,10 +50,10 @@ void main(){
    return http.Response('Unavailable',503);
   });
   final service=HolidayCalendarService(client:client);
-  final result=await service.forYearDetailed(2026,{'US','EG','SA'});
-  expect(result.unavailableCountries,['EG']);
+  final result=await service.forYearDetailed(2026,{'US','GB','SA'});
+  expect(result.unavailableCountries,['GB']);
   expect(result.days.any((d)=>d.country=='US'),true);
-  expect(result.days.where((d)=>d.country=='SA').length,2);
+  expect(result.days.where((d)=>d.country=='SA').length,HolidayCatalog.builtInDays(2026,'SA').length);
  });
  test('Wrong-year entries cannot leak into calendar overlay',(){
   expect(HolidayCatalog.parseNager(

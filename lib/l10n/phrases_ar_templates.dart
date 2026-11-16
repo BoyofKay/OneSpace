@@ -4,6 +4,10 @@
 const Map<String, String> arTemplates = {
   '{} days remaining': 'متبقٍ {} يومًا',
   '{} adults': '{} بالغين',
+  "{}'s birthday": 'عيد ميلاد {}',
+  'turns {}': 'يُتم {}',
+  '{} years': '{} سنوات',
+  'Your photo sits next to {}’s in the same memory.': 'تظهر صورتك بجانب صورة {} في الذكرى نفسها.',
   '{} adult': '{} بالغ',
   '{} children': '{} أطفال',
   '{} child': '{} طفل',

@@ -5,6 +5,34 @@ import '../../l10n/onespace_strings.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Holiday calendars are overlays, not copied or duplicated as editable events.
+/// R69: holidays follow the countries the two of you live in. When a space
+/// has never chosen any, each member's country (from their time zone) is
+/// turned on by itself; after that the choice is yours.
+class HolidayDefaults{
+ const HolidayDefaults._();
+ static final Set<String> _done={};
+ static Future<void> ensure(String spaceId)async{
+  if(_done.contains(spaceId))return;
+  _done.add(spaceId);
+  final db=Supabase.instance.client;
+  try{
+   final rows=await db.from('space_holiday_sources').select('country_code').eq('space_id',spaceId).limit(1);
+   if(rows.isNotEmpty)return;
+   final members=await db.from('space_members').select('user_id').eq('space_id',spaceId);
+   final ids=[for(final m in members)m['user_id'].toString()];
+   if(ids.isEmpty)return;
+   final profiles=await db.from('profiles').select('time_zone').inFilter('id',ids);
+   final codes=<String>{
+    for(final p in profiles)
+     if(HolidayCatalog.countryForTimeZone(p['time_zone']?.toString()) case final String c)c,
+   };
+   for(final code in codes){
+    await db.from('space_holiday_sources').insert({'space_id':spaceId,'country_code':code,'enabled':true});
+   }
+  }catch(_){_done.remove(spaceId);}
+ }
+}
+
 class HolidaySourcesPanel extends StatefulWidget{
  const HolidaySourcesPanel({super.key,required this.spaceId,required this.onChanged});
  final String spaceId;
@@ -19,6 +47,7 @@ class _HolidaySourcesPanelState extends State<HolidaySourcesPanel>{
  @override void initState(){super.initState();load();}
  Future<void> load()async{
   try{
+   await HolidayDefaults.ensure(widget.spaceId);
    final rows=await db.from('space_holiday_sources').select('country_code,enabled')
     .eq('space_id',widget.spaceId);
    if(mounted)setState((){
@@ -61,11 +90,12 @@ class _HolidaySourcesPanelState extends State<HolidaySourcesPanel>{
      CheckboxListTile(
       contentPadding:EdgeInsets.zero,
       title:Text(tt(HolidayCatalog.label(code))),
-      subtitle:Text(tt(code=='SA'?'Founding Day and National Day only':
+      subtitle:Text(tt(HolidayCatalog.builtIn.contains(code)?
+       'Built in: national days, Ramadan and the Eids (expected dates)':
        'National public holidays · from Nager.Date')),
       value:enabled[code]??false,
       onChanged:busy?null:(value)=>setCountry(code,value??false)),
-    Text(tt('Holiday overlays are informational. Local/state observances and announced lunar-calendar holidays may differ. Add your own important dates below.'),
+    Text(tt('Islamic dates follow the Umm al-Qura calendar and can move by a day after the moon sighting. Your own birthdays and special dates are in Settings › Birthdays, anniversary & special dates.'),
      style:TextStyle(fontSize:12)),
     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
    ]));

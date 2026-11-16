@@ -1,4 +1,5 @@
 
+import '../../core/preferred_currency.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../calendar/calendar_rules.dart';
@@ -61,7 +62,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
     details = TextEditingController(text: p['note']?.toString() ?? '');
     url = TextEditingController(text: p['url']?.toString() ?? '');
     price = TextEditingController(text: p['price']?.toString() ?? '');
-    currency = TextEditingController(text: p['currency']?.toString() ?? 'USD');
+    currency = TextEditingController(text: p['currency']?.toString() ?? PreferredCurrency.code);
     specs = TextEditingController(text: p['specs']?.toString() ?? '');
     contactPerson = TextEditingController(text: p['contact_name']?.toString() ?? '');
     contactPhone = TextEditingController(text: p['phone']?.toString() ?? '');

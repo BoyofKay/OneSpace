@@ -528,7 +528,54 @@ class MainActivity : FlutterFragmentActivity() {
             }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/scrapbook_export")
             .setMethodCallHandler { call, result ->
-                if (call.method != "saveAndShare") {
+                if (call.method == "sharePdf") {
+                    // R70: a memory, selfie or scrapbook as a PDF in Downloads,
+                    // then shared (or sent by email).
+                    val pdf = call.argument<ByteArray>("bytes")
+                    val name = call.argument<String>("name") ?: "OneSpace-Memory"
+                    val email = call.argument<Boolean>("email") ?: false
+                    val subject = call.argument<String>("subject") ?: name
+                    if (pdf == null || pdf.isEmpty() || pdf.size > 40 * 1024 * 1024 ||
+                        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        result.error("EXPORT_UNAVAILABLE",
+                            "The PDF is too large or this Android version cannot export it.", null)
+                        return@setMethodCallHandler
+                    }
+                    val safeName = name.replace(Regex("[^\\p{L}\\p{N}_-]"), "-")
+                        .take(60).ifBlank { "OneSpace-Memory" }
+                    val fields = ContentValues().apply {
+                        put(MediaStore.Downloads.DISPLAY_NAME, safeName + "-" + System.currentTimeMillis() + ".pdf")
+                        put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
+                        put(MediaStore.Downloads.RELATIVE_PATH, "Download/OneSpace")
+                        put(MediaStore.Downloads.IS_PENDING, 1)
+                    }
+                    var savedUri: Uri? = null
+                    try {
+                        savedUri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, fields)
+                            ?: throw IllegalStateException("Could not create the PDF")
+                        contentResolver.openOutputStream(savedUri)?.use { it.write(pdf) }
+                            ?: throw IllegalStateException("Could not save the PDF")
+                        contentResolver.update(savedUri, ContentValues().apply {
+                            put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
+                        val share = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/pdf"
+                            putExtra(Intent.EXTRA_STREAM, savedUri)
+                            putExtra(Intent.EXTRA_SUBJECT, subject)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            if (email) selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+                        }
+                        try {
+                            startActivity(if (email) share else Intent.createChooser(share, "Share PDF"))
+                        } catch (_: Exception) {
+                            share.selector = null
+                            startActivity(Intent.createChooser(share, "Share PDF"))
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        savedUri?.let { try { contentResolver.delete(it, null, null) } catch (_: Exception) { } }
+                        result.error("EXPORT_FAILED", e.message ?: "Could not export the PDF", null)
+                    }
+                } else if (call.method != "saveAndShare") {
                     result.notImplemented()
                 } else {
                     val png = call.argument<ByteArray>("bytes")

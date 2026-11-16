@@ -1,3 +1,4 @@
+import '../../core/preferred_currency.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/item_menu.dart';
@@ -59,7 +60,7 @@ Future<bool> editFlightOption(BuildContext context,{required String tripId,
  var seatNumber=(prior?['seat_number']??'').toString();
  final oldBaggage=(prior?['baggage_details']??'').toString();
  var price=(prior?['price']??draft?.price??'').toString();
- var currency=(prior?['currency']??draft?.currency??'SAR').toString();
+ var currency=(prior?['currency']??draft?.currency??PreferredCurrency.code).toString();
  var score=(prior?['preference_score'] as num?)?.toInt();
  var notes=(prior?['notes']??'').toString();
  var status=(prior?['status']??'considering').toString();

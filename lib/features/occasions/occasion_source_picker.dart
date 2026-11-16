@@ -3,8 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 import '../calendar/holiday_calendar_service.dart';
+import '../calendar/holiday_sources_panel.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
+import '../settings/special_dates.dart';
+import '../../core/form_kit.dart';
 
 /// R68: what an occasion is planned for, picked from what the space already
 /// keeps: the regional holidays it follows and the special dates (yearly
@@ -12,7 +15,7 @@ import 'occasion_rules.dart';
 class OccasionSource {
   const OccasionSource({required this.kind, required this.ref, required this.title,
     required this.date, required this.occasionKind, this.detail = ''});
-  final String kind; // 'holiday' | 'calendar'
+  final String kind; // 'special' | 'holiday' | 'calendar'
   final String ref;
   final String title, occasionKind, detail;
   final DateTime date;
@@ -55,7 +58,7 @@ class _SourceSheet extends StatefulWidget {
 class _SourceSheetState extends State<_SourceSheet> {
   final db = Supabase.instance.client;
   final service = HolidayCalendarService();
-  List<OccasionSource> holidays = [], special = [];
+  List<OccasionSource> holidays = [], special = [], saved = [];
   bool loading = true;
   String? note;
 
@@ -74,6 +77,24 @@ class _SourceSheetState extends State<_SourceSheet> {
   Future<void> load() async {
     final today = CalendarRules.day(DateTime.now());
     final horizon = today.add(const Duration(days: 400));
+    // R69: the dates saved in Settings › Birthdays, anniversary & special dates.
+    try {
+      final people = await SpacePeople.load();
+      String? mine;
+      final me = db.auth.currentUser?.id;
+      if (me != null) {
+        final row = await db.from('profiles').select('display_name').eq('id', me).maybeSingle();
+        mine = (row?['display_name'] ?? '').toString().trim().split(RegExp(r'\s+')).first;
+      }
+      String nameOf(String? id) => id != null && id == people?.me
+        ? (mine ?? '') : (people?.partnerName ?? 'Partner');
+      saved = [
+        for (final d in await loadSpecialDates(widget.spaceId))
+          OccasionSource(kind: 'special', ref: d.id, title: SpecialDateRules.label(d, nameOf),
+            date: SpecialDateRules.nextOn(d, today), occasionKind: SpecialDateRules.occasionKind(d),
+            detail: SpecialDateRules.milestone(d, SpecialDateRules.nextOn(d, today)) ?? ''),
+      ]..sort((a, b) => a.date.compareTo(b.date));
+    } catch (_) {}
     try {
       final events = await db.from('space_events')
         .select('id,title,event_date,starts_at,recurrence,repeat_rule')
@@ -88,6 +109,7 @@ class _SourceSheetState extends State<_SourceSheet> {
         final next = OccasionRules.nextDate(original: start, annual: true, today: today);
         if (next == null) continue;
         final title = (e['title'] ?? '').toString();
+        if (saved.any((x) => x.title.toLowerCase() == title.toLowerCase())) continue;
         found.add(OccasionSource(kind: 'calendar', ref: e['id'].toString(), title: title,
           date: next, occasionKind: OccasionSourceRules.kindFor(title)));
       }
@@ -97,6 +119,7 @@ class _SourceSheetState extends State<_SourceSheet> {
       note = 'Special dates could not load.';
     }
     try {
+      await HolidayDefaults.ensure(widget.spaceId);
       final sources = await db.from('space_holiday_sources')
         .select('country_code,enabled').eq('space_id', widget.spaceId);
       final codes = {for (final s in sources) if (s['enabled'] == true) s['country_code'].toString()};
@@ -150,9 +173,10 @@ class _SourceSheetState extends State<_SourceSheet> {
               style: theme.textTheme.bodySmall)),
           if (note != null) Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Text(tt(note!), style: theme.textTheme.bodySmall)),
-          if (special.isNotEmpty) ...[
+          if (saved.isNotEmpty || special.isNotEmpty) ...[
             Padding(padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Text(tt('Special dates'), style: theme.textTheme.titleSmall)),
+            for (final s in saved) tile(s),
             for (final s in special) tile(s),
           ],
           if (holidays.isNotEmpty) ...[
@@ -160,8 +184,9 @@ class _SourceSheetState extends State<_SourceSheet> {
               child: Text(tt('Holidays'), style: theme.textTheme.titleSmall)),
             for (final s in holidays.take(40)) tile(s),
           ],
-          if (special.isEmpty && holidays.isEmpty) Padding(padding: const EdgeInsets.all(20),
-            child: Text(tt('No special dates or holidays yet. Add yearly events to the calendar, or type the occasion.'))),
+          if (saved.isEmpty) Padding(padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Text(tt('Tip: save birthdays and your anniversary in Settings › Birthdays, anniversary & special dates, and they appear here.'),
+              style: theme.textTheme.bodySmall)),
         ]));
   }
 }

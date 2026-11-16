@@ -1,3 +1,4 @@
+import '../../core/preferred_currency.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
@@ -48,7 +49,7 @@ class _TripItemEditorState extends State<TripItemEditor> with FormChangeTracker<
   link=TextEditingController(text:(e['source_url']??'').toString());
   details=TextEditingController(text:(e['details']??'').toString());
   cost=TextEditingController(text:(e['estimated_cost']??'').toString());
-  currency=TextEditingController(text:(e['currency']??'USD').toString());
+  currency=TextEditingController(text:(e['currency']??PreferredCurrency.code).toString());
   kind=(e['kind']??'flight').toString();
   localDate=DateTime.tryParse((e['local_date']??'').toString());
   endDate=DateTime.tryParse((e['end_date']??'').toString());

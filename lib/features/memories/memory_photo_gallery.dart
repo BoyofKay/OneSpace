@@ -1,9 +1,8 @@
 import '../../core/item_menu.dart';
-import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'memory_photo_service.dart';
-import 'memory_photo_layout_rules.dart';
+import 'memory_photo_layouts.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// A private, RLS-backed gallery. The layout changes presentation only.
@@ -177,52 +176,8 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
         icon:const Icon(Icons.refresh),label:Text(tt('Refresh photo')))))));
    }));
  }
- Widget _layout(List<Map<String,dynamic>> active){
-  if(active.isEmpty)return const SizedBox.shrink();
-  final layout=MemoryPhotoLayoutRules.safe(widget.layout);
-  if(layout=='feature')return Column(children:[
-   _photo(active.first,height:245),
-   if(active.length>1)const SizedBox(height:6),
-   if(active.length>1)SizedBox(height:110,child:ListView.separated(
-    scrollDirection:Axis.horizontal,itemCount:active.length-1,
-    separatorBuilder:(_,__)=>const SizedBox(width:7),
-    itemBuilder:(ctx,i)=>SizedBox(width:120,child:_photo(active[i+1],height:110)))),
-  ]);
-  if(layout=='polaroid')return Wrap(spacing:12,runSpacing:12,
-   alignment:WrapAlignment.center,children:[
-   for(var i=0;i<active.length;i++)Transform.rotate(
-    angle:(i.isEven?-1:1)*math.pi/72,
-    child:SizedBox(width:160,child:Card(elevation:1,child:Padding(
-     padding:const EdgeInsetsDirectional.fromSTEB(6,6,6,16),
-     child:Column(children:[
-      _photo(active[i],height:145),
-      if((active[i]['caption']??'').toString().isNotEmpty)
-       Padding(padding:const EdgeInsets.only(top:5),child:Text(
-        tt(active[i]['caption'].toString()),maxLines:2,overflow:TextOverflow.ellipsis)),
-     ]))))),
-  ]);
-  if(layout=='overlap'){
-   final visible=active.take(3).toList();
-   return SizedBox(height:235,child:LayoutBuilder(builder:(ctx,box){
-    final width=math.min(235.0,box.maxWidth*.68);
-    final maxLeft=math.max(0.0,box.maxWidth-width);
-    return Stack(children:[
-     for(var i=0;i<visible.length;i++)Positioned(
-      left:maxLeft*(visible.length==1?0.5:i/(visible.length-1)),
-      top:i*8.0,width:width,child:Transform.rotate(
-       angle:(i-1)*math.pi/90,
-       child:Card(elevation:2,child:_photo(visible[i],height:190)))),
-    ]);
-   }));
-  }
-  return LayoutBuilder(builder:(ctx,box){
-   final two=box.maxWidth>=350;
-   final width=two?(box.maxWidth-8)/2:box.maxWidth;
-   return Wrap(spacing:8,runSpacing:8,children:[
-    for(final p in active)SizedBox(width:width,child:_photo(p,height:175)),
-   ]);
-  });
- }
+ Widget _layout(List<Map<String,dynamic>> active)=>MemoryPhotoLayout(
+  layout:widget.layout,photos:active,photo:(p,h)=>_photo(p,height:h));
  @override Widget build(BuildContext context){
   return StreamBuilder<List<Map<String,dynamic>>>(stream:photos,builder:(ctx,snapshot){
    if(snapshot.hasError)return Text(tt('Unable to load private memory photos.'));
