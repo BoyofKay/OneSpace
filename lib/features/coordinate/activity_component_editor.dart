@@ -279,8 +279,7 @@ class _ComponentEditorSheetState extends State<ComponentEditorSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(tt(widget.existing == null ? 'Add ${kind[0].toUpperCase()}${kind.substring(1)}'
-                : 'Edit ${kind[0].toUpperCase()}${kind.substring(1)}'),
+            Text('${tt(widget.existing == null ? 'Add' : 'Edit')} ${tt('${kind[0].toUpperCase()}${kind.substring(1)}')}',
               style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 14),
             input(title, kind == 'spec' ? 'Specification name (e.g., Voltage)' :

@@ -146,8 +146,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _status='Monitoring ${selected.label}. Shared with your partner.';
       });
     }catch(_){
-      if(mounted){setState(()=>_error='Unable to save this city or load its '
-        'weather. Please retry.');}
+      if(mounted){setState(()=>_error=tt('Unable to save this city or load its '
+        'weather. Please retry.'));}
     }finally{
       if(mounted)setState(()=>_weatherBusy=false);
     }

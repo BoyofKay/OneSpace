@@ -34,6 +34,9 @@ void main() {
     // User text is never half-translated by a loose pattern.
     expect(tt('Add milk to the list'), 'Add milk to the list');
     expect(tt('Lord of the Rings'), 'Lord of the Rings');
+    // R73: lines joined with " · " are translated piece by piece.
+    expect(tt('Kay · Planning · In 3 days'), 'Kay · ${arPhrases['Planning']} · بعد 3 أيام');
+    expect(tt('Lord of the Rings · Kay'), 'Lord of the Rings · Kay');
   });
 
   test('every Arabic phrase is filled in', () {
