@@ -6,3 +6,6 @@
 "NSCameraUsageDescription" = "Take photos and daily selfies to share privately with your partner.";
 "NSFaceIDUsageDescription" = "Unlock OneSpace with Face ID.";
 "NSContactsUsageDescription" = "Add a contact card from OneSpace to your Contacts when you ask.";
+
+"NSCalendarsFullAccessUsageDescription" = "Show your OneSpace events, trips and special dates in a separate OneSpace calendar. Your other calendars are not read.";
+"NSCalendarsUsageDescription" = "Show your OneSpace events, trips and special dates in a separate OneSpace calendar. Your other calendars are not read.";

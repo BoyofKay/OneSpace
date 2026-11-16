@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'invitation_code.dart';
 import 'invitation_qr.dart';
+import '../../core/phone_calendar_sync.dart';
 import 'space_task_summary.dart';
 import 'today_attention_rules.dart';
 import 'today_attention_section.dart';
@@ -124,6 +125,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    unawaited(PhoneCalendarSync.syncNow());
     unawaited(_loadPartnerLabel());
     unawaited(_loadHiddenOnThisDay());
     unawaited(_loadLoveDismissed());

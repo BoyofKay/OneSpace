@@ -13,6 +13,7 @@ const _privacy = ('Privacy and safety', 'الخصوصية والأمان');
 const _daily = ('Everyday use', 'الاستخدام اليومي');
 const _alerts = ('Reminders and notifications', 'التذكيرات والإشعارات');
 const _account = ('Account and data', 'الحساب والبيانات');
+const _signin = ('Signing in', 'تسجيل الدخول');
 
 final faqEntries = <FaqEntry>[
   FaqEntry(_start.$1, _start.$2,
@@ -83,4 +84,29 @@ final faqEntries = <FaqEntry>[
     'Is OneSpace available on iPhone?', 'هل OneSpace متاح على iPhone؟',
     'The iPhone version is being prepared and will first be shared through TestFlight. Your account and everything in your space will be the same on both phones.',
     'نسخة iPhone قيد التجهيز وستتاح أولًا عبر TestFlight. حسابك وكل ما في مساحتكما سيكون نفسه على الهاتفين.'),
+  // R74: signing in, phone calendar, tablets and the test phase.
+  FaqEntry(_signin.$1, _signin.$2,
+    'I cannot sign in.', 'لا أستطيع تسجيل الدخول.',
+    'Check the email address and try "Forgot your password?". If you signed up with Google or Apple, use that same button again. Still stuck? Tap "Contact us" at the bottom of the sign-in screen — you do not need to be signed in — choose "I cannot sign in" and we will reply by email.',
+    'تحقق من البريد وجرّب «نسيت كلمة المرور؟». إذا سجلت بحساب Google أو Apple فاستخدم الزر نفسه مرة أخرى. ما زلت عالقًا؟ اضغط «تواصل معنا» أسفل شاشة الدخول — دون الحاجة لتسجيل الدخول — واختر «لا أستطيع تسجيل الدخول» وسنرد عليك بالبريد.'),
+  FaqEntry(_signin.$1, _signin.$2,
+    'I did not get the confirmation email.', 'لم تصلني رسالة التأكيد.',
+    'Look in Spam or Promotions, then tap "Resend confirmation" on the sign-in screen. Open the link on the same phone so it returns you to OneSpace.',
+    'ابحث في البريد غير المرغوب أو العروض، ثم اضغط «إعادة إرسال التأكيد» في شاشة الدخول. افتح الرابط على الهاتف نفسه ليعيدك إلى OneSpace.'),
+  FaqEntry(_signin.$1, _signin.$2,
+    'Can I sign in with Google or Apple?', 'هل يمكنني الدخول بحساب Google أو Apple؟',
+    'Yes, when the buttons appear on the sign-in screen. The first time, you agree to the terms of use. Your partner can use a different way to sign in.',
+    'نعم، عندما تظهر الأزرار في شاشة الدخول. في المرة الأولى توافق على شروط الاستخدام. ويمكن لشريكك استخدام طريقة دخول مختلفة.'),
+  FaqEntry(_daily.$1, _daily.$2,
+    'Can OneSpace show in my phone calendar?', 'هل يظهر OneSpace في تقويم هاتفي؟',
+    'Yes: Me → Settings → Show in my phone calendar. Your events, trips, occasions and special dates appear in a separate "OneSpace" calendar in Google, Samsung or iPhone calendar. It is one way — OneSpace never reads your other calendars — and it updates when you open the app.',
+    'نعم: «أنا» ← «الإعدادات» ← «عرض في تقويم هاتفي». تظهر مواعيدكما ورحلاتكما ومناسباتكما وتواريخكما المميزة في تقويم منفصل باسم «OneSpace» في تقويم Google أو Samsung أو iPhone. في اتجاه واحد فقط — لا يقرأ OneSpace تقاويمك الأخرى — ويتحدّث عند فتح التطبيق.'),
+  FaqEntry(_daily.$1, _daily.$2,
+    'Does OneSpace work on a tablet?', 'هل يعمل OneSpace على الجهاز اللوحي؟',
+    'Yes. On a tablet the pages are centred at a comfortable reading width. It is designed for phones first.',
+    'نعم. على الجهاز اللوحي تظهر الصفحات في المنتصف بعرض مريح للقراءة. صُمم أولًا للهواتف.'),
+  FaqEntry(_account.$1, _account.$2,
+    'This is a test version — what should I report?', 'هذه نسخة تجريبية — ماذا أبلغ؟',
+    'Anything that breaks, looks wrong, is confusing or is missing. Use Me → Report a technical issue (add a screenshot) or Contact us for ideas. Errors are also sent to us automatically, without any of your content.',
+    'أي شيء يتعطل أو يبدو خاطئًا أو مربكًا أو ناقصًا. استخدم «أنا» ← «الإبلاغ عن مشكلة تقنية» (مع لقطة شاشة) أو «تواصل معنا» للأفكار. وتصلنا الأخطاء تلقائيًا أيضًا دون أي من محتواك.'),
 ];

@@ -29,10 +29,27 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.onespace.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>onespace-preview</string>
+			</array>
+		</dict>
+	</array>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Show your OneSpace events, trips and special dates in a separate OneSpace calendar. Your other calendars are not read.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Show your OneSpace events, trips and special dates in a separate OneSpace calendar. Your other calendars are not read.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos and daily selfies to share privately with your partner.</string>
 	<key>NSContactsUsageDescription</key>

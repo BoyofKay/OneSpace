@@ -9,6 +9,7 @@ import '../../theme/appearance_settings_screen.dart';
 import '../../core/weather_unit_preference.dart';
 import '../calendar/holiday_sources_panel.dart';
 import 'special_dates.dart';
+import '../../core/phone_calendar_sync.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Central configuration hub, distinct from personal profile details.
@@ -94,6 +95,16 @@ class OneSpaceSettingsScreen extends StatelessWidget {
           trailing:const Icon(Icons.chevron_right),
           onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
            builder:(_)=>const SpecialDatesScreen())),
+         ),
+         const Divider(height:1),
+         // R74: one-way export to the phone's calendar app.
+         ListTile(
+          leading:const Icon(Icons.event_available_outlined),
+          title:Text(tt('Show in my phone calendar')),
+          subtitle:Text(tt('Events, trips and special dates in Google, Samsung or iPhone calendar')),
+          trailing:const Icon(Icons.chevron_right),
+          onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
+           builder:(_)=>const PhoneCalendarSettingsScreen())),
          ),
          const Divider(height:1),
          _WeatherUnitsTile(),

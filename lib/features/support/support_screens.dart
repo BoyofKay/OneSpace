@@ -143,6 +143,8 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
   String? error;
 
   bool get issue => kind == 'issue';
+  /// R74: the form also works from the sign-in screen (no account needed).
+  bool get signedOut => Supabase.instance.client.auth.currentUser == null;
 
   @override
   void initState() {
@@ -155,6 +157,10 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
 
   Future<void> _send() async {
     final mail = email.text.trim();
+    if (signedOut && mail.isEmpty) {
+      setState(() => error = tt('Enter your email so we can reply.'));
+      return;
+    }
     if (mail.isNotEmpty && !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(mail)) {
       setState(() => error = tt('Enter a valid email address.'));
       return;
@@ -172,6 +178,26 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
           fileOptions: FileOptions(contentType: ext == 'png' ? 'image/png' : 'image/jpeg'));
       }
       final title = [if (topic.isNotEmpty) topic, subject.text.trim()].join(' · ');
+      if (signedOut) {
+        await Supabase.instance.client.rpc('submit_public_support', params: {
+          'p_kind': topic == 'I cannot sign in' ? 'account' : issue ? 'issue' : 'contact',
+          'p_subject': title.length > 160 ? title.substring(0, 160) : title,
+          'p_message': message.text.trim(),
+          'p_reply_email': mail,
+          'p_app_version': AppInfo.version,
+          'p_platform': AppInfo.platform,
+          'p_locale': OneSpacePhrases.lang,
+          'p_diagnostics': details == null ? null : (details.length > 4000 ? details.substring(0, 4000) : details),
+        });
+        if (!mounted) return;
+        await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.favorite_outline),
+          title: Text(tt('Thank you — we got it')),
+          content: Text(tt('We will reply to {} as soon as we can.').replaceFirst('{}', mail)),
+          actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(tt('Done')))]));
+        if (mounted) Navigator.of(context).pop(true);
+        return;
+      }
       await Supabase.instance.client.from('support_requests').insert({
         'kind': issue ? 'issue' : (topic == 'Idea' ? 'idea' : 'contact'),
         'subject': title.length > 160 ? title.substring(0, 160) : title,
@@ -194,7 +220,9 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
         actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(tt('Done')))]));
       if (mounted) Navigator.of(context).pop(true);
     } on PostgrestException catch (e) {
-      if (mounted) setState(() => error = e.message.contains('several messages')
+      if (mounted) setState(() => error = e.message.contains('Too many')
+        ? tt('Too many messages. Please try again later.')
+        : e.message.contains('several messages')
         ? tt('You have sent several messages today. Please try again tomorrow.')
         : tt('Could not send. Check your connection and try again.'));
     } catch (_) {
@@ -213,6 +241,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
           'Photos or files': 'Photos or files', 'Other': 'Other'}
       : const {'Question': 'Question', 'Feedback': 'Feedback', 'Idea': 'Idea',
           'Account or privacy': 'Account or privacy', 'Other': 'Other'};
+    final shown = signedOut ? {'I cannot sign in': 'I cannot sign in', ...topics} : topics;
     return EditorScaffold(
       title: issue ? 'Report a technical issue' : 'Contact us',
       isNew: true,
@@ -220,7 +249,8 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
       saveLabel: 'Send',
       listenTo: [subject, message, email],
       isChanged: () => subject.text.trim().isNotEmpty || message.text.trim().isNotEmpty,
-      isComplete: () => subject.text.trim().isNotEmpty && message.text.trim().isNotEmpty,
+      isComplete: () => subject.text.trim().isNotEmpty && message.text.trim().isNotEmpty
+        && (!signedOut || email.text.trim().isNotEmpty),
       missingHint: 'Fill in the fields marked *',
       onSave: _send,
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
@@ -230,7 +260,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
           style: theme.textTheme.bodyMedium),
         const SizedBox(height: 16),
         ChoiceRow<String>(label: issue ? 'What kind of problem?' : 'What is it about?',
-          options: topics, selected: topic.isEmpty ? null : topic, allowNone: true,
+          options: shown, selected: topic.isEmpty ? null : topic, allowNone: true,
           onSelected: (v) => setState(() => topic = v ?? '')),
         TextField(controller: subject, maxLength: 120, textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(labelText: tt(issue ? 'Short summary *' : 'Subject *'),
@@ -244,7 +274,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
             alignLabelWithHint: true, border: const OutlineInputBorder())),
         const SizedBox(height: 8),
         TextField(controller: email, keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(labelText: tt('Reply to (email)'),
+          decoration: InputDecoration(labelText: tt(signedOut ? 'Your email *' : 'Reply to (email)'),
             helperText: tt('We only use it to answer you.'), border: const OutlineInputBorder())),
         if (issue) ...[
           const SizedBox(height: 12),
@@ -252,7 +282,9 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
             help: 'App version, phone type, language and loading times. No content or names.',
             onChanged: (v) => setState(() => attachDetails = v)),
           const SizedBox(height: 10),
-          if (screenshotBytes == null)
+          if (signedOut)
+            const SizedBox.shrink()
+          else if (screenshotBytes == null)
             OutlinedButton.icon(
               icon: const Icon(Icons.add_photo_alternate_outlined),
               label: Text(tt('Add a screenshot')),
@@ -342,7 +374,7 @@ class AboutPrivacyScreen extends StatelessWidget {
     ('What we never do', 'We do not sell data, show ads, track your location or phone activity, or read your content to profile you. Voice commands are handled by your phone\'s speech service and are not stored.'),
     ('Where it is kept', 'In our database and file storage (Supabase), protected by per-person access rules so only you and your partner can reach your space. Push notifications go through Firebase Cloud Messaging.'),
     ('Your choices', 'Download everything you created at any time, and delete your account from Me → Your data and account. Shared items stay for your partner; private items are deleted after 7 days.'),
-    ('Help and support', 'Messages you send from Contact us or Report a technical issue are kept so we can answer you. Technical details are only attached when you allow it.'),
+    ('Help and support', 'Messages you send from Contact us or Report a technical issue are kept so we can answer you. Technical details are only attached when you allow it. If the app hits an error, the error message (never your content) is sent to us automatically so we can fix it.'),
   ];
   static const _ar = <(String, String)>[
     ('ما هو OneSpace', 'مساحة خاصة مشتركة لشخصين في علاقة. كل ما تضيفه ملك لك ولشريكك.'),
@@ -350,7 +382,7 @@ class AboutPrivacyScreen extends StatelessWidget {
     ('ما لا نفعله أبدًا', 'لا نبيع البيانات ولا نعرض إعلانات ولا نتتبع موقعك أو نشاط هاتفك ولا نقرأ محتواك لبناء ملف عنك. الأوامر الصوتية تعالجها خدمة الكلام في هاتفك ولا تُحفظ.'),
     ('أين تُحفظ', 'في قاعدة بياناتنا وتخزين الملفات (Supabase)، بحماية قواعد وصول لكل شخص بحيث لا يصل إلى مساحتكما سواكما. تمر الإشعارات عبر Firebase Cloud Messaging.'),
     ('خياراتك', 'نزّل كل ما أنشأته في أي وقت، واحذف حسابك من «أنا» ← «بياناتك وحسابك». تبقى العناصر المشتركة لشريكك؛ وتُحذف العناصر الخاصة بعد 7 أيام.'),
-    ('المساعدة والدعم', 'نحتفظ بالرسائل التي ترسلها عبر «تواصل معنا» أو «الإبلاغ عن مشكلة تقنية» لنرد عليك. لا تُرفق التفاصيل التقنية إلا بإذنك.'),
+    ('المساعدة والدعم', 'نحتفظ بالرسائل التي ترسلها عبر «تواصل معنا» أو «الإبلاغ عن مشكلة تقنية» لنرد عليك. لا تُرفق التفاصيل التقنية إلا بإذنك. وإذا واجه التطبيق خطأً تصلنا رسالة الخطأ تلقائيًا (دون أي من محتواك) لنصلحه.'),
   ];
 
   @override

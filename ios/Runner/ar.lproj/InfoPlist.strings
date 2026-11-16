@@ -6,3 +6,6 @@
 "NSCameraUsageDescription" = "التقط صورًا وسيلفي يوميًا لمشاركتها بخصوصية مع شريكك.";
 "NSFaceIDUsageDescription" = "افتح OneSpace ببصمة الوجه.";
 "NSContactsUsageDescription" = "أضف بطاقة اتصال من OneSpace إلى جهات اتصالك عندما تطلب ذلك.";
+
+"NSCalendarsFullAccessUsageDescription" = "لعرض مواعيد OneSpace ورحلاتكما وتواريخكما المميزة في تقويم OneSpace منفصل. لا نقرأ تقاويمك الأخرى.";
+"NSCalendarsUsageDescription" = "لعرض مواعيد OneSpace ورحلاتكما وتواريخكما المميزة في تقويم OneSpace منفصل. لا نقرأ تقاويمك الأخرى.";

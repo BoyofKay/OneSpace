@@ -19,6 +19,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'session_lock_rules.dart';
 import '../notifications/push_registration_gate.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/phone_calendar_sync.dart';
+import '../support/support_screens.dart';
+import 'social_sign_in.dart';
+import 'terms.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
 /// OS-level unlock gate, while other remembered accounts require their own
@@ -181,6 +185,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       if (!_locked){
         _startIdleTimer();
         unawaited(_refreshPersonalMoment());
+        unawaited(PhoneCalendarSync.syncNow());
       }
     }
   }
@@ -213,7 +218,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) => _registerInteraction(),
         onPointerSignal: (_) => _registerInteraction(),
-        child: PushRegistrationGate(child:widget.signedIn),
+        child: PushRegistrationGate(child:TermsGate(child:widget.signedIn)),
       );
     }
     return Stack(
@@ -256,6 +261,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool awaitingConfirmation = false;
   bool showingRecovery = false;
   bool rememberAtSignup = true;
+  bool agreedTerms = false;
   String? _rememberedFirstName;
   String? _rememberedEmail;
   String? error;
@@ -299,6 +305,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _submit() async {
     if (loading || !(formKey.currentState?.validate() ?? false)) return;
+    if (registering && !agreedTerms) {
+      setState(() => error = 'Please accept the terms of use to create an account.');
+      return;
+    }
     setState(() { loading = true; error = null; info = null; });
     final email = emailController.text.trim().toLowerCase();
     try {
@@ -311,6 +321,8 @@ class _SignInScreenState extends State<SignInScreen> {
             'display_name': nameController.text.trim(),
             'locale': Localizations.localeOf(context).languageCode == 'ar'
                 ? 'ar' : 'en',
+            // R74: agreed on this form; recorded on the profile at first sign-in.
+            'terms_version': termsVersion,
           },
           emailRedirectTo: oneSpaceAuthRedirectTo,
         );
@@ -519,6 +531,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             onChanged: loading ? null : (value) =>
                                 setState(() => rememberAtSignup = value ?? false),
                           ),
+                        if (registering)
+                          TermsAgreement(value: agreedTerms, onChanged: loading ? null
+                            : (v) => setState(() { agreedTerms = v; error = null; })),
                       ],
                     ),
                   ),
@@ -545,6 +560,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         : tr(context, registering ? 'register' : 'signIn'))),
                   ),
                 ),
+                if (widget.onSessionUnlocked == null)
+                  SocialSignInButtons(registering: registering, termsAccepted: agreedTerms, disabled: loading,
+                    onNeedTerms: () => setState(() => error = 'Please accept the terms of use to create an account.')),
                 if (!registering) ...[
                   TextButton(
                     onPressed: loading ? null : () =>
@@ -562,6 +580,20 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: Text(tr(context, registering
                       ? 'alreadyRegistered' : 'needAccount')),
                 ),
+                // R74: help even when you cannot sign in.
+                const SizedBox(height: 12),
+                const Divider(),
+                Wrap(alignment: WrapAlignment.center, children: [
+                  TextButton.icon(icon: const Icon(Icons.help_outline, size: 18), label: Text(tt('Help')),
+                    onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
+                      builder: (_) => const FaqScreen()))),
+                  TextButton.icon(icon: const Icon(Icons.mail_outline, size: 18), label: Text(tt('Contact us')),
+                    onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
+                      builder: (_) => const SupportFormScreen(kind: 'contact')))),
+                  TextButton.icon(icon: const Icon(Icons.bug_report_outlined, size: 18), label: Text(tt('Report a problem')),
+                    onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute<void>(
+                      builder: (_) => const SupportFormScreen(kind: 'issue')))),
+                ]),
               ],
             ),
           ),
