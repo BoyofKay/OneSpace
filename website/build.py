@@ -116,6 +116,7 @@ def index():
        'يجمع OneSpace خططكما ولفتاتكما الصغيرة وذكرياتكما في مكان واحد لا يراه سواكما — سواء كنتما في بيت واحد أو تفصلكما المناطق الزمنية.', 'p', 'lead')}
     <div class="cta">
       <a class="btn btn-primary" href="support.html?topic=beta">{t('hero.join', 'Ask to join the test', 'اطلب الانضمام للتجربة')}</a>
+      <a class="btn btn-ghost" href="feature-tour.html">{t('hero.tour', 'Explore the feature tour', 'اكتشف جولة المزايا')}</a>
       <a class="btn btn-ghost" href="#features">{t('hero.more', 'See what is inside', 'اكتشف المزايا')}</a>
     </div>
     {t('hero.note', 'Now in a private test with a few couples · Android now, iPhone soon.', 'في تجربة خاصة مع عدد قليل من الأزواج · أندرويد الآن، وiPhone قريبًا.', 'p', 'note')}
