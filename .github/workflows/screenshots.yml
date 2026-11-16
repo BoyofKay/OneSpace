@@ -7,7 +7,7 @@ on:
     inputs:
       sets:
         description: 'Comma-separated sets: core|themes|together - en|ar'
-        default: 'core-en,core-ar,together-en,together-ar,themes-en,themes-ar'
+        default: 'core-en,core-ar,together-en,together-ar,themes-en,themes-ar,video-en,video-ar'
         required: true
       demo_password:
         description: 'Only if the DEMO_PASSWORD secret is not set yet'
@@ -56,6 +56,8 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Pre-build the debug app (faster emulator runs)
         run: flutter build apk --debug
+      - name: Install ffmpeg (tutorial clips)
+        run: sudo apt-get install -y -qq ffmpeg >/dev/null
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
