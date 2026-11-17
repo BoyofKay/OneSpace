@@ -180,7 +180,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
       final title = [if (topic.isNotEmpty) topic, subject.text.trim()].join(' · ');
       if (signedOut) {
         await Supabase.instance.client.rpc('submit_public_support', params: {
-          'p_kind': topic == 'I cannot sign in' ? 'account' : issue ? 'issue' : 'contact',
+          'p_kind': topic == 'I cannot sign in' ? 'account' : issue ? 'issue' : topic == 'Complaint' ? 'complaint' : 'contact',
           'p_subject': title.length > 160 ? title.substring(0, 160) : title,
           'p_message': message.text.trim(),
           'p_reply_email': mail,
@@ -199,7 +199,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
         return;
       }
       await Supabase.instance.client.from('support_requests').insert({
-        'kind': issue ? 'issue' : (topic == 'Idea' ? 'idea' : 'contact'),
+        'kind': issue ? 'issue' : (topic == 'Idea' ? 'idea' : topic == 'Complaint' ? 'complaint' : 'contact'),
         'subject': title.length > 160 ? title.substring(0, 160) : title,
         'message': message.text.trim(),
         'reply_email': mail.isEmpty ? null : mail,
@@ -240,7 +240,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
           'Notifications': 'Notifications', 'Sign-in or partner': 'Sign-in or partner',
           'Photos or files': 'Photos or files', 'Other': 'Other'}
       : const {'Question': 'Question', 'Feedback': 'Feedback', 'Idea': 'Idea',
-          'Account or privacy': 'Account or privacy', 'Other': 'Other'};
+          'Complaint': 'Complaint', 'Account or privacy': 'Account or privacy', 'Other': 'Other'};
     final shown = signedOut ? {'I cannot sign in': 'I cannot sign in', ...topics} : topics;
     return EditorScaffold(
       title: issue ? 'Report a technical issue' : 'Contact us',
