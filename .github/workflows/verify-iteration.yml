@@ -3,9 +3,8 @@ name: Verify OneSpace iteration (no APK or release)
 on:
   workflow_dispatch:
   push:
-    branches: [main, r84-opt-in-counters-map-markers]
+    branches: [main]
     paths:
-      - 'validation/R84_VERIFY.md'
       - 'validation/R12_READY_FOR_TESTS.md'
       - 'validation/R13_VERIFY.md'
 
