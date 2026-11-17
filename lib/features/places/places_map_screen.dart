@@ -33,9 +33,10 @@ class OsmTiles {
 /// only the creator for a private place. Never imply that the creator visited it.
 class PlaceMapPin extends StatelessWidget {
   const PlaceMapPin({super.key, required this.place, this.selected = false,
-    this.meInitial = 'M', this.partnerInitial = 'P', this.showPeople = true});
+    this.meInitial = 'M', this.partnerInitial = 'P', this.showPeople = true,
+    this.hasPartner = true});
   final Map<String, dynamic> place;
-  final bool selected, showPeople;
+  final bool selected, showPeople, hasPartner;
   final String meInitial, partnerInitial;
 
   static const visitedColor = Color(0xFFC14C55);
@@ -65,7 +66,7 @@ class PlaceMapPin extends StatelessWidget {
             margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(
               color: visited ? visitedColor : wishlistColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(visited ? 25 : 12),
               border: Border.all(color: Colors.white, width: selected ? 3 : 2),
               boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6,
                 offset: Offset(0, 3))]),
@@ -74,7 +75,7 @@ class PlaceMapPin extends StatelessWidget {
           if (showPeople) Positioned(bottom: 3, child: Row(
             mainAxisSize: MainAxisSize.min,
             children: shared
-              ? [_initial(meInitial, meColor), _initial(partnerInitial, partnerColor)]
+              ? [_initial(meInitial, meColor), if (hasPartner) _initial(partnerInitial, partnerColor)]
               : [_initial(meInitial, meColor)])),
         ])));
   }
@@ -101,6 +102,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
   bool pinMode = false, lookingUp = false;
   int _lookup = 0;
   String _meInitial = 'M', _partnerInitial = 'P';
+  bool _hasPartner = false;
 
   @override
   void initState() {
@@ -120,6 +122,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
     } catch (_) {}
     if (mounted) setState(() {
       _meInitial = mine;
+      _hasPartner = people.partnerId != null;
       final partner = people.partnerName.trim();
       _partnerInitial = partner.isEmpty ? 'P' : partner.substring(0, 1).toUpperCase();
     });
@@ -186,7 +189,8 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
                 child: GestureDetector(
                   onTap: () => setState(() { selected = shown[i]; pin = null; pinMode = false; }),
                   child: PlaceMapPin(place: shown[i], selected: selected == shown[i],
-                    meInitial: _meInitial, partnerInitial: _partnerInitial))),
+                    meInitial: _meInitial, partnerInitial: _partnerInitial,
+                    hasPartner: _hasPartner))),
               if (pin != null) Marker(point: pin!, width: 48, height: 48, alignment: Alignment.topCenter,
                 child: Icon(Icons.location_on, size: 46, color: theme.colorScheme.primary,
                   shadows: const [Shadow(blurRadius: 4, color: Colors.black38)])),
@@ -275,9 +279,11 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
 
 /// A small map on a place's page.
 class PlaceMiniMap extends StatelessWidget {
-  const PlaceMiniMap({super.key, required this.latitude, required this.longitude, this.wishlist = false, this.onTap});
+  const PlaceMiniMap({super.key, required this.latitude, required this.longitude,
+    this.wishlist = false, this.category = 'other', this.onTap});
   final double latitude, longitude;
   final bool wishlist;
+  final String category;
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => ClipRRect(
@@ -290,7 +296,7 @@ class PlaceMiniMap extends StatelessWidget {
         OsmTiles.layer(),
         MarkerLayer(markers: [Marker(point: LatLng(latitude, longitude), width: 62, height: 62,
           alignment: Alignment.topCenter, child: PlaceMapPin(
-            place: {'status': wishlist ? 'wishlist' : 'visited', 'category': 'other'},
+            place: {'status': wishlist ? 'wishlist' : 'visited', 'category': category},
             showPeople: false))]),
         const SimpleAttributionWidget(source: Text('OpenStreetMap')),
       ])),
