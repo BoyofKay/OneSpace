@@ -1,3 +1,4 @@
+import 'core/app_env.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
@@ -154,8 +155,8 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     final clock = Stopwatch()..start();
     try {
       await Supabase.initialize(
-        url: 'https://ugwrpeduzyzrujkizqfo.supabase.co',
-        publishableKey: 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe',
+        url: OneSpaceEnv.supabaseUrl,
+        publishableKey: OneSpaceEnv.publishableKey,
         authOptions: FlutterAuthClientOptions(
           localStorage: SecureAuthStorage(),
         ),

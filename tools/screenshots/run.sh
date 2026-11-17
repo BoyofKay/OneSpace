@@ -64,7 +64,8 @@ for spec in ${SHOT_SETS//,/ }; do
   if ! flutter drive -d emulator-5554 \
       --driver=test_driver/integration_test.dart \
       --target=integration_test/screenshots_test.dart \
-      --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk \
+      --flavor qa \
+      --use-application-binary=build/app/outputs/flutter-apk/app-qa-debug.apk \
       2>&1 | python3 tools/screenshots/watch.py "build/logs/$spec.log"; then
     echo "::warning::Screens $spec failed"; status=1
   fi

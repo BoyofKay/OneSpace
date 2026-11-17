@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QA app: amber icon background so it is never mistaken for the real OneSpace. -->
+<resources>
+    <color name="ic_launcher_background">#F2B33D</color>
+</resources>

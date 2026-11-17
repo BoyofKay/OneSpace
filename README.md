@@ -47,12 +47,18 @@ Across the app: Shared vs Only me on every item, "Create from this" with linked 
 flutter pub get
 flutter analyze
 flutter test
+flutter run --flavor qa --dart-define=ONESPACE_ENV=qa
 ```
 
-Android preview package: `com.onespace.onespace.preview` (development signing key under `tools/dev-signing/`, never for production). Install new previews over the old one.
+Two apps, two backends (see `docs/RELEASE_ENVIRONMENTS.md`):
+- **OneSpace QA** — package `onespace.qa`, QA Supabase project, test signing key under `tools/dev-signing/`; APKs in GitHub Releases (`qa-0.1.N`).
+- **OneSpace** — package `live.onespace.app`, production Supabase project, Play upload key from GitHub secrets; built by the manual *Build OneSpace for Google Play* workflow and shipped through Play Console.
+
+The old preview package `com.onespace.onespace.preview` is retired.
 
 ## Documents
 
+- `docs/RELEASE_ENVIRONMENTS.md` — QA vs production apps and backends, secrets, Play release steps.
 - `docs/DECISION_LOG.md` — decisions D1–D76, working agreement, iteration plan (start here).
 - `docs/HANDBOOK_R45.md` — how the app worked at R45 (older; the decision log records what changed since).
 - `docs/R46_*` … `docs/R78_QA.md` — per-iteration notes and two-phone test scripts.
