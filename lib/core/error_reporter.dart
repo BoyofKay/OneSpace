@@ -13,6 +13,8 @@ class ErrorReporter {
   static final _sent = <String>{};
 
   static void report(Object error, StackTrace? stack, {String? context}) {
+    // Automated tests must not write into the QA database (they polluted the Command Center error counts).
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
     if (error is SocketException || error is TimeoutException || error is HttpException) return;
     final text = error.toString();
     if (text.contains('ClientException') || text.contains('Connection closed') ||

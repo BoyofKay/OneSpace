@@ -4,7 +4,26 @@ import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/app_env.dart';
+import '../../core/error_reporter.dart';
 import 'places_screen.dart';
+
+/// OpenStreetMap tiles. The tile server requires every app to identify itself; requests from unidentified or
+/// example apps get a "blocked" image. Failures are reported once per run and shown on the map screen.
+class OsmTiles {
+  OsmTiles._();
+  static final ValueNotifier<int> failures = ValueNotifier<int>(0);
+  static TileLayer layer() => TileLayer(
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    // Sent as "flutter_map (<id>)"; must be this app's real package id.
+    userAgentPackageName: OneSpaceEnv.isProduction ? 'live.onespace.app' : 'onespace.qa',
+    maxNativeZoom: 19,
+    errorTileCallback: (tile, error, stack) {
+      failures.value = failures.value + 1;
+      ErrorReporter.report('Map tile failed to load: $error', stack, context: 'map tiles');
+    },
+  );
+}
 
 /// R78 (Ahmed): our places as pins on a map — hearts where we've been,
 /// compasses where we dream of going. OpenStreetMap tiles (free, no key).
@@ -44,8 +63,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
           key: ValueKey('$filter-${points.length}'),
           options: options,
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.onespace.onespace.preview'),
+            OsmTiles.layer(),
             MarkerLayer(markers: [
               for (var i = 0; i < shown.length; i++) Marker(
                 point: points[i], width: 46, height: 46, alignment: Alignment.topCenter,
@@ -70,6 +88,11 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
           padding: const EdgeInsets.all(12),
           child: Text(tt(missing == 1 ? '1 place is not on the map yet — open it, tap Edit and Find.'
               : '{} places are not on the map yet — open them, tap Edit and Find.').replaceFirst('{}', '$missing'))))),
+        ValueListenableBuilder<int>(valueListenable: OsmTiles.failures, builder: (context, n, _) => n < 3
+          ? const SizedBox.shrink()
+          : Positioned(top: 56, left: 12, right: 12, child: Card(color: theme.colorScheme.errorContainer, child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(tt('The map pictures could not load. Check your internet connection and try again.')))))),
         if (points.isEmpty && missing == 0) Center(child: Card(child: Padding(padding: const EdgeInsets.all(16),
           child: Text(tt('Add places to see them here.'))))),
         if (selected != null) Positioned(bottom: 16, left: 12, right: 12, child: Card(child: ListTile(
@@ -103,8 +126,7 @@ class PlaceMiniMap extends StatelessWidget {
         interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
         onTap: onTap == null ? null : (_, __) => onTap!()),
       children: [
-        TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.onespace.onespace.preview'),
+        OsmTiles.layer(),
         MarkerLayer(markers: [Marker(point: LatLng(latitude, longitude), width: 40, height: 40,
           alignment: Alignment.topCenter,
           child: Icon(wishlist ? Icons.explore : Icons.favorite, size: 36,

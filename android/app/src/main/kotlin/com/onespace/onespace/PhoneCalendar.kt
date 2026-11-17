@@ -89,7 +89,12 @@ object PhoneCalendar {
             ops.add(b.build())
             count++
         }
-        context.contentResolver.applyBatch(CalendarContract.AUTHORITY, ops)
+        // Large batches can exceed Android's 1 MB binder limit (TransactionTooLargeException) when a couple has
+        // many events with long notes: apply the delete first, then the inserts in chunks of 100.
+        context.contentResolver.applyBatch(CalendarContract.AUTHORITY, arrayListOf(ops[0]))
+        ops.drop(1).chunked(100).forEach { chunk ->
+            context.contentResolver.applyBatch(CalendarContract.AUTHORITY, ArrayList(chunk))
+        }
         return count
     }
 

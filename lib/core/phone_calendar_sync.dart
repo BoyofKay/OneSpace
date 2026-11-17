@@ -9,6 +9,7 @@ import 'package:onespace/l10n/phrases.dart';
 import '../features/calendar/calendar_rules.dart';
 import '../features/settings/special_dates.dart';
 import 'current_space_cache.dart';
+import 'error_reporter.dart';
 import 'form_kit.dart';
 
 /// One item for the phone's calendar. All-day items use [date] (+ [days]);
@@ -133,6 +134,8 @@ class PhoneCalendarSync {
   static const _key = 'phone_calendar_sync_v1';
   static DateTime? _lastSync;
   static Future<int?>? _running;
+  /// Why the last sync did not write anything (shown in Settings, never content).
+  static String? lastProblem;
 
   static Future<bool> isOn() async {
     try { return await SharedPreferencesAsync().getBool(_key) ?? false; } catch (_) { return false; }
@@ -142,7 +145,7 @@ class PhoneCalendarSync {
   /// Returns the number of items written, or null when permission was refused.
   static Future<int?> turnOn() async {
     final granted = await _channel.invokeMethod<bool>('requestAccess') ?? false;
-    if (!granted) return null;
+    if (!granted) { lastProblem = 'permission'; return null; }
     await SharedPreferencesAsync().setBool(_key, true);
     return syncNow(force: true);
   }
@@ -162,6 +165,7 @@ class PhoneCalendarSync {
   }
 
   static Future<int?> _sync(bool force) async {
+    lastProblem = null;
     try {
       if (!await isOn()) return null;
       final last = _lastSync;
@@ -169,7 +173,7 @@ class PhoneCalendarSync {
       final db = Supabase.instance.client;
       final me = db.auth.currentUser?.id;
       final space = await CurrentSpaceCache.instance.get();
-      if (me == null || space == null) return null;
+      if (me == null || space == null) { lastProblem = 'no space'; return null; }
       final results = await Future.wait([
         db.from('space_events').select('id,title,details,event_date,starts_at,ends_at,location,recurrence,repeat_rule')
           .eq('space_id', space).isFilter('archived_at', null),
@@ -192,10 +196,18 @@ class PhoneCalendarSync {
         'name': 'OneSpace', 'items': [for (final i in items) i.toChannel()]});
       _lastSync = DateTime.now();
       return written;
-    } on PlatformException catch (e) {
-      if (e.code == 'PERMISSION_DENIED') await SharedPreferencesAsync().setBool(_key, false);
+    } on PlatformException catch (e, st) {
+      if (e.code == 'PERMISSION_DENIED') {
+        lastProblem = 'permission';
+        await SharedPreferencesAsync().setBool(_key, false);
+      } else {
+        lastProblem = 'write';
+        ErrorReporter.report('Phone calendar sync failed: ${e.code} ${e.message ?? ''}', st, context: 'phone calendar');
+      }
       return null;
-    } catch (_) {
+    } catch (e, st) {
+      lastProblem = 'write';
+      ErrorReporter.report('Phone calendar sync failed: $e', st, context: 'phone calendar');
       return null;
     }
   }
@@ -225,11 +237,12 @@ class _PhoneCalendarSettingsScreenState extends State<PhoneCalendarSettingsScree
       if (value) {
         final n = await PhoneCalendarSync.turnOn();
         if (!mounted) return;
+        final refused = n == null && PhoneCalendarSync.lastProblem == 'permission';
         setState(() {
-          on = n != null;
-          note = n == null
-            ? tt('OneSpace needs calendar permission. You can allow it in your phone settings.')
-            : tt('Done — {} items are in the OneSpace calendar on this phone.').replaceFirst('{}', '$n');
+          on = !refused;
+          note = n != null ? tt('Done — {} items are in the OneSpace calendar on this phone.').replaceFirst('{}', '$n')
+            : refused ? tt('OneSpace needs calendar permission. You can allow it in your phone settings.')
+            : tt('Could not write to the phone calendar. We were sent the error details — try "Update now" again later.');
         });
       } else {
         await PhoneCalendarSync.turnOff();
@@ -271,6 +284,12 @@ class _PhoneCalendarSettingsScreenState extends State<PhoneCalendarSettingsScree
                 : tt('Done — {} items are in the OneSpace calendar on this phone.').replaceFirst('{}', '$n'); });
             }
           }),
+        if (on == true) Card(elevation: 0, color: theme.colorScheme.surfaceContainerHighest, child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(tt('Where to find it: Google Calendar → ☰ menu → scroll down → tick "OneSpace". '
+            'Samsung Calendar → ☰ → Manage calendars → turn on "OneSpace". '
+            'It lives on this phone only, so it does not appear in Google Calendar on the web or on other devices.'),
+            style: theme.textTheme.bodySmall))),
         if (busy) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
         if (note != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(note!)),
       ]),
