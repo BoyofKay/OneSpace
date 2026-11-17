@@ -54,6 +54,15 @@ class CounterSource {
       emoji: '✈️', category: 'travel', shared: shared);
   }
 
+  static CounterSource? itinerary(Map<String, dynamic> row, {bool shared = true}) {
+    final d = _date(row['local_date']);
+    if (d == null) return null;
+    return CounterSource(kind: 'itinerary', id: row['id'].toString(),
+      title: (row['title'] ?? 'Travel plan').toString(),
+      date: d, emoji: row['kind'] == 'flight' ? '✈️' : '🗺️',
+      category: 'travel', shared: shared);
+  }
+
   static CounterSource special(SpecialDate d, SpacePeople? people) {
     final now = DateTime.now();
     final date = d.year == null ? SpecialDateRules.nextOn(d, now)
@@ -111,6 +120,13 @@ Future<CounterSource?> pickCounterSource(BuildContext context, String spaceId) a
         final v = CounterSource.flight(r, shared: visibility[r['trip_id'].toString()] ?? false);
         if (v != null) sources.add(v);
       }
+      final itinerary = await db.from('trip_items')
+        .select('id,trip_id,title,kind,local_date')
+        .inFilter('trip_id', visibility.keys.toList()).isFilter('archived_at', null);
+      for (final r in itinerary) {
+        final v = CounterSource.itinerary(r, shared: visibility[r['trip_id'].toString()] ?? false);
+        if (v != null) sources.add(v);
+      }
     }
     final people = await SpacePeople.load();
     for (final d in await loadSpecialDates(spaceId)) { sources.add(CounterSource.special(d, people)); }
@@ -129,8 +145,9 @@ Future<CounterSource?> pickCounterSource(BuildContext context, String spaceId) a
   if (!context.mounted) return null;
   sources.sort((a, b) => a.date.compareTo(b.date));
   const names = {'special': 'Special dates', 'event': 'Calendar events',
-    'occasion': 'Occasions', 'trip': 'Trips', 'flight': 'Flights', 'meeting': 'How we live'};
-  final groups = ['special', 'event', 'occasion', 'trip', 'flight', 'meeting'];
+    'occasion': 'Occasions', 'trip': 'Trips', 'flight': 'Flights',
+    'itinerary': 'Trip itinerary', 'meeting': 'How we live'};
+  final groups = ['special', 'event', 'occasion', 'trip', 'flight', 'itinerary', 'meeting'];
   return showModalBottomSheet<CounterSource>(context: context, showDragHandle: true,
     isScrollControlled: true, builder: (ctx) => SafeArea(child: SizedBox(
       height: MediaQuery.sizeOf(ctx).height * .72,
