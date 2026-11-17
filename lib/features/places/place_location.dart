@@ -119,6 +119,33 @@ class PlaceLocator {
     }
   }
 
+  /// R83: what is at a point pinned on the map (OpenStreetMap reverse lookup). Only the coordinates are sent.
+  /// Returns null when nothing useful is known; the pin still works without it.
+  static Future<Map<String, String>?> reverse(double latitude, double longitude, {String language = 'en'}) async {
+    try {
+      final res = await http.get(Uri.https('nominatim.openstreetmap.org', '/reverse', {
+        'lat': latitude.toStringAsFixed(6), 'lon': longitude.toStringAsFixed(6), 'format': 'jsonv2',
+        'zoom': '18', 'addressdetails': '1', 'accept-language': language,
+      }), headers: _agent).timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) return null;
+      final hit = jsonDecode(res.body);
+      if (hit is! Map || hit['error'] != null) return null;
+      final a = hit['address'] is Map ? hit['address'] as Map : const {};
+      String pick(List<String> keys) {
+        for (final k in keys) { final v = (a[k] ?? '').toString().trim(); if (v.isNotEmpty) return v; }
+        return '';
+      }
+      return {
+        'name': (hit['name'] ?? '').toString().trim(),
+        'city': pick(['city', 'town', 'village', 'municipality', 'county', 'state']),
+        'country': pick(['country']),
+        'address': (hit['display_name'] ?? '').toString().trim(),
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Link first, then the name with city and country.
   static Future<PlaceLocation?> locate({String link = '', required String name, String city = '', String country = ''}) async {
     final fromLink = await PlaceLocator.fromLink(link);
