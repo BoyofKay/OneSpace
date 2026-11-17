@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:onespace/l10n/phrases.dart';
 import '../../core/app_env.dart';
 import '../../core/error_reporter.dart';
+import '../../core/form_kit.dart';
 import 'place_location.dart';
 import 'places_screen.dart';
 
@@ -25,6 +26,58 @@ class OsmTiles {
       ErrorReporter.report('Map tile failed to load: $error', stack, context: 'map tiles');
     },
   );
+}
+
+/// Category icon = what sort of place; coral = visited, teal = bucket list.
+/// Partner-coloured initial badges show who can see a pin: both for shared,
+/// only the creator for a private place. Never imply that the creator visited it.
+class PlaceMapPin extends StatelessWidget {
+  const PlaceMapPin({super.key, required this.place, this.selected = false,
+    this.meInitial = 'M', this.partnerInitial = 'P', this.showPeople = true});
+  final Map<String, dynamic> place;
+  final bool selected, showPeople;
+  final String meInitial, partnerInitial;
+
+  static const visitedColor = Color(0xFFC14C55);
+  static const wishlistColor = Color(0xFF087D83);
+  static const meColor = Color(0xFF3C59A8);
+  static const partnerColor = Color(0xFF9A4B7A);
+
+  Widget _initial(String value, Color color) => Container(
+    width: 20, height: 20,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle,
+      border: Border.all(color: Colors.white, width: 1.5)),
+    alignment: Alignment.center,
+    child: Text(value.isEmpty ? '?' : value.substring(0, 1).toUpperCase(),
+      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)));
+
+  @override
+  Widget build(BuildContext context) {
+    final visited = place['status'] != 'wishlist';
+    final shared = place['visibility'] != 'private';
+    final status = tt(visited ? 'Been there' : 'Bucket list');
+    final kind = tt(PlaceCategories.labels[place['category']] ?? 'Place');
+    return Semantics(label: '${place['name'] ?? kind}, $kind, $status, '
+      '${tt(shared ? 'Shared' : 'Only me')}',
+      child: SizedBox(width: 62, height: 62, child: Stack(
+        alignment: Alignment.topCenter, children: [
+          Container(width: selected ? 50 : 46, height: selected ? 50 : 46,
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(
+              color: visited ? visitedColor : wishlistColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white, width: selected ? 3 : 2),
+              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6,
+                offset: Offset(0, 3))]),
+            child: Icon(PlaceCategories.icon(place['category']), color: Colors.white,
+              size: selected ? 28 : 25)),
+          if (showPeople) Positioned(bottom: 3, child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: shared
+              ? [_initial(meInitial, meColor), _initial(partnerInitial, partnerColor)]
+              : [_initial(meInitial, meColor)])),
+        ])));
+  }
 }
 
 /// R78 (Ahmed): our places as pins on a map — hearts where we've been,
@@ -47,6 +100,30 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
   Map<String, String>? pinInfo;
   bool pinMode = false, lookingUp = false;
   int _lookup = 0;
+  String _meInitial = 'M', _partnerInitial = 'P';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitials();
+  }
+
+  Future<void> _loadInitials() async {
+    final people = await SpacePeople.load();
+    if (!mounted || people == null) return;
+    var mine = 'M';
+    try {
+      final profile = await Supabase.instance.client.from('profiles')
+        .select('display_name').eq('id', people.me).maybeSingle();
+      final value = (profile?['display_name'] ?? '').toString().trim();
+      if (value.isNotEmpty) mine = value.substring(0, 1).toUpperCase();
+    } catch (_) {}
+    if (mounted) setState(() {
+      _meInitial = mine;
+      final partner = people.partnerName.trim();
+      _partnerInitial = partner.isEmpty ? 'P' : partner.substring(0, 1).toUpperCase();
+    });
+  }
 
   Future<void> _drop(LatLng p) async {
     final ticket = ++_lookup;
@@ -105,13 +182,11 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
             OsmTiles.layer(),
             MarkerLayer(markers: [
               for (var i = 0; i < shown.length; i++) Marker(
-                point: points[i], width: 46, height: 46, alignment: Alignment.topCenter,
+                point: points[i], width: 62, height: 62, alignment: Alignment.topCenter,
                 child: GestureDetector(
                   onTap: () => setState(() { selected = shown[i]; pin = null; pinMode = false; }),
-                  child: Icon(shown[i]['status'] == 'wishlist' ? Icons.explore : Icons.favorite,
-                    size: selected == shown[i] ? 44 : 36,
-                    color: shown[i]['status'] == 'wishlist' ? theme.colorScheme.tertiary : Colors.redAccent,
-                    shadows: const [Shadow(blurRadius: 4, color: Colors.black38)]))),
+                  child: PlaceMapPin(place: shown[i], selected: selected == shown[i],
+                    meInitial: _meInitial, partnerInitial: _partnerInitial))),
               if (pin != null) Marker(point: pin!, width: 48, height: 48, alignment: Alignment.topCenter,
                 child: Icon(Icons.location_on, size: 46, color: theme.colorScheme.primary,
                   shadows: const [Shadow(blurRadius: 4, color: Colors.black38)])),
@@ -126,7 +201,25 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
             ChoiceChip(label: Text(tt(e.value)), selected: filter == e.key,
               onSelected: (_) => setState(() { filter = e.key; selected = null; })),
         ])),
-        if (pinMode) Positioned(top: 56, left: 12, right: 12, child: Card(color: theme.colorScheme.primaryContainer,
+        Positioned(top: 53, left: 8, right: 8,
+          child: IgnorePointer(child: Center(child: DecoratedBox(
+            decoration: BoxDecoration(color: theme.colorScheme.surface.withValues(alpha: .94),
+              borderRadius: BorderRadius.circular(12)),
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              child: Wrap(spacing: 12, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.check_circle, size: 15, color: PlaceMapPin.visitedColor),
+                    const SizedBox(width: 4), Text(tt('Been there'), style: theme.textTheme.labelSmall)]),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.bookmark, size: 15, color: PlaceMapPin.wishlistColor),
+                    const SizedBox(width: 4), Text(tt('Bucket list'), style: theme.textTheme.labelSmall)]),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.people_outline, size: 15),
+                    const SizedBox(width: 4), Text(tt('Initials = who can see it'),
+                      style: theme.textTheme.labelSmall)]),
+                ])))))),
+        if (pinMode) Positioned(top: 102, left: 12, right: 12, child: Card(color: theme.colorScheme.primaryContainer,
           child: Padding(padding: const EdgeInsets.all(12),
             child: Text(tt('Tap the map where the place is. Tip: you can also press and hold anywhere.'))))),
         if (pin != null) Positioned(bottom: 16, left: 12, right: 12, child: Card(child: Padding(
@@ -158,7 +251,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
               : '{} places are not on the map yet — open them, tap Edit and Find.').replaceFirst('{}', '$missing'))))),
         ValueListenableBuilder<int>(valueListenable: OsmTiles.failures, builder: (context, n, _) => n < 3
           ? const SizedBox.shrink()
-          : Positioned(top: 56, left: 12, right: 12, child: Card(color: theme.colorScheme.errorContainer, child: Padding(
+          : Positioned(top: 102, left: 12, right: 12, child: Card(color: theme.colorScheme.errorContainer, child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(tt('The map pictures could not load. Check your internet connection and try again.')))))),
         if (points.isEmpty && missing == 0) Center(child: Card(child: Padding(padding: const EdgeInsets.all(16),
@@ -195,10 +288,10 @@ class PlaceMiniMap extends StatelessWidget {
         onTap: onTap == null ? null : (_, __) => onTap!()),
       children: [
         OsmTiles.layer(),
-        MarkerLayer(markers: [Marker(point: LatLng(latitude, longitude), width: 40, height: 40,
-          alignment: Alignment.topCenter,
-          child: Icon(wishlist ? Icons.explore : Icons.favorite, size: 36,
-            color: wishlist ? Theme.of(context).colorScheme.tertiary : Colors.redAccent))]),
+        MarkerLayer(markers: [Marker(point: LatLng(latitude, longitude), width: 62, height: 62,
+          alignment: Alignment.topCenter, child: PlaceMapPin(
+            place: {'status': wishlist ? 'wishlist' : 'visited', 'category': 'other'},
+            showPeople: false))]),
         const SimpleAttributionWidget(source: Text('OpenStreetMap')),
       ])),
   );
