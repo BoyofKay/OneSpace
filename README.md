@@ -1,116 +1,60 @@
 # OneSpace
 
-**Two of us, One Space.**
+**Two of us, One Space.** A private Flutter app for couples — living together or apart — that keeps the shared life in one place.
 
-A Flutter companion app for couples, whether living together or apart.
+- Website: **https://onespace.live** (English + Arabic). Website source: public repo [BoyofKay/onespace-app](https://github.com/BoyofKay/onespace-app).
+- Latest Android preview: **0.1.444** (R80, 17 Nov 2026) on [GitHub Releases](../../releases). iPhone: waiting for the Apple Developer account (TestFlight, see `docs/IOS_SETUP.md`).
 
-## Current navigation
+**Continuing this project (any assistant): read [docs/DECISION_LOG.md](docs/DECISION_LOG.md) first.** It is the single source of truth for decisions, the working agreement and the iteration plan.
 
-**Today | Remember | Coordinate | Connect | World**
+## What the app does (as built at R80)
 
-- **Today:** the couple's shared dashboard, relationship context, actionable attention, and unified next-seven-day agenda (including trip departures and itinerary stops).
-- **Remember:** calendar, to-do lists, notes, saved contacts, and Occasions & Surprises with private gift budgets and preparation timelines.
-- **Coordinate:** reusable Activities and contributions for shared research and decisions.
-- **Connect:** check-ins, love gestures, letters, daily selfie and collage memories, and Shared Experiences (movies, shows, music, books and games).
-- **World:** Trips & Journeys with shared/private plans, flights, stays, bookings, itinerary, conversation, revisions and countdowns. Saved contacts remain in Remember.
+Five tabs, fixed (D50): **Today · Remember · Coordinate · Connect · Me**
 
-Previous development test content was cleared on 13 November 2026, while two existing login accounts, one shared space and partner memberships remained intact.
+| Tab | What is in it |
+|---|---|
+| **Today** | The couple's dashboard: hero with how you live (together/apart), two clocks and weather when apart, next good time to talk, last/next time together; Since you were away; Needs your attention; next 7 days; shortcuts; Quick add. Opens instantly from a saved copy, one server call. |
+| **Remember** | Shared calendar (month/week/day, special dates, public holidays, one-way export to the phone calendar) · To-do lists and checklists · Reminders (me / partner / both, repeat, quiet hours) · Notes (rich text, links, backlinks) · Our places (been there / bucket list, OpenStreetMap) · Counters (the day itself vs its anniversary, linked dates) · Contact cards (import / save to phone) · Occasions & gifts (budget, gift ideas, preparation timeline). |
+| **Coordinate** | Activities (options with prices/specs, both partners' reactions, conversation with @mentions, voice notes and photos, decision record, change log) · Trips (flight options compared, stays, itinerary, packing, private travel documents). |
+| **Connect** | Letters (sealed until a date) · A little love (manual gestures and private self-reminders — automatic gestures are retired, D1) · Daily check-ins · Shared experiences (movies, shows, music, books, games; mutual picks, both ratings) · Memories (stories, daily selfie together, scrapbook studio with 20+ designs, PDF). |
+| **Me** | Profile and partner, settings (relationship, theme, schedule, holidays, weather), language and currency, help & support (FAQ, contact, report a problem with screenshot), download my data, delete my account. |
 
-**Continuing this project (any assistant): read [docs/DECISION_LOG.md](docs/DECISION_LOG.md) first.**
+Across the app: Shared vs Only me on every item, "Create from this" with linked items both ways, share-in from any app (shops, streaming, Google Flights, Maps, text with dates, photos/PDF) with an "Items to sort" tray, push notifications that say who did what (in the recipient's language), English and Arabic (RTL) per person, nine themes, biometric app lock. Voice commands exist in code but are hidden (D55).
 
-## R53–R54 — links between items and polish (15 Nov 2026)
+## Architecture
 
-"Create from this" on Activities, Trips, Occasions, Experiences and events creates a pre-filled reminder, event, to-do, note or trip and links it; every item shows a Linked items strip (both ways, never revealing the partner's private items). Completing a trip while apart updates "last time we met". Polish: Activities change log, On this day on Today, "Showing: Removed" line, contacts in search, completed/cancelled look in lists. See [R53–R54 notes and test script](docs/R53_R54_QA.md).
+| Part | Detail |
+|---|---|
+| App | Flutter (stable 3.50), `material_ui`, `supabase_flutter`, `flutter_quill`, `flutter_map`, Firebase Messaging (push only). Code in `lib/features/<area>/`, shared building blocks in `lib/core/`, themes in `lib/theme/`, Arabic phrases in `lib/l10n/phrases_ar.dart` (UI text goes through `tt()`). |
+| Backend | Supabase project `ugwrpeduzyzrujkizqfo` (Seoul). Every table has RLS; the app uses only the publishable key. Schema history: `supabase/schema/0001…0133` (each change is a numbered file **and** a recorded migration). |
+| Edge functions (app) | `onespace-push-delivery` (push via FCM), `onespace-account-purge` (account deletion). Source in `supabase/functions/`. |
+| Edge functions (website) | `founder-join`, `founder-confirm`, `founder-admin`, `founder-unsubscribe`, `site-contact` — the Founder waitlist and website forms. They use their own `private.founder_*` tables and do not touch app tables. Source: `backend/founders/` in the website repo. |
+| Demo data | Fictional couple Omar (Toronto) & Lina (London) in their own space, for website and store screens only (`private.demo_*`, migrations 0132–0133, D70). |
 
-## R49–R52 — Today 2.0, global patterns, creation, share-in (15 Nov 2026)
+## Workflows (GitHub Actions)
 
-Today opens instantly from a saved copy and loads in one call; hero with How we live, travelling and good time to talk; Since you were away; all features as shortcuts with Quick add. Every collection screen has the drop-down filter panel (Removed is a filter) and a change log page; "Archive" is now "Remove". New Activity is a full draft page with purpose starters. Shared links and text land on Save to OneSpace with "Items to sort" first and content-based suggestions. See [R49–R52 notes and test script](docs/R49_R52_QA.md).
+| Workflow | When |
+|---|---|
+| Verify OneSpace iteration | Every iteration branch: `flutter analyze` + tests. |
+| Build and publish OneSpace APK | Only when `release/READY_TO_BUILD.md` changes on `main` (or manual). Signed preview, install as an in-place update — never uninstall. |
+| iOS build | Unsigned compile check until the Apple account exists. |
+| Database backup | Scheduled backup (needs the backup secrets). |
+| Screenshot robot | Runs from the website repo (`app-screens` workflow) against this code: `integration_test/screenshots_test.dart`, `tools/screenshots/`. |
 
-## R48 — notifications 2.0 (15 Nov 2026)
+## Develop
 
-Pushes now say who did what with the content ("Kay sent you a hug"), in the recipient's language, and tapping one opens the exact item. Plain chat messages notify (at most one push per item per 10 minutes, "+N more"); meaningful changes to shared items notify; partner alerts wait for wake-up and arrive as one summary. The brand line "Two of us, One Space" sits under the OneSpace name in the top bar. See [R48 notes and test script](docs/R48_NOTIFICATIONS_QA.md).
+```
+flutter pub get
+flutter analyze
+flutter test
+```
 
-## R47 — reminders for real life (15 Nov 2026)
+Android preview package: `com.onespace.onespace.preview` (development signing key under `tools/dev-signing/`, never for production). Install new previews over the old one.
 
-Repeating reminders, quiet hours, Urgent, reminders that stop when their linked item closes, and reminders on Today. See [R47 notes and test script](docs/R47_REMINDERS_FOR_REAL_LIFE_QA.md).
+## Documents
 
-## R46 — baseline hygiene (15 Nov 2026)
-
-Automatic love gestures are retired (manual gestures and private self-reminders remain), Shared Goals is removed from the app (data kept), the tagline was set (since R48: "Two of us, One Space"), and the Supabase migration history now records schema files 0095–0105. See [R46 notes and test script](docs/R46_BASELINE_HYGIENE_QA.md).
-
-## Current foundation preview
-
-- Email/password sign up, sign in, session restoration and sign out (Supabase Auth)
-- Sign-up confirmation emails can be resent. Email confirmation and password recovery redirect into the preview app once the Supabase Auth callback is allowed (see [callback setup](docs/AUTH_CALLBACK_SETUP.md)); email delivery follows Supabase project limits
-- Personal profiles: display names, per-person language preference, signed-in password change
-- Secure creation of one shared space per account, limited to two members
-- High-entropy invitation code, expires after 48 hours, one-time acceptance, invitation replacement revokes old codes
-- RLS-protected Supabase tables for pairing, Remember, Coordinate, Connect and World; schemas are versioned under `supabase/schema/`.
-- Every exposed app table has RLS. Shared objects are visible to the two current space members, while private objects remain creator-controlled unless explicitly granted **revocable view-only** access; tasks, lists, notes, calendar entries and memories all participate.
-- **Persistent tasks** with real-time updates, priorities, optional target dates, editing and open/completed/cancelled states. Tasks may be **Shared** (both members) or **Private** (creator only), and shared tasks may be assigned to either partner.
-- Task visibility is immutable after creation to avoid stale realtime data exposure. Cancelled tasks stay in history (hard delete is not granted to application accounts).
-- Home uses a single **SECURITY INVOKER** database snapshot instead of multiple HTTP requests; displays RLS-filtered task, shopping, checklist, note, calendar and memory counts. The paired space ID is cached briefly in memory per account.
-- **Shopping & checklists:** realtime shared/private lists, quantity/unit details, editable items, check-off, recoverable removal, archive/restore lists and bulk clear completed items.
-- **Collaborative notes:** realtime shared/private plain-text notes up to 30,000 characters, pinning, archive/restore and stale-edit conflict checks.
-- **Calendar:** month grid, private/shared dated and timed events, yearly repeating celebrations and anniversaries, task deadlines and recoverable archive. **Occasion planner:** saving and preparation lead times, gift ideas, budgets and preparation checklists. Guaranteed OS push delivery is not yet verified.
-- **Memories:** private/shared journal and daily selfies with photo uploads, captions, four selectable scrapbook layouts, archive/restore and RLS-protected media. Video editing and automatic collage export remain outside the preview.
-- English and Arabic RTL are configured and core screens localized; some secondary copy and localized date formatting still require QA.
-- Per-device saved session with optional Android biometric/PIN app unlock and session controls. No custom app PIN or password is saved by OneSpace. One test account is used on each phone.
-- Signed-out password recovery and reset are implemented, but email and physical-device testing remain required. Account deletion, guaranteed background reminders, an iOS native Share extension and full Arabic QA remain future work.
-- **Performance investigation:** project hosted in Supabase Seoul (`ap-northeast-2`). Home now uses one RPC; other modules reuse the in-memory membership cache. Profile → App performance shows local startup/network timings without collecting email, passwords or activity content. Physical-device timings remain unverified.
-
-## Install a standalone Android APK
-
-**Normal source commits do not build an APK.** Only an explicit final iteration marker or authorized manual dispatch invokes the release workflow. A verified release publishes a `OneSpace-preview-*.apk` on [GitHub Releases](../../releases), subject to GitHub permissions and Actions quota. If publication fails, the signed APK may be available as a workflow artifact. See [release policy](docs/RELEASE_POLICY_ONE_APK_PER_ITERATION.md).
-
-Preview APKs are now signed with a **fixed, non-secret development-only debug key** stored as a base64 file under `tools/dev-signing/`. This key must **never** be used for production distribution. It gives new preview builds a consistent signature so they can be installed over earlier previews (when Android build numbers increase).
-
-**Important one-time transition:** The preview Android application ID is `com.onespace.onespace.preview`, distinct from the original Flutter sample's `com.onespace.onespace`. The first preview with the new package ID installs as a *separate app*. Subsequent previews use the same package ID and debug signing key for updates. A future production app will have its own application ID and a securely stored production signing key.
-
-These are **development previews**, not public/commercial releases. Avoid storing critical personal data until authentication, security, recovery and device-install tests have been completed.
-
-## Database and security
-
-Supabase project: `ugwrpeduzyzrujkizqfo`. Schema definitions are versioned in `supabase/schema/`. The Flutter app uses a **publishable** key, never an admin or service-role key.
-
-Privileged pairing logic lives in a private schema behind public invoker-only RPCs. Transactional SQL tests verify pairing, privacy, rejected invitations and shared/private content. The remaining Supabase Auth security advisor warning is **leaked-password protection disabled**. This setting must be evaluated/configured before public release.
-
-See the [shared-workspace checklist](docs/SHARED_WORKSPACE_ACCEPTANCE.md) and
-[Calendar, Memories and performance acceptance plan](docs/CALENDAR_MEMORIES_PERFORMANCE_QA.md)
-for two-account verification scenarios.
-
-## R14 source status (not a phone release)
-
-The additive database migration for Trips & Journeys is deployed and the Flutter source is committed. The accounts, memberships and existing app data are retained. Flutter analysis, automated execution, signed APK release and real two-phone validation **have not been run for R14** because GitHub Actions usage must be conserved. The documented acceptance cases are in [R14 Trips & Journeys QA](docs/R14_TRIPS_JOURNEYS_QA.md).
-
-## R15 private travel documents (source and database only)
-
-Trips & Journeys now has PDF and image attachments for boarding passes, travel itineraries, tickets and receipts, with an OS-native document picker on Android and iOS, secure Supabase Storage, per-trip privacy, 90-second signed previews, itinerary associations, notifications and reversible archiving. No Flutter dependencies were added or upgraded.
-
-The R15 migrations are deployed. No CI workflow, build trigger, APK signing or release was run. Native Android and iOS compile validation and two-phone privacy tests are still required. See [R15 acceptance matrix](docs/R15_TRAVEL_DOCUMENTS_QA.md).
-
-## R16 — consolidated next preview, source and database only
-
-Since preview 0.1.395, source revisions R12–R16 add saved contact cards, expanded check-ins/gestures/letters, Shared Experiences, Trips & Journeys, secure travel documents, Android Share-to-OneSpace with comparison-ready options, private/shared occasion planning, and daily selfies/scrapbook layouts. No release marker was touched for these source changes.
-
-The new R16 database migrations are deployed. **Flutter analysis, native compilation and a signed R12–R16 APK have not been run yet.** We are conserving GitHub Actions quota. Follow [the consolidated acceptance and single-build checklist](docs/CONSOLIDATED_PREVIEW_R12_R16_QA.md).
-
-## R17 — modern themes and real-life holiday planning (source and database staged)
-
-OneSpace now includes four Material 3 palettes (Coastal Blue, Rose & Plum, Sage & Sand, Midnight Indigo), Light/Dark/Follow Phone modes, separate per-device preferences, reduced-motion-aware seasonal accents and adaptive tablet navigation. Appearance controls and core holiday shortcuts support English/Arabic.
-
-The shared calendar now distinguishes existing personal events, birthdays, anniversaries, private/shared special occasions and opt-in national public holiday overlays for US/Egypt. Saudi Founding Day and National Day are date-only civic overlays; lunar or employer-adjusted dates are not guessed. Selected holidays do not duplicate calendar rows; private occasions remain RLS-filtered. Named honorees and preparation/saving workflows retain the existing R16 occasion planner.
-
-Migrations 0070–0071 were applied additively. No build/release workflow was triggered by this iteration. **Source is not yet compiled or phone tested.** See [R17 design/calendar QA](docs/R17_MODERN_DESIGN_AND_HOLIDAY_CALENDAR_QA.md) and the [single R12–R17 preview plan](release/PLANNED_R12_R17_BUNDLE.md).
-
-## Ordered milestones
-
-1. **Foundation:** account creation, email confirmation, sign in, profile, secure pairing and direct APK previews
-2. **Validate foundation:** configure [Supabase preview redirect](docs/AUTH_CALLBACK_SETUP.md); end-to-end test with two real test users, password reset and deep link return, stable CI verification and auth edge cases
-3. **Shared data:** persistent synchronized tasks, shopping lists/checklists, and collaborative notes (initial implementations committed; Android device acceptance pending)
-4. **Daily experiences:** initial day-based calendar, occasions, countdowns and text Memories shipped in source; timed events, notifications, offline queue and photo/video Memories next
-5. **Production readiness:** English/Arabic RTL, privacy controls, account deletion, stable secret production signing, app store preparation
-
-## Development
-
-Flutter stable 3.50.0. Use `flutter pub get`, `flutter analyze`, and `flutter test`. The GitHub build refreshes the dependency lockfile when necessary, commits it to the repository, then checks `flutter pub get --enforce-lockfile` for reproducibility.
+- `docs/DECISION_LOG.md` — decisions D1–D76, working agreement, iteration plan (start here).
+- `docs/HANDBOOK_R45.md` — how the app worked at R45 (older; the decision log records what changed since).
+- `docs/R46_*` … `docs/R78_QA.md` — per-iteration notes and two-phone test scripts.
+- `docs/R74_SETUP.md` — owner setup steps (Google/Apple sign-in, backups). `docs/IOS_SETUP.md` — iPhone checklist.
+- `website/` — **archived** first version of the website (16 Nov). The live site is built from the public repo `onespace-app`; do not edit here.

@@ -1,11 +1,5 @@
-# OneSpace website
+# Archived — first website version (16 Nov 2026)
 
-The public website for OneSpace — https://boyofkay.github.io/onespace-app/
-
-Static HTML on GitHub Pages (free). English with an Arabic switch (right to left).
-
-- `build.py` holds all the content (English and Arabic). Edit it, run `python3 build.py`, commit.
-- Pages: home, privacy policy, terms of use, support (contact form), delete your account (needed for Google Play), 404.
-- The contact and account-deletion forms send to the same support inbox as the app
-  (Supabase `submit_public_support`, rate-limited; nobody can read messages through the API).
-- The app code lives in the private repository BoyofKay/OneSpace.
+This folder is the first version of the OneSpace website and is **no longer used**.
+The live site is **https://onespace.live**, built from the public repo [BoyofKay/onespace-app](https://github.com/BoyofKay/onespace-app) (`build.py`).
+Do not edit or deploy from here. See docs/DECISION_LOG.md D68, D69 and D72.
