@@ -625,9 +625,15 @@ class _TripDetailState extends State<TripDetail>{
       onSelected:(v){
        if(v=='edit'){editItem(entry);}
        else if(v=='link'){openLink(entry['source_url'].toString());}
+       else if(v=='counter' && trip != null) {
+        CounterSourceActions.open(context,trip!['space_id'].toString(),
+          CounterSource.itinerary(entry,shared:trip!['visibility']!='private'));
+       }
        else if(v=='remove'){setItemRemoved(entry);}
       },
       itemBuilder:(_)=>[
+       if(!deleted&&CounterSource.itinerary(entry)!=null)
+        iconMenuItem('counter',Icons.hourglass_bottom_outlined,'Add to counters'),
        if(!deleted)iconMenuItem('edit',MenuIcons.edit,'Edit'),
        if(entry['source_url'].toString().isNotEmpty)iconMenuItem('link',Icons.open_in_new,'Open booking link'),
        iconMenuItem('remove',deleted?MenuIcons.restore:MenuIcons.remove,deleted?'Restore':'Remove'),
