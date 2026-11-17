@@ -8,7 +8,7 @@ They install side by side on one phone and never share data.
 | Who | Ahmed and testers checking each new build | Real couples (Founders first) |
 | Android package | `onespace.qa` | `live.onespace.app` (permanent once on Play) |
 | Name / icon | "OneSpace QA", amber icon with a QA badge | "OneSpace" |
-| Backend | Supabase project **OneSpace** (`ugwrpeduzyzrujkizqfo`, Seoul) — test users and demo data only | Supabase project **OneSpace Production** (Frankfurt) — clean start |
+| Backend | Supabase project **OneSpace** (`ugwrpeduzyzrujkizqfo`, Seoul) — test users and demo data only | Supabase project **OneSpace Production** (`letcgxbnblohhfyeuigz`, Frankfurt) — clean start |
 | Sign-in callback | `onespace-preview://auth-callback/` | `onespace://auth-callback/` |
 | Signed with | Test key in `tools/dev-signing/` (public, never for Play) | Play **upload key** from GitHub secrets; Google re-signs with the Play app signing key |
 | Built by | `.github/workflows/android-dev.yml` → APK in GitHub Releases (`qa-0.1.N`) | `.github/workflows/android-play.yml` (manual) → `.aab` in the run's Artifacts |
@@ -58,7 +58,8 @@ Until then QA builds still work, with in-app notifications only.
 ### Supabase — OneSpace Production project (dashboard)
 - **Edge Function secrets:** `ONESPACE_FIREBASE_SERVICE_ACCOUNT_JSON` (same Firebase service account
   JSON as QA), `RESEND_API_KEY`, `FOUNDER_ADMIN_KEY`, `GOATCOUNTER_TOKEN`.
-  (`ONESPACE_PUSH_CRON_SECRET` is set by Claude and matches the vault secret.)
+  (No `ONESPACE_PUSH_CRON_SECRET` needed: the push and account-purge workers read the shared secret
+  from Vault through `public.push_worker_secret()`, service role only — migration 0136.)
 - **Authentication → URL Configuration:** Site URL `https://onespace.live`; Redirect URLs
   `onespace://auth-callback/`.
 - **Authentication → Providers:** Google (and Apple later) with an Android OAuth client for
@@ -77,3 +78,14 @@ Never test a migration on Production.
 ## Moving testers
 The old preview app (`com.onespace.onespace.preview`) stops receiving updates. Testers uninstall it
 and install **OneSpace QA** from the newest `qa-0.1.N` GitHub release.
+
+## How Production was created (17 Nov 2026)
+- The 149 QA migrations were replayed in order into the new project (project URL rewritten), then a
+  catalog comparison against QA found objects that had been made in QA outside migrations
+  (tables `record_action_history`, `note_references`, `partner_checkin_acknowledgements`,
+  `shared_experience_interests`, some columns, constraints, triggers, policies, function grants).
+  They were copied exactly, and the final comparison showed no differences. Storage buckets,
+  storage policies and the 7 pg_cron jobs match (jobs point at the production URL).
+- No app data was copied. Only the Founder waitlist (couple #1) moved from QA to Production.
+- **Lesson:** every database change must be a migration. Changes made with ad-hoc SQL do not reach
+  Production.

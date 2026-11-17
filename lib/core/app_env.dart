@@ -18,9 +18,9 @@ class OneSpaceEnv {
   static const _qaUrl = 'https://ugwrpeduzyzrujkizqfo.supabase.co';
   static const _qaKey = 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe';
 
-  // Production backend (OneSpace Production project).
-  static const _prodUrl = 'PROD_URL_PENDING';
-  static const _prodKey = 'PROD_KEY_PENDING';
+  // Production backend (OneSpace Production project, Frankfurt).
+  static const _prodUrl = 'https://letcgxbnblohhfyeuigz.supabase.co';
+  static const _prodKey = 'sb_publishable_eAeTViXIscberKyVhCQiWg_h3rivqwo';
 
   static const supabaseUrl = isProduction ? _prodUrl : _qaUrl;
   static const publishableKey = isProduction ? _prodKey : _qaKey;
