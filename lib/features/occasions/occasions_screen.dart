@@ -1,4 +1,6 @@
 import '../../core/preferred_currency.dart';
+import '../counters/counter_sources.dart';
+import '../counters/counter_source_actions.dart';
 import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
@@ -197,6 +199,10 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      ].join(' · '))),
      trailing:ItemMenu(kind:'occasion',recordId:p['id'].toString(),title:p['title']?.toString(),
       onOpen:()=>open(p),openLabel:tt('Open'),table:'occasion_plans',
+      moreActions:[
+       if(p['archived_at']==null)ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
+        ()=>CounterSourceActions.open(context,space!,CounterSource.occasion(p))),
+      ],
       removed:p['archived_at']!=null,onChanged:load),
      onTap:()=>open(p))),
    ])));
@@ -576,6 +582,8 @@ class _OccasionDetailState extends State<OccasionDetail>{
      ],
      onOpen:editPlan,
      moreActions:[
+      if(p['archived_at']==null)ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
+       ()=>CounterSourceActions.open(context,p['space_id'].toString(),CounterSource.occasion(p))),
       if(p['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
        ()=>createFromThis(context,kind:LinkKind.occasion,id:widget.id,
         spaceId:p['space_id'].toString(),title:p['title'].toString(),
