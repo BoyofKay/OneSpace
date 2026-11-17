@@ -1,4 +1,6 @@
 import '../settings/special_dates.dart';
+import '../counters/counter_sources.dart';
+import '../counters/counter_source_actions.dart';
 import 'holiday_sources_panel.dart';
 import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
@@ -694,6 +696,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               title:event['title']?.toString(),
               onOpen:()=>_openEditor(existing:event),openLabel:canEdit?'Edit':'Open',
               moreActions:[
+                if (event['archived_at'] == null && CounterSource.event(event) != null && _spaceId != null)
+                  ItemMenuAction('Add to counters', Icons.hourglass_bottom_outlined,
+                    () => CounterSourceActions.open(context, _spaceId!, CounterSource.event(event))),
                 if(event['space_id']!=null)ItemMenuAction(tt('Create from this'),Icons.add_link,
                   ()=>createFromThis(context,
                     kind:LinkKind.event,id:event['id'].toString(),

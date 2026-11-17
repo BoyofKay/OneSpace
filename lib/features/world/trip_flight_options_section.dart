@@ -1,4 +1,6 @@
 import '../../core/preferred_currency.dart';
+import '../counters/counter_sources.dart';
+import '../counters/counter_source_actions.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/item_menu.dart';
@@ -326,11 +328,16 @@ class _TripFlightOptionsSectionState extends State<TripFlightOptionsSection>{
        if(v=='itinerary'){await addFlightToItinerary(context,widget.tripId,row);}
        else if(v=='link'){open(row['booking_link'].toString());}
        else if(v=='edit'){await editFlightOption(context,tripId:widget.tripId,trip:widget.trip,prior:row);}
+       else if(v=='counter'){await CounterSourceActions.open(context,
+         widget.trip['space_id'].toString(),
+         CounterSource.flight(row, shared: widget.trip['visibility']!='private'));}
        else if(v=='remove'){archive(row);}
       },
       itemBuilder:(_)=>[
        if(row['status']=='booked'&&!removed)iconMenuItem('itinerary',Icons.playlist_add,'Add to itinerary'),
        if((row['booking_link']??'').toString().isNotEmpty)iconMenuItem('link',Icons.open_in_new,'Open link'),
+       if(!removed&&CounterSource.flight(row)!=null)
+        iconMenuItem('counter',Icons.hourglass_bottom_outlined,'Add to counters'),
        if(!removed)iconMenuItem('edit',MenuIcons.edit,'Edit'),
        iconMenuItem('remove',removed?MenuIcons.restore:MenuIcons.remove,removed?'Restore':'Remove'),
       ]),

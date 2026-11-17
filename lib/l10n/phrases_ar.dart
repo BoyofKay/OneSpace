@@ -2,6 +2,16 @@
 // tt('English') looks up here; anything missing stays English.
 
 const Map<String, String> arPhrases = {
+  // R84: opt-in counters and meaningful map markers
+  'Add to counters': 'إضافة إلى العدادات',
+  'Choose from calendar, dates, occasions, flights or trips': 'اختر من التقويم أو التواريخ أو المناسبات أو الرحلات',
+  'Choose a date for your counter': 'اختر تاريخًا للعداد',
+  'Calendar events': 'أحداث التقويم',
+  'Trip itinerary': 'برنامج الرحلة',
+  'Initials = who can see it': 'الحروف الأولى توضح من يمكنه رؤيته',
+  'Counter added.': 'تمت إضافة العداد.',
+  'Could not load dates. Check your connection and try again.': 'تعذر تحميل التواريخ. تحقق من الاتصال وحاول مرة أخرى.',
+  'No dated items to choose from yet.': 'لا توجد عناصر مؤرخة للاختيار منها بعد.',
   // R66
   'Any day': 'أي يوم',
   'Custom repeat (kept as it is)': 'تكرار مخصص (يبقى كما هو)',

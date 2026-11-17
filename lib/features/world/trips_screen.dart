@@ -1,4 +1,6 @@
 import '../../core/form_kit.dart';
+import '../counters/counter_sources.dart';
+import '../counters/counter_source_actions.dart';
 import '../../core/item_menu.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/status_look.dart';
@@ -204,6 +206,11 @@ class _TripsScreenState extends State<TripsScreen> {
       ].join(' · ')),maxLines:4),
       trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
        onOpen:()=>open(trip),openLabel:tt('Open'),table:'shared_trips',
+       moreActions:[
+        if(trip['archived_at']==null&&CounterSource.trip(trip)!=null)
+         ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
+          ()=>CounterSourceActions.open(context,space!,CounterSource.trip(trip))),
+       ],
        removed:trip['archived_at']!=null,onChanged:load),
       onTap:()=>open(trip),
      )),
@@ -618,9 +625,15 @@ class _TripDetailState extends State<TripDetail>{
       onSelected:(v){
        if(v=='edit'){editItem(entry);}
        else if(v=='link'){openLink(entry['source_url'].toString());}
+       else if(v=='counter' && trip != null) {
+        CounterSourceActions.open(context,trip!['space_id'].toString(),
+          CounterSource.itinerary(entry,shared:trip!['visibility']!='private'));
+       }
        else if(v=='remove'){setItemRemoved(entry);}
       },
       itemBuilder:(_)=>[
+       if(!deleted&&CounterSource.itinerary(entry)!=null)
+        iconMenuItem('counter',Icons.hourglass_bottom_outlined,'Add to counters'),
        if(!deleted)iconMenuItem('edit',MenuIcons.edit,'Edit'),
        if(entry['source_url'].toString().isNotEmpty)iconMenuItem('link',Icons.open_in_new,'Open booking link'),
        iconMenuItem('remove',deleted?MenuIcons.restore:MenuIcons.remove,deleted?'Restore':'Remove'),
@@ -698,6 +711,9 @@ class _TripDetailState extends State<TripDetail>{
      ],
      onOpen:editTrip,
      moreActions:[
+      if(t['archived_at']==null&&CounterSource.trip(t)!=null)
+       ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
+        ()=>CounterSourceActions.open(context,t['space_id'].toString(),CounterSource.trip(t))),
       if(isFlight)ItemMenuAction(tt('Search on Google Flights'),Icons.travel_explore,
        ()=>openLink(tripGoogleFlights(t).toString())),
       ItemMenuAction(tt('Add a travel checklist'),Icons.checklist_outlined,

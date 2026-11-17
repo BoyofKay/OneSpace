@@ -401,7 +401,8 @@ class _PlaceDetailState extends State<PlaceDetail> {
         // R78: where it is.
         if (p['latitude'] != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: PlaceMiniMap(
           latitude: (p['latitude'] as num).toDouble(), longitude: (p['longitude'] as num).toDouble(),
-          wishlist: wish, onTap: _openMaps)),
+          wishlist: wish, category: (p['category'] ?? 'other').toString(),
+          onTap: _openMaps)),
         if (p['rating'] != null) Row(children: [
           for (var i = 0; i < 5; i++) Icon(i < (p['rating'] as num) ? Icons.star_rounded : Icons.star_border_rounded, color: Colors.amber),
         ]),
