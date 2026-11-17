@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 import '../../core/current_space_cache.dart';
+import '../counters/counter_sources.dart';
+import '../counters/counter_source_actions.dart';
 import '../../core/form_kit.dart';
 
 /// R69: one saved date in Settings › Birthdays, anniversary & special dates.
@@ -226,9 +228,17 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
       trailing: value == null ? const Icon(Icons.add_circle_outline)
         : onRemove == null ? const Icon(Icons.edit_outlined)
         : PopupMenuButton<String>(tooltip: tt('More'),
-            onSelected: (v) { if (v == 'edit') { onTap(); } else { onRemove(); } },
+            onSelected: (v) {
+              if (v == 'edit') { onTap(); }
+              else if (v == 'counter' && value != null && space != null) {
+                CounterSourceActions.open(context, space!, CounterSource.special(value, people));
+              } else { onRemove?.call(); }
+            },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'edit', child: Text(tt('Change'))),
+              PopupMenuItem(value: 'counter', child: Row(children: [
+                const Icon(Icons.hourglass_bottom_outlined), const SizedBox(width: 8),
+                Text(tt('Add to counters'))])),
               PopupMenuItem(value: 'remove', child: Text(tt('Remove'))),
             ]),
       onTap: busy ? null : onTap));
