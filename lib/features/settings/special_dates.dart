@@ -230,9 +230,9 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
         : PopupMenuButton<String>(tooltip: tt('More'),
             onSelected: (v) {
               if (v == 'edit') { onTap(); }
-              else if (v == 'counter' && value != null && space != null) {
+              else if (v == 'counter' && space != null) {
                 CounterSourceActions.open(context, space!, CounterSource.special(value, people));
-              } else { onRemove?.call(); }
+              } else { onRemove(); }
             },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'edit', child: Text(tt('Change'))),
