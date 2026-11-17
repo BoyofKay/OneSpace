@@ -1,4 +1,6 @@
-/// Preview-only native callback used for email confirmation and password recovery.
-/// Add this exact URI to Supabase Auth > URL Configuration > Redirect URLs.
-/// Production builds must use a separate verified callback.
-const String oneSpaceAuthRedirectTo = 'onespace-preview://auth-callback/';
+import 'app_env.dart';
+
+/// Native callback used for email confirmation, password recovery and social sign-in.
+/// QA: onespace-preview://auth-callback/  ·  Production: onespace://auth-callback/
+/// Add the matching URI to that project's Supabase Auth > URL Configuration > Redirect URLs.
+const String oneSpaceAuthRedirectTo = OneSpaceEnv.authRedirect;

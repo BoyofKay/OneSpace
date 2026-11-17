@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/app_env.dart';
 import '../../core/auth_redirect.dart';
 
 /// R74 (Ahmed): sign up / sign in with Google or Apple. The buttons appear by
@@ -12,8 +13,8 @@ import '../../core/auth_redirect.dart';
 /// shows a button that cannot work.
 class SocialProviders {
   const SocialProviders._();
-  static const _url = 'https://ugwrpeduzyzrujkizqfo.supabase.co/auth/v1/settings';
-  static const _key = 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe';
+  static const _url = '${OneSpaceEnv.supabaseUrl}/auth/v1/settings';
+  static const _key = OneSpaceEnv.publishableKey;
   static Future<Set<String>>? _cached;
 
   static Future<Set<String>> enabled() => _cached ??= () async {

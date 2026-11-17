@@ -4,7 +4,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Preview stays installable before Firebase registration. Once the Firebase
+// QA stays installable before Firebase registration. Once the Firebase
 // Android config is supplied by CI, compile Google Services resources.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // The real application ID comes from the qa / prod flavor below.
         applicationId = "com.onespace.onespace"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -35,19 +35,47 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        getByName("debug") {
-            // Preview builds are intentionally separate from future production installs.
-            applicationIdSuffix = ".preview"
-            versionNameSuffix = "-preview"
+    // Upload key for Google Play (production only). CI provides it from GitHub
+    // secrets; it is never committed. Google re-signs with the Play app signing key.
+    val uploadStore = System.getenv("ONESPACE_UPLOAD_KEYSTORE")
+    signingConfigs {
+        if (uploadStore != null && file(uploadStore).exists()) {
+            create("upload") {
+                storeFile = file(uploadStore)
+                storePassword = System.getenv("ONESPACE_UPLOAD_STORE_PASSWORD")
+                keyAlias = System.getenv("ONESPACE_UPLOAD_KEY_ALIAS")
+                keyPassword = System.getenv("ONESPACE_UPLOAD_KEY_PASSWORD")
+            }
         }
-        release {
-            // Preserve the Android application ID of all existing preview APKs.
-            // This is NOT the future production build/signing configuration.
-            applicationIdSuffix = ".preview"
-            versionNameSuffix = "-preview"
-            // Stable preview-only keystore restored by GitHub Actions.
+    }
+
+    // Two apps that install side by side:
+    //   qa   -> onespace.qa        "OneSpace QA"  QA backend, test signing key (GitHub APKs)
+    //   prod -> live.onespace.app  "OneSpace"     production backend, Play upload key (Google Play)
+    // The Dart side picks the backend with --dart-define=ONESPACE_ENV=qa|production.
+    flavorDimensions += "env"
+    productFlavors {
+        create("qa") {
+            dimension = "env"
+            applicationId = "onespace.qa"
+            versionNameSuffix = "-qa"
+            manifestPlaceholders["appLabel"] = "OneSpace QA"
+            manifestPlaceholders["authScheme"] = "onespace-preview"
+            // Stable test-only keystore restored by GitHub Actions (tools/dev-signing).
             signingConfig = signingConfigs.getByName("debug")
+        }
+        create("prod") {
+            dimension = "env"
+            applicationId = "live.onespace.app"
+            manifestPlaceholders["appLabel"] = "OneSpace"
+            manifestPlaceholders["authScheme"] = "onespace"
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
+        }
+    }
+
+    buildTypes {
+        release {
+            // Signing comes from the flavor above.
         }
     }
 }

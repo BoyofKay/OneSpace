@@ -1,4 +1,4 @@
-name: Build and publish OneSpace APK
+name: Build and publish OneSpace QA APK
 
 # Regular development commits do NOT start APK builds.
 # A finalized iteration updates release/READY_TO_BUILD.md exactly once.
@@ -15,7 +15,7 @@ permissions:
 
 # Never cancel a final release just because another commit arrives.
 concurrency:
-  group: android-preview-release-${{ github.ref }}
+  group: android-qa-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -85,13 +85,17 @@ jobs:
           with open('android/app/google-services.json') as f:
               payload=json.load(f)
           clients=payload.get('client', [])
+          import os
           if not any(
               entry.get('client_info', {}).get('android_client_info', {}).get('package_name')
-              == 'com.onespace.onespace.preview'
+              == 'onespace.qa'
               for entry in clients
           ):
-              raise SystemExit('Firebase Android configuration does not match the OneSpace preview package')
-          print('OneSpace Firebase Android preview registration validated.')
+              # Until onespace.qa is added to the Firebase project, build without push.
+              os.remove('android/app/google-services.json')
+              print('::warning::Firebase config has no onespace.qa app yet: this QA build has in-app notifications only. Add an Android app "onespace.qa" in Firebase and update ONESPACE_GOOGLE_SERVICES_JSON_BASE64.')
+          else:
+              print('OneSpace Firebase Android QA registration validated.')
           PY
           else
             if grep -q '^# R25 — Configured Firebase Android Preview' release/READY_TO_BUILD.md || grep -q '^Require-Firebase-Config: true$' release/READY_TO_BUILD.md; then
@@ -100,35 +104,36 @@ jobs:
             fi
             echo 'No Firebase Android config yet: build continues with in-app notifications only.'
           fi
-      - name: Build optimized installable preview APK
-        run: flutter build apk --release --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}
-      - name: Verify signed APK uses OneSpace preview certificate
+      - name: Build installable QA APK (QA backend)
+        run: flutter build apk --release --flavor qa --dart-define=ONESPACE_ENV=qa --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}
+      - name: Verify signed APK uses the OneSpace test certificate
         shell: bash
         run: |
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -n "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs build/app/outputs/flutter-apk/app-release.apk | tee /tmp/onespace-signature.txt
-          # Fail closed if signing unexpectedly changes; existing previews need this exact key.
+          "$APKSIGNER" verify --verbose --print-certs build/app/outputs/flutter-apk/app-qa-release.apk | tee /tmp/onespace-signature.txt
+          # Fail closed if signing unexpectedly changes; QA updates need this exact key.
           grep -qi "90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043" /tmp/onespace-signature.txt
-      - name: Verify preview package ID is unchanged
+      - name: Verify QA package ID
         shell: bash
         run: |
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           test -n "$AAPT"
-          "$AAPT" dump badging build/app/outputs/flutter-apk/app-release.apk | tee /tmp/onespace-package.txt
-          grep -q "package: name='com.onespace.onespace.preview'" /tmp/onespace-package.txt
+          "$AAPT" dump badging build/app/outputs/flutter-apk/app-qa-release.apk | tee /tmp/onespace-package.txt
+          grep -q "package: name='onespace.qa'" /tmp/onespace-package.txt
+          grep -q "application-label:'OneSpace QA'" /tmp/onespace-package.txt
       - name: Name downloadable APK
         shell: bash
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk "OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          cp build/app/outputs/flutter-apk/app-qa-release.apk "OneSpace-QA-0.1.${{ github.run_number }}.apk"
       # Preserve the verified signed package even if GitHub Releases denies
       # a write or has a temporary API failure. This is independently downloadable
       # and can be republished without recompiling via rerunning only publish.
       - name: Store verified APK as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-preview-0.1.${{ github.run_number }}
-          path: OneSpace-preview-0.1.${{ github.run_number }}.apk
+          name: OneSpace-QA-0.1.${{ github.run_number }}
+          path: OneSpace-QA-0.1.${{ github.run_number }}.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -142,7 +147,7 @@ jobs:
       - name: Download verified signed APK
         uses: actions/download-artifact@v4
         with:
-          name: OneSpace-preview-0.1.${{ github.run_number }}
+          name: OneSpace-QA-0.1.${{ github.run_number }}
       - name: Publish signed APK to GitHub Releases when permitted
         id: publish
         env:
@@ -151,8 +156,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="preview-0.1.${{ github.run_number }}"
-          ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          TAG="qa-0.1.${{ github.run_number }}"
+          ASSET="OneSpace-QA-0.1.${{ github.run_number }}.apk"
           test -s "$ASSET"
           if gh release view "$TAG" >/dev/null 2>&1; then
             if gh release upload "$TAG" "$ASSET" --clobber; then
@@ -161,8 +166,8 @@ jobs:
             fi
           else
             if gh release create "$TAG" "$ASSET" \
-              --title "OneSpace Preview 0.1.${{ github.run_number }}" \
-              --notes "Signed Android test preview, not a public launch. Verify on both partners' devices." \
+              --title "OneSpace QA 0.1.${{ github.run_number }}" \
+              --notes "OneSpace QA (package onespace.qa) on the QA backend — test data only, not for real couples. Installs next to the real OneSpace app." \
               --prerelease --target "${{ github.sha }}"; then
               echo "published_release=true" >> "$GITHUB_OUTPUT"
               exit 0
@@ -179,7 +184,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
-          TAG="preview-0.1.${{ github.run_number }}"
-          ASSET="OneSpace-preview-0.1.${{ github.run_number }}.apk"
+          TAG="qa-0.1.${{ github.run_number }}"
+          ASSET="OneSpace-QA-0.1.${{ github.run_number }}.apk"
           gh release view "$TAG" --json assets --jq '.assets[].name' | grep -Fx "$ASSET"
           gh release view "$TAG" --json url --jq '.url'

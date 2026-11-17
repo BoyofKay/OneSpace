@@ -12,7 +12,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
-                    android:scheme="onespace-preview"
+                    android:scheme="${authScheme}"
                     android:host="auth-callback"/>
             </intent-filter>
         </activity>

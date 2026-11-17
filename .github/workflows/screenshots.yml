@@ -58,7 +58,7 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Build the robot app once (before the emulator, to save memory)
         run: |
-          flutter build apk --debug -t integration_test/screenshots_test.dart
+          flutter build apk --debug --flavor qa --dart-define=ONESPACE_ENV=qa -t integration_test/screenshots_test.dart
           (cd android && ./gradlew --stop) || true
           pkill -f GradleDaemon || true
           df -h / ; free -h
