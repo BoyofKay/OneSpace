@@ -6,3 +6,5 @@
 - Map: status shapes and colours, place category icons, partner initial badges with visibility legend
 - The source record is not modified; saved counter is an independent snapshot
 - Never deploy production before QA acceptance
+
+Second verification: includes marker widget tests, Arabic strings and analyzer warning cleanup.
