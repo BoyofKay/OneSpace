@@ -45,6 +45,12 @@ void main() {
     expect(trip!.prefill['on_date'], '2026-12-24');
     expect(flight!.prefill['visibility'], 'private');
     expect(flight.prefill['yearly'], false);
+    final itinerary = CounterSource.itinerary({
+      'id': 'itinerary-1', 'title': 'Morning departure',
+      'kind': 'flight', 'local_date': '2026-12-26',
+    });
+    expect(itinerary!.prefill['on_date'], '2026-12-26');
+    expect(itinerary.prefill['category'], 'travel');
   });
 
   test('no reunion dates exist in source when those values are blank', () {
