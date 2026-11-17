@@ -765,7 +765,9 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
     return EditorScaffold(
       title: widget.existing == null ? 'New counter' : 'Edit counter',
       isNew: widget.existing == null, saving: saving, listenTo: [title, description, placeText],
-      isChanged: () => changed, isComplete: () => title.text.trim().isNotEmpty && date != null,
+      // A prefilled source is an intentional new item even without further edits.
+      isChanged: () => widget.existing == null && widget.source != null ? true : changed,
+      isComplete: () => title.text.trim().isNotEmpty && date != null,
       onSave: _save,
       meta: MetaStrip(value: MetaValues(shared: shared), people: who, showBelongs: false, showDate: false,
         onChanged: (v) => setState(() => shared = v.shared)),
