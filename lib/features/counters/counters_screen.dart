@@ -9,13 +9,13 @@ import '../../core/item_menu.dart';
 import '../calendar/calendar_rules.dart';
 import '../memories/memories_screen.dart';
 import '../memories/memory_view_screen.dart';
-import '../settings/special_dates.dart';
+import 'counter_sources.dart';
 import 'smart_duration.dart';
 
 /// R77 (Ahmed's friend's idea): our counters — moments in the past ("since")
 /// and the future ("to go"), counted in the units that matter, with photos,
-/// place, who was there and links between two points. Anniversary, birthdays,
-/// the next trip and "last met / next meet" appear on their own.
+/// place, who was there and links between two points. Only consciously saved
+/// counters appear here; other dates stay in their original feature.
 class CounterCategories {
   const CounterCategories._();
   static const labels = {
@@ -156,7 +156,6 @@ class _CountersScreenState extends State<CountersScreen> {
       final out = <CounterPoint>[
         for (final r in rows) ...CountersRules.fromRow(Map<String, dynamic>.from(r)),
       ];
-      out.addAll(await _fromElsewhere(s, p));
       if (!mounted) return;
       setState(() { space = s; people = p; points = out; loading = false; error = null; });
       if (openInitial && widget.initialId != null) {
@@ -166,52 +165,6 @@ class _CountersScreenState extends State<CountersScreen> {
     } catch (_) {
       if (mounted) setState(() { loading = false; error = 'Could not load counters.'; });
     }
-  }
-
-  /// Anniversary, birthdays, special dates, last met / next meet and the next trip.
-  Future<List<CounterPoint>> _fromElsewhere(String s, SpacePeople? p) async {
-    final out = <CounterPoint>[];
-    try {
-      final today = DateTime.now();
-      for (final d in await loadSpecialDates(s)) {
-        final label = SpecialDateRules.label(d, (id) => id == p?.me ? '' : (p?.partnerName ?? ''));
-        final birthday = d.kind == 'birthday';
-        final emoji = birthday ? '🎂' : d.kind == 'anniversary' ? '💍' : '⭐';
-        final source = birthday ? 'Birthday' : d.kind == 'anniversary' ? 'Anniversary' : 'Special date';
-        final known = d.year != null;
-        final day = DateTime(d.year ?? today.year, d.month, d.day);
-        // The day itself, when the year is known and it has happened.
-        if (known && !day.isAfter(today)) {
-          out.add(CounterPoint(id: 'special:${d.id}', date: day, emoji: emoji, source: source,
-            original: 'special-next:${d.id}',
-            title: birthday
-              ? (d.personId == p?.me ? tt('The day I was born')
-                  : tt('The day {} was born').replaceFirst('{}', p?.partnerName ?? tt('Partner')))
-              : d.kind == 'anniversary' ? tt('The day we became us') : tt(label)));
-        }
-        // Its next time round.
-        out.add(CounterPoint(id: 'special-next:${d.id}', title: tt(label), emoji: emoji, date: day,
-          source: source, yearly: true, yearKnown: known, birthday: birthday));
-      }
-      final sp = await db.from('spaces').select('relationship_mode,last_met_on,next_meet_on').eq('id', s).maybeSingle();
-      if (sp != null && (sp['relationship_mode'] ?? '').toString().startsWith('apart')) {
-        final last = DateTime.tryParse((sp['last_met_on'] ?? '').toString());
-        final next = DateTime.tryParse((sp['next_meet_on'] ?? '').toString());
-        if (last != null) out.add(CounterPoint(id: 'last-met', title: tt('Since we last met'), emoji: '🫂', date: last, source: 'How we live'));
-        if (next != null) {
-          out.add(CounterPoint(id: 'next-meet', title: tt('Until we meet again'), emoji: '🤍', date: next,
-            source: 'How we live', start: last));
-        }
-      }
-      final trip = await db.from('shared_trips').select('id,title,start_on,created_at').eq('space_id', s)
-        .isFilter('archived_at', null).gte('start_on', CalendarRules.sqlDate(today)).order('start_on').limit(1).maybeSingle();
-      if (trip != null) {
-        out.add(CounterPoint(id: 'trip:${trip['id']}', title: (trip['title'] ?? '').toString(), emoji: '✈️',
-          date: DateTime.parse(trip['start_on'].toString()), source: 'Next trip',
-          start: DateTime.tryParse((trip['created_at'] ?? '').toString())?.toLocal()));
-      }
-    } catch (_) {}
-    return out;
   }
 
   Future<void> _edit([Map<String, dynamic>? row, DateTime? date]) async {
@@ -694,10 +647,11 @@ Widget _dayCard(ThemeData theme, MaterialLocalizations loc, String title, DateTi
   ])));
 
 class CounterEditor extends StatefulWidget {
-  const CounterEditor({super.key, required this.spaceId, this.existing, this.initialDate, this.others = const []});
+  const CounterEditor({super.key, required this.spaceId, this.existing, this.initialDate, this.source, this.others = const []});
   final String spaceId;
   final Map<String, dynamic>? existing;
   final DateTime? initialDate;
+  final CounterSource? source;
   final List<CounterPoint> others;
   @override
   State<CounterEditor> createState() => _CounterEditorState();
@@ -724,7 +678,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
   @override
   void initState() {
     super.initState();
-    final e = widget.existing ?? const <String, dynamic>{};
+    final e = widget.existing ?? widget.source?.prefill ?? const <String, dynamic>{};
     title = TextEditingController(text: (e['title'] ?? '').toString());
     description = TextEditingController(text: (e['description'] ?? '').toString());
     placeText = TextEditingController(text: (e['place_text'] ?? '').toString());
@@ -750,6 +704,21 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
   void dispose() {
     title.dispose(); description.dispose(); placeText.dispose(); personName.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseSource() async {
+    final source = await pickCounterSource(context, widget.spaceId);
+    if (!mounted || source == null) return;
+    final e = source.prefill;
+    setState(() {
+      title.text = e['title'].toString();
+      date = source.date;
+      time = null;
+      emoji = source.emoji;
+      category = source.category;
+      yearly = source.yearly;
+      shared = source.shared;
+    });
   }
 
   Future<void> _pickDate() async {
@@ -801,6 +770,10 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
       meta: MetaStrip(value: MetaValues(shared: shared), people: who, showBelongs: false, showDate: false,
         onChanged: (v) => setState(() => shared = v.shared)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
+        if (widget.existing == null) Padding(padding: const EdgeInsets.only(bottom: 12),
+          child: OutlinedButton.icon(onPressed: _chooseSource,
+            icon: const Icon(Icons.library_add_outlined),
+            label: Text(tt('Choose from calendar, dates, occasions, flights or trips')))),
         TextField(controller: title, maxLength: 120, textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(labelText: tt(requiredLabel('What happened or is coming')),
             hintText: tt('Our first date, the wedding, moving in…'), border: const OutlineInputBorder())),
