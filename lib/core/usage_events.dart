@@ -25,7 +25,6 @@ class UsageEvents with WidgetsBindingObserver {
 
   final List<Map<String, Object?>> _queue = [];
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(true);
-  Timer? _timer;
   DateTime? _sessionStart;
   bool _started = false;
 
@@ -38,7 +37,7 @@ class UsageEvents with WidgetsBindingObserver {
     } catch (_) {}
     WidgetsBinding.instance.addObserver(this);
     _beginSession();
-    _timer = Timer.periodic(const Duration(seconds: 60), (_) => flush());
+    Timer.periodic(const Duration(seconds: 60), (_) => flush());
   }
 
   Future<void> setEnabled(bool on) async {
