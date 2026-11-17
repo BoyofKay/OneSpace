@@ -11,6 +11,7 @@ import '../calendar/holiday_sources_panel.dart';
 import 'special_dates.dart';
 import '../../core/phone_calendar_sync.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/usage_events.dart';
 
 /// Central configuration hub, distinct from personal profile details.
 class OneSpaceSettingsScreen extends StatelessWidget {
@@ -132,6 +133,19 @@ class OneSpaceSettingsScreen extends StatelessWidget {
                builder:(_)=>const PartnerGesturesScreen(manageOnly:true))),
          ),
        ])),
+       const SizedBox(height:16),
+       Text(tt('Privacy'),style:Theme.of(context).textTheme.titleMedium),
+       // D78: usage statistics — event names and times only, never content.
+       Card(elevation:0,child:ValueListenableBuilder<bool>(
+         valueListenable:UsageEvents.instance.enabled,
+         builder:(context,on,_)=>SwitchListTile(
+           secondary:const Icon(Icons.insights_outlined),
+           title:Text(tt('Share usage statistics')),
+           subtitle:Text(tt('Which tabs you open, how long the app is open and notification taps. Never your content.')),
+           value:on,
+           onChanged:(v)=>UsageEvents.instance.setEnabled(v),
+         ),
+       )),
      ],
    )),
  );

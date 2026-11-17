@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/usage_events.dart';
 import 'notifications_screen.dart';
 
 /// FCM is an optional transport, not a second account system.
@@ -100,6 +101,7 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
   if(!mounted||db.auth.currentUser==null)return;
   final type=message.data['type'];
   if(type!='notification'&&type!='summary')return;
+  UsageEvents.instance.log('push_open/$type');
   unawaited(openNotificationById(context,
    message.data['notification_id']?.toString(),summary:type=='summary'));
  }

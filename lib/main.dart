@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'core/app_env.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
@@ -38,6 +39,7 @@ import 'features/remember/remember_screen.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
 import 'core/error_reporter.dart';
+import 'core/usage_events.dart';
 
 import 'features/calendar/calendar_screen.dart';
 import 'features/notes/notes_screen.dart';
@@ -291,6 +293,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     WidgetsBinding.instance.addPostFrameCallback((_){
       if(mounted)_takeIncomingShare();
       if(mounted)_checkPendingDeletion();
+      // D78: usage statistics (event names + times only; can be switched off in Settings).
+      unawaited(UsageEvents.instance.start());
       PreferredCurrency.load();
       if(mounted)WhatsNew.maybeShow(context);
       // R61: "Voice command" from a long-press on the app icon.
@@ -393,8 +397,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     }
   }
 
+  static const _tabNames=['today','remember','coordinate','connect','me'];
   void navigate(int index) {
     _exitPolicy.reset();
+    if(index>=0&&index<_tabNames.length&&(index!=selectedIndex||showProfile))UsageEvents.instance.log('tab/${_tabNames[index]}');
     setState(() {
       if ((index == 0 || index == 1) && selectedIndex != index) refreshToken++;
       selectedIndex = index;
@@ -405,6 +411,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
 
   void open(Widget screen) {
     _exitPolicy.reset();
+    UsageEvents.instance.screen(screen);
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(builder: (_) => screen),
     ).then((_) {

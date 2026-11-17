@@ -1,20 +1,18 @@
-# R80 — counters fix and theme cards (demo couple, screenshot robot)
+# R81 — usage statistics and a Complaint topic (QA build)
 
 Require-Firebase-Config: true
 
-Previous signed preview: R78 (0.1.443).
-Preserve the existing com.onespace.onespace.preview Android package,
-same signing certificate, Firebase config, biometrics, all account and
-partner pairing data, checklists, notes, memories and user documents.
-INSTALL AS AN IN-PLACE UPDATE only. Never uninstall or clear data.
+QA app (package onespace.qa, "OneSpace QA"), QA backend. Install as an in-place update over the previous QA build.
 
-## Included since R78
-- Counters: the reunion counter is correct in every "living apart" mode.
-- Appearance: theme preview cards are taller and no longer overflow on narrower phones.
-- Developer only (not in the user experience): fictional demo couple support for the website screenshots, screenshot/clip robot test target.
+## Included since R80
+- Usage statistics (decision D78): session length, tabs and screens opened, notification taps — event names and times only,
+  never content. On by default; Settings → Privacy → "Share usage statistics" switches it off.
+- Support: new "Complaint" topic in Contact us (signed in and from the sign-in screen).
 
-## Database
-- 0132_demo_couple, 0133_demo_couple_global (demo accounts only; no change for real users).
+## Database (applied to QA and Production)
+- 0137_app_usage_events (private.app_events + log_app_events, 180-day cleanup job).
+- 0138_support_complaint_kind.
 
 ## Verification
-- "Verify OneSpace iteration" passed on the R80 branches; screenshots robot ran the full app on an emulator (core, together, themes, video sets) on 16–17 Nov.
+- "Verify OneSpace iteration" (flutter analyze + flutter test) passed on branch r81-usage-complaints, 17 Nov 2026.
+- Database function tested in QA: valid events stored, bad names/dates/values rejected, anonymous callers refused.
