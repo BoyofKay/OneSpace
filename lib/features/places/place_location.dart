@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../../core/error_reporter.dart';
 
 /// R78: where a place is on the map.
 class PlaceLocation {
@@ -63,7 +64,8 @@ class MapsLinkRules {
 /// name with OpenStreetMap's search. Never throws.
 class PlaceLocator {
   const PlaceLocator._();
-  static const _agent = {'User-Agent': 'OneSpace couples app (com.onespace.onespace)'};
+  // OpenStreetMap policy: name the app and give a contact.
+  static const _agent = {'User-Agent': 'OneSpaceApp/0.1 (+https://onespace.live; contact: support@onespace.live)'};
 
   static Future<String> expand(String url) async {
     var current = url;
@@ -102,7 +104,10 @@ class PlaceLocator {
     try {
       final res = await http.get(Uri.https('nominatim.openstreetmap.org', '/search',
         {'q': q, 'format': 'jsonv2', 'limit': '1'}), headers: _agent).timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return null;
+      if (res.statusCode != 200) {
+        ErrorReporter.report('Place search failed: HTTP ${res.statusCode}', StackTrace.current, context: 'place search');
+        return null;
+      }
       final list = jsonDecode(res.body) as List;
       if (list.isEmpty) return null;
       final hit = list.first as Map;

@@ -105,7 +105,7 @@ jobs:
             echo 'No Firebase Android config yet: build continues with in-app notifications only.'
           fi
       - name: Build installable QA APK (QA backend)
-        run: flutter build apk --release --flavor qa --dart-define=ONESPACE_ENV=qa --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}
+        run: flutter build apk --release --flavor qa --dart-define=ONESPACE_ENV=qa --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}-qa --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}
       - name: Verify signed APK uses the OneSpace test certificate
         shell: bash
         run: |
