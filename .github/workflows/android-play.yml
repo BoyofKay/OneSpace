@@ -14,6 +14,10 @@ on:
         description: 'Build even if Firebase has no live.onespace.app app yet (no push notifications)'
         type: boolean
         default: false
+      test_only:
+        description: 'Check that the production app builds, without the upload key (result is NOT for Play)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -67,6 +71,7 @@ jobs:
       - name: Test
         run: flutter test
       - name: Restore the Play upload key
+        if: ${{ !inputs.test_only }}
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.ONESPACE_UPLOAD_KEYSTORE_BASE64 }}
@@ -92,7 +97,7 @@ jobs:
         shell: bash
         env:
           ONESPACE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.ONESPACE_GOOGLE_SERVICES_JSON_BASE64 }}
-          ALLOW_WITHOUT_PUSH: ${{ inputs.allow_without_push }}
+          ALLOW_WITHOUT_PUSH: ${{ inputs.allow_without_push || inputs.test_only }}
         run: |
           ok=false
           if [ -n "$ONESPACE_GOOGLE_SERVICES_JSON_BASE64" ]; then
@@ -120,11 +125,18 @@ jobs:
           --dart-define=ONESPACE_VERSION=${{ inputs.version_name }}
       - name: Verify package, signature and backend
         shell: bash
+        env:
+          TEST_ONLY: ${{ inputs.test_only }}
         run: |
           AAB=build/app/outputs/bundle/prodRelease/app-prod-release.aab
           test -s "$AAB"
           unzip -p "$AAB" base/manifest/AndroidManifest.xml > /tmp/manifest.pb
           grep -a -q 'live.onespace.app' /tmp/manifest.pb
+          if [ "$TEST_ONLY" = true ]; then
+            echo 'Test build: production package and backend compiled. NOT signed for Play.'
+            cp "$AAB" "TEST-NOT-FOR-PLAY-OneSpace-${{ inputs.version_name }}-${{ github.run_number }}.aab"
+            exit 0
+          fi
           keytool -printcert -jarfile "$AAB" | tee /tmp/cert.txt
           # The upload key, never the public test key.
           if grep -qi '90:37:5B:B8:D7:DB:D6:52' /tmp/cert.txt; then
@@ -135,7 +147,7 @@ jobs:
       - name: Keep the bundle for upload to Play Console
         uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-Play-${{ inputs.version_name }}-${{ github.run_number }}
-          path: OneSpace-${{ inputs.version_name }}-${{ github.run_number }}.aab
+          name: ${{ inputs.test_only && 'TEST-NOT-FOR-PLAY-' || '' }}OneSpace-Play-${{ inputs.version_name }}-${{ github.run_number }}
+          path: ${{ inputs.test_only && 'TEST-NOT-FOR-PLAY-' || '' }}OneSpace-${{ inputs.version_name }}-${{ github.run_number }}.aab
           if-no-files-found: error
           retention-days: 90
