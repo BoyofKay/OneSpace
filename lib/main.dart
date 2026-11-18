@@ -147,6 +147,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
   bool _busy = true;
   String? _error;
   String _stage = 'Verifying your app installation…';
+  bool _configurationError = false;
 
   @override
   void initState() {
@@ -162,6 +163,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     setState(() {
       _busy = true;
       _error = null;
+      _configurationError = false;
       _stage = 'Verifying your app installation…';
     });
     final clock = Stopwatch()..start();
@@ -192,7 +194,11 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = e is StateError
+          _configurationError = e is IosBuildConfigurationException;
+          _error = _configurationError
+            ? 'This iPhone build has mismatched QA/production settings and '
+              'cannot safely connect. Install a corrected OneSpace update.'
+            : e is StateError
             ? e.message.toString()
             : e is TimeoutException
               ? 'Opening your saved secure session timed out. '
@@ -241,11 +247,13 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 ],
                 if (_error != null) ...[
                   Text(tt(_error!),textAlign:TextAlign.center),
-                  const SizedBox(height:14),
-                  FilledButton.icon(
-                    onPressed:_initialize,
-                    icon:const Icon(Icons.refresh),
-                    label:Text(tt('Retry'))),
+                  if (!_configurationError) ...[
+                    const SizedBox(height:14),
+                    FilledButton.icon(
+                      onPressed:_initialize,
+                      icon:const Icon(Icons.refresh),
+                      label:Text(tt('Retry'))),
+                  ],
                 ],
               ]),
             ),
