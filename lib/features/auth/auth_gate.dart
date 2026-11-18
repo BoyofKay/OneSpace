@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth_redirect.dart';
 import '../../core/current_space_cache.dart';
 import '../../theme/onespace_appearance.dart';
+import '../../theme/onespace_brand.dart';
 import '../../theme/occasion_theme_resolver.dart';
 import '../../l10n/onespace_locale_controller.dart';
 import '../../l10n/onespace_strings.dart';
@@ -421,14 +422,7 @@ class _SignInScreenState extends State<SignInScreen> {
               children: [
                 AuthLanguageSwitcher(disabled: loading),
                 const SizedBox(height: 12),
-                Icon(Icons.favorite_rounded,
-                    size:54,color:Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 8),
-                Text(tt('OneSpace'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 5),
-                Text(tr(context, 'tagline'), textAlign: TextAlign.center),
+                const OneSpaceBrand(logoSize: 82, nameSize: 34),
                 const SizedBox(height: 23),
                 Text(tt(registering ? tr(context, 'createAccount')
                     : (_rememberedFirstName!=null&&
