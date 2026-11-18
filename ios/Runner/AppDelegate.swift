@@ -42,6 +42,7 @@ import EventKit
 
   // Contacts
   private var contactResult: FlutterResult?
+  private var saveContactResult: FlutterResult?
 
   override func application(
     _ application: UIApplication,
@@ -513,6 +514,9 @@ import EventKit
   }
 
   private func saveContact(_ f: [String: Any], result: @escaping FlutterResult) {
+    guard saveContactResult == nil else {
+      result(FlutterError(code: "ALREADY_SAVING", message: "Contact editor is already open", details: nil)); return
+    }
     guard let top = topViewController() else {
       result(FlutterError(code: "UNAVAILABLE", message: "Contacts unavailable", details: nil)); return
     }
@@ -534,11 +538,15 @@ import EventKit
     editor.contactStore = CNContactStore()
     editor.delegate = self
     let nav = UINavigationController(rootViewController: editor)
+    nav.isModalInPresentation = true
+    // Do not claim a saved contact before the user confirms Apple's editor.
+    saveContactResult = result
     top.present(nav, animated: true)
-    result(true)
   }
 
   func contactViewController(_ viewController: CNContactViewController, didCompleteWith contact: CNContact?) {
+    saveContactResult?(contact != nil)
+    saveContactResult = nil
     viewController.dismiss(animated: true)
   }
 }
