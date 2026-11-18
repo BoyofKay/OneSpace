@@ -19,6 +19,8 @@
 		<string>en</string>
 		<string>ar</string>
 	</array>
+	<key>OneSpaceShareGroup</key>
+	<string>$(ONESPACE_SHARE_GROUP)</string>
 	<key>OneSpaceEnvironment</key>
 	<string>$(ONESPACE_IOS_ENV)</string>
 	<key>CFBundleName</key>

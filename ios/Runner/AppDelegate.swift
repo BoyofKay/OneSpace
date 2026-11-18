@@ -15,7 +15,7 @@ import EventKit
 ///  - onespace/data_export       save a file through the share sheet ("Save to Files")
 ///  - onespace/scrapbook_export  share/save a PNG page
 ///  - onespace/device_contacts   pick a contact, add a contact (user confirms in Contacts UI)
-///  - onespace/incoming_share    nothing pending on iOS yet (needs a Share Extension)
+///  - onespace/incoming_share    local Share Extension inbox; no automatic partner post
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, UIDocumentPickerDelegate,
   AVSpeechSynthesizerDelegate, CNContactPickerDelegate, CNContactViewControllerDelegate {
@@ -230,7 +230,8 @@ import EventKit
 
     FlutterMethodChannel(name: "onespace/incoming_share", binaryMessenger: messenger)
       .setMethodCallHandler { call, result in
-        if call.method == "takePendingShare" { result(nil) } else { result(FlutterMethodNotImplemented) }
+        if call.method == "takePendingShare" { result(OneSpaceShareInbox.takeNext()) }
+        else { result(FlutterMethodNotImplemented) }
       }
   }
 
