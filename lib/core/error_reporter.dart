@@ -21,6 +21,14 @@ class ErrorReporter {
         text.contains('Failed host lookup')) {
       return;
     }
+    // Diagnostics RPC intentionally requires authentication. Avoid sending
+    // privileged requests from the signed-out screen (and consuming quotas).
+    // Public support remains available separately before login.
+    try {
+      if (Supabase.instance.client.auth.currentUser == null) return;
+    } catch (_) {
+      return;
+    }
     final key = text.length > 200 ? text.substring(0, 200) : text;
     if (_sent.length >= 30 || !_sent.add(key)) return;
     try {
