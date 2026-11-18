@@ -18,6 +18,11 @@ on:
         description: 'Check that the production app builds, without the upload key (result is NOT for Play)'
         type: boolean
         default: false
+  # Explicit marker file is the sole push trigger: build/upload AAB only, never deploy to Play.
+  push:
+    branches: [main]
+    paths:
+      - 'release/PRODUCTION_READY_TO_BUILD.md'
 
 permissions:
   contents: read
@@ -120,9 +125,9 @@ jobs:
         run: >
           flutter build appbundle --release --flavor prod
           --dart-define=ONESPACE_ENV=production
-          --build-name=${{ inputs.version_name }}
+          --build-name=${{ inputs.version_name || '1.0.0' }}
           --build-number=${{ github.run_number }}
-          --dart-define=ONESPACE_VERSION=${{ inputs.version_name }}
+          --dart-define=ONESPACE_VERSION=${{ inputs.version_name || '1.0.0' }}
       - name: Verify package, signature and backend
         shell: bash
         env:
@@ -134,7 +139,7 @@ jobs:
           grep -a -q 'live.onespace.app' /tmp/manifest.pb
           if [ "$TEST_ONLY" = true ]; then
             echo 'Test build: production package and backend compiled. NOT signed for Play.'
-            cp "$AAB" "TEST-NOT-FOR-PLAY-OneSpace-${{ inputs.version_name }}-${{ github.run_number }}.aab"
+            cp "$AAB" "TEST-NOT-FOR-PLAY-OneSpace-${{ inputs.version_name || '1.0.0' }}-${{ github.run_number }}.aab"
             exit 0
           fi
           keytool -printcert -jarfile "$AAB" | tee /tmp/cert.txt
@@ -143,11 +148,11 @@ jobs:
             echo '::error::Bundle is signed with the test key, not the Play upload key.'
             exit 1
           fi
-          cp "$AAB" "OneSpace-${{ inputs.version_name }}-${{ github.run_number }}.aab"
+          cp "$AAB" "OneSpace-${{ inputs.version_name || '1.0.0' }}-${{ github.run_number }}.aab"
       - name: Keep the bundle for upload to Play Console
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.test_only && 'TEST-NOT-FOR-PLAY-' || '' }}OneSpace-Play-${{ inputs.version_name }}-${{ github.run_number }}
-          path: ${{ inputs.test_only && 'TEST-NOT-FOR-PLAY-' || '' }}OneSpace-${{ inputs.version_name }}-${{ github.run_number }}.aab
+          name: ${{ inputs.test_only && 'TEST-NOT-FOR-PLAY-' || '' }}OneSpace-Play-${{ inputs.version_name || '1.0.0' }}-${{ github.run_number }}
+          path: ${{ inputs.test_only && 'TEST-NOT-FOR-PLAY-' || '' }}OneSpace-${{ inputs.version_name || '1.0.0' }}-${{ github.run_number }}.aab
           if-no-files-found: error
           retention-days: 90
