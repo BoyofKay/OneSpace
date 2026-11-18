@@ -102,7 +102,7 @@ begin
   ns := split_part(target,'.',1);
   rel := split_part(target,'.',2);
   nm := 'deny_untrusted_client_access';
-  if not exists(select 1 from pg_policies where schemaname=ns and tablename=rel and policyname=nm) then
+  if not exists(select 1 from pg_policies where schemaname=ns and tablename=rel and (policyname=nm or policyname like 'deny_untrusted_clients_%')) then
    execute format('create policy %I on %s as restrictive for all to anon,authenticated using(false) with check(false)',nm,target);
   end if;
  end loop;
