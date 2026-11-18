@@ -6,6 +6,7 @@ def bundle(environment, identifier, scheme, display):
     return {
         "OneSpaceEnvironment": environment,
         "CFBundleIdentifier": identifier,
+        "OneSpaceShareGroup": "group." + identifier,
         "CFBundleDisplayName": display,
         "CFBundleURLTypes": [{"CFBundleURLSchemes": [scheme]}],
     }
