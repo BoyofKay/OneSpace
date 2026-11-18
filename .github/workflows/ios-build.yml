@@ -28,6 +28,8 @@ jobs:
           cache: true
       - name: Configure QA identity and callback
         run: python3 tools/ios/configure_env.py qa
+      - name: Verify bundle isolation rules
+        run: python3 -m unittest discover -s tools/ios -p 'test_*.py'
       - name: Resolve exact dependencies
         run: flutter pub get --enforce-lockfile
       - name: Add optional QA Firebase config and verify its bundle ID
