@@ -5,3 +5,4 @@ ONESPACE_IOS_ENV = qa
 ONESPACE_IOS_BUNDLE_ID = com.onespace.onespace.qa
 ONESPACE_AUTH_SCHEME = onespace-preview
 ONESPACE_APP_DISPLAY_NAME = OneSpace QA
+ONESPACE_SHARE_GROUP = group.com.onespace.onespace.qa

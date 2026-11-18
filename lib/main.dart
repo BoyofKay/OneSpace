@@ -277,7 +277,7 @@ class OneSpaceHome extends StatefulWidget {
   State<OneSpaceHome> createState() => _OneSpaceHomeState();
 }
 
-class _OneSpaceHomeState extends State<OneSpaceHome> {
+class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver {
   int selectedIndex = 0;
   int refreshToken = 0;
   bool showProfile = false;
@@ -289,6 +289,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
 
   @override void initState(){
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _incomingShares.setMethodCallHandler((call)async{
       if(call.method=='shareAvailable')await _takeIncomingShare();
     });
@@ -304,7 +305,16 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     });
   }
 
+  @override void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_takeIncomingShare());
+      });
+    }
+  }
+
   @override void dispose(){
+    WidgetsBinding.instance.removeObserver(this);
     _incomingShares.setMethodCallHandler(null);
     super.dispose();
   }
