@@ -1,34 +1,24 @@
-name: Build OneSpace for iPhone (unsigned QA and Production)
+name: Build OneSpace iOS QA (unsigned)
 
-# Unsigned compile-only archives. TestFlight/IPA distribution still needs
-# Apple Developer signing, provisioning, and App Store Connect credentials.
+# Manual only: macOS runners are expensive in private repositories.
+# Unsigned QA is not installable on an iPhone. Signed TestFlight is separate.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'release/READY_TO_BUILD.md'
 
 permissions:
   contents: read
 
 concurrency:
-  group: onespace-ios-${{ github.ref }}
-  cancel-in-progress: false
+  group: onespace-ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ios:
-    name: iOS unsigned ${{ matrix.environment }}
     runs-on: macos-15
-    timeout-minutes: 55
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [qa, production]
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Use the newest available Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+      - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
       - uses: subosito/flutter-action@v2
@@ -36,41 +26,43 @@ jobs:
           flutter-version: '3.50.0'
           channel: stable
           cache: true
-      - name: Resolve locked dependencies
+      - name: Configure QA identity and callback
+        run: python3 tools/ios/configure_env.py qa
+      - name: Resolve exact dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Ensure QA and Production iOS IDs are distinct
-        shell: bash
-        run: |
-          if [ "${{ matrix.environment }}" = qa ]; then
-            sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.onespace.onespace;/PRODUCT_BUNDLE_IDENTIFIER = com.onespace.onespace.qa;/g' ios/Runner.xcodeproj/project.pbxproj
-            /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName OneSpace QA" ios/Runner/Info.plist
-          fi
-      - name: Firebase iOS configuration (optional)
+      - name: Add optional QA Firebase config and verify its bundle ID
         env:
-          IOS_GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+          FIREBASE_PLIST_BASE64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_QA_BASE64 }}
         run: |
-          if [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST" ] && [ "${{ matrix.environment }}" = production ]; then
-            printf '%s' "$IOS_GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
-          else
-            echo "::notice::No matching Firebase plist. Push notifications require later iOS configuration."
-          fi
-      - name: Compile iOS ${{ matrix.environment }} (no code signing)
-        shell: bash
+          python3 - <<'PY'
+          import base64,os,plistlib,pathlib
+          raw=os.environ.get('FIREBASE_PLIST_BASE64','').strip()
+          if not raw:
+              print('iOS QA Firebase not configured: only in-app notifications will work')
+          else:
+              data=base64.b64decode(raw,validate=True)
+              config=plistlib.loads(data)
+              if config.get('BUNDLE_ID')!='com.onespace.onespace.qa':
+                  raise SystemExit('Wrong QA iOS Firebase bundle ID')
+              if not config.get('GOOGLE_APP_ID'):
+                  raise SystemExit('Missing Firebase application ID')
+              pathlib.Path('ios/Runner/GoogleService-Info.plist').write_bytes(data)
+              print('Matching QA iOS Firebase config installed')
+          PY
+      - name: Build iPhone app without signing
         run: |
           flutter build ios --release --no-codesign \
             --build-number=${{ github.run_number }} \
-            --dart-define=ONESPACE_ENV=${{ matrix.environment }} \
-            --dart-define=ONESPACE_VERSION=ios-${{ matrix.environment }}-${{ github.run_number }}
-      - name: Package verified unsigned archive
-        shell: bash
+            --dart-define=ONESPACE_ENV=qa \
+            --dart-define=ONESPACE_VERSION=ios-qa-${{ github.run_number }}
+      - name: Verify final app identity and callback
+        run: python3 tools/ios/verify_bundle.py --app build/ios/iphoneos/Runner.app --environment qa
+      - name: Package unsigned build
         run: |
-          set -euo pipefail
-          test -d build/ios/iphoneos/Runner.app
           cd build/ios/iphoneos
-          zip -qry OneSpace-${{ matrix.environment }}-unsigned.zip Runner.app
+          zip -qry OneSpace-QA-unsigned.zip Runner.app
       - uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-iOS-${{ matrix.environment }}-UNSIGNED-${{ github.run_number }}
-          path: build/ios/iphoneos/OneSpace-${{ matrix.environment }}-unsigned.zip
-          if-no-files-found: error
-          retention-days: 14
+          name: OneSpace-iOS-QA-unsigned-${{ github.run_number }}
+          path: build/ios/iphoneos/OneSpace-QA-unsigned.zip
+          retention-days: 7
