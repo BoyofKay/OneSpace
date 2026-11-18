@@ -1,9 +1,7 @@
-name: Build OneSpace for iPhone (unsigned)
+name: Build OneSpace iOS QA (unsigned)
 
-# R63: proves the iOS app compiles (Swift channels, plugins, Info.plist).
-# Signing and TestFlight need Ahmed's Apple Developer account — see docs/IOS_SETUP.md.
-# R65: manual only — Mac runners cost ~10x normal minutes on a private repo.
-# Run it from Actions → "Build OneSpace for iPhone (unsigned)" → Run workflow.
+# Manual only: macOS runners are expensive in private repositories.
+# Unsigned QA is not installable on an iPhone. Signed TestFlight is separate.
 on:
   workflow_dispatch:
 
@@ -11,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: onespace-ios-${{ github.ref }}
+  group: onespace-ios-unsigned-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,8 +18,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Use the newest Xcode (Firebase needs Swift 6.2)
-        uses: maxim-lobanov/setup-xcode@v1
+      - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
       - uses: subosito/flutter-action@v2
@@ -29,26 +26,43 @@ jobs:
           flutter-version: '3.50.0'
           channel: stable
           cache: true
-      - name: Dependencies
+      - name: Configure QA identity and callback
+        run: python3 tools/ios/configure_env.py qa
+      - name: Resolve exact dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Firebase config (optional)
+      - name: Add optional QA Firebase config and verify its bundle ID
         env:
-          IOS_GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+          FIREBASE_PLIST_BASE64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_QA_BASE64 }}
         run: |
-          if [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST" ]; then
-            echo "$IOS_GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
-            echo "Firebase config added."
-          else
-            echo "No iOS Firebase config yet — push stays off; the app still builds."
-          fi
-      - name: Build (no code signing)
-        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=ios-${{ github.run_number }}
-      - name: Package
+          python3 - <<'PY'
+          import base64,os,plistlib,pathlib
+          raw=os.environ.get('FIREBASE_PLIST_BASE64','').strip()
+          if not raw:
+              print('iOS QA Firebase not configured: only in-app notifications will work')
+          else:
+              data=base64.b64decode(raw,validate=True)
+              config=plistlib.loads(data)
+              if config.get('BUNDLE_ID')!='com.onespace.onespace.qa':
+                  raise SystemExit('Wrong QA iOS Firebase bundle ID')
+              if not config.get('GOOGLE_APP_ID'):
+                  raise SystemExit('Missing Firebase application ID')
+              pathlib.Path('ios/Runner/GoogleService-Info.plist').write_bytes(data)
+              print('Matching QA iOS Firebase config installed')
+          PY
+      - name: Build iPhone app without signing
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-number=${{ github.run_number }} \
+            --dart-define=ONESPACE_ENV=qa \
+            --dart-define=ONESPACE_VERSION=ios-qa-${{ github.run_number }}
+      - name: Verify final app identity and callback
+        run: python3 tools/ios/verify_bundle.py --app build/ios/iphoneos/Runner.app --environment qa
+      - name: Package unsigned build
         run: |
           cd build/ios/iphoneos
-          zip -qry OneSpace-unsigned.zip Runner.app
+          zip -qry OneSpace-QA-unsigned.zip Runner.app
       - uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-ios-unsigned-${{ github.run_number }}
-          path: build/ios/iphoneos/OneSpace-unsigned.zip
-          retention-days: 14
+          name: OneSpace-iOS-QA-unsigned-${{ github.run_number }}
+          path: build/ios/iphoneos/OneSpace-QA-unsigned.zip
+          retention-days: 7

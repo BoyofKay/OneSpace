@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Firebase app identifiers belong in CI secrets, never committed here.
+Runner/GoogleService-Info.plist
