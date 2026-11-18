@@ -35,8 +35,25 @@ final class ShareViewController: SLComposeServiceViewController {
       provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { [weak self] url, error in
         guard let self = self else { return }
         if let url = url, let bytes = try? Data(contentsOf: url) {
-          let name = url.lastPathComponent.isEmpty ? "Shared file" : url.lastPathComponent
-          self.save(text: userNote, subject: "", bytes: bytes, name: name, mime: mime)
+          // A generic image provider may be HEIC or PNG. Normalize to JPEG.
+          if type == .image {
+            guard let image = UIImage(data: bytes),
+                  let jpeg = image.jpegData(compressionQuality: 0.88) else {
+              self.fail("This photo could not be opened.")
+              return
+            }
+            self.save(text: userNote, subject: "", bytes: jpeg,
+                      name: "Shared photo.jpg", mime: "image/jpeg")
+          } else {
+            let suffix: String = [
+              "application/pdf": "pdf", "image/jpeg": "jpg",
+              "image/png": "png", "image/heic": "heic", "image/webp": "webp"
+            ][mime] ?? "bin"
+            let suggested = provider.suggestedName ?? "Shared file"
+            let name = (suggested as NSString).pathExtension.isEmpty
+              ? suggested + "." + suffix : suggested
+            self.save(text: userNote, subject: "", bytes: bytes, name: name, mime: mime)
+          }
         } else {
           // Some Photos providers return UIImage but not a file URL.
           provider.loadItem(forTypeIdentifier: type.identifier, options: nil) { item, _ in
@@ -44,8 +61,14 @@ final class ShareViewController: SLComposeServiceViewController {
               self.save(text: userNote, subject: "", bytes: jpeg,
                         name: "Shared photo.jpg", mime: "image/jpeg")
             } else if let data = item as? Data {
-              self.save(text: userNote, subject: "", bytes: data,
-                        name: "Shared file", mime: mime)
+              if type == .image, let image = UIImage(data: data),
+                 let jpeg = image.jpegData(compressionQuality: 0.88) {
+                self.save(text: userNote, subject: "", bytes: jpeg,
+                          name: "Shared photo.jpg", mime: "image/jpeg")
+              } else if type != .image {
+                self.save(text: userNote, subject: "", bytes: data,
+                          name: "Shared file", mime: mime)
+              } else { self.fail("This photo could not be opened.") }
             } else {
               self.fail("This attachment could not be opened.")
             }
