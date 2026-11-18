@@ -65,6 +65,8 @@ jobs:
           cache: true
       - name: Set production bundle and auth callback
         run: python3 tools/ios/configure_env.py production
+      - name: Verify bundle isolation rules
+        run: python3 -m unittest discover -s tools/ios -p 'test_*.py'
       - name: Resolve exact dependencies
         run: flutter pub get --enforce-lockfile
       - name: Install production Firebase plist
@@ -151,8 +153,10 @@ jobs:
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
       - name: Verify signed IPA identity and embedded Firebase app
         run: |
+          IPA="$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -type f -print -quit)"
+          test -n "$IPA"
           python3 tools/ios/verify_bundle.py \
-            --ipa build/ios/ipa/onespace.ipa --environment production --require-firebase
+            --ipa "$IPA" --environment production --require-firebase
       - name: Retain the signed IPA
         uses: actions/upload-artifact@v4
         with:
