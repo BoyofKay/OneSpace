@@ -214,6 +214,20 @@ import EventKit
         }
       }
 
+    // Fail closed if an iOS binary's identity differs from the Flutter backend.
+    FlutterMethodChannel(name: "onespace/build_environment", binaryMessenger: messenger)
+      .setMethodCallHandler { call, result in
+        guard call.method == "read" else { result(FlutterMethodNotImplemented); return }
+        let info = Bundle.main.infoDictionary ?? [:]
+        let urlTypes = info["CFBundleURLTypes"] as? [[String: Any]] ?? []
+        let schemes = urlTypes.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
+        result([
+          "environment": info["OneSpaceEnvironment"] as? String ?? "",
+          "bundleId": Bundle.main.bundleIdentifier ?? "",
+          "authScheme": schemes.first ?? ""
+        ])
+      }
+
     FlutterMethodChannel(name: "onespace/incoming_share", binaryMessenger: messenger)
       .setMethodCallHandler { call, result in
         if call.method == "takePendingShare" { result(nil) } else { result(FlutterMethodNotImplemented) }

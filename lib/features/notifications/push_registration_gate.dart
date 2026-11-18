@@ -42,6 +42,20 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
   await prefs.setString('onespace_push_device_id_v1',id);
   return id;
  }
+ /// Wait briefly for APNs on iPhone before calling Firebase getToken.
+ /// A return of null means a later app resume retries instead of silently
+ /// treating push setup as successful.
+ Future<String?> _readyToken(FirebaseMessaging messaging)async{
+  if(Platform.isIOS){
+   for(var attempt=0;attempt<12;attempt++){
+    final apns=await messaging.getAPNSToken();
+    if(apns!=null&&apns.isNotEmpty)break;
+    if(attempt==11)return null;
+    await Future<void>.delayed(const Duration(milliseconds:500));
+   }
+  }
+  return messaging.getToken();
+ }
  Future<void> _registerToken(String token)async{
   if(!mounted||db.auth.currentUser==null||token.length<24)return;
   final id=_deviceId??await deviceId();
@@ -76,8 +90,11 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
    }
    if(permission.authorizationStatus!=AuthorizationStatus.authorized&&
       permission.authorizationStatus!=AuthorizationStatus.provisional)return;
-   final token=await messaging.getToken();
-   if(token!=null)await _registerToken(token);
+   // iOS may grant notification permission before APNs supplies a token.
+   // Firebase cannot issue a usable FCM token until APNs registration finishes.
+   final token=await _readyToken(messaging);
+   if(token==null)return;
+   await _registerToken(token);
    _tokenUpdates=messaging.onTokenRefresh.listen((token){
     unawaited(_registerToken(token));
    });
@@ -106,8 +123,10 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
    message.data['notification_id']?.toString(),summary:type=='summary'));
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
-  if(state==AppLifecycleState.resumed&&_ready&&mounted){
-   unawaited(_refreshOnResume());
+  if(state==AppLifecycleState.resumed&&mounted){
+   // Retry after the first APNs token becomes available or permissions change.
+   if(_ready){unawaited(_refreshOnResume());}
+   else{unawaited(_start());}
   }
  }
  Future<void> _refreshOnResume()async{
@@ -115,7 +134,7 @@ class _PushRegistrationGateState extends State<PushRegistrationGate>
    final settings=await FirebaseMessaging.instance.getNotificationSettings();
    if(settings.authorizationStatus==AuthorizationStatus.authorized||
       settings.authorizationStatus==AuthorizationStatus.provisional){
-    final token=await FirebaseMessaging.instance.getToken();
+    final token=await _readyToken(FirebaseMessaging.instance);
     if(token!=null)await _registerToken(token);
    }
   }catch(_){}

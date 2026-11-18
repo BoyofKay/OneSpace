@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'core/app_env.dart';
+import 'core/ios_build_configuration.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
@@ -156,6 +157,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     setState(() { _busy = true; _error = null; });
     final clock = Stopwatch()..start();
     try {
+      await IosBuildConfiguration.verify();
       await Supabase.initialize(
         url: OneSpaceEnv.supabaseUrl,
         publishableKey: OneSpaceEnv.publishableKey,
