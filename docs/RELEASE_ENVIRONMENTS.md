@@ -102,3 +102,13 @@ Use the canonical clean URLs in store consoles, release notes, marketing and any
 - Founder signup: `https://onespace.live/join/`
 
 The website serves localized clean links under `/ar/`, `/es/`, `/fr/`, and `/de/`, and keeps the previous `.html` addresses as backward-compatible redirects. In-app Terms and Privacy screens are native and must remain consistent with these hosted policies. These documentation-only updates do not change the signed Android AAB or iOS build.
+
+## iOS identity and release isolation (18 November 2026)
+
+The iOS release branch ios/launch-readiness-20261118 adds separate native QA
+(com.onespace.onespace.qa) and production (com.onespace.onespace) identities,
+matching auth callback schemes and a fail-closed startup check before the app
+opens Supabase. See docs/IOS_SETUP.md for the explicit environment command,
+manual unsigned QA build, manual signed production/TestFlight pipeline and
+Apple/Firebase prerequisites. New iOS code still requires compile, signing
+and real-device acceptance before merging/releasing.

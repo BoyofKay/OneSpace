@@ -1,51 +1,140 @@
-# OneSpace on iPhone — what is ready and what Ahmed needs to do
+# OneSpace iOS — launch preparation (18 November 2026)
 
-## Ready in the code (R63)
-- The same Flutter app, with native iPhone code for everything Android does:
-  - Voice commands with live words, using Apple speech recognition (on-device when the iPhone supports it, otherwise Apple's servers), spoken replies and Arabic.
-  - Long-press the app icon → **Voice command**.
-  - Travel documents picker; **Download my data** and scrapbook PNG through the iPhone share sheet ("Save to Files" / "Save Image").
-  - Pick a contact from Contacts; **Add to Contacts** opens Apple's new-contact screen (you confirm there).
-- Permission texts for microphone, speech, camera, photos, Face ID and contacts. Portrait only.
-- iPhone app icons from the new logo.
-- Push: the app registers iPhones as `ios` devices, and the push worker sends iPhone sound and grouping settings. Push works as soon as the Firebase and APNs steps below are done.
-- GitHub workflow **Build OneSpace for iPhone (unsigned)** compiles the app on a Mac on every change to `ios/`. It proves the code builds but cannot be installed: Apple requires signing.
+This document separates what is already coded from what has actually been
+built, signed, tested, and released. The same Flutter application is shared
+between Android and iPhone. Existing native iPhone support covers picking
+documents and contacts, saving contacts, file export, calendar export, voice
+services, permissions, Face ID integration and Arabic permission text.
 
-## Not on iPhone yet
-- **Share to OneSpace from other apps.** iOS needs a separate Share Extension with an App Group, which needs your Apple account to create. Planned after the first TestFlight build.
-- Home-screen widgets. These are not on Android either.
+## Status
 
-## Ahmed's checklist (in order)
-1. **Apple Developer Program** — enroll at developer.apple.com/programs ($99/year). Use an individual account, or an organization account if you'll publish under a company (that one needs a D-U-N-S number and takes longer).
-2. **App ID**:
-   - Certificates, IDs & Profiles → Identifiers → **+** → App ID `com.onespace.onespace`.
-   - Enable **Push Notifications**.
-   - (Later, for sharing into the app: App Groups `group.com.onespace.onespace`.)
-3. **APNs key**:
-   - Keys → **+** → name it "OneSpace push" and tick **Apple Push Notifications service** → download the `.p8` file. You can only download it once, so keep it safe.
-   - Note the **Key ID** and your **Team ID** (top right of the developer site).
-4. **Firebase** (the same project Android uses):
-   - Project settings → **Add app → iOS**, bundle ID `com.onespace.onespace` → download `GoogleService-Info.plist`.
-   - Project settings → **Cloud Messaging** → Apple app configuration → upload the `.p8` with its Key ID and Team ID.
-5. **GoogleService-Info.plist to GitHub**:
-   - Base64-encode it (`base64 -i GoogleService-Info.plist | pbcopy` on a Mac).
-   - Add the result as the repository secret **IOS_GOOGLE_SERVICE_INFO_PLIST**.
-   - Or send me the file and I'll tell you exactly where to paste it.
-6. **App Store Connect**:
-   - My Apps → **+** New App → iOS, name "OneSpace", bundle ID `com.onespace.onespace`, SKU `onespace`.
-   - This is needed for TestFlight, even if you never publish publicly.
-7. **Signing for automatic TestFlight builds**: in App Store Connect → Users and Access → Integrations → **App Store Connect API**, create a key (role: App Manager). Add these repository secrets:
-   - `ASC_KEY_ID`
-   - `ASC_ISSUER_ID`
-   - `ASC_KEY_P8` (the `.p8` content, base64)
-   - `APPLE_TEAM_ID`
+- An unsigned iOS compilation previously passed on 16 November 2026.
+- The branch ios/launch-readiness-20261118 adds separate QA/production iOS
+  identifiers, callback schemes, native startup validation, APNs token
+  readiness retries, a corrected Firebase plist bundling phase, and a manual
+  signing/TestFlight workflow. These additions are NOT yet compiled or
+  device-tested.
+- Signed IPA: unverified. TestFlight: not uploaded or confirmed. Apple review:
+  not submitted. Firebase/APNs physical iPhone delivery: unverified.
+- Android and the production Supabase database have not been modified.
+- Founding 500 registration can accept both Android and iPhone visitors
+  without claiming the iPhone application is published.
 
-   With those in place I'll add a workflow that signs the app and uploads every iOS build to TestFlight. Kandice then installs it from the **TestFlight** app with an invite to her Apple ID email.
+## Environments and identity
 
-   No Mac is needed on your side.
-8. **TestFlight testers**: App Store Connect → TestFlight → Internal Testing → add yourself and Kandice. Up to 100 internal testers are allowed, and they need no Apple review.
+| Property | QA | Production |
+|---|---|---|
+| iPhone label | OneSpace QA | OneSpace |
+| Apple bundle ID | com.onespace.onespace.qa | com.onespace.onespace |
+| Dart environment | ONESPACE_ENV=qa | ONESPACE_ENV=production |
+| Callback URL | onespace-preview://auth-callback/ | onespace://auth-callback/ |
+| Backend | existing QA Supabase | clean production Supabase |
+| Distribution | unsigned build verification | signed IPA / TestFlight |
 
-## Data and privacy notes for the App Store later
-- Speech is handled by Apple's speech recognition. OneSpace never stores audio from voice commands.
-- Contacts are only read when you pick one, and only that one contact.
-- An App Privacy questionnaire (App Store Connect) will be needed before any public release, not for TestFlight.
+For local iOS work, first run:
+
+    python3 tools/ios/configure_env.py qa
+
+Then build with the matching Dart define:
+
+    flutter build ios --release --no-codesign --dart-define=ONESPACE_ENV=qa
+
+For production, use configure_env.py production and the matching
+--dart-define=ONESPACE_ENV=production. A signed build needs the Apple
+Developer credentials and certificate/profile. The Flutter startup refuses
+to connect to Supabase if the built-in native environment, callback and
+bundle ID disagree with the Dart backend. Production app builds also verify
+their packaged Firebase registration.
+
+## Manual-only workflows
+
+1. Build OneSpace iOS QA (unsigned) is the GitHub workflow at
+   .github/workflows/ios-build.yml. It produces an unsigned diagnostic
+   artifact, which CANNOT be installed directly on a normal iPhone.
+2. Build and optionally upload OneSpace iOS to TestFlight is at
+   .github/workflows/ios-testflight.yml. It requires production signing and
+   production Firebase, verifies identity and push entitlements, exports a
+   signed IPA, and only uploads when upload_testflight is explicitly enabled.
+
+Neither workflow runs on normal GitHub commits. Mac CI is expensive for
+private repositories. Use a physical iPhone + TestFlight for actual UAT;
+a Windows PC cannot run Apple's iPhone Simulator.
+
+## Apple and Firebase account actions needed
+
+- Enroll in the Apple Developer Program under the intended OneSpace publisher
+  identity. Use a dedicated business/admin identity if possible rather than
+  relying on personal email addresses for publishing. Apple Developer
+  enrollment is normally US $99/year in the United States, with regional
+  pricing differences.
+- Create the production App ID com.onespace.onespace and enable Push
+  Notifications. Register com.onespace.onespace.qa as a second App ID if
+  signed QA installation will be needed later.
+- Obtain an Apple Distribution certificate with its private key (p12),
+  matching App Store provisioning profile and Apple Team ID. For production
+  the provisioning profile must contain the production APNs entitlement.
+- In the same Firebase project as Android, register TWO iOS apps with the
+  exact respective bundle IDs; download each GoogleService-Info.plist.
+- Create an Apple Push Notifications authentication key (p8) and configure
+  Firebase Cloud Messaging with the Apple Key ID and Team ID.
+- Create the production iOS listing in App Store Connect for the production
+  bundle ID. If automated upload is required, create an App Store Connect API
+  key for the publisher account.
+- In Supabase Auth redirect allowlists add the QA and production callbacks
+  for their matching backend projects. Test email verification/recovery,
+  Google login and Apple login where enabled.
+
+### GitHub repository secrets (Actions)
+
+| Secret name | Purpose |
+|---|---|
+| IOS_GOOGLE_SERVICE_INFO_QA_BASE64 | Optional QA iOS Firebase registration |
+| IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 | Required production iOS Firebase registration |
+| IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 | Distribution certificate and private key |
+| IOS_DISTRIBUTION_CERTIFICATE_PASSWORD | p12 password |
+| IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 | App Store profile for production bundle |
+| APPLE_TEAM_ID | Apple developer team |
+| ASC_KEY_ID | App Store Connect upload key identifier |
+| ASC_ISSUER_ID | App Store Connect API issuer |
+| ASC_KEY_P8_BASE64 | App Store Connect upload key; required only when uploading |
+
+Encode private files locally on your computer. Never commit signing keys,
+service-account credentials or private keys into source control, nor paste
+them into a chat. Store GitHub Actions secrets in the repository settings.
+
+## Real-device launch acceptance
+
+- [ ] Sign-up, account pairing, recovery, biometric lock and account deletion
+      work on a signed iPhone build.
+- [ ] Partner A on Android and Partner B on iPhone can create, edit, see,
+      acknowledge and delete shared objects; private objects never cross.
+- [ ] Mixed-platform notifications work in foreground/background/locked
+      states, while signed out, and after denying permission. Navigation
+      stays behind the session lock when applicable.
+- [ ] Photos, voice messages, PDFs and data exports work on both sides;
+      private storage access and cleanup are verified.
+- [ ] Calendar, Contacts, Files and Photos access, and permission denial or
+      cancellation, behave correctly on iPhone.
+- [ ] English, Arabic and RTL screens, all themes, dynamic type, smaller
+      devices, and both living arrangements have visual acceptance.
+- [ ] App Store privacy disclosures, support/contact and privacy policy,
+      screenshots, age rating, review account and account-deletion path
+      match the shipped product.
+- [ ] Founding membership and any in-app paid features comply with App Store
+      review/purchase rules before taking public orders.
+- [ ] Production data remains separate from QA; no signing secrets, debug
+      diagnostics or private files enter public releases.
+
+## Remaining engineering
+
+- The iOS Share Extension (share from Safari, Photos, Messages and other
+  apps into OneSpace) does not yet exist. The Flutter import destination
+  exists, but native entrypoint/App Group and testing are pending.
+- Signed iOS QA for testers, if required, needs a separate QA signing
+  profile. The existing QA build is only an unsigned compile check.
+- A verified production IPA, TestFlight install and real iPhone acceptance
+  remain blocked on Apple credentials and physical testing.
+- Voice app-icon shortcut is intentionally disabled pending voice QA.
+
+The goal is feature-parity plus verified signing, not an untested claim
+that the iOS app is ready for public App Store download.
