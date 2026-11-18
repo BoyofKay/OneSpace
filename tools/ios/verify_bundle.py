@@ -36,6 +36,7 @@ def main() -> None:
     arg = parser.add_mutually_exclusive_group(required=True)
     arg.add_argument("--app", type=Path)
     arg.add_argument("--ipa", type=Path)
+    parser.add_argument("--require-firebase", action="store_true")
     parser.add_argument("--environment", choices=sorted(EXPECTED), required=True)
     args = parser.parse_args()
     if args.app:
@@ -48,6 +49,14 @@ def main() -> None:
             if len(names) != 1:
                 sys.exit("Expected exactly one app Info.plist in the IPA")
             info = plistlib.loads(archive.read(names[0]))
+            if args.require_firebase:
+                firebase_paths = [name for name in archive.namelist()
+                                  if name.startswith("Payload/") and name.endswith(".app/GoogleService-Info.plist")]
+                if len(firebase_paths) != 1:
+                    sys.exit("Production IPA is missing its Firebase iOS configuration")
+                firebase = plistlib.loads(archive.read(firebase_paths[0]))
+                if firebase.get("BUNDLE_ID") != EXPECTED[args.environment][0]:
+                    sys.exit("Production IPA contains Firebase config for the wrong bundle ID")
     verify(info, args.environment)
 
 
