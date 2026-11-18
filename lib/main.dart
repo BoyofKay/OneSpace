@@ -143,6 +143,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
   bool _ready = false;
   bool _busy = true;
   String? _error;
+  bool _configurationError = false;
 
   @override
   void initState() {
@@ -155,7 +156,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
   }
 
   Future<void> _initialize() async {
-    setState(() { _busy = true; _error = null; });
+    setState(() { _busy = true; _error = null; _configurationError = false; });
     final clock = Stopwatch()..start();
     try {
       await IosBuildConfiguration.verify();
@@ -169,14 +170,18 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       PerformanceTimings.instance.record(
         'Supabase session initialization', clock.elapsed);
       if (mounted) setState(() { _ready = true; _busy = false; });
-    } catch (_) {
+    } catch (error) {
       PerformanceTimings.instance.record(
         'Session initialization failed',clock.elapsed);
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'OneSpace could not open its saved session. '
-            'Check the device and network, then retry.';
+          _configurationError = error is IosBuildConfigurationException;
+          _error = _configurationError
+            ? 'This iPhone build has mismatched QA/production settings and '
+              'cannot safely connect. Install a corrected OneSpace update.'
+            : 'OneSpace could not open its saved session. '
+              'Check the device and network, then retry.';
         });
       }
     }
@@ -209,11 +214,13 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 ],
                 if (_error != null) ...[
                   Text(tt(_error!),textAlign:TextAlign.center),
-                  const SizedBox(height:14),
-                  FilledButton.icon(
-                    onPressed:_initialize,
-                    icon:const Icon(Icons.refresh),
-                    label:Text(tt('Retry'))),
+                  if (!_configurationError) ...[
+                    const SizedBox(height:14),
+                    FilledButton.icon(
+                      onPressed:_initialize,
+                      icon:const Icon(Icons.refresh),
+                      label:Text(tt('Retry'))),
+                  ],
                 ],
               ]),
             ),
