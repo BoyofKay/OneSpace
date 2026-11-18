@@ -29,6 +29,7 @@ jobs:
           CERT_B64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
           PROFILE_B64: ${{ secrets.IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 }}
+          SHARE_PROFILE_B64: ${{ secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           FIREBASE_B64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -38,7 +39,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import os
-          required=['CERT_B64','CERT_PASSWORD','PROFILE_B64','APPLE_TEAM_ID','FIREBASE_B64']
+          required=['CERT_B64','CERT_PASSWORD','PROFILE_B64','SHARE_PROFILE_B64','APPLE_TEAM_ID','FIREBASE_B64']
           if os.environ['UPLOAD']=='true':
               required+=['ASC_KEY_ID','ASC_ISSUER_ID','ASC_KEY_P8_BASE64']
           missing=[name for name in required if not os.getenv(name,'').strip()]
@@ -87,6 +88,7 @@ jobs:
           CERT_B64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
           PROFILE_B64: ${{ secrets.IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 }}
+          SHARE_PROFILE_B64: ${{ secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
@@ -95,6 +97,7 @@ jobs:
           workspace=pathlib.Path(os.environ['RUNNER_TEMP'])
           (workspace/'ios-distribution.p12').write_bytes(base64.b64decode(os.environ['CERT_B64'],validate=True))
           (workspace/'ios-appstore.mobileprovision').write_bytes(base64.b64decode(os.environ['PROFILE_B64'],validate=True))
+          (workspace/'ios-share.mobileprovision').write_bytes(base64.b64decode(os.environ['SHARE_PROFILE_B64'],validate=True))
           PY
           KEYCHAIN="$RUNNER_TEMP/onespace-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
@@ -106,10 +109,12 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN"
           security default-keychain -s "$KEYCHAIN"
           security cms -D -i "$RUNNER_TEMP/ios-appstore.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          security cms -D -i "$RUNNER_TEMP/ios-share.mobileprovision" > "$RUNNER_TEMP/share-profile.plist"
           python3 - <<'PY'
           import os,plistlib,pathlib
           temp=pathlib.Path(os.environ['RUNNER_TEMP'])
           with (temp/'profile.plist').open('rb') as stream: p=plistlib.load(stream)
+          with (temp/'share-profile.plist').open('rb') as stream: sp=plistlib.load(stream)
           team=os.environ['APPLE_TEAM_ID'].strip()
           ent=p.get('Entitlements',{})
           if team not in p.get('TeamIdentifier',[]):
@@ -118,25 +123,40 @@ jobs:
               raise SystemExit('Production push entitlement is required for TestFlight')
           if ent.get('application-identifier')!=team+'.com.onespace.onespace':
               raise SystemExit('App Store profile must be for com.onespace.onespace')
+          required_group='group.com.onespace.onespace'
+          if required_group not in ent.get('com.apple.security.application-groups',[]):
+              raise SystemExit('Main App Store profile lacks OneSpace App Group')
+          share_ent=sp.get('Entitlements',{})
+          if team not in sp.get('TeamIdentifier',[]):
+              raise SystemExit('Share Extension profile belongs to another team')
+          if share_ent.get('application-identifier') != team+'.com.onespace.onespace.ShareExtension':
+              raise SystemExit('Share Extension profile has the wrong bundle ID')
+          if required_group not in share_ent.get('com.apple.security.application-groups',[]):
+              raise SystemExit('Share Extension profile lacks OneSpace App Group')
           profile_uuid=p['UUID']
           profile_name=p['Name']
-          if any(c in profile_name for c in '\r\n"'):
+          share_uuid=sp['UUID']
+          share_name=sp['Name']
+          if any(c in x for x in (profile_name,share_name) for c in '\r\n"'):
               raise SystemExit('Unexpected characters in provisioning profile name')
           dest=pathlib.Path.home()/'Library/MobileDevice/Provisioning Profiles'
           dest.mkdir(parents=True,exist_ok=True)
           (dest/(profile_uuid+'.mobileprovision')).write_bytes((temp/'ios-appstore.mobileprovision').read_bytes())
+          (dest/(share_uuid+'.mobileprovision')).write_bytes((temp/'ios-share.mobileprovision').read_bytes())
           config=pathlib.Path('ios/Flutter/BuildEnvironment.xcconfig')
           with config.open('a') as stream:
               stream.write('\nDEVELOPMENT_TEAM = '+team+
                   '\nCODE_SIGN_STYLE = Manual\nCODE_SIGN_IDENTITY = Apple Distribution\n'
-                  'PROVISIONING_PROFILE_SPECIFIER = "'+profile_name+'"\n')
+                  'PROVISIONING_PROFILE_SPECIFIER = "'+profile_name+'"\n'
+                  'ONESPACE_SHARE_EXTENSION_PROFILE = "'+share_name+'"\n')
           export={
               'method':'app-store-connect',
               'destination':'export',
               'signingStyle':'manual',
               'teamID':team,
               'signingCertificate':'Apple Distribution',
-              'provisioningProfiles':{'com.onespace.onespace':profile_name},
+              'provisioningProfiles':{'com.onespace.onespace':profile_name,
+                'com.onespace.onespace.ShareExtension':share_name},
               'uploadSymbols':True,
               'stripSwiftSymbols':True,
           }
