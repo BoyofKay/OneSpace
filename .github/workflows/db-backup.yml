@@ -1,12 +1,12 @@
 name: Back up OneSpace database
 
-# R74: the Supabase Free plan has no automatic backups. Every night this dumps
-# the database (schema + data, including auth users), encrypts it with
+# Additional encrypted QA logical export; Supabase Pro also has daily database backups. Every night this dumps
+# the QA database (schema + data, including auth users), encrypts it with
 # BACKUP_PASSPHRASE and keeps it as a private workflow artifact for 14 days.
 # Needs two repository secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_DB_URL     Supabase → Connect → Session pooler connection string (with the password)
 #   BACKUP_PASSPHRASE   any long passphrase; keep a copy somewhere safe
-# Restore: gpg -d backup.sql.gz.gpg | gunzip | psql "<target connection string>"
+# IMPORTANT: this is QA only. It does NOT include physical Storage object bytes.\n# Successful decryption/integrity verification is not proof of an actual DB restore.\n# Never restore into a live project; practice in an isolated Supabase clone.
 on:
   schedule:
     - cron: '41 23 * * *'   # 02:41 Riyadh
@@ -27,8 +27,9 @@ jobs:
           PASS: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           if [ -z "$DB" ] || [ -z "$PASS" ]; then
-            echo "::warning::SUPABASE_DB_URL or BACKUP_PASSPHRASE is not set yet — skipping the backup."
+            echo "::error::QA backup is NOT protected: SUPABASE_DB_URL or BACKUP_PASSPHRASE is missing."
             echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 1
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
@@ -45,8 +46,12 @@ jobs:
             sh -c 'pg_dump "$DB" --no-owner --no-privileges --schema=public --schema=private --schema=auth --schema=storage --quote-all-identifiers' \
             | gzip -9 > out/onespace.sql.gz
           test "$(stat -c %s out/onespace.sql.gz)" -gt 10000
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 \
-            -o "out/onespace-$stamp.sql.gz.gpg" out/onespace.sql.gz
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
+            -o "out/onespace-$stamp.sql.gz.gpg" out/onespace.sql.gz 3<<<"$PASS"
+          # Verify that the uploaded ciphertext really decrypts into a valid gzip stream.
+          # Do not print the dump or passphrase to logs.
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 \
+            --decrypt "out/onespace-$stamp.sql.gz.gpg" 3<<<"$PASS" | gzip -t
           rm out/onespace.sql.gz
           ls -la out
       - name: Keep for 14 days
