@@ -1,30 +1,19 @@
-# R84 — opt-in counters and meaningful map markers (QA build)
+# QA 451 — post-R84 security and release hardening
 
 Require-Firebase-Config: true
 
-QA app (package onespace.qa), QA backend. In-place update over OneSpace QA 0.1.449.
-Production app (live.onespace.app) is NOT released by this change.
+Build OneSpace QA from current main using the normal verified QA workflow. Target run 451, if no intervening workflow dispatch occurs.
+QA package: onespace.qa; QA Supabase backend. Do not publish or overwrite production data.
 
-## Implemented
-- Counters tab includes only saved counters. No automatic special dates, occasions, events,
-  reunion dates, trips or flights.
-- Calendar events, birthdays/anniversaries and saved special dates, occasions, trips,
-  flight options and dated itinerary elements: Add to counters in ⋮ opens the
-  existing full-page counter editor prefilled, but does not save without user action.
-- The New Counter editor offers a picker for existing dated records.
-- Saved counters are independent editable date snapshots. Source privacy is respected
-  when prefilling the new counter.
-- Our map: distinct circle/coral (visited) and square/teal (bucket list) with category
-  symbols, plus partner-colored visibility initials and an explanatory legend.
-  Mini maps show category symbols too. Original pin-by-tap/long-press still works.
+## Included since QA 450
+- Current main incorporates post-R84 security changes: restricted Supabase intake operations, scrapbook membership enforcement, client-side anonymous error-report correction, and backup workflow fail-closed logic.
+- No new mobile feature branch is merged beyond R84; iOS launch-readiness PR #65 is still draft and excluded.
 
-## Verification
-- Branch r84-opt-in-counters-map-markers: Flutter dependency check, static analysis and
-  full automated tests passed on GitHub run 44172907924.
-- Two-phone acceptance checklist: docs/R84_QA.md.
-- No database schema or data migrations required. No production build requested.
+## Release checks
+- Flutter dependency lockfile, analysis, tests, Firebase QA configuration, APK test signing and package-label verification in GitHub Actions.
+- Publish a single QA APK and install over existing OneSpace QA without deleting data.
+- Real-device acceptance and security/backup recovery remain launch gates, not claims of completion.
 
-## Distribution
-- OneSpace QA 0.1.<GitHub workflow run number> APK in Releases / Actions Artifacts.
-- Install over the existing QA app on both phones; do not uninstall or clear data.
-- Only prepare the production Play bundle after both phones pass QA.
+## Next
+- Verify successful QA artifact and its commit before requesting a matching signed Android production Play AAB.
+- iOS QA and production require native macOS compile, signing and additional iOS PR #65 integration after passing its own checks.
