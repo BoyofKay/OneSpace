@@ -14,7 +14,6 @@ class OneSpaceBrand extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final navy = isDark ? const Color(0xFFF5F7FB) : const Color(0xFF14213D);
-    final teal = isDark ? const Color(0xFF8AD9D3) : const Color(0xFF1F6E78);
     final slate = isDark ? const Color(0xFFCCD5E3) : const Color(0xFF51657A);
 
     return Column(
@@ -27,14 +26,12 @@ class OneSpaceBrand extends StatelessWidget {
           semanticLabel: 'OneSpace logo',
         ),
         const SizedBox(height: 9),
-        Text.rich(
-          TextSpan(children: [
-            TextSpan(text: 'One', style: TextStyle(color: navy)),
-            TextSpan(text: 'Space', style: TextStyle(color: teal)),
-          ]),
+        Text(
+          'OneSpace',
           textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
           style: TextStyle(
+            color: navy,
             fontSize: nameSize,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.7,
