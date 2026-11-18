@@ -1,7 +1,8 @@
 name: Compile OneSpace iOS QA and production (unsigned)
 
 # Manual only: macOS runners are expensive in private repositories.
-# Unsigned QA is not installable on an iPhone. Signed TestFlight is separate.
+# Unsigned QA/production are not installable on iPhones. Signed TestFlight is separate.
+# Re-check native Xcode build phases after Share Extension dependency cycle fix.
 on:
   workflow_dispatch:
   push:
