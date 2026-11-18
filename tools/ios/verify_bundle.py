@@ -19,6 +19,7 @@ def verify(info: dict, environment: str) -> None:
         for s in url_type.get("CFBundleURLSchemes", [])
     ]
     checks = {
+        "OneSpaceShareGroup": (info.get("OneSpaceShareGroup"), "group." + bundle),
         "CFBundleIdentifier": (info.get("CFBundleIdentifier"), bundle),
         "OneSpaceEnvironment": (info.get("OneSpaceEnvironment"), environment),
         "CFBundleDisplayName": (info.get("CFBundleDisplayName"), display),
