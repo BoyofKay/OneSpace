@@ -5,6 +5,10 @@ import 'app_env.dart';
 
 /// The Xcode bundle identity, URL callback and Dart backend must belong to
 /// the same QA or production build. Verify before Supabase restores a session.
+class IosBuildConfigurationException implements Exception {
+  const IosBuildConfigurationException();
+}
+
 class IosBuildConfiguration {
   const IosBuildConfiguration._();
 
@@ -30,9 +34,7 @@ class IosBuildConfiguration {
       authScheme: config['authScheme'] as String?,
       production: OneSpaceEnv.isProduction,
     )) {
-      throw StateError('iOS build configuration does not match the OneSpace '
-          'QA/production backend. Rebuild using tools/ios/configure_env.py '
-          'and the matching ONESPACE_ENV dart-define.');
+      throw const IosBuildConfigurationException();
     }
   }
 }
