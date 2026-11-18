@@ -615,15 +615,20 @@ final class PhoneCalendar {
       e.notes = (item["notes"] as? String).flatMap { $0.isEmpty ? nil : $0 }
       e.location = (item["location"] as? String).flatMap { $0.isEmpty ? nil : $0 }
       if (item["allDay"] as? Bool) == true {
+        // Dart sends the end date EXCLUSIVE (a five-day trip ending Dec 5
+        // arrives as Dec 6). EventKit also expects an exclusive end for
+        // all-day events: subtracting one second is wrong, especially at DST.
         guard let s = (item["startDate"] as? String).flatMap(day),
-              let end = (item["endDate"] as? String).flatMap(day) else { continue }
+              let end = (item["endDate"] as? String).flatMap(day),
+              end > s else { continue }
         e.isAllDay = true
         e.startDate = s
-        e.endDate = end.addingTimeInterval(-1)
+        e.endDate = end
       } else {
         guard let s = item["startMs"] as? NSNumber, let end = item["endMs"] as? NSNumber else { continue }
         e.startDate = Date(timeIntervalSince1970: s.doubleValue / 1000)
         e.endDate = Date(timeIntervalSince1970: end.doubleValue / 1000)
+        guard e.endDate > e.startDate else { continue }
       }
       try store.save(e, span: .thisEvent, commit: false)
       count += 1
