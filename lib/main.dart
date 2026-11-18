@@ -22,6 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/auth_gate.dart';
 import 'theme/onespace_appearance.dart';
+import 'theme/onespace_brand.dart';
 import 'theme/onespace_canvas.dart';
 import 'core/weather_unit_preference.dart';
 import 'core/back_exit_policy.dart';
@@ -191,13 +192,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
             child:Padding(
               padding:const EdgeInsets.all(28),
               child:Column(mainAxisSize:MainAxisSize.min,children:[
-                Image.asset('assets/branding/mark.png',width:96,height:96,
-                  semanticLabel:tt('OneSpace logo')),
-                const SizedBox(height:12),
-                Text(tt('OneSpace'),style:TextStyle(
-                  fontSize:30,fontWeight:FontWeight.w800)),
-                const SizedBox(height:6),
-                Text(tt('Two of us, One Space')),
+                const OneSpaceBrand(logoSize: 96, nameSize: 32),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
