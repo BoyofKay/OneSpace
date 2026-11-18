@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>OneSpace</string>
+	<string>$(ONESPACE_APP_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -19,6 +19,8 @@
 		<string>en</string>
 		<string>ar</string>
 	</array>
+	<key>OneSpaceEnvironment</key>
+	<string>$(ONESPACE_IOS_ENV)</string>
 	<key>CFBundleName</key>
 	<string>onespace</string>
 	<key>CFBundlePackageType</key>
@@ -36,8 +38,7 @@
 			<string>com.onespace.auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>onespace-preview</string>
-				<string>onespace</string>
+				<string>$(ONESPACE_AUTH_SCHEME)</string>
 			</array>
 		</dict>
 	</array>

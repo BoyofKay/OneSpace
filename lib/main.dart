@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'core/app_env.dart';
 import 'core/android_startup_gate.dart';
+import 'core/ios_build_configuration.dart';
 import 'features/spaces/invitation_link_inbox.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
@@ -170,6 +171,8 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         await AndroidStartupGate.verify();
       }
+      // iOS equivalent: the bundle ID, URL scheme and backend must match.
+      await IosBuildConfiguration.verify();
       if (mounted) {
         setState(() => _stage = 'Opening your secure session…');
       }

@@ -38,6 +38,11 @@ class OneSpaceEnv {
   /// Each must be listed in that project's Supabase Auth > URL Configuration > Redirect URLs.
   static const authRedirect = isProduction ? 'onespace://auth-callback/' : 'onespace-preview://auth-callback/';
 
+  /// Native iPhone identity must match the Dart environment. The iOS build
+  /// preflight checks this before opening Supabase, preventing cross-env data.
+  static const iosBundleId = isProduction
+      ? 'com.onespace.onespace' : 'com.onespace.onespace.qa';
+
   /// Shown in Support so testers can tell the two apps apart.
   static const label = isProduction ? 'OneSpace' : 'OneSpace QA';
 }
