@@ -11,9 +11,9 @@ services, permissions, Face ID integration and Arabic permission text.
 - An unsigned iOS compilation previously passed on 16 November 2026.
 - The branch ios/launch-readiness-20261118 adds separate QA/production iOS
   identifiers, callback schemes, native startup validation, APNs token
-  readiness retries, a corrected Firebase plist bundling phase, and a manual
-  signing/TestFlight workflow. These additions are NOT yet compiled or
-  device-tested.
+  readiness retries, Firebase plist bundling, a manual signing/TestFlight
+  workflow, and a native Share Extension for links, text, images and PDFs.
+  These additions are NOT yet compiled or tested on a physical iPhone.
 - Signed IPA: unverified. TestFlight: not uploaded or confirmed. Apple review:
   not submitted. Firebase/APNs physical iPhone delivery: unverified.
 - Android and the production Supabase database have not been modified.
@@ -68,8 +68,11 @@ a Windows PC cannot run Apple's iPhone Simulator.
   enrollment is normally US $99/year in the United States, with regional
   pricing differences.
 - Create the production App ID com.onespace.onespace and enable Push
-  Notifications. Register com.onespace.onespace.qa as a second App ID if
-  signed QA installation will be needed later.
+  Notifications and App Groups. Register a second production App ID for
+  com.onespace.onespace.ShareExtension. Associate both with App Group
+  group.com.onespace.onespace and generate separate App Store provisioning
+  profiles for the host and extension. For signed QA, use the analogous
+  .qa app, .qa.ShareExtension and group.com.onespace.onespace.qa.
 - Obtain an Apple Distribution certificate with its private key (p12),
   matching App Store provisioning profile and Apple Team ID. For production
   the provisioning profile must contain the production APNs entitlement.
@@ -92,7 +95,8 @@ a Windows PC cannot run Apple's iPhone Simulator.
 | IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 | Required production iOS Firebase registration |
 | IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 | Distribution certificate and private key |
 | IOS_DISTRIBUTION_CERTIFICATE_PASSWORD | p12 password |
-| IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 | App Store profile for production bundle |
+| IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 | App Store profile for production host app |
+| IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 | App Store profile for production Share Extension |
 | APPLE_TEAM_ID | Apple developer team |
 | ASC_KEY_ID | App Store Connect upload key identifier |
 | ASC_ISSUER_ID | App Store Connect API issuer |
@@ -127,9 +131,14 @@ them into a chat. Store GitHub Actions secrets in the repository settings.
 
 ## Remaining engineering
 
-- The iOS Share Extension (share from Safari, Photos, Messages and other
-  apps into OneSpace) does not yet exist. The Flutter import destination
-  exists, but native entrypoint/App Group and testing are pending.
+- Native iOS sharing is now implemented in source with a separate app-extension
+  target and private App Group inbox. It accepts one link/text item or one
+  photo/PDF up to 10 MB, and keeps at most 20 pending items. There is no
+  automatic upload or partner sharing. The person opens OneSpace and
+  explicitly saves or sorts the received item. App Group registration,
+  signing, and physical testing of the iOS share sheet are still pending.
+  Test Safari, Photos, Files, denied access, cancellation, and both QA and
+  production inbox isolation before releasing.
 - Signed iOS QA for testers, if required, needs a separate QA signing
   profile. The existing QA build is only an unsigned compile check.
 - A verified production IPA, TestFlight install and real iPhone acceptance
@@ -138,3 +147,10 @@ them into a chat. Store GitHub Actions secrets in the repository settings.
 
 The goal is feature-parity plus verified signing, not an untested claim
 that the iOS app is ready for public App Store download.
+
+## Source-only verification
+
+The GitHub Actions workflow `ios-preflight.yml` runs on a Linux runner for
+changes to iOS code, and verifies identity rules, the native Share Extension
+project wiring, signed-IPA manifests, Dart share-intake logic, and calendar
+rules. These checks do not replace Xcode compilation, signing, or iPhone UAT.
