@@ -89,3 +89,13 @@ and install **OneSpace QA** from the newest `qa-0.1.N` GitHub release.
 - No app data was copied. Only the Founder waitlist (couple #1) moved from QA to Production.
 - **Lesson:** every database change must be a migration. Changes made with ad-hoc SQL do not reach
   Production.
+
+## iOS identity and release isolation (18 November 2026)
+
+The iOS release branch ios/launch-readiness-20261118 adds separate native QA
+(com.onespace.onespace.qa) and production (com.onespace.onespace) identities,
+matching auth callback schemes and a fail-closed startup check before the app
+opens Supabase. See docs/IOS_SETUP.md for the explicit environment command,
+manual unsigned QA build, manual signed production/TestFlight pipeline and
+Apple/Firebase prerequisites. New iOS code still requires compile, signing
+and real-device acceptance before merging/releasing.
