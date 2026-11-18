@@ -1,9 +1,12 @@
-name: Build OneSpace iOS QA (unsigned)
+name: Compile OneSpace iOS QA and production (unsigned)
 
 # Manual only: macOS runners are expensive in private repositories.
 # Unsigned QA is not installable on an iPhone. Signed TestFlight is separate.
 on:
   workflow_dispatch:
+  push:
+    branches: [ci/ios-dual-unsigned-20261118]
+    paths: ['.github/workflows/ios-build.yml']
 
 permissions:
   contents: read
@@ -14,6 +17,10 @@ concurrency:
 
 jobs:
   ios:
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [qa, production]
     runs-on: macos-15
     timeout-minutes: 45
     steps:
@@ -27,24 +34,27 @@ jobs:
           channel: stable
           cache: true
       - name: Configure QA identity and callback
-        run: python3 tools/ios/configure_env.py qa
+        run: python3 tools/ios/configure_env.py ${{ matrix.environment }}
       - name: Verify bundle isolation rules
         run: python3 -m unittest discover -s tools/ios -p 'test_*.py'
       - name: Resolve exact dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Add optional QA Firebase config and verify its bundle ID
+      - name: Add matching Firebase config when available
         env:
-          FIREBASE_PLIST_BASE64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_QA_BASE64 }}
+          FIREBASE_QA_B64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_QA_BASE64 }}
+          FIREBASE_PROD_B64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 }}
+          ENVIRONMENT: ${{ matrix.environment }}
         run: |
           python3 - <<'PY'
           import base64,os,plistlib,pathlib
-          raw=os.environ.get('FIREBASE_PLIST_BASE64','').strip()
+          environment=os.environ['ENVIRONMENT']
+          raw=os.environ.get('FIREBASE_QA_B64' if environment=='qa' else 'FIREBASE_PROD_B64','').strip()
           if not raw:
-              print('iOS QA Firebase not configured: only in-app notifications will work')
+              print('iOS Firebase not configured for '+environment+': notification delivery is not verified')
           else:
               data=base64.b64decode(raw,validate=True)
               config=plistlib.loads(data)
-              if config.get('BUNDLE_ID')!='com.onespace.onespace.qa':
+              if config.get('BUNDLE_ID')!=('com.onespace.onespace.qa' if environment=='qa' else 'com.onespace.onespace'):
                   raise SystemExit('Wrong QA iOS Firebase bundle ID')
               if not config.get('GOOGLE_APP_ID'):
                   raise SystemExit('Missing Firebase application ID')
@@ -55,16 +65,16 @@ jobs:
         run: |
           flutter build ios --release --no-codesign \
             --build-number=${{ github.run_number }} \
-            --dart-define=ONESPACE_ENV=qa \
-            --dart-define=ONESPACE_VERSION=ios-qa-${{ github.run_number }}
+            --dart-define=ONESPACE_ENV=${{ matrix.environment }} \
+            --dart-define=ONESPACE_VERSION=ios-${{ matrix.environment }}-${{ github.run_number }}
       - name: Verify final app identity and callback
-        run: python3 tools/ios/verify_bundle.py --app build/ios/iphoneos/Runner.app --environment qa
+        run: python3 tools/ios/verify_bundle.py --app build/ios/iphoneos/Runner.app --environment ${{ matrix.environment }}
       - name: Package unsigned build
         run: |
           cd build/ios/iphoneos
-          zip -qry OneSpace-QA-unsigned.zip Runner.app
+          zip -qry OneSpace-${{ matrix.environment }}-unsigned.zip Runner.app
       - uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-iOS-QA-unsigned-${{ github.run_number }}
-          path: build/ios/iphoneos/OneSpace-QA-unsigned.zip
+          name: OneSpace-iOS-${{ matrix.environment }}-unsigned-${{ github.run_number }}
+          path: build/ios/iphoneos/OneSpace-${{ matrix.environment }}-unsigned.zip
           retention-days: 7
