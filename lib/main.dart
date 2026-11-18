@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'core/app_env.dart';
 import 'core/ios_build_configuration.dart';
 import 'core/preferred_currency.dart';
@@ -357,6 +358,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
         if(space!=null)open(SavedContactEditor(spaceId:space,imported:sharedContact));
         return;
       }
+      // Preserve iPhone shares in the App Group until a space exists.
+      // This check deliberately does not change Android's share behavior.
+      if (Platform.isIOS && await CurrentSpaceCache.instance.get() == null) return;
       final message=await _incomingShares.invokeMapMethod<String,dynamic>(
        'takePendingShare');
       if(!mounted||message==null)return;
@@ -378,7 +382,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
       if(!data.hasContent)return;
       open(ShareIntakeScreen(shared:data));
     }on MissingPluginException{
-      // iOS shares currently require manual paste, not a share extension.
+      // Graceful fallback for older builds without an incoming-share channel.
     }on PlatformException{
       // Invalid shares must not interrupt authentication or normal browsing.
     }finally{
