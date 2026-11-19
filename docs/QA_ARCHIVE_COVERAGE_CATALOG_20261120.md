@@ -5,9 +5,9 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 
 ## Deployed policy catalog
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
-- **69 registered table types; 41 explicitly approved; 28 awaiting privacy/restore classification.**
+- **69 registered table types; 43 explicitly approved; 26 awaiting privacy/restore classification.**
 - Root policies: 14 visibility-scoped private/shared content, 4 owner-private types, 5 system-excluded operational/account types, 7 member-shared types, **4 pending**.
-- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **24 pending**.
+- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **22 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
@@ -37,8 +37,8 @@ note_references, occasion_budget_items, occasion_budget_log,
 occasion_plan_revisions, occasion_proposal_items,
 partner_checkin_acknowledgements, reminder_actions,
 reminder_recipients, saved_contact_revisions, scrapbook_invites,
-scrapbook_pages, shared_experience_comments, shared_experience_revisions, task_checklist_checks,
-task_checklist_items, trip_revisions.
+scrapbook_pages, shared_experience_comments, shared_experience_revisions, 
+ trip_revisions.
 
 **Four excluded media-dependent types**: memory_photos, note_images,
 trip_attachments, memory_photo_revisions. This exclusion does not yet prove there are no media URLs
@@ -74,3 +74,10 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 - QA regressions for written text, nested private-trip package, owner-only root snapshots and the new indirect-ID test all pass.
 - QA had zero restorable vault root/dependent rows at migration time; no existing snapshots needed re-sanitizing. Future migrations need a backfill check if data exists.
 - No changes to archive availability, encryption, restoration or lifecycle safety gates. Production unchanged.
+
+## QA migrations 0171–0174: private checklists preserved and previewed (deployed and tested)
+- The `tasks` private root is already mirrored. Added owner-scoped dependent mirroring for `task_checklist_items` and `task_checklist_checks`, including edits, deletes, visibility transitions, and existing private data backfill.
+- For private tasks, `created_by` for a checklist item and `user_id` for a completed check must equal task owner; check `task_id` must resolve through the same checklist item. Partner-authored historical rows cannot be silently transferred into a new private snapshot.
+- Explicit catalog classification updated to **43 approved / 26 pending** (4 root types and 22 dependent types still pending).
+- Read-only owner-scoped nested checklist preview contains root, items and checks with a SHA-256 payload checksum and rejects corrupt vault snapshots and partner-ownership contamination. Anonymous access blocked.
+- Both rollback-only QA regressions passed. Synthetic rows were rolled back. This preview is **not an encrypted download, a verified archive, or a functioning restore**. Lifecycle safety gates remain false.
