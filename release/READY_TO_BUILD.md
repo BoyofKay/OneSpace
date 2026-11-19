@@ -1,24 +1,18 @@
-# OneSpace QA — branded invitation email correction (2026-11-19)
+# OneSpace QA — Pairing & Separation Lifecycle: first safe implementation slice
 
 Require-Firebase-Config: true
+Target: QA only. No Production AAB, TestFlight or Production backend changes.
+Branch: qa/lifecycle-first-slice-20261119
 
-Build signed installable QA APK, package onespace.qa / QA Supabase.
-Changes:
-- Gmail email draft spaces are percent encoded (no literal + signs)
-- Email sharing offers a real HTML branded invitation from OneSpace
-- Clickable email CTA, logo, tagline, readable manual code fallback
-- Google Play/App Store placeholders stay non-clickable until links exist
-- Secure authenticated server sender and private rate limits; both backend
-  environments have migration and matching Edge functions deployed
-- WhatsApp, SMS, resend, replacement and pairing remain unchanged
+QA source:
+- Dedicated Change password subpage (3 fields, plain reset-email CTA)
+- Dedicated Invite my partner page (recipient email required, QR/code/copy)
+- Creator-only addressed invitation, same-code resend, confirmed replace/revoke
+- Recipient verified-email match enforced in QA server RPC
+- Invitation deep-link pairing after signup and verification
+- Recipient-locked branded email service (QA only)
+- Read-only My Space profile section
 
-Test locked dependencies, Flutter analyze and tests, Android signing/package,
-Firebase config, plus unsigned QA/Production iOS compile.
-Do not automatically deploy to Google Play or TestFlight.
-
-## CI correction
-- Fixed email button being outside the invitation popup's widget scope.
-- Removed duplicate Arabic translations. Trigger a replacement release from this commit only.
-
-## Test correction
-- Invitation test now checks presence of both store availability labels instead of obsolete colon-prefixed placeholder lines.
+Safety: leave/remove/delete/archive purge are intentionally NOT enabled
+until personal vault migration and archive validation are safe.
+Build/test/verify signed QA APK, keep Production entirely untouched.
