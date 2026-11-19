@@ -13,6 +13,15 @@ class OneSpaceEnv {
 
   static const name = String.fromEnvironment('ONESPACE_ENV', defaultValue: 'qa');
   static const isProduction = name == 'production';
+  static const expectedAndroidPackage =
+      isProduction ? 'live.onespace.app' : 'onespace.qa';
+
+  /// Refuse a build whose Android package and Supabase target disagree.
+  /// This prevents a QA-configured app from accidentally using the Production
+  /// package ID, or vice versa. The check happens before Supabase.initialize.
+  static bool packageMatchesEnvironment(String? package) =>
+      (name == 'qa' || name == 'production') &&
+      package == expectedAndroidPackage;
 
   // QA backend (the original OneSpace project; test users and demo data only).
   static const _qaUrl = 'https://ugwrpeduzyzrujkizqfo.supabase.co';
