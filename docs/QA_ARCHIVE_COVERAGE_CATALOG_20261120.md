@@ -5,9 +5,9 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 
 ## Deployed policy catalog
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
-- **69 registered table types; 45 explicitly approved; 24 awaiting privacy/restore classification.**
+- **69 registered table types; 47 explicitly approved; 22 awaiting privacy/restore classification.**
 - Root policies: 14 visibility-scoped private/shared content, 4 owner-private types, 5 system-excluded operational/account types, 7 member-shared types, **4 pending**.
-- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **20 pending**.
+- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **18 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
@@ -29,7 +29,7 @@ scheduled-open letters MUST NOT become visible to a partner through an archive
 before their normal authorization rules allow it. Do not treat every row in a
 shared space as shared content.
 
-## 24 dependent types requiring explicit classification
+## 18 dependent types requiring explicit classification
 activity_comments, activity_component_reactions,
 activity_component_revisions, activity_components, activity_decisions,
 activity_revisions, couple_letter_reads,
@@ -37,8 +37,7 @@ note_references, occasion_budget_items, occasion_budget_log,
 occasion_plan_revisions, occasion_proposal_items,
 partner_checkin_acknowledgements, reminder_actions,
 reminder_recipients, saved_contact_revisions,
-scrapbook_pages, shared_experience_comments, shared_experience_revisions, 
- trip_revisions.
+scrapbook_pages, trip_revisions.
 
 **Four excluded media-dependent types**: memory_photos, note_images,
 trip_attachments, memory_photo_revisions. This exclusion does not yet prove there are no media URLs
@@ -86,3 +85,9 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 - `activity_attention_snoozes`: per-user attention delay is transient state; do not restore obsolete snoozes. The underlying activity remains eligible.
 - `scrapbook_invites`: historical invitation/access permissions are not portable; never restore an old partner's collaboration grant. Original memory content remains separately classified.
 - Both tables now `system_excluded`; after the QA regression, **45 approved of 69; 24 pending (4 roots, 20 dependents)**. This classification alone does not permit archive generation, deletion or restoration.
+
+## QA 0181 — recipient-scoped shared-experience written history (deployed, tested)
+- Classified `shared_experience_comments` and `shared_experience_revisions` as `shared_only`, following their existing member-shared parent `shared_experiences`. **47/69 approved; 22 pending (4 root, 18 dependent)**.
+- A member may see all live shared comments, but a comment the other partner archived is excluded from that member's archive preview. The comment's author can still include their own archived text. Reply pointers to unavailable/hidden comments are removed to avoid exposing private comment identifiers.
+- Historical before/after snapshots retain ordinary written descriptions but omit media paths and scrapbook photo IDs through the recursive sanitizer.
+- Current-pair authorship, recipient-only scope, deterministic digest, outsider-denial, incomplete-lineage rejection and non-restorable shared-history flags were verified in a rollback-only two-account regression. **No completed encrypted shared archive or shared-history restoration is claimed.**
