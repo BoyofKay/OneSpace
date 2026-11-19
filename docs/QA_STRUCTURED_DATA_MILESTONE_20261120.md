@@ -23,14 +23,17 @@
 - [x] Rollback-only database tests pass, with no changes to real users, memberships or stored records.
 - [x] App/archive text now reflects structured-only archive policy and correct external download meaning (source branch; not yet installed).
 - [x] QA migrations 0167–0168 now mirror private trip flight options, itinerary items and messages into owner-scoped Personal Vault child snapshots, with media sanitization and visibility/delete tombstones. The transactional author-isolation and re-private backfill regression passes; synthetic fixture rows rolled back.
+- [x] QA 0171–0172: owner-private task checklist items and per-user completion checks are now mirrored with tombstones on deletion, shared/private transition resync and partner-authorship denial (rollback regression PASSED).
+- [x] QA 0173: explicitly classified both task checklist child types after ownership tests: archive catalog **43/69 approved; 26 pending**.
+- [x] QA 0174: read-only owner-only private checklist package preview includes task, items, checks and deterministic SHA-256; partner denial, tampering and partner-authored shared-history conflict fail closed (rollback regression PASSED). Not encrypted or restorable.
 - [ ] Personal Vault remains a shadow of the space-linked source tables, not canonical cutover.
 - [ ] Roughly 35 related FK tables, system/shared-only types and multi-parent associations require complete ownership classification.
 
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
-- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 41 approved, 28 pending; 4 known media types excluded.
+- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 43 approved, 26 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
 - [x] Migration 0165: five RLS-verified shared roots classified; Love Letters drafts and sealed until-open dates explicitly remain blocked.
-- [ ] Explicitly classify the remaining 4 root and 24 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
+- [ ] Explicitly classify the remaining 4 root and 22 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
 - [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization. Three approved private trip-child types now have verified vault snapshots, but these are not yet downloadable archives.
 - [x] QA migration 0170: stronger structured-only sanitizer removes scrapbook photo_N_id/image_N_id pointers, named document/file identifiers and attachment metadata. QA 0170 plus 0163, 0159 and 0169 regressions pass; zero extant restorable QA vault snapshots require backfill. Media/document uploads remain excluded.
 - [x] QA migration 0169: owner-only nested structured trip package preview (trip + flight options + itinerary items + messages) with deterministic SHA-256 integrity checksum, parent-vault equality, media sanitization, child cap and member privacy checks. Transactional regression passed for partner denial, scope transitions, hash reproducibility and corrupt-vault failure. **Preview only; not encrypted or restorable.**
