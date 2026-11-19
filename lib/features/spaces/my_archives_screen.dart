@@ -160,6 +160,8 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
       final name = 'OneSpace-${a['archive_kind']}-$id.onespace';
       final location = await _export.invokeMethod<String>('saveToDownloads',{
         'name':name,'bytes':bytes,
+        'verifySha256':sha256.convert(bytes).toString(),
+        'requireDurable':true,
       });
       if (location == null || location.isEmpty) {
         throw StateError('External archive save was not confirmed');
