@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - qa/recover-release461-full-source-20261119
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
