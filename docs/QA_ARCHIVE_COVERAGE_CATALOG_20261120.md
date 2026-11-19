@@ -5,9 +5,9 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 
 ## Deployed policy catalog
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
-- **69 registered table types; 43 explicitly approved; 26 awaiting privacy/restore classification.**
+- **69 registered table types; 45 explicitly approved; 24 awaiting privacy/restore classification.**
 - Root policies: 14 visibility-scoped private/shared content, 4 owner-private types, 5 system-excluded operational/account types, 7 member-shared types, **4 pending**.
-- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **22 pending**.
+- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **20 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
@@ -30,14 +30,13 @@ before their normal authorization rules allow it. Do not treat every row in a
 shared space as shared content.
 
 ## 24 dependent types requiring explicit classification
-activity_attention_snoozes, activity_comments, activity_component_reactions,
+activity_comments, activity_component_reactions,
 activity_component_revisions, activity_components, activity_decisions,
 activity_revisions, couple_letter_reads,
 note_references, occasion_budget_items, occasion_budget_log,
 occasion_plan_revisions, occasion_proposal_items,
 partner_checkin_acknowledgements, reminder_actions,
-reminder_recipients, saved_contact_revisions, scrapbook_invites,
-scrapbook_pages, shared_experience_comments, shared_experience_revisions, 
+reminder_recipients, saved_contact_revisions, scrapbook_pages, shared_experience_comments, shared_experience_revisions, 
  trip_revisions.
 
 **Four excluded media-dependent types**: memory_photos, note_images,
@@ -78,6 +77,12 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 ## QA migrations 0171–0174: private checklists preserved and previewed (deployed and tested)
 - The `tasks` private root is already mirrored. Added owner-scoped dependent mirroring for `task_checklist_items` and `task_checklist_checks`, including edits, deletes, visibility transitions, and existing private data backfill.
 - For private tasks, `created_by` for a checklist item and `user_id` for a completed check must equal task owner; check `task_id` must resolve through the same checklist item. Partner-authored historical rows cannot be silently transferred into a new private snapshot.
-- Explicit catalog classification updated to **43 approved / 26 pending** (4 root types and 22 dependent types still pending).
+- Explicit catalog classification updated to **43 approved / 26 pending after 0173 (prior to operational exclusions)** (4 root types and 22 dependent types still pending).
 - Read-only owner-scoped nested checklist preview contains root, items and checks with a SHA-256 payload checksum and rejects corrupt vault snapshots and partner-ownership contamination. Anonymous access blocked.
 - Both rollback-only QA regressions passed. Synthetic rows were rolled back. This preview is **not an encrypted download, a verified archive, or a functioning restore**. Lifecycle safety gates remain false.
+
+## QA migration 0175: operational records excluded from portable archives
+- `activity_attention_snoozes` is a per-user ephemeral delay, not durable relationship history. It must not be restored into a different partnership.
+- `scrapbook_invites` carries collaboration invitation/access state. Recreating prior authorizations would undermine new partner isolation. Underlying memories remain eligible through their own classification.
+- These two dependents are `system_excluded`, bringing the QA policy catalog to **45 approved of 69; 24 pending (4 roots, 20 dependents)**.
+- Dedicated QA regression passed. No private/shared content deletion, no archive/restore switch enabled; Production unchanged.
