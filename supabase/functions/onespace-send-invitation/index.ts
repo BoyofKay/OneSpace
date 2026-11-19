@@ -14,7 +14,7 @@ function validStoreUrl(value:string,kind:"play"|"apple"):string{
         uri.pathname==="/store/apps/details" &&
         uri.searchParams.get("id")==="live.onespace.app"
         : uri.hostname==="apps.apple.com" &&
-          /^\\/([a-z]{2}\\/)?app\\//.test(uri.pathname)) ? uri.toString() : "";
+          (uri.pathname.includes("/app/") && /\/id[0-9]+$/.test(uri.pathname))) ? uri.toString() : "";
   }catch{return "";}
 }
 function storePanel(url:string,kind:"play"|"apple"):string{
