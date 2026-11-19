@@ -24,6 +24,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   Map<String,dynamic>? _readiness;
   Map<String,dynamic>? _personalVault;
   Map<String,dynamic>? _dependentAudit;
+  Map<String,dynamic>? _archiveCatalog;
   Map<String,dynamic>? _lifecycle;
   bool _submitting = false;
   String? _actionMessage;
@@ -74,6 +75,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       final result = await _db.rpc('space_separation_preflight');
       final vault = await _db.rpc('my_personal_vault_status');
       final dependencies = await _db.rpc('space_archive_dependency_inventory');
+      final catalog = await _db.rpc('qa_archive_catalog_coverage');
       if (mounted) setState(() {
         _readiness = result is Map
           ? Map<String,dynamic>.from(result) : null;
@@ -81,6 +83,8 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
           ? Map<String,dynamic>.from(vault) : null;
         _dependentAudit = dependencies is Map
           ? Map<String,dynamic>.from(dependencies) : null;
+        _archiveCatalog = catalog is Map
+          ? Map<String,dynamic>.from(catalog) : null;
       });
     } catch (_) {
       if (mounted) setState(() => _error =
@@ -286,7 +290,13 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 if (_dependentAudit != null) ...[
                   const SizedBox(height: 6),
                   Text('Dependent tables checked: ${_dependentAudit!['dependent_tables_inspected'] ?? 0}'),
-                  Text('Tables needing ownership review: ${_dependentAudit!['multi_root_tables'] ?? 0}'),
+                  Text('Tables with multiple ownership routes: ${_dependentAudit!['multi_root_tables'] ?? 0}'),
+                ],
+                if (_archiveCatalog != null) ...[
+                  const SizedBox(height: 8),
+                  Text('Structured table types reviewed: ${_archiveCatalog!['approved_table_policies'] ?? 0} / ${_archiveCatalog!['total_tables'] ?? '—'}'),
+                  Text('Pending root and related types: ${(_archiveCatalog!['root_types_pending'] as num? ?? 0) + (_archiveCatalog!['dependent_types_pending'] as num? ?? 0)}'),
+                  Text(tt('Uploaded photos, videos, voice notes and documents will not be in the archive.')),
                 ],
                 const SizedBox(height: 8),
                 if (_personalVault != null) ...[
