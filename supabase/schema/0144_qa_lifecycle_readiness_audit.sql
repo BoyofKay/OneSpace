@@ -158,7 +158,8 @@ begin
     and verified_archives=archives_expected;
 
   return jsonb_build_object(
-    'has_space',true,'safe_to_separate',ready,
+    'has_space',true,'safe_to_separate',false,
+    'root_archive_preconditions_met',ready,
     'role',case when space_owner=me then 'owner' else 'partner' end,
     'member_count',member_count,'members_valid',member_valid,
     'space_tables_inspected',root_tables,'space_linked_records',total_roots,
@@ -168,14 +169,14 @@ begin
     'media_inventory_count',media_inventory_count,
     'media_unverified',media_unverified,
     'media_missing_inventory',media_missing_inventory,
-    'unreconciled_storage_candidates',unmatched_storage,
+    'storage_reconciliation_pending',unmatched_storage>0,
     'archives_expected',archives_expected,'archives_verified',verified_archives,
     'reason',case when not member_valid then 'Space membership integrity must be repaired'
       when unknown_roots>0 then 'Some space records are not classified as private/shared'
       when media_unverified>0 or media_missing_inventory>0 then 'Media inventory and encryption checks are incomplete'
       when unmatched_storage>0 then 'Stored files require reconciliation before separation'
       when verified_archives<>archives_expected then 'Encrypted private/shared archives have not been verified for every member'
-      else 'Read-only readiness checks passed; a separately tested transition worker is still required' end);
+      else 'Root and direct-media checks passed; nested dependent records, full archive verification and a transition worker remain pending' end);
 end $function$
 ;
 CREATE OR REPLACE FUNCTION public.space_lifecycle_readiness()
