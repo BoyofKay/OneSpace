@@ -58,7 +58,7 @@ function inspectMedia(node,depth=0){
  if(obj(node)){
   for(const [key,value] of Object.entries(node)){
    if(/(?:^|_)(?:photo|photos|image|images|media|audio|voice|video|attachment|attachments|document|documents|file|files|thumbnail|blob|binary)(?:_|$)/i.test(key)
-     ||/^(object_path|base64|data_uri|cover_photo_id)$/i.test(key))fail("media pointer field");
+     ||/^(object_path|base64|data_uri|cover_photo_id|mime_type|byte_size|profile_photo_url|avatar_url)$/i.test(key))fail("media pointer field");
    inspectMedia(value,depth+1);
   }
   return;
@@ -66,6 +66,8 @@ function inspectMedia(node,depth=0){
  if(typeof node==="string"){
   if(/(?:\/storage\/v1\/object\/|\bdata:(?:image|audio|video|application\/(?:pdf|octet-stream))|\bblob:|\bfile:|content:\/\/)/i.test(node))
     fail("media pointer in written value");
+  if(/https?:\\/\\/[^\\s"'<>]+\\.(?:pdf|docx?|xlsx?|pptx?|zip|jpe?g|png|webp|gif|heic|mp3|m4a|wav|mp4|mov)(?:[?#]|\\b)/i.test(node))
+    fail("indirect uploaded file URL");
  }else if(node!==null&&typeof node!=="boolean"&&
          !(typeof node==="number"&&Number.isFinite(node)))
    fail("unsupported data value");
