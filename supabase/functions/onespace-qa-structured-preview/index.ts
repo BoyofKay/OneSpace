@@ -69,7 +69,7 @@ Deno.serve(async(req:Request)=>{
   if(!base || new URL(base).hostname!==QA_REF+".supabase.co" || !pub||!service)
     return json(503,{error:"QA preview service unavailable"});
   const bearer=req.headers.get("authorization")??"";
-  if(!/^Bearer [^\\s]+$/.test(bearer))return json(401,{error:"Sign in required"});
+  if(!/^Bearer [^\s]+$/.test(bearer))return json(401,{error:"Sign in required"});
 
   let body:Record<string,unknown>;
   try{
