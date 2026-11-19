@@ -173,15 +173,17 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
         : ListView(padding: const EdgeInsets.all(20), children: [
           // Keep archive access after leaving or deleting a space. An unpaired
           // member must still be able to save their own verified archives.
-          ListTile(
-            leading: const Icon(Icons.folder_zip_outlined),
-            title: Text(tt('My Archives')),
-            subtitle: Text(tt('Verified copies, when available, belong to your account')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push<void>(
-              MaterialPageRoute<void>(builder: (_) => const MyArchivesScreen())),
-          ),
-          const Divider(),
+          if (!OneSpaceEnv.isProduction) ...[
+            ListTile(
+              leading: const Icon(Icons.folder_zip_outlined),
+              title: Text(tt('My Archives')),
+              subtitle: Text(tt('Verified copies, when available, belong to your account')),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const MyArchivesScreen())),
+            ),
+            const Divider(),
+          ],
           if (_spaceName == null && _error == null)
             Card(child: Padding(
               padding: const EdgeInsets.all(16),
