@@ -71,8 +71,11 @@ begin
  where x->>'source_table'='shared_experience_comments')<>2
  then raise exception 'Archived comment recipient author-only counts incorrect';end if;
  perform set_config('role','postgres',true);
- update public.partner_checkin_requests set responded_at=null,response_mood=null
- where id=ack_id;
+ insert into public.partner_checkin_requests(space_id,sender_id,recipient_id,note)
+ values(sid,a,b,'QA unresponded check-in with an invalid receipt')
+ returning id into ack_id;
+ insert into public.partner_checkin_acknowledgements(request_id,user_id,kind)
+ values(ack_id,a,'heart');
  perform set_config('role','authenticated',true);
  perform set_config('request.jwt.claim.sub',a::text,true);
  begin
