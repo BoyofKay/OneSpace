@@ -575,7 +575,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     invitationController.text = code;
     invitationController.selection =
         TextSelection.collapsed(offset: code.length);
-    if (mounted) setState(() {});
   }
 
   bool get _hasActiveInvite => pendingInviteExpiry != null &&
