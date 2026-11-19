@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/app_env.dart';
+import 'archive_retention_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// All archive objects are encrypted on the server before they can become
@@ -166,8 +167,13 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
       if (location == null || location.isEmpty) {
         throw StateError('External archive save was not confirmed');
       }
-      // The plugin returns only after Android's MediaStore write is complete.
-      // Acknowledgment is NEVER sent on automatic app-private copying.
+      // The native Android plugin reads the external MediaStore file back and
+      // checks its SHA-256 before returning. Never acknowledge an automatic
+      // app-private download or an unverified/cancelled save.
+      if (!ArchiveRetentionRules.mayConfirmExternalSave(
+        userInitiated: true, savedOutsideApp: true, verifiedAfterWrite: true)) {
+        throw StateError('External download was not verified');
+      }
       final confirmed = await _db.rpc('confirm_external_archive_save',params:{
         'p_archive_id':id,
         'p_sha256':sha256.convert(bytes).toString(),
