@@ -25,6 +25,12 @@ begin
     pending.invited_email,now(),'revoked',pending.created_at-interval '1 hour');
 
   perform set_config('role','authenticated',true);
+  -- Only the intended verified recipient may learn the latest usable token.
+  perform set_config('request.jwt.claim.sub',pending.invited_by::text,true);
+  result:=public.resolve_my_addressed_invitation(old_code);
+  if result->>'status'<>'wrong_account' or result ? 'code' then
+    raise exception 'Wrong account learned the invitation code';
+  end if;
   perform set_config('request.jwt.claim.sub',verified_user::text,true);
   result:=public.resolve_my_addressed_invitation(old_code);
   if result->>'status'<>'updated' or result->>'code'<>pending.token then
