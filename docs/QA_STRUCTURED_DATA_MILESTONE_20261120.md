@@ -30,6 +30,11 @@
 - [ ] Personal Vault remains a shadow of the space-linked source tables, not canonical cutover.
 - [ ] Roughly 35 related FK tables, system/shared-only types and multi-parent associations require complete ownership classification.
 
+## QA 0176 — archive download hardening (verified)
+- [x] QA `space_archives.ready_archives_complete` now **requires `encrypted_bytes_verified=true`** in ready/purge states. A rollback regression confirms unverified metadata is rejected and verified metadata passes.
+- [x] `onespace-download-archive` Edge Function **version 2 active in QA**: checks verified-bytes flag and positive registry size, rejects Storage size mismatches when Content-Length is provided; JWT verification stays enabled.
+- [ ] This does not produce any encrypted archives. Zero ready archives exist; live successful-file-download and cryptographic readback still require a real archive generator and test fixture.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 45 approved, 24 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
