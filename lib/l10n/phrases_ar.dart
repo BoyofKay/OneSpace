@@ -10,8 +10,6 @@ const Map<String, String> arPhrases = {
   'Or open a plain-text draft in Gmail or your email app. The draft cannot include images or store badges.': 'أو افتح مسودة نصية في Gmail أو تطبيق البريد. لا يمكن للمسودة النصية عرض الصور أو شارات المتاجر.',
   'Open email draft': 'فتح مسودة البريد',
   'No email app is available.': 'لا يوجد تطبيق بريد متاح.',
-  'Sending...': 'جارٍ الإرسال...',
-  'Sent': 'تم الإرسال',
   'Send branded email': 'إرسال البريد المنسق',
   'Unable to send the email. Use the draft or copy the invitation instead.': 'تعذر إرسال البريد. استخدم المسودة أو انسخ الدعوة بدلاً من ذلك.',
   // R84: opt-in counters and meaningful map markers
