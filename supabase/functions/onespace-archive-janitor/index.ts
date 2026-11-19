@@ -1,0 +1,56 @@
+// QA archive janitor. Never deletes shared/private live records.
+// Remove only temporary *encrypted archive objects* whose recipient either
+// explicitly saved a verified external copy or whose 30-day TTL passed.
+// Uses the Storage API (not SQL deletes to storage.objects).
+const env=(key:string)=>(Deno.env.get(key)??"").trim();
+const json=(status:number,value:unknown)=>new Response(JSON.stringify(value),
+  {status,headers:{"content-type":"application/json","cache-control":"no-store"}});
+Deno.serve(async(req)=>{
+  if(req.method!=="POST")return json(405,{error:"POST required"});
+  const secret=env("ONESPACE_PUSH_CRON_SECRET");
+  if(!secret||req.headers.get("x-onespace-push-secret")!==secret)
+    return json(401,{error:"Unauthorized"});
+  const base=env("SUPABASE_URL"),service=env("SUPABASE_SERVICE_ROLE_KEY");
+  if(!base||!service)return json(503,{error:"Not configured"});
+  const auth={apikey:service,Authorization:"Bearer "+service,
+    "content-type":"application/json"};
+  const rpc=async(name:string,payload:unknown)=>{
+    const response=await fetch(base+"/rest/v1/rpc/"+name,
+      {method:"POST",headers:auth,body:JSON.stringify(payload)});
+    if(!response.ok)throw new Error("Archive RPC failed: "+response.status);
+    return response.json();
+  };
+  let due:Array<{archive_id:string,object_path:string}>;
+  try{due=await rpc("archives_due_for_purge_service",{});}
+  catch{return json(503,{error:"Archive registry unavailable"});}
+  const results={purged:0,failed:0};
+  for(const item of due){
+    if(!item?.archive_id||!item?.object_path){
+      results.failed++;
+      continue;
+    }
+    // Guard against deleting arbitrary Storage objects due to a corrupt row.
+    if(!/^[0-9a-f-]{36}$/i.test(item.archive_id)||
+       !/^[0-9a-f-]{36}\/[^.][a-zA-Z0-9_./-]{0,490}$/.test(item.object_path)||
+       item.object_path.includes("..")){
+      results.failed++;
+      continue;
+    }
+    try{
+      const remove=await fetch(base+"/storage/v1/object/onespace-archives",{
+        method:"DELETE",headers:auth,
+        body:JSON.stringify({prefixes:[item.object_path]})});
+      if(!remove.ok)throw new Error("Storage delete rejected: "+remove.status);
+      await rpc("finish_archive_purge_service",{
+        p_archive_id:item.archive_id,p_error:null});
+      results.purged++;
+    }catch(error){
+      results.failed++;
+      const note=error instanceof Error?error.message:"Cleanup error";
+      try{await rpc("finish_archive_purge_service",{
+        p_archive_id:item.archive_id,p_error:note.slice(0,300)});
+      }catch{}
+    }
+  }
+  return json(200,{examined:due.length,...results});
+});
