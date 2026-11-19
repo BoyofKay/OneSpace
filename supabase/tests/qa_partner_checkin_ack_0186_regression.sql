@@ -68,8 +68,14 @@ begin
  perform set_config('role','postgres',true);
  update public.partner_checkin_acknowledgements
   set user_id=a where request_id=check_id;
- update public.partner_checkin_requests
-  set responded_at=null,response_mood=null where id=check_id;
+ -- Create an unanswered request with an inconsistent receipt, rather
+ -- than violating the app rule that prevents unanswering completed requests.
+ insert into public.partner_checkin_requests(
+    space_id,sender_id,recipient_id,note)
+ values(sid,a,b,'QA pending check-in with illicit receipt')
+ returning id into check_id;
+ insert into public.partner_checkin_acknowledgements(
+    request_id,user_id,kind) values(check_id,a,'hug');
  perform set_config('role','authenticated',true);
  begin
    perform private.qa_checkin_ack_history_preview(check_id);
