@@ -7,6 +7,8 @@ declare
   v_space uuid;
   v_owner uuid;
   v_note uuid;
+  v_new_space uuid;
+  v_restored_note uuid;
   v_orig_spaces bigint;
   v_orig_members bigint;
   v_snapshot jsonb;
@@ -46,6 +48,25 @@ begin
      (select count(*) from public.space_members)<>v_orig_members-1 then
     raise exception 'Unexpected side effects from simulated old-space retirement';
   end if;
+  -- A newly created relationship must not lose the owner's old private text.
+  -- This is a manual typed restore proof, NOT the finished import engine.
+  insert into public.spaces(created_by,name)
+    values(v_owner,'Rollback-only fresh space')
+    returning id into v_new_space;
+  insert into public.space_members(space_id,user_id)
+    values(v_new_space,v_owner)
+    on conflict do nothing;
+  insert into public.notes(space_id,created_by,title,body,visibility)
+    values(v_new_space,v_owner,
+      v_snapshot->>'title',v_snapshot->>'body','private')
+    returning id into v_restored_note;
+  if not exists(select 1 from public.notes
+       where id=v_restored_note and space_id=v_new_space
+         and created_by=v_owner
+         and body='This structured personal note must outlive old-space retirement')
+    or exists(select 1 from public.notes where id=v_note) then
+    raise exception 'Structured private note did not restore into clean space';
+  end if;
 end $test$;
 rollback;
-select 'PASS: private structured vault survives marked old-space cascade; entire retirement and synthetic records rolled back' result;
+select 'PASS: personal structured note survives old-space retirement and restores into fresh space; all simulated changes rolled back' result;
