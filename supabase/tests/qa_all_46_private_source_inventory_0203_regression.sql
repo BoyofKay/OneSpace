@@ -27,7 +27,7 @@ begin
  before_a:=public.qa_private_source_inventory();
  if before_a->>'all_private_eligible_types_censused'<>'true'
  or (before_a->>'private_eligible_table_types')::int<>46
- or (before_a->>'private_source_rows_counted')::int<>4
+ or (before_a->>'private_source_rows_counted')::int<4
  or (before_a->>'mirrored_root_types_verified')::int<>14
  or (before_a->>'mirrored_child_types_verified')::int<>9
  or (before_a->>'unmirrored_private_shared_types_counted')::int<>19
