@@ -168,7 +168,9 @@ test("media pointers reject even correctly rehashed source content",async()=>{
   row=>{row.body="See /storage/v1/object/private/secret.jpg"},
   row=>{row.document_url="https://storage.example.com/secrets.pdf"},
   row=>{row.file_path="secret.docx"},
-  row=>{row.body="data:image/png;base64,aGVsbG8="}
+  row=>{row.body="data:image/png;base64,aGVsbG8="},
+  row=>{row.source_url="https://example.org/old-document.pdf"},
+  row=>{row.profile_photo_url="https://example.org/avatar"}
  ];
  for(const change of cases){
   const m=fixture();
