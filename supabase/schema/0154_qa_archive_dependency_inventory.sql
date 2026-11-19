@@ -10,7 +10,7 @@ declare
   route record;
   edge jsonb;
   pair jsonb;
-  steps jsonb;
+  route_steps jsonb;
   idx int;
   depth_idx int;
   join_sql text;
@@ -84,13 +84,13 @@ begin
     from matches m
     order by child_name,depth,root_name
   loop
-    steps:=route.steps;
+    route_steps:=route.steps;
     depth_idx:=0;
-    idx:=jsonb_array_length(steps)-1;
-    edge:=steps->idx;
+    idx:=jsonb_array_length(route_steps)-1;
+    edge:=route_steps->idx;
     join_sql:=format('public.%I t0',edge->>'child');
     while idx>=0 loop
-      edge:=steps->idx;
+      edge:=route_steps->idx;
       depth_idx:=depth_idx+1;
       predicate:='';
       for pair in select value from jsonb_array_elements(edge->'pairs') loop
