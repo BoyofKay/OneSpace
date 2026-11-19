@@ -20,7 +20,7 @@ begin
  perform set_config('request.jwt.claim.sub',a::text,true);
  p:=private.qa_reminder_written_history_preview(root_id);
  if p#>>'{payload,kind}'<>'shared_reference_only'
- or p#>>'{payload,child_record_count}'<>'2'
+ or p#>>'{payload,child_record_count}'<>'3'
  or p::text not like '%We finished that together%'
  or p::text not like '%Thank you for the reminder%'
  or p::text like '%snoozed_until%'
@@ -34,7 +34,7 @@ begin
  then raise exception 'Owner private reminder missing';end if;
  perform set_config('request.jwt.claim.sub',b::text,true);
  p:=private.qa_reminder_written_history_preview(root_id);
- if p#>>'{payload,child_record_count}'<>'2' then raise exception 'Partner lost shared reminder';end if;
+ if p#>>'{payload,child_record_count}'<>'3' then raise exception 'Partner lost shared reminder';end if;
  begin
  perform private.qa_reminder_written_history_preview(private_id);
  raise exception 'Partner accessed private reminder';
