@@ -94,7 +94,8 @@ Deno.serve(async(req)=>{
       const id=String(item?.staging_id??"");
       const path=String(item?.object_path??"");
       const match=path.match(/^([0-9a-f-]{36})\/qa-subsets\/([0-9a-f-]{36})\.osa$/i);
-      if(!/^[0-9a-f-]{36}$/i.test(id)||!match||
+      const strictUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if(!strictUuid.test(id)||!match||!strictUuid.test(match[1])||
           match[2]!==id||path.includes("..")){
         subsets.subset_failed++;
         continue;
