@@ -1963,7 +1963,7 @@ const Map<String, String> arPhrases = {
   'Tuesday': 'الثلاثاء',
   'Turn into trip': 'تحويل إلى رحلة',
   'Turn your plan into reminders at the right time. Nothing is scheduled automatically.': 'حوّل خطتك إلى تذكيرات في الوقت المناسب. لا شيء يُجدول تلقائيًا.',
-  'Two of us, One Space': 'Two of us, One Space',
+  'Two of Us. One Space.': 'Two of Us. One Space.',
   'Type': 'النوع',
   'Type DELETE to confirm *': 'اكتب DELETE للتأكيد *',
   'Type at least two characters to search.': 'اكتب حرفين على الأقل للبحث.',

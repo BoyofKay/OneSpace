@@ -1,3 +1,4 @@
+import '../core/onespace_brand.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Centralized bilingual copy. Database values stay language-independent.
@@ -96,7 +97,7 @@ class OneSpaceStrings {
     'calendarBirthday':'Birthday',
     'calendarAnniversary':'Anniversary',
     'calendarSpecial':'Special day',
-    'tagline': 'Two of us, One Space',
+    'tagline': OneSpaceBrand.tagline,
     'welcome': 'Welcome back',
     'createAccount': 'Create your account',
     'yourName': 'Your display name',
@@ -482,7 +483,7 @@ class OneSpaceStrings {
     'calendarBirthday':'عيد ميلاد',
     'calendarAnniversary':'ذكرى سنوية',
     'calendarSpecial':'يوم مميز',
-    'tagline': 'Two of us, One Space',
+    'tagline': OneSpaceBrand.tagline,
     'welcome': 'مرحبًا بعودتك',
     'createAccount': 'أنشئ حسابك',
     'yourName': 'الاسم المعروض',
