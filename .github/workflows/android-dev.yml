@@ -25,6 +25,24 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+      # Fail closed if the default branch falls behind the last feature-complete
+      # QA release. Release 462 accidentally used the older source history.
+      - name: Prevent stale QA feature releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            lib/features/spaces/my_space_screen.dart \
+            lib/features/spaces/invite_partner_screen.dart \
+            lib/features/spaces/my_archives_screen.dart \
+            lib/features/profile/change_password_screen.dart \
+            lib/features/spaces/space_lifecycle_policy.dart; do
+            if [ ! -s "$file" ]; then
+              echo "::error::QA release blocked: missing $file (newer verified QA source not merged)."
+              exit 1
+            fi
+          done
+          echo "Minimum QA feature files are present."
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
