@@ -43,11 +43,12 @@ begin
  if err<>'Reminder not found' then raise exception 'Wrong private denial %',err;end if;
  end;
  perform set_config('role','postgres',true);
- update public.reminders set visibility='private' where id=root_id;
+ insert into public.reminder_recipients(reminder_id,recipient_id,state,outcome_note)
+ values(private_id,b,'pending','Bad foreign recipient on owner-private reminder');
  perform set_config('role','authenticated',true);
  perform set_config('request.jwt.claim.sub',a::text,true);
  begin
- perform private.qa_reminder_written_history_preview(root_id);
+ perform private.qa_reminder_written_history_preview(private_id);
  raise exception 'Partner recipient taken into owner private history';
  exception when others then
  get stacked diagnostics err=message_text;
