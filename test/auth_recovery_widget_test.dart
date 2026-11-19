@@ -21,6 +21,12 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: ResetPasswordScreen()),
     );
+    // The recovery screen is available only after the verified-link event.
+    // Rendering it never modifies the old password by itself.
+    expect(
+      find.text('Your current password remains valid until the new one is successfully saved.'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Update password'));
     await tester.pump();
     expect(find.text('Use at least 8 characters.'), findsOneWidget);
