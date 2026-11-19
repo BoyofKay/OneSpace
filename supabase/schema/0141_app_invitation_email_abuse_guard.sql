@@ -7,9 +7,11 @@ create table if not exists private.app_invitation_email_sends (
   recipient_digest text not null check (recipient_digest ~ '^[0-9a-f]{64}$'),
   created_at timestamptz not null default now()
 );
+alter table private.app_invitation_email_sends enable row level security;
 create index if not exists app_invite_sends_by_sender_time
   on private.app_invitation_email_sends(sender_id,created_at desc);
 revoke all on private.app_invitation_email_sends from public,anon,authenticated;
+grant usage on schema private to service_role;
 grant select,insert on private.app_invitation_email_sends to service_role;
 grant usage,select on sequence private.app_invitation_email_sends_id_seq to service_role;
 
