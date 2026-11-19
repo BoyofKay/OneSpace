@@ -70,6 +70,12 @@
 - [x] Transactional two-member regression passed: both own drafts export; neither partner sees the other's unsent content; anonymous export denied; image data removed and prose retained. No synthetic data persisted.
 - [ ] Audit other privileged functions and arbitrary future export table types; this focused fix does not constitute comprehensive security sign-off.
 
+## QA 0178 — fail-closed JSON export schema (verified)
+- [x] The `SECURITY DEFINER export_my_data()` now uses a **fixed 63-table/column ownership allowlist** instead of dynamically discovering future `user_id`, `recipient_id` or other ownership columns. Gesture templates remain creator-only and schedules sender-only.
+- [x] Regression added an unreviewed `user_id` table and a new `recipient_id` column to Notes inside a rollback-only transaction. Neither widened the caller's exported data, while their own note still exported.
+- [x] Five regressions passed: new-table/column isolation, private gesture scope, two-account note export, archive catalog fail-closed, and lifecycle public-contract safeguards.
+- [ ] Update the explicit JSON-export allowlist during future feature/schema reviews; automatic inclusion is intentionally forbidden.
+
 ## Milestone 4 — comprehensive QA acceptance and security (NOT COMPLETE)
 - [ ] Two real devices and two-user lifecycle; nested-data archive and restore; error/rollback, offline partner, push, re-pairing.
 - [x] QA `export_my_data()` two-partner privacy regression rerun and committed: each user exported their own private note, never the partner's; anonymous access denied; test rows rolled back.
