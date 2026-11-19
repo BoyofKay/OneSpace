@@ -16,7 +16,8 @@ begin
  if baseline->>'has_space'<>'true'
   or (baseline->>'total_tables')::int < 60
   or (baseline->>'media_types_excluded')::int<4
-  or baseline->>'classification_complete'<>'false'
+  or baseline->>'classification_complete' not in ('true','false'
+  )
   or baseline->>'safe_to_archive'<>'false'
   or (baseline->>'unregistered_root_types')::int<>0
   or (baseline->>'unregistered_dependent_types')::int<>0 then
@@ -33,7 +34,9 @@ begin
  after_adding:=public.qa_archive_catalog_coverage();
  if (after_adding->>'unregistered_root_types')::int<>1
     or (after_adding->>'unregistered_dependent_types')::int<>1
-    or after_adding->>'safe_to_archive'<>'false' then
+    or after_adding->>'safe_to_archive'<>'false'
+    or after_adding->>'classification_complete'<>'false'
+    or after_adding->>'safe_to_separate'<>'false' then
    raise exception 'New untracked root/child was not discovered: %',after_adding;
  end if;
 end $test$;
