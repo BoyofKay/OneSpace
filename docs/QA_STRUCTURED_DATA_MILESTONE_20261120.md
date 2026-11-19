@@ -80,6 +80,15 @@
 - [x] Performs a passphrase-protected AES-GCM decrypt → structural validation → ID remapping **without ever writing to Postgres or Storage**. All results assert `is_verified_archive=false`, `can_write=false`, `can_restore=false`, `safe_to_separate=false`.
 - [ ] Still missing: full 69-type manifest, server-issued archive authenticity, checked ciphertext readback against a real QA file, authenticated target-space ownership, server transactional restore, duplicate/replay idempotence, shared reference-only history and two-device QA acceptance.
 
+## QA 0195–0198 — source-to-vault completeness evidence (deployed and tested)
+- [x] QA **0195**: audited **every live owner-private record** from the 14 existing mirrored root families against its real current Personal Vault snapshot. Detects missing, stale/corrupted and orphaned private rows, including records transferred to shared state; no partner's private content is returned. Signed-in owner-only preflight `public.qa_private_archive_completeness_preflight()`.
+- [x] QA **0196**: extended coverage to **nine currently mirrored dependent families**; detects omitted or altered child records, non-owner/foreign-recipient contributions, orphaned child vault rows and checklist item/check inconsistencies. Each private owner sees only their own aggregate report.
+- [x] The preflight explicitly enumerates **four private/shared root families not yet in the existing root mirror** (`couple_letters`, `item_links`, `place_visits`, `record_action_history`) and **15 private/shared dependent families not yet mirrored**. Separately approved owner-private and shared-only families and other source-of-truth records still need end-to-end source enumeration. **14 + 9 is not 69.**
+- [x] QA **0197**: deterministic owner/space-bound SHA-256 digest over **the checked 14+9 subset only**, using snapshot hashes in stable table/ID order. Tests verify stable identity, different owners, text-change impact and denial on corrupted child.
+- [x] QA **0198**: future unregistered archive schema types invalidate the subset fingerprint. Schema-drift fixture in rollback transaction **PASS**. No unreviewed fields or media become silently archived.
+- [x] Four rollback-only QA SQL regression suites PASS; all fixtures and synthetic DDL rolled back.
+- [ ] Full 69-type source manifest and file issuance, authenticated origin assurance, written shared reference export, verified independent download/decrypt, actual private restore and two-device acceptance remain P0. All `safe_to_archive`, `can_restore`, `safe_to_separate` gates **remain false**.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. **69 approved, zero pending; 4 known media types excluded.**
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
