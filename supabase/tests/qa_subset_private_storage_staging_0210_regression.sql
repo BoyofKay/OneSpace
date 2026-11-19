@@ -73,8 +73,8 @@ then raise exception 'Expired file cleanup registry refused';end if;
 if public.qa_subset_finish_purge_service(idx)
 then raise exception 'Duplicate purge result marked successful';end if;
 perform set_config('role','authenticated',true);
-if (select count(*) from private.qa_archive_table_policy where approved)<>69
-or (private.qa_archive_catalog_coverage()->>'classification_complete')<>'true'
+if (public.qa_archive_catalog_coverage()->>'approved_table_policies')::int<>69
+or (public.qa_archive_catalog_coverage()->>'classification_complete')<>'true'
 then raise exception 'Internal staging table incorrectly expanded 69 source family catalog';end if;
 end $qa$;
 rollback;
