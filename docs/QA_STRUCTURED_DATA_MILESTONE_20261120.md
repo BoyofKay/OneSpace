@@ -41,6 +41,12 @@
 - [x] GitHub workflow `qa-archive-ciphertext-integrity.yml` ran successfully (run 44628511213), exercising the actual Edge handler with mocked Auth, PostgREST and Storage.
 - [ ] This is a mock-backed handler test, not a live encrypted archive readback; archive generation/restore remain incomplete.
 
+## QA-only portable encryption proof (no archive issuance)
+- [x] Source-only `structured_archive_crypto.mjs` prototype: AES-256-GCM authenticated encryption, independent random salt/IV, PBKDF2-HMAC-SHA256 600,000 rounds, authenticated recipient identity and approved structured-only private trip/checklist preview schemas.
+- [x] Strict media pointer sanitization guard, size/depth limits and identity validation; rejects wrong passphrase, tampering, changed KDF parameters and cross-account envelope access.
+- [x] Node 22 QA crypto roundtrip/tamper tests passed in GitHub Actions run `44628764813`, alongside downloader regression tests, **without APK generation**.
+- [ ] Prototype is not wired to a verified server-side archive issuer, durable encrypted Storage registry, app-private download or actual restoration. User-supplied passphrases alone cannot prove trusted server origin. Shared history remains reference-only and unimplemented.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 45 approved, 24 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
