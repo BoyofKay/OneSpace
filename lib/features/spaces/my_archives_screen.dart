@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -94,7 +93,7 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
       setState(() { _archives = List<Map<String,dynamic>>.from(data);
         _loading = false; _error = null; });
       for (final a in _archives) {
-        if (_isReady(a)) unawaited(_cacheInApp(a));
+        if (_isReady(a)) { unawaited(_cacheInApp(a)); }
       }
     } catch (_) {
       if (mounted) setState(() {
@@ -185,9 +184,11 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
         await _load();
       }
     } catch (_) {
-      if (mounted) setState(() => _error = tt(
-        'Could not confirm the external save. Your server archive has not '
-        'been marked downloaded. Try again before it expires.'));
+      if (mounted) {
+        setState(() => _error = tt(
+          'Could not confirm the external save. Your server archive has not '
+          'been marked downloaded. Try again before it expires.'));
+      }
     } finally {
       if (mounted) setState(() => _inProgress.remove(id));
     }
