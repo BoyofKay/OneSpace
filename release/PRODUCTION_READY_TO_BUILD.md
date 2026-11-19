@@ -12,3 +12,6 @@ branded HTML invitation delivery) except for release marker text.
 - Email templates use original OneSpace mark and Two of Us. One Space.
 - Official store badges only when their validated product URLs are configured
 - Production email sending remains authenticated and rate-limited
+
+## Source correction
+- Rebuild with fixed invitation popup scope and unique Arabic string keys.
