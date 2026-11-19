@@ -218,7 +218,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final confirmation = TextEditingController();
     String? dialogError;
     bool busy = false;
-    bool resetSent = false;
     try {
       await showDialog<void>(
         context: context,
@@ -263,15 +262,28 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       child: TextButton.icon(
                         icon: const Icon(Icons.mark_email_unread_outlined, size: 18),
                         label: Text(tt('Forgot current password? Send a reset email')),
-                        onPressed: busy || resetSent || email == null
+                        onPressed: busy || email == null
                           ? null
                           : () async {
                               updateDialog(() { busy = true; dialogError = null; });
+                              // The verified link opens a separate reset flow.
+                              // Close this dialog now so it cannot cover the
+                              // reset screen when the user returns from email.
+                              var requestAccepted = false;
                               try {
                                 await _client.auth.resetPasswordForEmail(
                                   email, redirectTo: oneSpaceAuthRedirectTo);
-                                if (dialogContext.mounted) {
-                                  updateDialog(() { resetSent = true; });
+                                requestAccepted = true;
+                                if (dialogContext.mounted &&
+                                    ModalRoute.of(dialogContext)?.isCurrent == true) {
+                                  Navigator.of(dialogContext).pop();
+                                }
+                                if (mounted) {
+                                  const message =
+                                    'Check your email for the OneSpace reset link. Your current password will keep working until you successfully set a new one.';
+                                  setState(() => _status = message);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(tt(message))));
                                 }
                               } on AuthException catch (error) {
                                 if (dialogContext.mounted) {
@@ -283,19 +295,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                     'Could not send a reset email. Please retry.');
                                 }
                               } finally {
-                                if (dialogContext.mounted) {
+                                if (!requestAccepted && dialogContext.mounted) {
                                   updateDialog(() => busy = false);
                                 }
                               }
                             },
                       ),
                     ),
-                    if (resetSent)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(tt('If this account can receive email, a recovery link has been sent. Open the link on this phone to choose a new password without the old one.'),
-                          style: TextStyle(color: Theme.of(dialogContext).colorScheme.primary)),
-                      ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: next,
