@@ -90,6 +90,11 @@ jobs:
           base64 --decode tools/dev-signing/onespace-preview.keystore.b64 > "$HOME/.android/debug.keystore"
           echo "7bb8494a49f9e6f91e8b81a2aa8f528868af050b8543cd4f016bfa1db135bac3  $HOME/.android/debug.keystore" | sha256sum -c -
           chmod 600 "$HOME/.android/debug.keystore"
+          # Validate the intended certificate BEFORE attempting a long Android build.
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey \
+            | tr -d ':' | grep -qi "90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043"
+          echo "ONESPACE_QA_KEYSTORE=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
       # Firebase registration is optional during development. An actual
       # Firebase Android app config enables native FCM resources at build time.
       # Never echo the encoded file in logs or commit service credentials.
