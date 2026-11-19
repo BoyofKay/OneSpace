@@ -1,38 +1,38 @@
-# OneSpace QA — invitation handoff and environment isolation
+# OneSpace QA — invitation and canonical branding closure
 Require-Firebase-Config: true
 
-## Build exactly one signed Android QA APK
-QA package: `onespace.qa`.
-Dart define: `ONESPACE_ENV=qa`.
-QA Supabase: `ugwrpeduzyzrujkizqfo`.
-This build MUST be from main containing merged PR #74.
+## One signed QA APK only
+- Source includes merged PR #74 (invitation signup/signin), PR #75 (approved
+  exact tagline `Two of Us. One Space`), and PR #76 (stable QA signing
+  certificate and aligned source for email templates).
+- Android package: `onespace.qa`.
+- Dart target: `ONESPACE_ENV=qa`; QA Supabase project
+  `ugwrpeduzyzrujkizqfo`. Production Supabase untouched.
+- Assert original QA signing SHA-256
+  `90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043`.
+  Any mismatch must fail the build; never silently rotate QA keys.
+- Flutter analysis + tests, Firebase QA package, APK package name and signed
+  APK publication must all pass before considering this release available.
 
-## Included and verified
-- Dedicated signup email confirmation page with resend and Sign in controls.
-- Invitation persists across signup, email confirmation and existing-account sign-in.
-- QA-only secure resolve for the intended recipient's replaced invitation, then
-  accept_invitation with verified email; forwarded/wrong-account code denied.
-- On unpaired sign-in show focused joining flow instead of three setup cards.
-- Precise failed-invitation messaging, retry and sign-in with correct email.
-- Android startup verifies installed package and backend target before Supabase.initialize.
-  Production package live.onespace.app cannot connect to QA and vice versa.
-- Android NDK SDK installation retries corrupt downloads and verifies revision.
+## Real device acceptance before closing
+1. Install QA APK **over** existing QA app (do not uninstall and lose a
+   saved incoming invitation).
+2. New invited user: latest invitation, signup, dedicated confirm-email page,
+   click confirmation email, sign in, automatically join existing space.
+3. Existing invited user: latest invitation, sign in, automatically join.
+4. Wrong account cannot redeem; current invitation must not be treated as a
+   replaced/expired link.
+5. QA Supabase hosted Confirm signup + Reset password templates still need
+   matching HTML applied in dashboard; source-only commit does not update
+   hosted Auth settings. Send real emails and verify logo + link.
+6. No QA record deletion, space/account separation or Production database
+   changes during this release.
 
-## CI release gate
-- Locked dependencies, Flutter analyzer and all widget/unit tests.
-- Correct Firebase QA app, package ID, signed QA certificate and artifact.
-- Tag and asset must point to the exact triggering commit on main.
-- No Production DB changes, no user/space/invitation deletion.
-- No production AAB / Play deployment.
-
-## Device QA acceptance
-1. A invites B via email and receives an active code.
-2. New B opens invitation, creates an account, sees full Confirm email page,
-   confirms email, signs in, automatically joins A's existing space.
-3. Existing unpaired B follows invitation and signs in; same result.
-4. Older replaced link resolves ONLY if same verified recipient and same space.
-5. Wrong email, expired, revoked-with-no-replacement and already paired
-   show specific guidance; never join another account without permission.
-6. Confirmation email branding template must be activated separately under
-   QA Supabase Auth Email Templates (source committed, not deployed automatically).
-7. Both Android test devices, Firebase push and upgrade installation.
+## Future roadmap (NOT an excuse to block safe invitation testing)
+- Founder expressly authorizes a QA-only historical record reset if needed
+  for structural redesign of ownership tables.
+- Structured private and shared content must remain eligible for archive and
+  restore. Uploaded media, photos and documents are **excluded** with a
+  clear user-facing disclosure. Do not remove all archive/restore features.
+- Do not enable destructive lifecycle actions until ownership and structured
+  restore are proven safe.
