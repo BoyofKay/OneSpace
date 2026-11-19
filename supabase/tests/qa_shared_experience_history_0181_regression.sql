@@ -12,6 +12,8 @@ begin
   where (select count(*) from public.space_members sm where sm.space_id=s.id)=2
   limit 1;
  if sid is null then raise exception 'Paired QA fixture missing';end if;
+ select u.id into outsider from auth.users u where u.id not in
+  (select user_id from public.space_members where space_id=sid) limit 1;
  insert into public.shared_experiences(
    space_id,created_by,category,title,description,source_url)
  values(sid,a,'movie','QA SHARED EXPERIENCE ARCHIVE',
