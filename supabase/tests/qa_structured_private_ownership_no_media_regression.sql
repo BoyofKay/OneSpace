@@ -26,7 +26,7 @@ begin
 
   insert into public.notes(space_id,created_by,title,body,visibility,rich_delta)
     values(sid,owner_id,'Synthetic QA-only title','Structured note text','private',
-      '{"ops":[{"insert":"Hello"},{"insert":{"image":"data:image/png;base64,AABBCC"}},{"insert":{"attachment_url":"/storage/v1/object/private/pic"}},{"insert":" World"}]}'::jsonb)
+      '[{"insert":"Hello"},{"insert":{"image":"data:image/png;base64,AABBCC"}},{"insert":{"attachment_url":"/storage/v1/object/private/pic"}},{"insert":" World"}]'::jsonb)
     returning id into note_id;
   select snapshot into snap from public.personal_vault_records
     where source_table='notes' and source_id=note_id and owner_id=owner_id;
