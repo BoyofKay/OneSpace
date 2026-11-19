@@ -23,11 +23,21 @@ void main() {
     expect(find.textContaining('Your partner’s invitation is safely kept'),
       findsOneWidget);
     expect(find.text('Create account'), findsNothing);
+    // The small simulated screen scrolls: buttons below the fold are
+    // intentionally lazy-built by ListView, so finders need to scroll first.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('confirmationResend')), 220,
+      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byKey(const Key('confirmationResend')));
     expect(resendCount, 1);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('confirmationContinueToSignIn')), -220,
+      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byKey(const Key('confirmationContinueToSignIn')));
     expect(signInCount, 1);
-    await tester.ensureVisible(find.text('Use a different email address'));
+    await tester.scrollUntilVisible(
+      find.text('Use a different email address'), 220,
+      scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Use a different email address'));
     expect(changeEmailCount, 1);
   });
