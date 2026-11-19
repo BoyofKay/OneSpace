@@ -130,7 +130,7 @@ end $$;
 -- For consistency, manual revoke must also update status.
 create or replace function private.revoke_pending_invitation(p_space_id uuid)
 returns integer language plpgsql security definer set search_path = ''
-as $
+as $$
 declare me uuid := auth.uid();
         changed integer := 0;
 begin
@@ -141,4 +141,4 @@ begin
  where space_id=p_space_id and accepted_at is null and revoked_at is null;
  get diagnostics changed = row_count;
  return changed;
-end $;
+end $$;
