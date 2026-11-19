@@ -558,17 +558,66 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         await client.rpc('create_space');
       });
 
+  /// A verified recipient who opened a link joins after authentication.
+  /// QA safely resolves an obsolete/replaced link for that SAME recipient.
+  /// Backend accept_invitation remains the only authority to add a member.
   Future<void> _accept() async {
+    if (working || spaceId != null) return;
     final code = normalizedInvitationCode(invitationController.text);
     if (code == null) {
       setState(() => issue = tr(context, 'invalidInvite'));
       return;
     }
-    await _perform(() async {
-      await client.rpc('accept_invitation', params: {'p_token': code});
+    setState(() { working = true; issue = null; });
+    try {
+      var resolved = code;
+      if (!OneSpaceEnv.isProduction) {
+        final value = await client.rpc('resolve_my_addressed_invitation',
+            params: {'p_token': code});
+        final invitation = value is Map
+            ? Map<String, dynamic>.from(value) : const <String, dynamic>{};
+        final status = invitation['status']?.toString();
+        if (status == 'ready' || status == 'updated') {
+          resolved = invitation['code']?.toString() ?? '';
+          if (normalizedInvitationCode(resolved) == null) {
+            throw StateError('Invitation validation could not complete. Try again.');
+          }
+        } else {
+          final message = switch (status) {
+            'wrong_account' => 'This invitation belongs to another email address. Sign out and sign in with the invited email.',
+            'confirm_email' => 'Confirm your account email before accepting this invitation.',
+            'already_paired' => 'Your account already belongs to a space. You cannot join a second space.',
+            'already_joined' => 'You already joined this space. Refresh your Today screen.',
+            'expired' => 'This invitation has expired. Ask your partner to send a new one.',
+            'replaced' => 'This invitation was replaced. Ask your partner for their latest invitation link.',
+            'already_used' => 'This invitation has already been accepted. Ask for a new invitation if needed.',
+            'full' => 'This space already has two members.',
+            _ => 'This invitation could not be found in OneSpace QA. Check that you opened the QA invitation in the QA app.',
+          };
+          throw StateError(message);
+        }
+      }
+      await client.rpc('accept_invitation', params: {'p_token': resolved});
       invitationController.clear();
       await InvitationLinkInbox.instance.clear();
-    });
+      if (mounted) {
+        setState(() { issue = null; _lastAutoJoinKey = null; });
+        await _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(tt('Invitation accepted. Welcome to your shared space!'))));
+        }
+      }
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => issue = e.message);
+    } on StateError catch (e) {
+      if (mounted) setState(() => issue = e.message);
+    } catch (_) {
+      if (mounted) setState(() => issue =
+          tt('Unable to join right now. Your invitation is saved. Try again.'));
+    } finally {
+      if (mounted) setState(() => working = false);
+    }
   }
 
   void _useIncomingInvite() {
@@ -577,6 +626,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     invitationController.text = code;
     invitationController.selection =
         TextSelection.collapsed(offset: code.length);
+    if (mounted) {
+      setState(() => issue = null);
+      if (membershipResolved && spaceId == null) {
+        unawaited(_autoJoinPending());
+      }
+    }
   }
 
   bool get _hasActiveInvite => pendingInviteExpiry != null &&
@@ -593,12 +648,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   /// QA: complete a verified recipient's pending deep link after sign in.
   /// Server authorization performs the verified-email comparison and rejects
   /// expired/revoked/forwarded codes; the client never grants membership.
-  Future<void> _autoJoinPending() async {
+  Future<void> _autoJoinPending({bool retry = false}) async {
     if (!mounted || spaceId != null || working) return;
     final code = InvitationLinkInbox.instance.pendingCode;
     if (code == null || client.auth.currentUser == null) return;
     final key = '${client.auth.currentUser!.id}:$code';
-    if (key == _lastAutoJoinKey) return;
+    if (!retry && key == _lastAutoJoinKey) return;
     _lastAutoJoinKey = key;
     invitationController.text = code;
     await _accept();
@@ -1043,7 +1098,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ])),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:8),
-          if (issue != null) ...[
+          if (issue != null &&
+              !(spaceId == null && InvitationLinkInbox.instance.pendingCode != null)) ...[
             Text(tt(issue!), style:TextStyle(color:theme.colorScheme.error)),
             const SizedBox(height: 12),
           ],
@@ -1068,7 +1124,50 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               label: Text(tr(context, 'retry')),
             ),
           ]
-          else if (spaceId == null) ...[
+          else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null) ...[
+            _panel(
+              tt('Joining your partner’s OneSpace'),
+              tt('Your invitation is saved. We will verify that it belongs to your signed-in email, then join you to your partner’s existing space. Do not create another space.'),
+              Icons.mark_email_read_outlined,
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (working) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(tt('Verifying your invitation…')),
+                ],
+                if (issue != null) ...[
+                  Text(tt(issue!), style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  const SizedBox(height: 10),
+                ],
+                FilledButton.icon(
+                  onPressed: working ? null : () => _autoJoinPending(retry: true),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(tt('Retry joining your partner')),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: working ? null : () async {
+                    // Preserve the invite securely for the right account.
+                    await client.auth.signOut();
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: Text(tt('Sign in with the invited email')),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: working ? null : () async {
+                    await InvitationLinkInbox.instance.clear();
+                    if (mounted) setState(() {
+                      invitationController.clear();
+                      issue = null;
+                      _lastAutoJoinKey = null;
+                    });
+                  },
+                  child: Text(tt('Use another invitation or start a new space')),
+                ),
+              ]),
+            ),
+          ] else if (spaceId == null) ...[
             _panel(
               tt('Invite my partner'),
               tt('Enter your partner’s email and create your shared space automatically.'),

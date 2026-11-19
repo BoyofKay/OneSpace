@@ -23,6 +23,7 @@ import '../../core/phone_calendar_sync.dart';
 import '../support/support_screens.dart';
 import 'social_sign_in.dart';
 import 'terms.dart';
+import '../spaces/invitation_link_inbox.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
 /// OS-level unlock gate, while other remembered accounts require their own
@@ -282,6 +283,11 @@ class _SignInScreenState extends State<SignInScreen> {
       emailController.text=widget.activeSessionEmail!;
     }
     _prefillLastEmail();
+    InvitationLinkInbox.instance.addListener(_invitationChanged);
+  }
+
+  void _invitationChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _prefillLastEmail() async {
@@ -308,6 +314,7 @@ class _SignInScreenState extends State<SignInScreen> {
     emailController.dispose();
     passwordController.dispose();
     nameController.dispose();
+    InvitationLinkInbox.instance.removeListener(_invitationChanged);
     super.dispose();
   }
 
@@ -336,9 +343,10 @@ class _SignInScreenState extends State<SignInScreen> {
         );
         if (rememberAtSignup) await RememberedAccounts.remember(email);
         if (mounted && result.session == null) {
+          passwordController.clear();
           setState(() {
             awaitingConfirmation = true;
-            info = tr(context, 'signupCheckEmail');
+            info = null;
           });
         }
       } else {
@@ -417,6 +425,31 @@ class _SignInScreenState extends State<SignInScreen> {
         onBack: () => setState(() => showingRecovery = false),
       );
     }
+    if (awaitingConfirmation) {
+      return ConfirmEmailStep(
+        email: emailController.text.trim().toLowerCase(),
+        pendingInvitation: InvitationLinkInbox.instance.pendingCode != null,
+        loading: loading,
+        message: info,
+        error: error,
+        onResend: _resendConfirmation,
+        onSignIn: () => setState(() {
+          awaitingConfirmation = false;
+          registering = false;
+          passwordController.clear();
+          info = null;
+          error = null;
+        }),
+        onDifferentEmail: () => setState(() {
+          awaitingConfirmation = false;
+          registering = false;
+          emailController.clear();
+          passwordController.clear();
+          info = null;
+          error = null;
+        }),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -437,6 +470,19 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 5),
                 Text(tr(context, 'tagline'), textAlign: TextAlign.center),
+                if (InvitationLinkInbox.instance.pendingCode != null) ...[
+                  const SizedBox(height: 16),
+                  Card(child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(children: [
+                      const Icon(Icons.mark_email_read_outlined),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(tt(registering
+                        ? 'Your partner’s invitation is saved. Create your account, confirm your email, then sign in to join automatically.'
+                        : 'Your partner’s invitation is saved. Sign in with the invited email to join automatically.'))),
+                    ]),
+                  )),
+                ],
                 const SizedBox(height: 23),
                 Text(tt(registering ? tr(context, 'createAccount')
                     : (_rememberedFirstName!=null&&
@@ -554,10 +600,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   const SizedBox(height: 10),
                   Text(tt(info!),style:TextStyle(color:Theme.of(context).colorScheme.primary)),
                 ],
-                if (awaitingConfirmation) TextButton(
-                  onPressed: loading ? null : _resendConfirmation,
-                  child: Text(tr(context, 'resendConfirmation')),
-                ),
                 const SizedBox(height: 18),
                 FilledButton(
                   key: const Key('loginSubmit'),
@@ -609,4 +651,88 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
     );
   }
+}
+
+/// Step 2 of signup. This is deliberately a full screen, not a message
+/// underneath the still-active Create Account form.
+class ConfirmEmailStep extends StatelessWidget {
+  const ConfirmEmailStep({
+    required this.email,
+    required this.pendingInvitation,
+    required this.loading,
+    required this.message,
+    required this.error,
+    required this.onResend,
+    required this.onSignIn,
+    required this.onDifferentEmail,
+  });
+
+  final String email;
+  final bool pendingInvitation;
+  final bool loading;
+  final String? message;
+  final String? error;
+  final VoidCallback onResend;
+  final VoidCallback onSignIn;
+  final VoidCallback onDifferentEmail;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(child: Center(child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440),
+      child: ListView(shrinkWrap: true,
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Icon(Icons.mark_email_read_outlined, size: 62),
+          const SizedBox(height: 20),
+          Text(tt('Confirm your email address'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 14),
+          Text(tt('We sent a confirmation link to:'),
+            textAlign: TextAlign.center),
+          const SizedBox(height: 6),
+          SelectableText(email,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 16),
+          Text(tt('Open that email and confirm your account. Then return here and sign in.'),
+            textAlign: TextAlign.center),
+          if (pendingInvitation) ...[
+            const SizedBox(height: 16),
+            Card(child: Padding(padding: const EdgeInsets.all(14),
+              child: Text(tt('Your partner’s invitation is safely kept on this phone. After email confirmation and sign-in, OneSpace will finish joining the invited space. Do not create a separate space.')))),
+          ],
+          if (message != null) ...[
+            const SizedBox(height: 12),
+            Text(tt(message!), textAlign: TextAlign.center),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 12),
+            Text(tt(error!), textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ],
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            key: const Key('confirmationContinueToSignIn'),
+            onPressed: loading ? null : onSignIn,
+            icon: const Icon(Icons.login),
+            label: Text(tt('I confirmed my email — Sign in')),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            key: const Key('confirmationResend'),
+            onPressed: loading ? null : onResend,
+            icon: const Icon(Icons.refresh),
+            label: Text(tt('Resend confirmation email')),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: loading ? null : onDifferentEmail,
+            child: Text(tt('Use a different email address')),
+          ),
+          if (loading) const LinearProgressIndicator(),
+        ]),
+    ))),
+  );
 }

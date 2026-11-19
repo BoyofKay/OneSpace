@@ -124,6 +124,29 @@ jobs:
             fi
             echo 'No Firebase Android config yet: build continues with in-app notifications only.'
           fi
+      - name: Install verified Android NDK with bounded retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION=28.2.13676358
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -f "$SDK_ROOT/ndk/$NDK_VERSION/source.properties" ]; then
+            for attempt in 1 2 3; do
+              echo "Installing Android NDK $NDK_VERSION (attempt $attempt of 3)"
+              rm -rf "$SDK_ROOT/ndk/$NDK_VERSION"
+              if "$SDKMANAGER" --install "ndk;$NDK_VERSION" \
+                && test -f "$SDK_ROOT/ndk/$NDK_VERSION/source.properties"; then
+                break
+              fi
+              if [ "$attempt" = 3 ]; then
+                echo "::error::Android NDK archive failed validation after three attempts."
+                exit 1
+              fi
+              sleep $((attempt * 5))
+            done
+          fi
+          grep -F "Pkg.Revision = $NDK_VERSION" "$SDK_ROOT/ndk/$NDK_VERSION/source.properties"
       - name: Build installable QA APK (QA backend)
         run: flutter build apk --release --flavor qa --dart-define=ONESPACE_ENV=qa --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}-qa --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=0.1.${{ github.run_number }}
       - name: Verify signed APK uses the OneSpace test certificate
