@@ -2,8 +2,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
 import 'my_archives_screen.dart';
+import '../../core/app_env.dart';
 
-/// Read-only space identity preview until private records and media can be
+/// Safe lifecycle preparation only; destructive actions remain server-gated until
+/// private records and media can be
 /// preserved before leaving, removing a partner or deleting a space.
 class MySpaceScreen extends StatefulWidget {
   const MySpaceScreen({super.key});
@@ -21,6 +23,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   bool _checking = false;
   Map<String,dynamic>? _readiness;
   Map<String,dynamic>? _personalVault;
+  Map<String,dynamic>? _dependentAudit;
   Map<String,dynamic>? _lifecycle;
   bool _submitting = false;
   String? _actionMessage;
@@ -37,7 +40,10 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       if (me == null) throw StateError('Sign in required');
       final myMembership = await _db.from('space_members')
         .select('space_id').eq('user_id', me).limit(1).maybeSingle();
-      final lifecycleData = await _db.rpc('my_space_lifecycle_status');
+      // Lifecycle staging exists in QA only. Production must still load
+      // Profile without calling functions not deployed to its backend.
+      final lifecycleData = OneSpaceEnv.isProduction
+        ? null : await _db.rpc('my_space_lifecycle_status');
       if (!mounted) return;
       setState(() => _lifecycle = lifecycleData is Map
         ? Map<String,dynamic>.from(lifecycleData) : null);
@@ -62,16 +68,19 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   }
 
   Future<void> _checkReadiness() async {
-    if (_checking) return;
+    if (_checking || OneSpaceEnv.isProduction) return;
     setState(() { _checking = true; _error = null; });
     try {
       final result = await _db.rpc('space_separation_preflight');
       final vault = await _db.rpc('my_personal_vault_status');
+      final dependencies = await _db.rpc('space_archive_dependency_inventory');
       if (mounted) setState(() {
         _readiness = result is Map
           ? Map<String,dynamic>.from(result) : null;
         _personalVault = vault is Map
           ? Map<String,dynamic>.from(vault) : null;
+        _dependentAudit = dependencies is Map
+          ? Map<String,dynamic>.from(dependencies) : null;
       });
     } catch (_) {
       if (mounted) setState(() => _error =
@@ -103,7 +112,8 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   }
 
   Future<void> _stageAction(String action, String title, String warning) async {
-    if (_submitting || !await _confirmAction(title, warning, 'Prepare securely')) return;
+    if (OneSpaceEnv.isProduction || _submitting ||
+        !await _confirmAction(title, warning, 'Prepare securely')) return;
     if (!mounted) return;
     setState(() { _submitting = true; _actionMessage = null; _error = null; });
     try {
@@ -126,7 +136,8 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   }
 
   Future<void> _cancelStagedAction(String jobId) async {
-    if (_submitting || !await _confirmAction('Cancel separation preparation?',
+    if (OneSpaceEnv.isProduction || _submitting ||
+        !await _confirmAction('Cancel separation preparation?',
       'Requests can only be cancelled before archive export starts.',
       'Cancel request')) return;
     if (!mounted) return;
@@ -153,7 +164,8 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
     final pending = _lifecycle?['active_job'] is Map
       ? Map<String,dynamic>.from(_lifecycle!['active_job'] as Map)
       : null;
-    final mayAct = !_submitting && pending == null;
+    final mayAct = !OneSpaceEnv.isProduction && _lifecycle != null &&
+      !_submitting && pending == null;
     return Scaffold(
       appBar: AppBar(title: Text(tt('My Space'))),
       body: SafeArea(child: _loading
@@ -199,12 +211,14 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
             const Divider(),
             Text(tt('Space separation'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(tt('You may request secure preparation for leaving, removing a partner, '
-              'or closing the space. Actual separation remains blocked until '
-              'encrypted exports, file integrity and privacy checks pass.')),
+            Text(tt(OneSpaceEnv.isProduction
+              ? 'Space separation is not available in Production until the QA archive and privacy checks are completed.'
+              : 'You may request secure preparation for leaving, removing a partner, '
+                'or closing the space. Actual separation remains blocked until '
+                'encrypted exports, file integrity and privacy checks pass.')),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: _checking ? null : _checkReadiness,
+              onPressed: _checking || OneSpaceEnv.isProduction ? null : _checkReadiness,
               icon: const Icon(Icons.fact_check_outlined),
               label: Text(tt('Check separation readiness')),
             ),
@@ -230,7 +244,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 ]),
               )),
             const SizedBox(height: 10),
-            if (_owner && _members == 2)
+            if (!OneSpaceEnv.isProduction && _owner && _members == 2)
               OutlinedButton.icon(
                 icon: const Icon(Icons.person_remove_outlined),
                 onPressed: mayAct ? () => _stageAction('owner_removes_partner',
@@ -238,7 +252,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                   'First prepare verified private and shared archives for both people. This request does not remove the partner now.') : null,
                 label: Text(tt('Prepare partner removal')),
               ),
-            if (!_owner && _members == 2)
+            if (!OneSpaceEnv.isProduction && !_owner && _members == 2)
               OutlinedButton.icon(
                 icon: const Icon(Icons.logout),
                 onPressed: mayAct ? () => _stageAction('partner_leaves',
@@ -246,7 +260,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                   'Your private records and shared history must be archived first. This request does not leave the space now.') : null,
                 label: Text(tt('Prepare to leave space')),
               ),
-            if (_owner)
+            if (!OneSpaceEnv.isProduction && _owner)
               OutlinedButton.icon(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: mayAct ? () => _stageAction('owner_deletes_space',
@@ -266,6 +280,14 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 Text('${tt('Space-linked records')}: ${_readiness!['space_linked_records'] ?? '—'}'),
                 Text('${tt('My private records detected')}: ${_readiness!['private_root_records'] ?? '—'}'),
                 Text('${tt('Shared records detected')}: ${_readiness!['shared_root_records'] ?? '—'}'),
+                Text('Unclassified space records: ${_readiness!['unclassified_root_records'] ?? '—'}'),
+                Text('Verified archives: ${_readiness!['archives_verified'] ?? 0} / ${_readiness!['archives_expected'] ?? '—'}'),
+                if (_dependentAudit != null) ...[
+                  const SizedBox(height: 6),
+                  Text('Dependent tables checked: ${_dependentAudit!['dependent_tables_inspected'] ?? 0}'),
+                  Text('Dependent records found: ${_dependentAudit!['linked_dependents'] ?? 0}'),
+                  Text('Tables needing ownership review: ${_dependentAudit!['multi_root_tables'] ?? 0}'),
+                ],
                 const SizedBox(height: 8),
                 if (_personalVault != null) ...[
                   Text(tt('My protected private records') +
