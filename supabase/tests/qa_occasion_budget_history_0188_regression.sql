@@ -43,6 +43,7 @@ begin
  then raise exception 'Partner lost shared written budget history';end if;
 
  perform set_config('role','postgres',true);
+ perform set_config('request.jwt.claim.sub',a::text,true);
  insert into public.occasion_plans(space_id,created_by,title,occasion_on,visibility)
  values(sid,a,'QA private purchase plan',current_date+10,'private') returning id into private_id;
  insert into public.occasion_budget_items(plan_id,created_by,title)
