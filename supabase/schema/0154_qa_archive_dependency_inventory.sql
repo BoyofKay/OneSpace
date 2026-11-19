@@ -82,7 +82,22 @@ begin
       (select count(distinct m2.root_oid)
        from matches m2 where m2.current_oid=m.current_oid) as root_routes
     from matches m
-    order by child_name,depth,root_name
+    order by child_name,
+      -- Never attribute an occasion budget item to its OPTIONAL source
+      -- activity: plan_id is its actual owner, and is NOT NULL.
+      case
+        when child_name='occasion_budget_items'
+          and steps->0->'pairs'->0->>'child'='plan_id' then 0
+        when child_name='occasion_budget_log'
+          and steps->0->'pairs'->0->>'child'='plan_id' then 0
+        when child_name='occasion_proposal_items'
+          and steps->0->>'child'='occasion_proposals' then 0
+        when child_name='task_checklist_items'
+          and steps->0->'pairs'->0->>'child'='task_id' then 0
+        when child_name='task_checklist_checks'
+          and steps->0->'pairs'->0->>'child'='task_id' then 0
+        else 1
+      end,depth,root_name
   loop
     route_steps:=route.steps;
     depth_idx:=0;
