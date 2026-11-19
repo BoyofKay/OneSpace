@@ -58,7 +58,7 @@ void main() {
     expect(url, isNot(contains('+')));
     expect(uri.queryParameters['subject'], contains('OneSpace invitation'));
     expect(uri.queryParameters['body'], contains(invitationWebLink(code, qa: true).toString()));
-    expect(uri.queryParameters['body'], contains('Two of Us. One Space.'));
+    expect(uri.queryParameters['body'], contains('Two of Us. One Space'));
   });
 
 }

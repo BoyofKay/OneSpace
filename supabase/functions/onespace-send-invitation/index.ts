@@ -50,7 +50,7 @@ ${code}
 This invitation expires on ${date}. The code is the same when resent.
 
 OneSpace
-Two of Us. One Space.
+Two of Us. One Space
 https://onespace.live`;
   const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;background:#F5F7FB;font-family:Arial,Helvetica,sans-serif;color:#14213D">
@@ -77,7 +77,7 @@ https://onespace.live`;
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
 <td style="vertical-align:middle;padding-right:12px"><img src="${site}/assets/icon-512.png" alt="" width="40" height="40" style="display:block"></td>
 <td><strong style="font-size:20px;color:#14213D">OneSpace</strong><br>
-<span style="font-size:12px;color:#51657A">Two of Us. One Space.</span><br>
+<span style="font-size:12px;color:#51657A">Two of Us. One Space</span><br>
 <a href="${site}" style="font-size:12px;color:#1F6E78;text-decoration:none">onespace.live</a></td></tr></table>
 </td></tr></table>
 </td></tr></table></body></html>`;
