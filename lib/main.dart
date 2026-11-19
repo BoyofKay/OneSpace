@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'core/app_env.dart';
 import 'features/spaces/invitation_link_inbox.dart';
 import 'core/preferred_currency.dart';
@@ -158,6 +159,17 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     setState(() { _busy = true; _error = null; });
     final clock = Stopwatch()..start();
     try {
+      // No network or Auth session may start until Android confirms that this
+      // installed application ID belongs to the selected backend.
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        const channel = MethodChannel('onespace/environment');
+        final installedPackage = await channel.invokeMethod<String>('packageId');
+        if (!OneSpaceEnv.packageMatchesEnvironment(installedPackage)) {
+          throw StateError('QA/Production configuration mismatch: this build '
+            'cannot connect to its configured database. Please install the '
+            'correct OneSpace app version.');
+        }
+      }
       await Supabase.initialize(
         url: OneSpaceEnv.supabaseUrl,
         publishableKey: OneSpaceEnv.publishableKey,
@@ -168,14 +180,16 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       PerformanceTimings.instance.record(
         'Supabase session initialization', clock.elapsed);
       if (mounted) setState(() { _ready = true; _busy = false; });
-    } catch (_) {
+    } catch (e) {
       PerformanceTimings.instance.record(
         'Session initialization failed',clock.elapsed);
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'OneSpace could not open its saved session. '
-            'Check the device and network, then retry.';
+          _error = e is StateError && e.message.toString().startsWith('QA/Production')
+            ? e.message.toString()
+            : 'OneSpace could not open its saved session. '
+              'Check the device and network, then retry.';
         });
       }
     }
