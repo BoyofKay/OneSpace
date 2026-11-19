@@ -1,6 +1,6 @@
 # OneSpace — Phone-driven Time, Approximate City & Weather
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 ## What changed
 - Time zones are read from each Android/iOS device using the OS-native IANA identifier; there is no manual time-zone selector or location choice.
