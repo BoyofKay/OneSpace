@@ -35,11 +35,17 @@
 - [x] `onespace-download-archive` Edge Function **version 2 active in QA**: checks verified-bytes flag and positive registry size, rejects Storage size mismatches when Content-Length is provided; JWT verification stays enabled.
 - [ ] This does not produce any encrypted archives. Zero ready archives exist; live successful-file-download and cryptographic readback still require a real archive generator and test fixture.
 
+## QA archive downloader v3 — live ciphertext integrity (verified)
+- [x] QA archive download function **v3 active**, JWT verification enabled. It validates the actual encrypted Storage object SHA-256 against the verified registry hash **before returning any bytes**, not just the file size.
+- [x] Bounded streaming read (maximum 50 MiB and cannot exceed verified byte count), rejects truncated, oversized, same-sized tampered, other-owner or unverified archive objects.
+- [x] GitHub workflow `qa-archive-ciphertext-integrity.yml` ran successfully (run 44628511213), exercising the actual Edge handler with mocked Auth, PostgREST and Storage.
+- [ ] This is a mock-backed handler test, not a live encrypted archive readback; archive generation/restore remain incomplete.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 45 approved, 24 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
 - [x] Migration 0165: five RLS-verified shared roots classified; Love Letters drafts and sealed until-open dates explicitly remain blocked.
-- [ ] Explicitly classify the remaining 4 root and 22 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
+- [ ] Explicitly classify the remaining 4 root and 20 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
 - [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization. Three approved private trip-child types now have verified vault snapshots, but these are not yet downloadable archives.
 - [x] QA migration 0170: stronger structured-only sanitizer removes scrapbook photo_N_id/image_N_id pointers, named document/file identifiers and attachment metadata. QA 0170 plus 0163, 0159 and 0169 regressions pass; zero extant restorable QA vault snapshots require backfill. Media/document uploads remain excluded.
 - [x] QA migration 0169: owner-only nested structured trip package preview (trip + flight options + itinerary items + messages) with deterministic SHA-256 integrity checksum, parent-vault equality, media sanitization, child cap and member privacy checks. Transactional regression passed for partner denial, scope transitions, hash reproducibility and corrupt-vault failure. **Preview only; not encrypted or restorable.**
