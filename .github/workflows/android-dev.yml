@@ -93,7 +93,16 @@ jobs:
           # Validate the intended certificate BEFORE attempting a long Android build.
           keytool -list -v -keystore "$HOME/.android/debug.keystore" \
             -storepass android -alias androiddebugkey \
-            | tr -d ':' | grep -qi "90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043"
+            > /tmp/onespace-qa-keystore-certificate.txt
+          # Never put a short-circuit grep (-q) after a producer in a pipe
+          # with pipefail: valid certificates can produce SIGPIPE/exit 141.
+          tr -d ':' < /tmp/onespace-qa-keystore-certificate.txt \
+            > /tmp/onespace-qa-keystore-fingerprint.txt
+          if ! grep -iF "90375bb8d7dbd6527cca17f626da149534eaffe10076c38a5c69ac86a3aac043" \
+              /tmp/onespace-qa-keystore-fingerprint.txt >/dev/null; then
+            echo "::error::QA keystore does not match the trusted preview certificate."
+            exit 1
+          fi
           echo "ONESPACE_QA_KEYSTORE=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
       # Firebase registration is optional during development. An actual
       # Firebase Android app config enables native FCM resources at build time.
