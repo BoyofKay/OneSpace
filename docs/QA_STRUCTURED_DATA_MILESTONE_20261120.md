@@ -64,6 +64,12 @@
 - [ ] Safe Storage API cleanup of excluded media; verify no old shared references can be accessed by a new partner.
 - [ ] Seven-day account-deletion grace period, cancellation, session revocation, partner preservation, verified deletion.
 
+## QA security: export recipient-scope leak closed
+- [x] QA 0177: fixed `SECURITY DEFINER export_my_data()` to export gesture templates by creator, and private gesture schedules by sender, **not the intended recipient**. The owner's own unsent drafts are now included without exposing them to the partner.
+- [x] All general JSON-export rows and profile now use media-free structured sanitization, preserving written notes while excluding storage pointers/embedded uploads.
+- [x] Transactional two-member regression passed: both own drafts export; neither partner sees the other's unsent content; anonymous export denied; image data removed and prose retained. No synthetic data persisted.
+- [ ] Audit other privileged functions and arbitrary future export table types; this focused fix does not constitute comprehensive security sign-off.
+
 ## Milestone 4 — comprehensive QA acceptance and security (NOT COMPLETE)
 - [ ] Two real devices and two-user lifecycle; nested-data archive and restore; error/rollback, offline partner, push, re-pairing.
 - [x] QA `export_my_data()` two-partner privacy regression rerun and committed: each user exported their own private note, never the partner's; anonymous access denied; test rows rolled back.
