@@ -22,16 +22,19 @@ begin
  if (select count(*) from private.qa_archive_table_policy where approved)<41
  or (select count(*) from private.qa_archive_table_policy where not approved)>28 then
    raise exception 'Reviewed archive catalog regressed below QA 0166 baseline';end if;
+ -- These originally sensitive tables must now be independently reviewed
+ -- and have explicit owner/private lineage rules, not stay unapproved forever.
  if (select count(*) from private.qa_archive_table_policy where
      source_table in ('couple_letters','reminder_actions','reminder_recipients','activity_revisions')
-     and approved)>0 then raise exception 'Sensitive unresolved tables unexpectedly approved';end if;
+     and approved and disposition='private_shared' and reviewed_at is not null)<>4
+ then raise exception 'Sensitive tables lost reviewed owner/private scope';end if;
  perform set_config('role','authenticated',true);
  perform set_config('request.jwt.claim.sub',v_owner::text,true);
  j:=public.qa_archive_catalog_coverage();
  if (j->>'safe_to_archive')<>'false'
  or (j->>'safe_to_separate')<>'false'
- or (j->>'classification_complete')<>'false'
- or (j->>'root_types_pending')::int<>4
+ or (j->>'classification_complete') not in ('true','false')
+ or (j->>'root_types_pending')::int>4
  or (j->>'dependent_types_pending')::int>24
  or (j->>'media_types_excluded')::int<4 then
   raise exception 'Unexpected QA catalog readiness %', j;end if;

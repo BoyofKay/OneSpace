@@ -24,10 +24,16 @@ begin
  perform set_config('request.jwt.claim.sub',owner_user::text,true);
  r:=public.qa_archive_catalog_coverage();
  if r->>'safe_to_archive'<>'false' or r->>'safe_to_separate'<>'false'
-   or r->>'classification_complete'<>'false'
+   or r->>'classification_complete' not in ('true','false')
    or (r->>'approved_table_policies')::int<45
    or (r->>'dependent_types_pending')::int>20 then
     raise exception 'Archive or lifecycle became prematurely ready: %',r;end if;
+ if r->>'classification_complete'='true' and
+   ((r->>'root_types_pending')::int<>0 or
+    (r->>'dependent_types_pending')::int<>0 or
+    (r->>'unregistered_root_types')::int<>0 or
+    (r->>'unregistered_dependent_types')::int<>0) then
+   raise exception 'Archive complete classification mismatched actual table gaps';end if;
 end $qa$;
 rollback;
 select 'PASS: transient snoozes/access grants excluded, 45/69 review baseline retained; archive and separation remain blocked' as result;
