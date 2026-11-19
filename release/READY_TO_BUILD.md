@@ -1,24 +1,42 @@
-# OneSpace QA — branded invitation email correction (2026-11-19)
+# OneSpace QA — password-recovery navigation fix (2026-11-19)
 
 Require-Firebase-Config: true
 
-Build signed installable QA APK, package onespace.qa / QA Supabase.
-Changes:
-- Gmail email draft spaces are percent encoded (no literal + signs)
-- Email sharing offers a real HTML branded invitation from OneSpace
-- Clickable email CTA, logo, tagline, readable manual code fallback
-- Google Play/App Store placeholders stay non-clickable until links exist
-- Secure authenticated server sender and private rate limits; both backend
-  environments have migration and matching Edge functions deployed
-- WhatsApp, SMS, resend, replacement and pairing remain unchanged
+Build ONE signed installable OneSpace QA APK (Android package `onespace.qa`)
+with the QA Supabase environment `ugwrpeduzyzrujkizqfo`. This is a
+QA-only validation candidate, not a Production/Google Play release.
 
-Test locked dependencies, Flutter analyze and tests, Android signing/package,
-Firebase config, plus unsigned QA/Production iOS compile.
-Do not automatically deploy to Google Play or TestFlight.
+## Included fix (merged PR #69)
 
-## CI correction
-- Fixed email button being outside the invitation popup's widget scope.
-- Removed duplicate Arabic translations. Trigger a replacement release from this commit only.
+- Requesting password recovery from signed-in Profile closes the
+  Change password dialog after Supabase accepts the email request.
+- A verified recovery email link brings Set a new password to the front,
+  clearing Profile/dialog routes without requiring Cancel and Back.
+- Signed-out Forgot password retains the same verified-link security flow.
+- Existing password remains valid until the new password is successfully saved;
+  cancelling recovery must not replace the password.
+- English and Arabic recovery text updated.
+- Regression assertion added to the Flutter recovery widget tests.
 
-## Test correction
-- Invitation test now checks presence of both store availability labels instead of obsolete colon-prefixed placeholder lines.
+## Release checks
+
+Use the committed dependency lockfile, run Flutter analysis and all tests,
+build the QA APK with QA flavor/environment, validate Firebase QA config,
+APK package ID and signature, retain artifact, then publish the single
+verified signed APK to the QA GitHub Release.
+
+## Manual QA acceptance after installing
+
+1. From Profile > Change password > Forgot current password, request
+   a reset; confirm the modal closes instead of covering the reset page.
+2. Open that email's verified link: Set a new password must be visible
+   immediately, without Cancel or Back.
+3. From signed-out Forgot password, confirm the same secure destination.
+4. Before submitting a new password (or after cancelling recovery),
+   the old password must still work.
+5. After a successful new-password submission, the old password must fail
+   and the new password must work; require reauthentication.
+6. Exercise invalid, expired, reused or wrong-environment links, password
+   policy rejection, English/Arabic and both QA Android phones.
+
+Do not deploy to Production, Google Play or TestFlight.
