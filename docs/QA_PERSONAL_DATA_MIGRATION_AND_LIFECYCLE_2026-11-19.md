@@ -59,3 +59,6 @@ The newest source also includes previous password validation/Cancel, resend conf
 
 ## Resumption gate
 Read this document and `docs/ONESPACE_PAIRING_SEPARATION_ARCHIVE_RESTORE_DECISIONS_2026-11-19.md` before modifying lifecycle RLS or enabling deletion. The **explicit user-initiated external download** (verified after physical write) is the only early archive cleanup trigger; app-private automatic copies never trigger deletion.
+
+## Private-record deletion semantics
+Added `0150_qa_personal_vault_delete_tombstones.sql`: deleting a personal item in normal operation marks its private Vault copy non-restorable and clears stored content, preventing an old deleted item from resurfacing later. The eventual vetted space-retirement transaction must explicitly set the guarded `onespace.retiring_space` session context to keep private snapshots while cascading legacy old-space rows. These protections are staged; no destructive QA member action has been enabled.
