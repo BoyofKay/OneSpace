@@ -133,6 +133,8 @@ test("orphan/foreign child data fails before it can generate a fake restore plan
     p=>{p.root.structured.space_id=nextSpace},
     p=>{p.root.source_id=tripId},
     p=>{p.children.unknown_injected_records=[]},
+    p=>{p.root.structured.unreviewed_future_column="unsafe"},
+    p=>{p.children.task_checklist_items[0].structured.injected_status="unsafe"},
     p=>{delete p.children.task_checklist_checks},
     p=>{p.children.task_checklist_items[0].structured.file_path="secret.jpg"},
     p=>{p.children.task_checklist_items[0].structured.title=
