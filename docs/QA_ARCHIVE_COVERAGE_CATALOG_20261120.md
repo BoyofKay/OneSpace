@@ -7,7 +7,7 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
 - **69 registered table types; 69 explicitly classified; ZERO awaiting policy classification.**
 - Root policies: 18 visibility-scoped private/shared content, 4 owner-private, 5 system-excluded and 7 member-shared types; **0 pending**.
-- Dependent policies: 23 parent-scoped private/shared types, 5 member-shared types, 4 media exclusions and 2 operational exclusions; **0 pending**.
+- Dependent policies: 24 parent-scoped private/shared types, 5 member-shared types, 4 media exclusions and 2 operational exclusions; **0 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
