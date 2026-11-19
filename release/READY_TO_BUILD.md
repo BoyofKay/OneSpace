@@ -1,47 +1,38 @@
-# OneSpace QA — safe lifecycle, archive privacy, and release source hardening (2026-11-19)
-
+# OneSpace QA — invitation handoff and environment isolation
 Require-Firebase-Config: true
 
-Build ONE signed Android QA APK, package `onespace.qa` against QA Supabase
-`ugwrpeduzyzrujkizqfo`. Do not deploy to Production, Play or TestFlight.
+## Build exactly one signed Android QA APK
+QA package: `onespace.qa`.
+Dart define: `ONESPACE_ENV=qa`.
+QA Supabase: `ugwrpeduzyzrujkizqfo`.
+This build MUST be from main containing merged PR #74.
 
-## Verified source
-The `main` branch includes the feature-complete R461 restoration, R462
-password-recovery navigation fix, and the merged QA hardening PR #73.
-The release workflow must pass its recovered-main ancestor guard and check
-required source files before building. Never publish from divergent branches.
+## Included and verified
+- Dedicated signup email confirmation page with resend and Sign in controls.
+- Invitation persists across signup, email confirmation and existing-account sign-in.
+- QA-only secure resolve for the intended recipient's replaced invitation, then
+  accept_invitation with verified email; forwarded/wrong-account code denied.
+- On unpaired sign-in show focused joining flow instead of three setup cards.
+- Precise failed-invitation messaging, retry and sign-in with correct email.
+- Android startup verifies installed package and backend target before Supabase.initialize.
+  Production package live.onespace.app cannot connect to QA and vice versa.
+- Android NDK SDK installation retries corrupt downloads and verifies revision.
 
-## Included QA fixes
-- My Space never calls QA-only lifecycle RPCs in Production.
-- My Archives remains accessible for unpaired QA users and stays hidden in
-  Production until the archive feature is implemented there.
-- Read-only safety check reports archived-copy progress and schema coverage
-  without disclosing the partner's private-record counts or raw table detail.
-- JSON account-data export is accurately described as unencrypted and not
-  containing media, and not equivalent to an encrypted separation archive.
-- Internal QA audit covers 35 dependent tables, correctly follows occasion
-  plan and task-checklist ownership, and flags invalid cross-space linkages.
-- Account deletion remains blocked and now uses caller privileges only.
-- CI source guard protects against another R462-type regression without
-  prohibiting legitimate future UI changes.
+## CI release gate
+- Locked dependencies, Flutter analyzer and all widget/unit tests.
+- Correct Firebase QA app, package ID, signed QA certificate and artifact.
+- Tag and asset must point to the exact triggering commit on main.
+- No Production DB changes, no user/space/invitation deletion.
+- No production AAB / Play deployment.
 
-## Required automated verification
-- `flutter pub get --enforce-lockfile`
-- `flutter analyze --no-fatal-infos` and `flutter test`
-- QA Firebase configuration and Android QA flavor
-- QA package name, known preview signing cert, signed APK artifact and
-  GitHub release matching the exact build commit.
-
-## Manual device acceptance after installing
-1. Profile: My Space, My Archives and Change password screens appear.
-2. Signed-in owner: prepare/cancel removal or space close (no real removal).
-3. Signed-in invited partner: prepare/cancel leave (no real leave).
-4. Solo account: owner actions shown correctly; My Archives remains reachable.
-5. Check separation readiness. No partner-private counts or raw records leaked.
-6. Verify correct invitation/QR/manual code, password recovery, Firebase push,
-   both test phones, original accounts and pairings.
-7. Confirm account/space deletion remains blocked while encrypted archive
-   generator, external recovery and private-only restoration are incomplete.
-
-No QA test users, spaces, memberships or storage files may be reset to
-pass these checks. Production Supabase remains untouched.
+## Device QA acceptance
+1. A invites B via email and receives an active code.
+2. New B opens invitation, creates an account, sees full Confirm email page,
+   confirms email, signs in, automatically joins A's existing space.
+3. Existing unpaired B follows invitation and signs in; same result.
+4. Older replaced link resolves ONLY if same verified recipient and same space.
+5. Wrong email, expired, revoked-with-no-replacement and already paired
+   show specific guidance; never join another account without permission.
+6. Confirmation email branding template must be activated separately under
+   QA Supabase Auth Email Templates (source committed, not deployed automatically).
+7. Both Android test devices, Firebase push and upgrade installation.
