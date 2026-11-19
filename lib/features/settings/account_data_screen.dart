@@ -136,7 +136,7 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
               const SizedBox(height: 6),
               Text(tt('A file with everything you created or received: notes, events, to-dos, '
                 'reminders, memories, letters, check-ins, trips and your settings. '
-                'Photos and documents stay in the app.')),
+                'This is a JSON export only. Photos, documents and voice files are not included. This is not an encrypted separation archive.')),
               const SizedBox(height: 10),
               FilledButton.tonalIcon(onPressed: exporting ? null : _export,
                 icon: exporting ? const SizedBox(width: 18, height: 18,
@@ -152,21 +152,13 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                 Expanded(child: Text(tt('Delete my account'), style: theme.textTheme.titleMedium)),
               ]),
               const SizedBox(height: 6),
-              Text(tt('What happens:')),
-              const SizedBox(height: 4),
-              for (final line in const [
-                'Your private items, photos, devices and settings are deleted.',
-                'Items you shared stay for your partner, shown as written by "Former partner".',
-                'You leave our space. Your partner keeps it.',
-                'You have 7 days to change your mind: sign in again and tap Keep my account.',
-              ]) Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('•  '), Expanded(child: Text(tt(line))),
-                ])),
+              Text(tt('Account deletion is temporarily unavailable until private/shared encrypted archives and secure separation are fully verified.')),
+              const SizedBox(height: 8),
+              Text(tt('Your account, partner membership and private data remain unchanged. The existing seven-day deletion policy will be reconnected after the secure workflow is ready.')),
               const SizedBox(height: 10),
-              OutlinedButton.icon(onPressed: busy ? null : _requestDeletion,
-                style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.error),
-                icon: const Icon(Icons.delete_forever_outlined), label: Text(tt('Delete my account'))),
+              OutlinedButton.icon(onPressed: null,
+                icon: const Icon(Icons.lock_outline),
+                label: Text(tt('Delete my account — preparing'))),
             ]))),
           if (message != null) Padding(padding: const EdgeInsets.only(top: 12),
             child: Text(tt(message!), style: theme.textTheme.bodyMedium)),
