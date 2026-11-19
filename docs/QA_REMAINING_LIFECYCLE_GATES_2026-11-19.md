@@ -17,6 +17,8 @@
   - `task_checklist_checks` — canonical non-null `task_id`; also has `item_id`.
 - The audit is deliberately **not an authorization to export**, since references across two parents need integrity constraints, and the per-user privacy/media lineage must be proven. `safe_to_export` always returns false.
 - **Privacy hardening migration 0155:** signed-in clients receive only schema-level dependency coverage, archive progress and generic blocker summaries—not the partner's private-record counts, root-table cardinalities or nested row detail. The internal scoped audit remains available for server-side verification.
+- **Cross-parent integrity migration 0157:** internal-only (never replaces the sanitized public RPC). Checks occasion budgets against optional activity/component references, budget logs vs items, proposal items vs budget plans, checklist checks vs their items, and legacy tasks vs current task relationships. Synthetic cross-space relationship regression passes; all rows rolled back.
+- **P0 access hardening migration 0156:** blocked QA account deletion runs as `SECURITY INVOKER`; anonymous users cannot execute it. Security advisor authenticated privileged-function warning count fell from 20 to 19. All real account-deletion operations remain blocked.
 - QA SQL regression: inserted a temporary private activity + nested comment, verified count and cross-space isolation; inserted an occasion budget item **without a source activity**, verified it still resolves to its plan; all tests explicitly rolled back. Anonymous RPC execution denied.
 
 ## Still unfinished / must not be represented as complete
