@@ -274,7 +274,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                 await _client.auth.resetPasswordForEmail(
                                   email, redirectTo: oneSpaceAuthRedirectTo);
                                 requestAccepted = true;
-                                if (dialogContext.mounted) {
+                                if (dialogContext.mounted &&
+                                    ModalRoute.of(dialogContext)?.isCurrent == true) {
                                   Navigator.of(dialogContext).pop();
                                 }
                                 if (mounted) {
