@@ -1,5 +1,5 @@
 -- QA-only temporary maintenance listing. It never deletes Storage metadata.
--- Callable solely by service_role; refuses if any application records exist.
+-- Callable solely by service_role; refuses if any content or attachment records exist; harmless live settings remain.
 create or replace function public.qa_storage_cleanup_manifest_service()
 returns table(bucket_id text,object_path text)
 language plpgsql security invoker set search_path to '' as $$
@@ -13,7 +13,7 @@ begin
   for t in
     select tablename from pg_catalog.pg_tables
     where schemaname='public' and tablename not in
-       ('profiles','spaces','space_members')
+       ('profiles','spaces','space_members','push_devices','space_holiday_sources')
   loop
     execute format('select exists(select 1 from public.%I)',t.tablename)
       into live_rows;
