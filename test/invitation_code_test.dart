@@ -21,4 +21,27 @@ void main() {
     expect(normalizedInvitationCode(invitationMessage(code)), code);
     expect(normalizedInvitationCode('Code: ${code}ff'), isNull);
   });
+  test('Same invitation code is embedded in a reusable HTTPS link', () {
+    const code = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+    final url = invitationWebLink(code);
+    expect(url.scheme, 'https');
+    expect(url.host, 'onespace.live');
+    expect(invitationCodeFromUri(url), code);
+    expect(normalizedInvitationCode(invitationMessage(code)), code);
+    expect(invitationMessage(code, email: true), contains('Google Play:'));
+    expect(invitationMessage(code, email: true), contains('App Store:'));
+    expect(invitationMessage(code, email: true), contains(url.toString()));
+  });
+
+  test('QA and Production invitation deep links stay separate', () {
+    const code = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+    expect(invitationCodeFromUri(invitationAppLink(code), qa: false), code);
+    expect(invitationCodeFromUri(invitationAppLink(code, qa: true), qa: true), code);
+    expect(invitationCodeFromUri(invitationWebLink(code, qa: true), qa: true), code);
+    expect(invitationCodeFromUri(invitationWebLink(code, qa: true)), isNull);
+    expect(invitationCodeFromUri(invitationAppLink(code), qa: true), isNull);
+    expect(invitationCodeFromUri(Uri.parse('https://untrusted.example/app-invite/?code=$code')), isNull);
+    expect(invitationCodeFromUri(Uri.parse('https://onespace.live/app-invite/?code=bad')), isNull);
+  });
+
 }
