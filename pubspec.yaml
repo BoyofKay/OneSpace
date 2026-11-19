@@ -55,6 +55,7 @@ dependencies:
   timezone: 0.11.2
   flutter_timezone: 5.1.1
   http: 1.6.0
+  crypto: 3.0.8 # Validate encrypted archive SHA-256 before saving or purging
   flutter_map: ^8.1.0 # R78: our places on a map (OpenStreetMap)
   latlong2: ^0.9.1
   qr_flutter: ^4.1.0 # R73: invitation QR code
