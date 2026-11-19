@@ -171,6 +171,17 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       body: SafeArea(child: _loading
         ? const Center(child: CircularProgressIndicator())
         : ListView(padding: const EdgeInsets.all(20), children: [
+          // Keep archive access after leaving or deleting a space. An unpaired
+          // member must still be able to save their own verified archives.
+          ListTile(
+            leading: const Icon(Icons.folder_zip_outlined),
+            title: Text(tt('My Archives')),
+            subtitle: Text(tt('Verified copies, when available, belong to your account')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(builder: (_) => const MyArchivesScreen())),
+          ),
+          const Divider(),
           if (_spaceName == null && _error == null)
             Card(child: Padding(
               padding: const EdgeInsets.all(16),
@@ -198,15 +209,6 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               leading: const Icon(Icons.people_outline),
               title: Text(tt('Members')),
               trailing: Text('$_members / 2'),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.folder_zip_outlined),
-              title: Text(tt('My Archives')),
-              subtitle: Text(tt('Your encrypted backups and download status')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const MyArchivesScreen())),
             ),
             const Divider(),
             Text(tt('Space separation'), style: theme.textTheme.titleMedium),
