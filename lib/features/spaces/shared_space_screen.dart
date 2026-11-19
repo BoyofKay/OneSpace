@@ -661,6 +661,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                 },
               ),
           ]),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.email_outlined),
+            label: Text(tt('Email')),
+            onPressed: () => showInvitationEmailDialog(
+              this.context, token: token, spaceId: spaceId!),
+          ),
           TextButton.icon(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text:
@@ -1234,12 +1240,6 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             )
           else if (!membershipResolved && spaceId == null) ...[
             Text(tr(context, 'loadedError')),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.email_outlined),
-              label: Text(tt('Email')),
-              onPressed: () => showInvitationEmailDialog(
-                this.context, token: token, spaceId: spaceId!),
-            ),
             TextButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh),
