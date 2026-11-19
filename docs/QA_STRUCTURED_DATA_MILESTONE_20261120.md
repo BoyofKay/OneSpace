@@ -25,6 +25,9 @@
 - [ ] Roughly 35 related FK tables, system/shared-only types and multi-parent associations require complete ownership classification.
 
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
+- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 20 approved, 49 pending; 3 known media types excluded.
+- [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
+- [ ] Explicitly classify the remaining 17 root and 32 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
 - [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization.
 - [ ] Portable encrypted archive download, durable server-held copy and retention policy; downloaded file is the external copy.
 - [ ] Prove authorized **private** restore into a new relationship with ID/FK remapping and deduplication; shared-history archive is reference-only.
