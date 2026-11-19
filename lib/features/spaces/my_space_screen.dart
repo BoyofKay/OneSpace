@@ -20,6 +20,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   String? _spaceName;
   bool _checking = false;
   Map<String,dynamic>? _readiness;
+  Map<String,dynamic>? _personalVault;
 
   @override
   void initState() {
@@ -58,9 +59,13 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
     setState(() { _checking = true; _error = null; });
     try {
       final result = await _db.rpc('space_separation_preflight');
-      if (mounted) setState(() =>
+      final vault = await _db.rpc('my_personal_vault_status');
+      if (mounted) setState(() {
         _readiness = result is Map
-          ? Map<String,dynamic>.from(result) : null);
+          ? Map<String,dynamic>.from(result) : null;
+        _personalVault = vault is Map
+          ? Map<String,dynamic>.from(vault) : null;
+      });
     } catch (_) {
       if (mounted) setState(() => _error =
         tt('Unable to complete the read-only data safety check.'));
@@ -137,6 +142,14 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 Text('${tt('Space-linked records')}: ${_readiness!['space_linked_records'] ?? '—'}'),
                 Text('${tt('My private records detected')}: ${_readiness!['private_records_owned_by_me'] ?? '—'}'),
                 Text('${tt('Shared records detected')}: ${_readiness!['nonprivate_records'] ?? '—'}'),
+                const SizedBox(height: 8),
+                if (_personalVault != null) ...[
+                  Text(tt('My protected private records') +
+                    ': ${_personalVault!['primary_private_records'] ?? '—'}'),
+                  Text(tt('My protected related records') +
+                    ': ${_personalVault!['owned_related_records'] ?? '—'}'),
+                ],
+                const SizedBox(height: 8),
                 Text(tt('Nothing was deleted or moved by this check.')),
               ]),
             )),
