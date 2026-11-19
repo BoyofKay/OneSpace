@@ -60,6 +60,14 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             _recovery = true;
             _locked = false;
           });
+          // Verified Supabase recovery callback: remove Profile and other
+          // routes so that ResetPasswordScreen is immediately visible.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_recovery ||
+                Supabase.instance.client.auth.currentSession == null) return;
+            Navigator.of(context, rootNavigator: true)
+                .popUntil((route) => route.isFirst);
+          });
         } else if (state.event == AuthChangeEvent.signedOut) {
           // Never reuse an earlier account's partner identity or space ID.
           CurrentSpaceCache.instance.clear();
