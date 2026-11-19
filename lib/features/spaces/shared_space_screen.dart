@@ -330,6 +330,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
       } else {
         final data = Map<String, dynamic>.from(result as Map);
+        // Some older server versions returned an empty/unpaired object
+        // instead of JSON null. Either shape must reach the same
+        // single invitation handoff, not three unrelated setup cards.
+        if (data['space_id'] == null) {
+          CurrentSpaceCache.instance.seed(client.auth.currentUser!.id, null);
+          await prefs.remove(_cacheKey);
+          if (!mounted || request != _requestVersion) return;
+          _apply(null,seenBefore:null);
+          if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
+          return;
+        }
         final seen=DateTime.tryParse(await prefs.getString(_seenKey)??'');
         if(!mounted||request!=_requestVersion)return;
         _apply(data,seenBefore:seen);
@@ -582,12 +593,19 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           if (normalizedInvitationCode(resolved) == null) {
             throw StateError('Invitation validation could not complete. Try again.');
           }
+        } else if (status == 'already_joined') {
+          // The membership was accepted on another device / a previous
+          // attempt. Do not strand the user on an obsolete invite error.
+          await InvitationLinkInbox.instance.clear();
+          invitationController.clear();
+          _lastAutoJoinKey = null;
+          if (mounted) await _load();
+          return;
         } else {
           final message = switch (status) {
             'wrong_account' => 'This invitation belongs to another email address. Sign out and sign in with the invited email.',
             'confirm_email' => 'Confirm your account email before accepting this invitation.',
             'already_paired' => 'Your account already belongs to a space. You cannot join a second space.',
-            'already_joined' => 'You already joined this space. Refresh your Today screen.',
             'expired' => 'This invitation has expired. Ask your partner to send a new one.',
             'replaced' => 'This invitation was replaced. Ask your partner for their latest invitation link.',
             'already_used' => 'This invitation has already been accepted. Ask for a new invitation if needed.',
@@ -1127,7 +1145,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null) ...[
             _panel(
               tt('Joining your partner’s OneSpace'),
-              tt('Your invitation is saved. We will verify that it belongs to your signed-in email, then join you to your partner’s existing space. Do not create another space.'),
+              tt('Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'),
               Icons.mark_email_read_outlined,
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 if (working) ...[
@@ -1139,10 +1157,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   Text(tt(issue!), style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   const SizedBox(height: 10),
                 ],
+                Text(tt('Signed in as: ${client.auth.currentUser?.email ?? 'unknown'}'),
+                  style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 12),
                 FilledButton.icon(
+                  key: const Key('completePendingInvitation'),
                   onPressed: working ? null : () => _autoJoinPending(retry: true),
-                  icon: const Icon(Icons.refresh),
-                  label: Text(tt('Retry joining your partner')),
+                  icon: Icon(issue == null ? Icons.people_alt_outlined : Icons.refresh),
+                  label: Text(tt(issue == null
+                      ? 'Join your partner’s space'
+                      : 'Retry joining your partner')),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
