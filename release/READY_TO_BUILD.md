@@ -15,3 +15,8 @@ Included:
 - Prior QA archive-retention and read-only separation safety gates remain unchanged
 
 QA tests: run lockfile dependency resolution, Flutter analyze, unit tests, signed QA package and package ID/certificate verification. No publishing to Play or Production.
+
+## QA/Production link isolation correction
+- QA invitations use /qa-invite/ (not /app-invite/?env=qa) so verified Android links cannot steal Production invitations.
+- QA branded email service deployed with the new path; website contains a QA-only landing fallback.
+- Production email links stay /app-invite/. Legacy QA links remain manually parseable where received.
