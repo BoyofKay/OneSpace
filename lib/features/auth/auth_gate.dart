@@ -426,7 +426,7 @@ class _SignInScreenState extends State<SignInScreen> {
       );
     }
     if (awaitingConfirmation) {
-      return _ConfirmEmailStep(
+      return ConfirmEmailStep(
         email: emailController.text.trim().toLowerCase(),
         pendingInvitation: InvitationLinkInbox.instance.pendingCode != null,
         loading: loading,
@@ -655,8 +655,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
 /// Step 2 of signup. This is deliberately a full screen, not a message
 /// underneath the still-active Create Account form.
-class _ConfirmEmailStep extends StatelessWidget {
-  const _ConfirmEmailStep({
+class ConfirmEmailStep extends StatelessWidget {
+  const ConfirmEmailStep({
     required this.email,
     required this.pendingInvitation,
     required this.loading,
