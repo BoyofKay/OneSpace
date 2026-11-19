@@ -45,6 +45,13 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="${authScheme}" android:host="auth-callback"/>
             </intent-filter>
+            <!-- Invitation deep links use the environment's existing scheme. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="${authScheme}" android:host="invite"/>
+            </intent-filter>
             <!-- Optional user-initiated Share -> OneSpace for browser/shop links. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
