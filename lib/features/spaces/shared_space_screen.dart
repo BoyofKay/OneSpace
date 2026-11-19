@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'invitation_code.dart';
+import 'invitation_email_dialog.dart';
 import 'invitation_link_inbox.dart';
 import '../../core/app_env.dart';
 import 'invitation_qr.dart';
@@ -630,24 +631,19 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             for (final way in const [
               ('whatsapp', Icons.chat_outlined, 'WhatsApp'),
               ('sms', Icons.sms_outlined, 'Text message'),
-              ('email', Icons.email_outlined, 'Email'),
             ])
               OutlinedButton.icon(
                 icon: Icon(way.$2, size: 18),
                 label: Text(tt(way.$3)),
                 onPressed: () async {
                   final message = invitationMessage(token,
-                      qa: !OneSpaceEnv.isProduction,
-                      email: way.$1 == 'email');
+                      qa: !OneSpaceEnv.isProduction);
                   final uri = switch (way.$1) {
                     'whatsapp' => Uri.parse(
                       'https://wa.me/?text=${Uri.encodeComponent(message)}'),
                     'sms' => Uri.parse(
                       'sms:?body=${Uri.encodeComponent(message)}'),
-                    _ => Uri(scheme: 'mailto', queryParameters: {
-                      'subject': 'A little space for us — OneSpace invitation',
-                      'body': message,
-                    }),
+                    _ => Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}'),
                   };
                   try {
                     final opened = await launchUrl(uri,
@@ -1238,6 +1234,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             )
           else if (!membershipResolved && spaceId == null) ...[
             Text(tr(context, 'loadedError')),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.email_outlined),
+              label: Text(tt('Email')),
+              onPressed: () => showInvitationEmailDialog(
+                this.context, token: token, spaceId: spaceId!),
+            ),
             TextButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh),
