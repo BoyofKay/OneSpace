@@ -13,6 +13,8 @@ on:
       - 'supabase/functions/_shared/structured_archive_crypto.mjs'
       - 'supabase/functions/onespace-qa-structured-preview/index.ts'
       - 'supabase/tests/qa_archive_staging_handler.test.mjs'
+      - 'supabase/functions/onespace-archive-janitor/index.ts'
+      - 'supabase/tests/qa_preview_janitor_handler.test.mjs'
       - '.github/workflows/qa-archive-ciphertext-integrity.yml'
   pull_request:
     paths:
@@ -22,6 +24,8 @@ on:
       - 'supabase/functions/_shared/structured_archive_crypto.mjs'
       - 'supabase/functions/onespace-qa-structured-preview/index.ts'
       - 'supabase/tests/qa_archive_staging_handler.test.mjs'
+      - 'supabase/functions/onespace-archive-janitor/index.ts'
+      - 'supabase/tests/qa_preview_janitor_handler.test.mjs'
       - '.github/workflows/qa-archive-ciphertext-integrity.yml'
 permissions:
   contents: read
@@ -35,4 +39,4 @@ jobs:
         with:
           node-version: '22'
       - name: Mock Auth, archive registry and Storage; verify actual ciphertext
-        run: node --experimental-strip-types --test supabase/tests/archive_download_integrity.test.mjs supabase/tests/archive_envelope_crypto.test.mjs supabase/tests/qa_archive_staging_handler.test.mjs
+        run: node --experimental-strip-types --test supabase/tests/archive_download_integrity.test.mjs supabase/tests/archive_envelope_crypto.test.mjs supabase/tests/qa_archive_staging_handler.test.mjs supabase/tests/qa_preview_janitor_handler.test.mjs
