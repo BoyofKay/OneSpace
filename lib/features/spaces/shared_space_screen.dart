@@ -1098,7 +1098,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ])),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:8),
-          if (issue != null) ...[
+          if (issue != null &&
+              !(spaceId == null && InvitationLinkInbox.instance.pendingCode != null)) ...[
             Text(tt(issue!), style:TextStyle(color:theme.colorScheme.error)),
             const SizedBox(height: 12),
           ],
