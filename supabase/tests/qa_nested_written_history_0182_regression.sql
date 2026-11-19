@@ -5,8 +5,8 @@ declare
   sid uuid; owner_user uuid; partner_user uuid; outsider uuid;
   mid uuid; tid uuid; cid uuid;
   p jsonb; q jsonb; text_value text; msg text;
-  trip_rev bigint:=-9000000000192;
-  contact_rev bigint:=-9000000000292;
+  trip_rev bigint;
+  contact_rev bigint;
 begin
   select s.id,s.created_by,m.user_id into sid,owner_user,partner_user
    from public.spaces s join public.space_members m
@@ -28,20 +28,22 @@ begin
   insert into public.shared_trips(space_id,created_by,title,visibility)
    values(sid,owner_user,'QA original trip','private')
    returning id into tid;
-  insert into public.trip_revisions(id,trip_id,record_kind,record_id,changed_by,
+  insert into public.trip_revisions(trip_id,record_kind,record_id,changed_by,
     before_snapshot,after_snapshot)
-   values(trip_rev,tid,'trip',tid,owner_user,
+   values(tid,'trip',tid,owner_user,
      '{"title":"Before","photo_1_id":"77777777-2222-4333-8444-555555555555"}'::jsonb,
-     '{"title":"After the trip","notes":"Look at /storage/v1/object/public/secret.jpg"}'::jsonb);
+     '{"title":"After the trip","notes":"Look at /storage/v1/object/public/secret.jpg"}'::jsonb)
+   returning id into trip_rev;
 
   insert into public.saved_contacts(space_id,created_by,visibility,label,payload)
    values(sid,owner_user,'private','QA family member','{"phone":"123"}'::jsonb)
    returning id into cid;
-  insert into public.saved_contact_revisions(id,contact_id,change_kind,changed_by,
+  insert into public.saved_contact_revisions(contact_id,change_kind,changed_by,
     old_payload,new_payload)
-   values(contact_rev,cid,'edited',owner_user,
+   values(cid,'edited',owner_user,
      '{"note":"Old memorable line","image_2_id":"88888888-2222-4333-8444-555555555555"}'::jsonb,
-     '{"note":"New family detail","photo_url":"https://example.org/storage/v1/object/x"}'::jsonb);
+     '{"note":"New family detail","photo_url":"https://example.org/storage/v1/object/x"}'::jsonb)
+   returning id into contact_rev;
   if has_function_privilege('anon',
     'private.qa_nested_written_history_preview(text,uuid)','execute') then
     raise exception 'Anonymous written-history function callable';end if;
