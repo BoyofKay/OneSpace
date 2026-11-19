@@ -10,6 +10,7 @@ import '../../core/device_weather_service.dart';
 import '../../core/shared_weather.dart';
 import '../../core/weather_city_picker.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../spaces/my_space_screen.dart';
 
 /// Personal settings belong to an individual account, not to the shared space.
 class ProfileSettingsScreen extends StatefulWidget {
@@ -568,6 +569,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
         if(!widget.settingsOnly)...[
         const SizedBox(height: 22),
+        const Divider(),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.group_outlined),
+          title: Text(tt('My Space')),
+          subtitle: Text(tt('Partner, leaving and space deletion')),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(builder: (_) => const MySpaceScreen())),
+        ),
         const Divider(),
         ListTile(
           contentPadding: EdgeInsets.zero,
