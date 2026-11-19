@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../../core/auth_redirect.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
@@ -207,103 +208,174 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  /// Never retrieve or persist the current password in OneSpace storage.
+  /// The OS password manager owns autofill; Supabase owns verification/reset.
   Future<void> _changePassword() async {
+    final email = _client.auth.currentUser?.email;
+    final account = TextEditingController(text: email ?? '');
     final current = TextEditingController();
     final next = TextEditingController();
     final confirmation = TextEditingController();
     String? dialogError;
     bool busy = false;
+    bool resetSent = false;
     try {
       await showDialog<void>(
         context: context,
-        builder: (dialogContext) {
-          return StatefulBuilder(
-            builder: (dialogContext, updateDialog) => AlertDialog(
-              title: Text(tr(context, 'changePassword')),
-              content: SingleChildScrollView(
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, updateDialog) => AlertDialog(
+            title: Text(tr(context, 'changePassword')),
+            content: SingleChildScrollView(
+              child: AutofillGroup(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(tt('Google Password Manager or your phone password manager can fill the current password when you tap the field. OneSpace cannot view your saved passwords.'),
+                      style: Theme.of(dialogContext).textTheme.bodySmall),
+                    const SizedBox(height: 12),
+                    // A username in the same autofill group helps the system
+                    // match a credential to this account, without reading it.
+                    TextField(
+                      controller: account,
+                      readOnly: true,
+                      autofillHints: const [AutofillHints.username, AutofillHints.email],
+                      decoration: InputDecoration(
+                        labelText: tt('Account email'),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: current,
                       obscureText: true,
-                      decoration: InputDecoration(labelText: tt('Current password')),
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      autofillHints: const [AutofillHints.password],
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: tt('Current password'),
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.mark_email_unread_outlined, size: 18),
+                        label: Text(tt('Forgot current password? Send a reset email')),
+                        onPressed: busy || resetSent || email == null
+                          ? null
+                          : () async {
+                              updateDialog(() { busy = true; dialogError = null; });
+                              try {
+                                await _client.auth.resetPasswordForEmail(
+                                  email, redirectTo: oneSpaceAuthRedirectTo);
+                                if (dialogContext.mounted) {
+                                  updateDialog(() { resetSent = true; });
+                                }
+                              } on AuthException catch (error) {
+                                if (dialogContext.mounted) {
+                                  updateDialog(() => dialogError = error.message);
+                                }
+                              } catch (_) {
+                                if (dialogContext.mounted) {
+                                  updateDialog(() => dialogError =
+                                    'Could not send a reset email. Please retry.');
+                                }
+                              } finally {
+                                if (dialogContext.mounted) {
+                                  updateDialog(() => busy = false);
+                                }
+                              }
+                            },
+                      ),
+                    ),
+                    if (resetSent)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(tt('If this account can receive email, a recovery link has been sent. Open the link on this phone to choose a new password without the old one.'),
+                          style: TextStyle(color: Theme.of(dialogContext).colorScheme.primary)),
+                      ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: next,
                       obscureText: true,
-                      decoration: InputDecoration(labelText: tt('New password (8+ characters)')),
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      autofillHints: const [AutofillHints.newPassword],
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: tt('New password (8+ characters)'),
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: confirmation,
                       obscureText: true,
-                      decoration: InputDecoration(labelText: tt('Confirm new password')),
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(
+                        labelText: tt('Confirm new password'),
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
                     if (dialogError != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Text(tt(dialogError!),
-                            style: const TextStyle(color: Colors.red)),
+                          style: TextStyle(color: Theme.of(dialogContext).colorScheme.error)),
                       ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: busy ? null : () => Navigator.pop(dialogContext),
-                  child: Text(tt('Cancel')),
-                ),
-                FilledButton(
-                  onPressed: busy
-                      ? null
-                      : () async {
-                          if (current.text.isEmpty ||
-                              next.text.length < 8 ||
-                              next.text != confirmation.text) {
-                            updateDialog(() => dialogError =
-                                'Check your current password, new password length and confirmation.');
-                            return;
-                          }
-                          updateDialog(() {
-                            busy = true;
-                            dialogError = null;
-                          });
-                          try {
-                            await _client.auth.updateUser(
-                              UserAttributes(
-                                currentPassword: current.text,
-                                password: next.text,
-                              ),
-                            );
-                            if (!dialogContext.mounted) return;
-                            Navigator.pop(dialogContext);
-                            if (mounted) {
-                              setState(() => _status = 'Password updated.');
-                            }
-                          } on AuthException catch (e) {
-                            if (dialogContext.mounted) {
-                              updateDialog(() => dialogError = e.message);
-                            }
-                          } catch (_) {
-                            if (dialogContext.mounted) {
-                              updateDialog(() =>
-                                  dialogError = 'Unable to change password.');
-                            }
-                          } finally {
-                            if (dialogContext.mounted) {
-                              updateDialog(() => busy = false);
-                            }
-                          }
-                        },
-                  child: Text(tt('Update')),
-                ),
-              ],
             ),
-          );
-        },
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.pop(dialogContext),
+                child: Text(tt('Cancel')),
+              ),
+              FilledButton(
+                onPressed: busy ? null : () async {
+                  if (current.text.isEmpty ||
+                      next.text.length < 8 ||
+                      next.text != confirmation.text) {
+                    updateDialog(() => dialogError =
+                      'Check your current password, new password length and confirmation.');
+                    return;
+                  }
+                  updateDialog(() { busy = true; dialogError = null; });
+                  try {
+                    await _client.auth.updateUser(UserAttributes(
+                      currentPassword: current.text,
+                      password: next.text,
+                    ));
+                    if (!dialogContext.mounted) return;
+                    Navigator.pop(dialogContext);
+                    if (mounted) setState(() => _status = 'Password updated.');
+                  } on AuthException catch (error) {
+                    if (dialogContext.mounted) {
+                      updateDialog(() => dialogError = error.message);
+                    }
+                  } catch (_) {
+                    if (dialogContext.mounted) {
+                      updateDialog(() => dialogError =
+                        'Unable to change password.');
+                    }
+                  } finally {
+                    if (dialogContext.mounted) updateDialog(() => busy = false);
+                  }
+                },
+                child: Text(tt(busy ? 'Updating...' : 'Update password')),
+              ),
+            ],
+          ),
+        ),
       );
     } finally {
-      // The inputs are short-lived and are never stored in app state.
+      // Short-lived controllers; no credentials written to app preferences.
+      account.dispose();
       current.dispose();
       next.dispose();
       confirmation.dispose();

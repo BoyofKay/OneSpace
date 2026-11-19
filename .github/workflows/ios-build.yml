@@ -1,26 +1,33 @@
-name: Build OneSpace for iPhone (unsigned)
+name: Build OneSpace for iPhone (unsigned QA and Production)
 
-# R63: proves the iOS app compiles (Swift channels, plugins, Info.plist).
-# Signing and TestFlight need Ahmed's Apple Developer account — see docs/IOS_SETUP.md.
-# R65: manual only — Mac runners cost ~10x normal minutes on a private repo.
-# Run it from Actions → "Build OneSpace for iPhone (unsigned)" → Run workflow.
+# Unsigned compile-only archives. TestFlight/IPA distribution still needs
+# Apple Developer signing, provisioning, and App Store Connect credentials.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'release/READY_TO_BUILD.md'
 
 permissions:
   contents: read
 
 concurrency:
   group: onespace-ios-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   ios:
+    name: iOS unsigned ${{ matrix.environment }}
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [qa, production]
     steps:
       - uses: actions/checkout@v4
-      - name: Use the newest Xcode (Firebase needs Swift 6.2)
+      - name: Use the newest available Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
@@ -29,26 +36,41 @@ jobs:
           flutter-version: '3.50.0'
           channel: stable
           cache: true
-      - name: Dependencies
+      - name: Resolve locked dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Firebase config (optional)
+      - name: Ensure QA and Production iOS IDs are distinct
+        shell: bash
+        run: |
+          if [ "${{ matrix.environment }}" = qa ]; then
+            sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.onespace.onespace;/PRODUCT_BUNDLE_IDENTIFIER = com.onespace.onespace.qa;/g' ios/Runner.xcodeproj/project.pbxproj
+            /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName OneSpace QA" ios/Runner/Info.plist
+          fi
+      - name: Firebase iOS configuration (optional)
         env:
           IOS_GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
         run: |
-          if [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST" ]; then
-            echo "$IOS_GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
-            echo "Firebase config added."
+          if [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST" ] && [ "${{ matrix.environment }}" = production ]; then
+            printf '%s' "$IOS_GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
           else
-            echo "No iOS Firebase config yet — push stays off; the app still builds."
+            echo "::notice::No matching Firebase plist. Push notifications require later iOS configuration."
           fi
-      - name: Build (no code signing)
-        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }} --dart-define=ONESPACE_VERSION=ios-${{ github.run_number }}
-      - name: Package
+      - name: Compile iOS ${{ matrix.environment }} (no code signing)
+        shell: bash
         run: |
+          flutter build ios --release --no-codesign \
+            --build-number=${{ github.run_number }} \
+            --dart-define=ONESPACE_ENV=${{ matrix.environment }} \
+            --dart-define=ONESPACE_VERSION=ios-${{ matrix.environment }}-${{ github.run_number }}
+      - name: Package verified unsigned archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d build/ios/iphoneos/Runner.app
           cd build/ios/iphoneos
-          zip -qry OneSpace-unsigned.zip Runner.app
+          zip -qry OneSpace-${{ matrix.environment }}-unsigned.zip Runner.app
       - uses: actions/upload-artifact@v4
         with:
-          name: OneSpace-ios-unsigned-${{ github.run_number }}
-          path: build/ios/iphoneos/OneSpace-unsigned.zip
+          name: OneSpace-iOS-${{ matrix.environment }}-UNSIGNED-${{ github.run_number }}
+          path: build/ios/iphoneos/OneSpace-${{ matrix.environment }}-unsigned.zip
+          if-no-files-found: error
           retention-days: 14

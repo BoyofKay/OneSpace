@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'core/app_env.dart';
+import 'features/spaces/invitation_link_inbox.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
 import 'features/settings/account_data_screen.dart';
@@ -72,6 +73,7 @@ Future<void> main() async {
   // session. Previously OneSpace displayed a blank startup while awaiting
   // Supabase.initialize(), which can be slow on a remote region.
   runApp(OneSpaceBootstrap(startupClock: timer));
+  unawaited(InvitationLinkInbox.instance.start());
   // Appearance loads without blocking the first frame or auth restoration.
   OneSpaceAppearance.instance.load();
   WeatherUnitPreference.instance.load();

@@ -37,6 +37,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>onespace-preview</string>
+				<string>onespace</string>
 			</array>
 		</dict>
 	</array>
