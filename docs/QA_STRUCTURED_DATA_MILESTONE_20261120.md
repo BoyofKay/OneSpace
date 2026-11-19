@@ -26,11 +26,12 @@
 - [x] QA 0171–0172: owner-private task checklist items and per-user completion checks are now mirrored with tombstones on deletion, shared/private transition resync and partner-authorship denial (rollback regression PASSED).
 - [x] QA 0173: explicitly classified both task checklist child types after ownership tests: archive catalog **43/69 approved; 26 pending**.
 - [x] QA 0174: read-only owner-only private checklist package preview includes task, items, checks and deterministic SHA-256; partner denial, tampering and partner-authored shared-history conflict fail closed (rollback regression PASSED). Not encrypted or restorable.
+- [x] QA 0175: reviewed and excluded transient `activity_attention_snoozes` and `scrapbook_invites` operational state, preventing old snoozes and obsolete collaboration permissions from restoring into a new relationship. Regression passed. **45/69 approved, 24 pending (4 root, 20 dependent)**.
 - [ ] Personal Vault remains a shadow of the space-linked source tables, not canonical cutover.
 - [ ] Roughly 35 related FK tables, system/shared-only types and multi-parent associations require complete ownership classification.
 
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
-- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 43 approved, 26 pending; 4 known media types excluded.
+- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 45 approved, 24 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
 - [x] Migration 0165: five RLS-verified shared roots classified; Love Letters drafts and sealed until-open dates explicitly remain blocked.
 - [ ] Explicitly classify the remaining 4 root and 22 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
