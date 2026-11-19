@@ -7,6 +7,8 @@ declare
   pair_owner uuid := 'fe29186f-8eb7-4d76-9c40-2d113f921cd7';
   other_owner uuid := '937e362d-6457-4fe2-b8cd-abad7157a015';
   activity_id uuid;
+  task_id uuid;
+  item_id uuid;
   me jsonb;
   other jsonb;
   client jsonb;
@@ -25,6 +27,14 @@ begin
   returning id into activity_id;
   insert into public.activity_comments(activity_id,author_id,body)
   values(activity_id,pair_owner,'Temporary FK comment');
+  insert into public.tasks(space_id,created_by,title,visibility)
+  values(pair_space,pair_owner,'Temporary checklist audit','private')
+  returning id into task_id;
+  insert into public.task_checklist_items(task_id,created_by,title)
+  values(task_id,pair_owner,'Temporary subtask')
+  returning id into item_id;
+  insert into public.task_checklist_checks(item_id,task_id,cycle_date,user_id)
+  values(item_id,task_id,current_date,pair_owner);
   perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claim.sub',pair_owner::text,true);
   me:=private.space_archive_dependency_inventory();
@@ -40,6 +50,14 @@ begin
   if actual is distinct from 1 then
     raise exception 'Nested comment count incorrect: %', actual;
   end if;
+  select (e->>'records')::bigint into actual
+    from jsonb_array_elements(me->'details') e
+    where e->>'table'='task_checklist_items';
+  if actual is distinct from 1 then raise exception 'Checklist child omitted: %',actual; end if;
+  select (e->>'records')::bigint into actual
+    from jsonb_array_elements(me->'details') e
+    where e->>'table'='task_checklist_checks';
+  if actual is distinct from 1 then raise exception 'Checklist check omitted: %',actual; end if;
   if (me->>'dependent_tables_inspected')::int < 30
     or me->>'safe_to_export' <> 'false' then
     raise exception 'Missing dependent table coverage or unsafe export gate: %',me;
