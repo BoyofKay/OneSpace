@@ -58,12 +58,25 @@ Deno.serve(async(req)=>{
   // check alone would accept a same-length replacement, and the registry
   // could point to an object replaced after its original verification.
   // Archive bucket caps objects at 50 MiB, so read/verify at most that much.
-  let ciphertext:Uint8Array;
+  // Read the Storage stream into a *bounded* buffer. Never trust missing,
+  // false, or attacker-controlled Content-Length to allocate unlimited data.
+  const ciphertext=new Uint8Array(expectedBytes);
+  let received=0;
+  const reader=asset.body.getReader();
   try{
-    const content=new Uint8Array(await asset.arrayBuffer());
-    if(content.byteLength!==expectedBytes)return json(409,"Archive bytes no longer match verified metadata");
-    ciphertext=content;
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      if(received+value.byteLength>expectedBytes){
+        await reader.cancel();
+        return json(409,"Archive bytes no longer match verified metadata");
+      }
+      ciphertext.set(value,received);
+      received+=value.byteLength;
+    }
   }catch{return json(503,"Archive file could not be verified");}
+  if(received!==expectedBytes)
+    return json(409,"Archive bytes no longer match verified metadata");
   const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",ciphertext));
   const actualSha=Array.from(digest,x=>x.toString(16).padStart(2,"0")).join("");
   if(actualSha!==archive.ciphertext_sha256)
