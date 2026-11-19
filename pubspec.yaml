@@ -43,6 +43,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: 2.18.3
   url_launcher: 6.3.3
+  app_links: 7.2.2 # Verified website links and native invitation URI handling
   image_picker: 1.2.4
   flutter_quill: 11.6.0 # Notes 2.0 WYSIWYG editor, pinned
   firebase_core: 5.1.0
