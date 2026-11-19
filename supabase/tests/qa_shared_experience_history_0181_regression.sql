@@ -72,8 +72,7 @@ begin
    or not (as_b#>'{comments,1,structured}' ? 'reply_to')
  then raise exception 'B lost own archived comment or reply lineage';end if;
 
- select u.id into outsider from auth.users u where u.id not in
-  (select user_id from public.space_members where space_id=sid) limit 1;
+
  if outsider is not null then
    perform set_config('request.jwt.claim.sub',outsider::text,true);
    begin
