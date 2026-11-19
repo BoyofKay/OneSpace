@@ -27,9 +27,8 @@ function storePanel(url:string,kind:"play"|"apple"):string{
 }
 function renderEmail(name:string,code:string,expiresAt:string,isQa:boolean){
   const site="https://onespace.live";
-  const link=new URL("/app-invite/",site);
+  const link=new URL(isQa?"/qa-invite/":"/app-invite/",site);
   link.searchParams.set("code",code);
-  if(isQa)link.searchParams.set("env","qa");
   const safeUrl=escapeHtml(link.toString());
   const sender=escapeHtml(name||"Your partner");
   const play=validStoreUrl(env("ONESPACE_PLAY_STORE_URL"),"play");
