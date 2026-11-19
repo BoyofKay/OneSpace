@@ -12,7 +12,7 @@ begin
     raise exception 'Unexpected private trip child source';
   end if;
   if tg_op='DELETE' then
-    if current_setting('onespace.retiring_space',true)<>'on' then
+    if current_setting('onespace.retiring_space',true) is distinct from 'on' then
       update public.personal_vault_dependents
         set restorable=false,snapshot='{}'::jsonb,last_mirrored_at=now()
        where owner_id=old.created_by and source_table=tg_table_name
