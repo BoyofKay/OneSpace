@@ -18,6 +18,8 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   bool _owner = false;
   int _members = 0;
   String? _spaceName;
+  bool _checking = false;
+  Map<String,dynamic>? _readiness;
 
   @override
   void initState() {
@@ -48,6 +50,22 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       if (mounted) setState(() => _error = tt('Unable to load your space.'));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _checkReadiness() async {
+    if (_checking) return;
+    setState(() { _checking = true; _error = null; });
+    try {
+      final result = await _db.rpc('space_separation_preflight');
+      if (mounted) setState(() =>
+        _readiness = result is Map
+          ? Map<String,dynamic>.from(result) : null);
+    } catch (_) {
+      if (mounted) setState(() => _error =
+        tt('Unable to complete the read-only data safety check.'));
+    } finally {
+      if (mounted) setState(() => _checking = false);
     }
   }
 
@@ -99,9 +117,29 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
             const Divider(),
             Text(tt('Space separation'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(tt('The leave, remove and delete actions are not enabled in this '
-              'QA build. Private data preservation, verified exports and '
-              'media cleanup must pass QA before these actions are safe.')),
+            Text(tt('Leaving, removing a partner, and deleting a space '
+              'remain disabled until encrypted exports and private-data '
+              'preservation pass the QA safety gate.')),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _checking ? null : _checkReadiness,
+              icon: const Icon(Icons.fact_check_outlined),
+              label: Text(tt('Check separation readiness')),
+            ),
+            if (_checking) const LinearProgressIndicator(),
+            if (_readiness != null) Card(child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                Text(tt('Safety check: not yet ready'),
+                  style: theme.textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Text('${tt('Space-linked records')}: ${_readiness!['space_linked_records'] ?? '—'}'),
+                Text('${tt('My private records detected')}: ${_readiness!['private_records_owned_by_me'] ?? '—'}'),
+                Text('${tt('Shared records detected')}: ${_readiness!['nonprivate_records'] ?? '—'}'),
+                Text(tt('Nothing was deleted or moved by this check.')),
+              ]),
+            )),
           ],
           if (_error != null) Text(_error!,
             style: TextStyle(color: theme.colorScheme.error)),
