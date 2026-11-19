@@ -1,6 +1,6 @@
 begin;
 do $qa$
-declare sid uuid;a uuid;b uuid;foreign_space uuid;
+declare sid uuid;a uuid;b uuid;foreign_space uuid;foreign_owner uuid;
  shared_note uuid; private_note uuid; shared_task uuid; private_task uuid;
  shared_link uuid; private_link uuid; p jsonb; err text;
 begin
@@ -8,7 +8,7 @@ begin
  join public.space_members m on m.space_id=s.id and m.user_id<>s.created_by
  where (select count(*) from public.space_members x where x.space_id=s.id)=2 limit 1;
  if sid is null then raise exception 'QA pair required';end if;
- select id into foreign_space from public.spaces where id<>sid limit 1;
+ select sp.id,sp.created_by into foreign_space,foreign_owner from public.spaces sp where sp.id<>sid and exists(select 1 from public.space_members sm where sm.space_id=sp.id and sm.user_id=sp.created_by) limit 1;
  insert into public.notes(space_id,created_by,title,visibility)
  values(sid,a,'QA shared link note','shared') returning id into shared_note;
  insert into public.notes(space_id,created_by,title,visibility)
@@ -86,8 +86,10 @@ begin
  end;
  if foreign_space is not null then
    perform set_config('role','postgres',true);
+   perform set_config('request.jwt.claim.sub',foreign_owner::text,true);
    insert into public.tasks(space_id,created_by,title,visibility)
-   values(foreign_space,a,'QA foreign space task','private') returning id into private_task;
+   values(foreign_space,foreign_owner,'QA foreign space task','private') returning id into private_task;
+   perform set_config('request.jwt.claim.sub',a::text,true);
    insert into public.item_links(space_id,from_kind,from_id,to_kind,to_id,created_by)
    values(sid,'note',private_note,'task',private_task,a)
    returning id into private_link;
