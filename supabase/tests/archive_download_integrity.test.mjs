@@ -96,7 +96,7 @@ test("actual archive bytes must match metadata SHA-256 before any download",asyn
   });
   await t.test("no bearer gets 401 without Auth lookup",async()=>{
     const calls=setup();
-    assert.equal((await handler(request(archiveId,"POST",false)).status),401);
+    assert.equal((await handler(request(archiveId,"POST",false))).status,401);
     assert.equal(calls.length,0);
   });
   await t.test("invalid archive identifier rejected without Storage lookup",async()=>{
