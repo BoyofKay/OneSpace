@@ -693,8 +693,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       final token = await _activeInvitationCode(id);
       if (!mounted) return;
       if (token == null) {
-        setState(() => issue = tr(context, 'inviteNoActiveCode'));
         await _load();
+        if (mounted) setState(() => issue = tr(context, 'inviteNoActiveCode'));
         return;
       }
       await _shareInvitation(token);
