@@ -60,3 +60,10 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 - Parent-scoped structured descendants: occasion_plan_steps, occasion_proposals, shared_experience_interests, shared_experience_reviews, trip_flight_options, trip_items, trip_messages.
 - Photo revision records are media-excluded; narrative text in separately supported structured records remains in scope.
 - **No portable archive, private restore or destructive action is authorized by the extra classifications.** 41 classified, 28 pending, four media classes excluded; fail-closed regression passes. Production unchanged.
+
+## QA migrations 0167–0168: private trip child preservation (deployed, test passed)
+- Adds owner-private vault mirroring for flight options, itinerary items, and trip messages on shared_trips with private visibility. Child authors must equal the private trip's owner; all source tables are explicitly whitelisted.
+- Private→shared invalidates child snapshots. Shared→private resynchronizes eligible children; deletion tombstones deleted children. Existing private QA trips are backfilled after the vault type-constraint extension.
+- Nested file/Storage pointers are sanitized while retaining written narrative. No physical media is backed up.
+- Rollback-only QA regression passed for all transitions, owner mismatch rejection, sanitization and deletion tombstone. No real accounts, spaces or content removed.
+- These snapshots are not encrypted downloadable archives; full nested serialization, restoration, relationship lifecycle and Production remain gated.
