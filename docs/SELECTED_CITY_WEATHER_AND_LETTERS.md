@@ -1,6 +1,6 @@
 # OneSpace — City-based weather and Couple Letters
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 ## Weather
 - The phone clock and time zone remain automatic.

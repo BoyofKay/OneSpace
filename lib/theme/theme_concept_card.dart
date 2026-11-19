@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'onespace_appearance.dart';
+import '../core/onespace_brand.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// The selector previews a real composition, not a single palette circle.
@@ -53,7 +54,7 @@ class ThemeConceptCard extends StatelessWidget{
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
            Icon(Icons.auto_awesome_rounded,color:primary,size:19),
            const Spacer(),
-           Text(tt('One life, two places'),style:TextStyle(color:ink,
+           Text(OneSpaceBrand.tagline,style:TextStyle(color:ink,
             fontSize:9,fontWeight:FontWeight.w700)),
            Container(margin:const EdgeInsets.only(top:5),height:4,width:68,
             decoration:BoxDecoration(color:primary.withValues(alpha:.55),

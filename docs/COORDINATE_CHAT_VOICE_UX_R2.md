@@ -1,6 +1,6 @@
 # Coordinate — Chat identities and voice-note UX
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 - Show **You** for the current user's messages. The avatar displays the initials of the user's own saved profile name. The other partner's messages show their saved full display name and initials. Unknown identities use safe fallbacks, not raw user IDs.
 - Chat microphone tap is the user's explicit recording gesture, so recording starts as the voice panel opens. No extra "Record" tap. This works for both conversation voice comments and Activity/Option voice components.

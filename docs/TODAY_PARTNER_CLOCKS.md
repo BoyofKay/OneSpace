@@ -1,6 +1,6 @@
 # OneSpace — Partner clocks on Today
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 ## Experience
 - Each partner voluntarily chooses an IANA time zone under **Profile → Your time zone**. The list is searchable; no GPS/location permission is requested.

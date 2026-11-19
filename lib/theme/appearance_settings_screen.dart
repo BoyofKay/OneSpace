@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'onespace_appearance.dart';
 import 'theme_concept_card.dart';
+import '../core/onespace_brand.dart';
 import '../l10n/onespace_strings.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -164,7 +165,7 @@ class SeasonalThemePreview extends StatelessWidget{
      SeasonChoice.newYear=>(Icons.celebration_outlined,'A new chapter','Dream together, begin together'),
      SeasonChoice.ramadan=>(Icons.dark_mode_outlined,'Ramadan Kareem','Peaceful nights and shared iftars'),
      SeasonChoice.nationalDay=>(Icons.flag_outlined,'Happy National Day','Proud moments, together'),
-     _=>(Icons.palette_outlined,'Your OneSpace','One life, two places'),
+     _=>(Icons.palette_outlined,'Your OneSpace',OneSpaceBrand.tagline),
     };
     final reduced=MediaQuery.disableAnimationsOf(ctx);
     final card=Container(

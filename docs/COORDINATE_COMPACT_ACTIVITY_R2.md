@@ -1,6 +1,6 @@
 # Coordinate R2 — Compact Activity Interaction
 
-OneSpace · One Life. Two Places. One Space.
+OneSpace · Two of Us. One Space
 
 ## Layout (implemented)
 - App bar displays the Activity title with an edit pencil; no duplicate 36px heading.

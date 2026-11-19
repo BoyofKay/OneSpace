@@ -69,7 +69,7 @@ OneSpace is a private, two-person Android app (Flutter, iOS not yet packaged) fo
 
 ## 3.1 Purpose and users
 
-OneSpace is "One Life, Two Places". It is a private shared space for exactly **two people** who form one couple ("space"). It addresses remembering details of each other's lives, coordinating across time zones, following through on requests, planning gifts and trips, and staying emotionally connected. It deliberately does not replace WhatsApp, Netflix, Spotify or Amazon. It captures links and decisions from them.
+OneSpace is "Two of Us. One Space". It is a private shared space for exactly **two people** who form one couple ("space"). It addresses remembering details of each other's lives, coordinating across time zones, following through on requests, planning gifts and trips, and staying emotionally connected. It deliberately does not replace WhatsApp, Netflix, Spotify or Amazon. It captures links and decisions from them.
 
 **Roles.** There are no admin roles. Both partners are equal members. Every record has a **creator**, and many have a **visibility**: *Shared* (both of us) or *Private* (only me). Some records also have an **assignee** or **"for whom"** person (calendar events, to-dos, reminders).
 
@@ -148,7 +148,7 @@ Each module follows the same pattern: **what it is for → how to use it → bus
 
 **Edge cases and gaps**
 - [MED] Supabase "leaked password protection" is still off (security advisor warning).
-- [LOW] If the network is slow at start, the app shows "Opening your secure space…" with Retry. The startup tagline reads "One Life. Two Places. One Space." while Today shows "One Life, Two Places" (two variants of the brand line).
+- [LOW] If the network is slow at start, the app shows "Opening your secure space…" with Retry. The startup tagline reads "Two of Us. One Space" while Today shows "Two of Us. One Space" (two variants of the brand line).
 - [LOW] Profile exposes a developer panel ("Seoul API round trip", "Stop monitoring") that ordinary users will not understand.
 
 ## 5.2 Today
@@ -588,7 +588,7 @@ An *open loop* is a process that starts but never finishes, or that finishes wit
 | Holidays | Calendar honours US/Egypt/Saudi sources; checklist skipping knows only US federal days. |
 | Time | Reminders stored as absolute instants; checklists as local days in a responsible person's zone; events as date plus optional zoned time; love/occasion reminders fixed at 9:00/18:00/21:00 device time. |
 | Settings | Weather city and schedule editable in two places (Settings and Profile). Language is in both the ⋮ menu and Profile. |
-| Brand text | "One Life, Two Places" vs "One Life. Two Places. One Space." |
+| Brand text | "Two of Us. One Space" vs "Two of Us. One Space" |
 | Stale copy | Connect hub: "Daily selfies and connected-app library imports are planned." (selfies exist). World hub: "More of our wider world will appear here." |
 | Explore grid | 9 tiles; omits Reminders, Occasions, Contacts, Trips; includes Letters/Check-ins that also live in Connect. |
 | Language | Approx. 288 translated vs 862 hard-coded strings; push and many notification texts English-only. |

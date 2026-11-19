@@ -5,7 +5,7 @@
 No GitHub Actions were dispatched for R16; the release marker at `release/READY_TO_BUILD.md` must remain untouched until a single full validation build is authorized. The existing downloadable preview 0.1.395 predates R12–R16.
 
 ## Why these changes belong together
-This bundle closes gaps in the “One Life, Two Places” vision:
+This bundle closes gaps in the “Two of Us. One Space” vision:
 - R12: stand-alone saved contacts, collapsible contact cards, link-to-origin only where applicable, editing/history, readable Daily Check-Ins, Letters fixes, expanded editable gesture pools.
 - R13: shared movies, TV, music, books and games; suggested/planned/enjoyed statuses; partner-specific reviews and conversations; notifications, To-day agenda.
 - R14: Trips & Journeys; itinerary, flights/hotels/bookings, partner collaboration, archive, audit, currency-aware costs and travel countdowns.

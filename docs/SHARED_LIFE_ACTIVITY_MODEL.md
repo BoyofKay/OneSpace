@@ -2,7 +2,7 @@
 **Architecture baseline, 13 November 2026.** This document is a product and implementation plan, not functionality already shipped.
 
 ## Original promise, restored
-**One Life. Two Places. One Space..** Three pillars: **Remember · Coordinate · Connect**. Original experience areas: Our Day, Commitments, World, Entertainment, Memories, Journeys. The original **commitment loop** was: *request → accept → research/add links → review → select/purchase/postpone*. The original M01–M22 catalog remains a capability backlog, not 22 navigation destinations.
+**Two of Us. One Space** Three pillars: **Remember · Coordinate · Connect**. Original experience areas: Our Day, Commitments, World, Entertainment, Memories, Journeys. The original **commitment loop** was: *request → accept → research/add links → review → select/purchase/postpone*. The original M01–M22 catalog remains a capability backlog, not 22 navigation destinations.
 
 The app must not become a generic task/calendar/notes bundle. Partners need a persistent space where they can jointly make decisions, capture the reasoning, exchange experiences, and remember what happened across different time zones.
 

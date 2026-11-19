@@ -1,5 +1,5 @@
 # OneSpace — Today attention and in-app reminders
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 Today is an action-oriented dashboard, not just a count screen. The new focus feed is included in the same **one-request Home snapshot** (get_home_snapshot_v2(p_today date)), using the signed-in person's local calendar date.
 

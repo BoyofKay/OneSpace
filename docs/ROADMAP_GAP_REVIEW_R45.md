@@ -226,7 +226,7 @@ This document does three things:
 | ID | Requirement | Status | Evidence / gap |
 |---|---|---|---|
 | D-1 | Navigation Today · Remember · Coordinate · Connect · World | [FULL] | Main shell. |
-| D-2 | "One Life, Two Places" tagline visible (was reported missing once) | [FULL] | On Today; the startup screen uses a different variant. |
+| D-2 | "Two of Us. One Space" tagline visible (was reported missing once) | [FULL] | On Today; the startup screen uses a different variant. |
 | D-3 | "Welcome back, [first name]"; first name also on sign-in | [FULL] | Implemented. |
 | D-4 | Partner named by preferred labels, several labels at random | [FULL] | `partner_labels`. |
 | D-5 | Merge relationship + clocks; remove headers "Our clocks", "Long distance…", "same local time" | [FULL] | Removed. |

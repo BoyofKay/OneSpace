@@ -1238,7 +1238,6 @@ const Map<String, String> arPhrases = {
   'One home, one shared space.': 'بيت واحد، مساحة مشتركة واحدة.',
   'One item per line': 'عنصر في كل سطر',
   'One large': 'صورة كبيرة',
-  'One life, two places': 'حياة واحدة، مكانان',
   'One of the contact fields is too long.': 'أحد حقول الاتصال طويل جدًا.',
   'One partner interested': 'أحد الشريكين مهتم',
   'One shared setting, visible to both of you.': 'إعداد مشترك واحد، يراه كلاكما.',
