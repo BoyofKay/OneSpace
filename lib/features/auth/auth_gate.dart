@@ -60,10 +60,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             _recovery = true;
             _locked = false;
           });
-          // This event is emitted only after Supabase verifies the email link.
-          // The account/profile page (and potentially a dialog) can still be
-          // above AuthGate on the root Navigator. Clear those routes after the
-          // frame so the authenticated reset form is visible immediately.
+          // Verified Supabase recovery callback: remove Profile and other
+          // routes so that ResetPasswordScreen is immediately visible.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted || !_recovery ||
                 Supabase.instance.client.auth.currentSession == null) return;

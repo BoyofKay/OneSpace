@@ -1,0 +1,44 @@
+name: Verify QA release recovery (no APK)
+
+on:
+  push:
+    branches:
+      - qa/recover-release461-full-source-20261119
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out recovered source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Assert recovered R461 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor aa4cbc86056b5253b51e63e7dea59e4473046304 HEAD
+          test -f lib/features/spaces/my_space_screen.dart
+          test -f lib/features/spaces/invite_partner_screen.dart
+          test -f lib/features/spaces/my_archives_screen.dart
+          test -f lib/features/profile/change_password_screen.dart
+          test -f test/auth_recovery_widget_test.dart
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+      - name: Test
+        run: flutter test

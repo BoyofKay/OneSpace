@@ -6,7 +6,7 @@ name: Build and publish OneSpace QA APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'qa/lifecycle-first-slice-20261119', 'qa/recover-release461-full-source-20261119']
     paths:
       - 'release/READY_TO_BUILD.md'
 
@@ -25,24 +25,26 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      # Fail closed if the default branch falls behind the last feature-complete
-      # QA release. Release 462 accidentally used the older source history.
-      - name: Prevent stale QA feature releases
+        with:
+          fetch-depth: 0
+      - name: Verify recovered QA feature baseline
         shell: bash
         run: |
           set -euo pipefail
-          for file in \
-            lib/features/spaces/my_space_screen.dart \
-            lib/features/spaces/invite_partner_screen.dart \
-            lib/features/spaces/my_archives_screen.dart \
-            lib/features/profile/change_password_screen.dart \
-            lib/features/spaces/space_lifecycle_policy.dart; do
-            if [ ! -s "$file" ]; then
-              echo "::error::QA release blocked: missing $file (newer verified QA source not merged)."
-              exit 1
-            fi
-          done
-          echo "Minimum QA feature files are present."
+          # Prevent another signed QA release from an older/diverged source.
+          # Keep the recovery baseline commit in the checked-out history.
+          BASELINE=aa4cbc86056b5253b51e63e7dea59e4473046304
+          git cat-file -e "$BASELINE^{commit}"
+          git merge-base --is-ancestor "$BASELINE" HEAD || {
+            echo "::error::QA release source does not contain verified Release 461 features."
+            exit 1
+          }
+          test -s lib/features/spaces/my_space_screen.dart
+          test -s lib/features/spaces/invite_partner_screen.dart
+          test -s lib/features/spaces/my_archives_screen.dart
+          test -s lib/features/profile/change_password_screen.dart
+          test -s lib/features/spaces/space_lifecycle_policy.dart
+          echo "Recovered QA feature baseline verified."
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
