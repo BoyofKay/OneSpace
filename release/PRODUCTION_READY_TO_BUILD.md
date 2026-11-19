@@ -15,3 +15,6 @@ branded HTML invitation delivery) except for release marker text.
 
 ## Source correction
 - Rebuild with fixed invitation popup scope and unique Arabic string keys.
+
+## Test correction
+- Use current store-availability wording in invitation email regression tests.
