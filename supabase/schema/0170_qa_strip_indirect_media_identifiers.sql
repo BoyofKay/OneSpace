@@ -1,5 +1,5 @@
--- QA 0170: exclude indirect file/photo pointers and attachment metadata.
--- Keep arbitrary written captions, descriptions and other text intact.
+-- QA 0170: remove indirect uploaded media pointers and metadata.
+-- Preserve ordinary text, captions, non-media links.
 CREATE OR REPLACE FUNCTION private.qa_structured_value(p_value jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -34,9 +34,8 @@ begin
         'photo_id','image_id','media_id','file_id','attachment_id',
         'document_id','cover_photo_id','cover_image_id','media_sha256'
       ])
-      -- Scrapbook pages use photo_1_id ... photo_4_id (and may gain more).
-      -- Never export a storage object reference without the excluded media.
-      or k ~ '^photo_[0-9]+_id
+      or k ~ '^photo_[0-9]+_id$'
+      or k ~ '^image_[0-9]+_id$' then
         continue;
       end if;
       sanitized:=private.qa_structured_value(item.value);
@@ -72,78 +71,4 @@ begin
   end if;
   return p_value;
 end $function$
-
-      or k ~ '^image_[0-9]+_id
-        continue;
-      end if;
-      sanitized:=private.qa_structured_value(item.value);
-      if sanitized is not null then
-        result:=result||jsonb_build_object(item.key,sanitized);
-      end if;
-    end loop;
-    return result;
-  elsif typ='array' then
-    result:='[]'::jsonb;
-    for item in select value from jsonb_array_elements(p_value) loop
-      sanitized:=private.qa_structured_value(item.value);
-      -- Keep the array shape stable; a removed binary element becomes null.
-      result:=result||jsonb_build_array(coalesce(sanitized,'null'::jsonb));
-    end loop;
-    return result;
-  elsif typ='string' then
-    if p_value #>> '{}' ~* '^\s*(data:(image|audio|video|application/(pdf|octet-stream))|blob:|file:|content://)' then
-      return 'null'::jsonb;
-    end if;
-    -- Strip only the media URL inside a written sentence; do not discard
-    -- surrounding notes, contact text or messages just because a link exists.
-    -- Remove embedded media data URIs even when preceded by ordinary text.
-    return to_jsonb(
-      regexp_replace(
-        regexp_replace(
-          p_value #>> '{}',
-          '(https?://[^[:space:]"<>]*/)?/storage/v1/object/[^[:space:]"<>]+',
-          '[uploaded media excluded]','gi'),
-        'data:(image|audio|video|application/(pdf|octet-stream))[^[:space:]"<>]*',
-        '[uploaded media excluded]','gi')
-    );
-  end if;
-  return p_value;
-end $function$
- then
-        continue;
-      end if;
-      sanitized:=private.qa_structured_value(item.value);
-      if sanitized is not null then
-        result:=result||jsonb_build_object(item.key,sanitized);
-      end if;
-    end loop;
-    return result;
-  elsif typ='array' then
-    result:='[]'::jsonb;
-    for item in select value from jsonb_array_elements(p_value) loop
-      sanitized:=private.qa_structured_value(item.value);
-      -- Keep the array shape stable; a removed binary element becomes null.
-      result:=result||jsonb_build_array(coalesce(sanitized,'null'::jsonb));
-    end loop;
-    return result;
-  elsif typ='string' then
-    if p_value #>> '{}' ~* '^\s*(data:(image|audio|video|application/(pdf|octet-stream))|blob:|file:|content://)' then
-      return 'null'::jsonb;
-    end if;
-    -- Strip only the media URL inside a written sentence; do not discard
-    -- surrounding notes, contact text or messages just because a link exists.
-    -- Remove embedded media data URIs even when preceded by ordinary text.
-    return to_jsonb(
-      regexp_replace(
-        regexp_replace(
-          p_value #>> '{}',
-          '(https?://[^[:space:]"<>]*/)?/storage/v1/object/[^[:space:]"<>]+',
-          '[uploaded media excluded]','gi'),
-        'data:(image|audio|video|application/(pdf|octet-stream))[^[:space:]"<>]*',
-        '[uploaded media excluded]','gi')
-    );
-  end if;
-  return p_value;
-end $function$
-
--- No archive/restore/deletion gate is enabled by this change.
+;
