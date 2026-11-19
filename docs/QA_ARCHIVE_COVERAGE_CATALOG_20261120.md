@@ -5,9 +5,9 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 
 ## Deployed policy catalog
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
-- **69 registered table types; 60 explicitly approved; 9 awaiting privacy/restore classification.**
-- Root policies: 16 visibility-scoped private/shared content, 4 owner-private types, 5 system-excluded operational/account types, 7 member-shared types, **2 pending**.
-- Dependent policies: 4 approved media exclusions, 17 parent-scoped private/shared types, 5 member-shared types, 2 operational exclusions, **7 pending**.
+- **69 registered table types; 69 explicitly classified; ZERO awaiting policy classification.**
+- Root policies: 18 visibility-scoped private/shared content, 4 owner-private, 5 system-excluded and 7 member-shared types; **0 pending**.
+- Dependent policies: 23 parent-scoped private/shared types, 5 member-shared types, 4 media exclusions and 2 operational exclusions; **0 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
@@ -21,15 +21,13 @@ These classifications are grounded in existing RLS SELECT policies for both
 active members. This approves **visibility scope**, not archive serialization,
 encryption, restoration or destruction.
 
-## 2 root types still requiring explicit classification
-item_links, record_action_history.
+## Root classification completed
+`item_links` and `record_action_history` are now approved after original-space endpoint/actor checks and exhaustive 15-kind event scope mapping.
 
 **Love Letters protection implemented in QA 0184:** author-private drafts and future-open letters cannot be previewed by a partner before their normal open date. This has not yet been integrated into a complete archive.
 
-## 7 dependent types requiring explicit classification
-note_references, occasion_budget_items, occasion_budget_log,
-occasion_plan_revisions, occasion_proposal_items,
-reminder_actions, reminder_recipients.
+## Dependent classification completed
+`note_references`, `occasion_budget_items`, `occasion_budget_log`, `occasion_plan_revisions`, `occasion_proposal_items`, `reminder_actions` and `reminder_recipients` are all approved for their reviewed owner/space scopes.
 
 **Four excluded media-dependent types**: memory_photos, note_images,
 trip_attachments, memory_photo_revisions. This exclusion does not yet prove there are no media URLs
@@ -92,3 +90,11 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 - Place visit captions remain while old memory/trip navigation IDs are inert and stripped, cross-space associations rejected.
 - Check-in acknowledgements are accessible only to the original sender/recipient of a responded request, as reference-only history.
 - Five synthetic two-account rollback-only QA regressions passed, including outsider requests, media leaks, digest integrity, and share→private collisions. **No portable full archive, trusted restore, or destructive lifecycle permission is implied.**
+
+## QA 0187–0194 — 69/69 review complete, lifecycle still blocked
+- Reminders: recipients/actions preserve user-written completion and follow-up history; transient scheduling, snooze and notification state excluded. Private recipient must be original owner; shared recipients/actors belong to pair.
+- Occasion budget items, logs, revisions and proposal-item joins: both ends constrained to the same original plan and space. Keep written budget/audit details, recursively strip media references and avoid replaying orders or purchases.
+- Note references/item links: both polymorphic endpoints must exist in same original space and be recipient-visible. A shared link never exposes a private target; private target creator must be original owner. Former-partner shared creators rejected.
+- Action history: all 15 record kinds mapped, including archived comment author privacy and check-in request pair lineage. An absent or foreign-space source is rejected rather than silently dropped.
+- **Classification complete does not imply archive/restoration complete.** QA public catalog now explicitly reports `encrypted_portable_archive_complete=false`, `trusted_private_restore_complete=false`, `source_of_truth_cutover_complete=false`, `safe_to_archive=false` and `safe_to_separate=false`. Tests for future unregistered tables preserve fail-closed behavior.
+- The present preview interfaces are individually scoped and not a 69-type complete encrypted archive. Full manifest completeness, durable verified archive, independent private restore and two-device acceptance remain next P0 priorities.
