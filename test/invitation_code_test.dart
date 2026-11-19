@@ -37,7 +37,11 @@ void main() {
     const code = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
     expect(invitationCodeFromUri(invitationAppLink(code), qa: false), code);
     expect(invitationCodeFromUri(invitationAppLink(code, qa: true), qa: true), code);
+    expect(invitationWebLink(code, qa: true).path, '/qa-invite/');
+    expect(invitationWebLink(code).path, '/app-invite/');
     expect(invitationCodeFromUri(invitationWebLink(code, qa: true), qa: true), code);
+    expect(invitationCodeFromUri(invitationWebLink(code), qa: true), isNull);
+    expect(invitationCodeFromUri(Uri.parse('https://onespace.live/qa-invite/?code=$code')), isNull);
     expect(invitationCodeFromUri(invitationWebLink(code, qa: true)), isNull);
     expect(invitationCodeFromUri(invitationAppLink(code), qa: true), isNull);
     expect(invitationCodeFromUri(Uri.parse('https://untrusted.example/app-invite/?code=$code')), isNull);
