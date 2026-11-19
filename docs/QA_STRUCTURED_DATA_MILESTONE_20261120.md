@@ -8,6 +8,23 @@
 - Leaving/removing a partner: the original owner continues in a clean new relationship boundary; partner unpaired. Deleting the space: both unpaired. Account deletion: separate seven-day grace-period workflow.
 - Keep all destructive actions disabled until real end-to-end private/shared recovery and privacy checks succeed.
 
+## Founder’s four consecutive closure gates — current honest status
+
+| Milestone | Current status | Explicit exit criteria (not achieved until all pass) |
+|---|---|---|
+| **1. Stabilize QA app** | **OPEN** — QA signed Android 0.1.468 published; latest signed-in recipient QA invitation RPC returns `ready`, backend invitation regressions exist. **Not tested end-to-end on both phones.** | Both new-account and existing-account invite flows; confirmation standalone page; deep-link persistence; no false expired warning/three unrelated setup cards; reset email and hosted branded confirmation verified; cancellation, role tests, app session/biometric tests on both Android phones; canonical branding in **new signed APK** |
+| **2. Encrypted structured archive** | **OPEN** — 69/69 table privacy classification and source censuses; 23 already-mirrored private table families have per-record manifest and real locally encrypted `.osa` format; QA encrypted Storage staging with mocked end-to-end transfer and expiry. **No real live-user archive or full recovery.** | Include all eligible private and shared **written/structured** records; **exclude all uploaded photos, audio/video and documents with clear unrecoverable warning**; trusted original source issuance; verified external download, decrypt, integrity and full private restoration into a safe relationship boundary |
+| **3. Real lifecycle** | **BLOCKED / DISABLED** | Prove B Leave, owner Remove B, owner Delete Space, clean-space continuity, 7-day account-deletion grace, re-login/cancel and safe cleanup. No destructive switch before Milestone 2 restore acceptance |
+| **4. Full QA and security sign-off** | **OPEN** | Two-device signed QA acceptance, offline-partner failure paths, RLS/20 privileged API abuse review, Firebase push, media cleanup, recovery and encryption, QA/Production isolation, release go/no-go |
+
+### Immediate accountability notes (20 November 2026)
+- OneSpace's **only** approved tagline is **Two of Us. One Space**. Earlier tagline strings remained in active Theme Concept and Appearance UI previews and many docs. Branch/PR #102 removes them and expands a recursive regression guard. **Source patch is not yet included in the signed 0.1.468 APK.**
+- Production's 3 activities, 2 notes and 2 tasks were created in the **same database timestamp batch** (19 Nov 2026 10:40:10.435625 UTC), with corresponding audit rows seconds later and no recorded auth-user sign-ins. This supports an administrative SQL/seed-origin hypothesis, **not proof of which person/tool ran it**. Preserve Production records and investigate provenance; **no Production deletes or changes**.
+- The latest QA invitation (19 Nov 18:24 UTC) is active and addressed to a confirmed, not-yet-paired QA account. A rollback-only read as that recipient confirmed its backend resolver reports **`ready`**, not expired. The **device UI/deep-link handoff is still not accepted**. Do not blame an old invitation email without evidence.
+- Product owner permission to hard-delete QA history applies only if needed to redesign ownership and archive rules; it never means discard structured archive-and-restore or touch Production.
+- Application build guard checks Android package `onespace.qa` against QA Supabase; Production requires `live.onespace.app` and the distinct Production project. This verifies source configuration boundaries, **not** user/device acceptance.
+- Email HTML templates are in source with the approved brand; **Supabase-hosted Auth templates and the actual delivered confirmation/reset emails cannot be considered verified from GitHub source alone**.
+
 ## Milestone 0 — app and invitation
 - [x] QA 468 published with trusted QA signing certificate and corrected app/invitation source.
 - [x] QA backend invitation regression rerun on 20 Nov: latest verified recipient, replaced-code resolution, accept/join, duplicate join and anonymous denial PASS (transaction rollback). This is **backend only**.
