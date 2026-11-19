@@ -1,10 +1,19 @@
-# OneSpace Android production build — match QA 451 source (2026-11-18)
+# OneSpace Production Android Google Play upload bundle (2026-11-19)
 
-- Explicitly request a signed Google Play AAB from main after QA 451 source marker commit 68feb379e780eb2bcad953dc2060af57c22cfb2d.
-- Application ID live.onespace.app; ONESPACE_ENV=production; production Supabase only.
-- Production version name 1.0.0, with a new monotonically increasing build number set by GitHub Actions.
-- Exact application source and dependency lockfile match QA 451; production flavor, signing key, Firebase configuration and backend remain distinct.
-- Build must pass Flutter analyze and test, production Firebase registration, package/signature checks.
-- Artifact only; NO deployment or Play Store publishing. Upload first to a closed testing track after QA and security acceptance.
-- iOS production and QA compile verification is in a separate isolated macOS CI branch; this marker does not publish iOS.
-- Unresolved launch gates: backup and restore, real-device testing, account deletion, session/security review.
+Build a signed Android App Bundle (.aab), package live.onespace.app, for
+OneSpace Production Supabase. Source matches the QA code initiated by commit
+7ac1070d6e5e4fe8b5117720f35b3f221906d921; only release marker text differs.
+
+Contents:
+- Invitation UX improvements and safer same-code resend
+- Shared invitation landing links and app intake
+- Password-manager autofill and email recovery from Profile
+- No database schema changes
+
+Security/release conditions:
+- Fail if upload signing secrets or production Firebase configuration are absent
+- Flutter analyzer and tests must pass
+- Verify package ID and upload-key signature
+- Generate .aab for manual upload to Google Play closed testing
+- Do not automatically publish in Google Play or alter production accounts
+- iOS archives from the QA marker are UNSIGNED and cannot go to TestFlight
