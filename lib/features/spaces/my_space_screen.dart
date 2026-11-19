@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
+import 'my_archives_screen.dart';
 
 /// Read-only space identity preview until private records and media can be
 /// preserved before leaving, removing a partner or deleting a space.
@@ -85,6 +86,15 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               leading: const Icon(Icons.people_outline),
               title: Text(tt('Members')),
               trailing: Text('$_members / 2'),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.folder_zip_outlined),
+              title: Text(tt('My Archives')),
+              subtitle: Text(tt('Your encrypted backups and download status')),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => const MyArchivesScreen())),
             ),
             const Divider(),
             Text(tt('Space separation'), style: theme.textTheme.titleMedium),
