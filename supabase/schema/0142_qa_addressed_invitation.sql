@@ -129,13 +129,16 @@ end $$;
 
 -- For consistency, manual revoke must also update status.
 create or replace function private.revoke_pending_invitation(p_space_id uuid)
-returns void language plpgsql security definer set search_path = ''
-as $$
+returns integer language plpgsql security definer set search_path = ''
+as $
 declare me uuid := auth.uid();
+        changed integer := 0;
 begin
  perform 1 from public.spaces where id=p_space_id and created_by=me for update;
  if not found then raise exception 'Only the owner can revoke an invitation'; end if;
  update public.space_invitations
    set revoked_at=now(), delivery_status='revoked'
  where space_id=p_space_id and accepted_at is null and revoked_at is null;
-end $$;
+ get diagnostics changed = row_count;
+ return changed;
+end $;
