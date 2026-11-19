@@ -7,6 +7,10 @@ from public.spaces s join public.space_members sm
  on sm.space_id=s.id and sm.user_id<>s.created_by
 where (select count(*) from public.space_members v where v.space_id=s.id)=2 limit 1;
 if sid is null then raise exception 'Paired QA fixture missing';end if;
+if not exists(select 1 from pg_policies p
+ where p.schemaname='private' and p.tablename='qa_vault_subset_staging'
+   and p.cmd='ALL' and p.qual='false' and p.with_check='false')
+then raise exception 'Internal QA staging table lacks explicit deny-all client RLS';end if;
 if has_function_privilege('anon','public.qa_subset_reserve_service(uuid,uuid)','execute')
  or has_function_privilege('authenticated','public.qa_subset_reserve_service(uuid,uuid)','execute')
  or has_function_privilege('authenticated','public.qa_subset_mark_available_service(uuid,text,integer)','execute')
