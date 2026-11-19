@@ -41,3 +41,24 @@ person's invitation. Do not modify paired accounts or release markers.
 ## Release policy
 One reviewed release per iteration. This branch intentionally does not
 change a release marker or publish an APK.
+
+## Password-manager and recovery regression
+
+1. On a device where Google Password Manager stores a OneSpace password,
+   open Me → Profile → Change password. The current-password field advertises
+   the platform autofill hint; Android and iOS may offer the saved credential
+   after the user taps it. App code must never extract a Google password.
+2. Check current password remains obscured. The app never logs, persists, or
+   pre-populates it from session tokens.
+3. Incorrect current password must fail without changing account credentials.
+   Matching new password and confirmation of length >=8 is required. Server
+   leaked-password protection and policy remain authoritative.
+4. Tap "Forgot current password? Send a reset email"; it calls Supabase Auth
+   with the signed-in user's email and environment-specific redirect. Verify
+   the email arrives on QA, and its link reaches the OneSpace password-recovery
+   screen, then requires sign-in with the new password.
+5. Repeat the reset on Production with a separate test account. Never email
+   secrets or use a production account to test QA.
+6. Verify reset-email rate limiting, no account enumeration, no password
+   stored in SharedPreferences, and temporary input controllers are disposed.
+7. Test both system light/dark, Arabic/English, Android/iPhone.
