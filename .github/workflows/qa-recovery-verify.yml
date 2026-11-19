@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# Verification only: discard obsolete commit checks, but never cancel a
+# signed QA APK build. The Android release workflow has a separate group.
+concurrency:
+  group: onespace-qa-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -24,20 +30,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Verify known-good R461 feature blobs, regardless of Git ancestry.
-          check_blob() {
-            local actual
-            actual="$(git rev-parse "HEAD:$1")"
-            if [ "$actual" != "$2" ]; then
-              echo "::error::Recovered QA feature differs unexpectedly: $1"
-              exit 1
-            fi
+          # PR #72 merged the verified QA recovery into main. Every future QA
+          # build must descend from that exact integration commit. Do NOT pin
+          # feature blob hashes: that would block legitimate future fixes.
+          BASELINE=81a03000de949e99f258fdbd81402255569d1ea5
+          git merge-base --is-ancestor "$BASELINE" HEAD || {
+            echo "::error::QA release source is missing the recovered feature baseline."
+            exit 1
           }
-          check_blob lib/features/spaces/invite_partner_screen.dart 2b7613fd3098168b7d61f43d878c8afcb8ba6bf9
-          check_blob lib/features/spaces/my_archives_screen.dart e6782a67496af0a65e25d1c43d8defee8b2dfd78
-          check_blob lib/features/spaces/space_lifecycle_policy.dart cf7f89592253455ba375386b4aa07aa2febcde86
-          check_blob lib/features/profile/password_change_rules.dart 8706afe0852d9ae2c52f36efe7e76d1eac74a1be
-          check_blob supabase/schema/0146_qa_personal_vault_shadow_migration.sql 6c359feb49fb6253eafee5f78834e287e9828cb2
           test -f lib/features/spaces/my_space_screen.dart
           test -f lib/features/spaces/invite_partner_screen.dart
           test -f lib/features/spaces/my_archives_screen.dart
