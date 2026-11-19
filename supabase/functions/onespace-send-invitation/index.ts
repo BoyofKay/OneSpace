@@ -58,7 +58,7 @@ https://onespace.live`;
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F5F7FB"><tr><td align="center" style="padding:28px 12px">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:white;border:1px solid #E3EAF0;border-radius:16px">
 <tr><td style="padding:30px 28px 12px">
-<img alt="OneSpace" src="${site}/assets/icon-512.png" width="52" height="52" style="display:block;border:0">
+<img alt="OneSpace" src="https://raw.githubusercontent.com/BoyofKay/onespace-app/main/assets/icon-512.png" width="52" height="52" style="display:block;border:0">
 <h1 style="font-size:25px;line-height:1.28;margin:19px 0 12px;color:#14213D">A little space for us.</h1>
 <p style="font-size:16px;line-height:1.65;color:#354B63;margin:0 0 14px"><strong>${sender}</strong> has invited you to share a private space on OneSpace.</p>
 <p style="font-size:15px;line-height:1.65;color:#354B63;margin:0 0 18px">A place to remember little things, make plans, and stay connected.</p>
@@ -75,7 +75,7 @@ https://onespace.live`;
 </td></tr>
 <tr><td style="padding:18px 28px;border-top:1px solid #E3EAF0">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="vertical-align:middle;padding-right:12px"><img src="${site}/assets/icon-512.png" alt="" width="40" height="40" style="display:block"></td>
+<td style="vertical-align:middle;padding-right:12px"><img src="https://raw.githubusercontent.com/BoyofKay/onespace-app/main/assets/icon-512.png" alt="" width="40" height="40" style="display:block"></td>
 <td><strong style="font-size:20px;color:#14213D">OneSpace</strong><br>
 <span style="font-size:12px;color:#51657A">Two of Us. One Space</span><br>
 <a href="${site}" style="font-size:12px;color:#1F6E78;text-decoration:none">onespace.live</a></td></tr></table>

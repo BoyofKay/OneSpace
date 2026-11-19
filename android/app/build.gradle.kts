@@ -37,8 +37,20 @@ android {
 
     // Upload key for Google Play (production only). CI provides it from GitHub
     // secrets; it is never committed. Google re-signs with the Play app signing key.
+    // Pin CI QA signing to the restored, verified preview keystore. Flutter's
+    // implicit debug signing may otherwise generate a different certificate.
+    val qaStableStore = System.getenv("ONESPACE_QA_KEYSTORE")
     val uploadStore = System.getenv("ONESPACE_UPLOAD_KEYSTORE")
     signingConfigs {
+        if (qaStableStore != null) {
+            // No fallback to a newly generated debug key when CI pins a key.
+            create("qaStable") {
+                storeFile = file(qaStableStore)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
         if (uploadStore != null && file(uploadStore).exists()) {
             create("upload") {
                 storeFile = file(uploadStore)
@@ -62,7 +74,9 @@ android {
             manifestPlaceholders["appLabel"] = "OneSpace QA"
             manifestPlaceholders["authScheme"] = "onespace-preview"
             // Stable test-only keystore restored by GitHub Actions (tools/dev-signing).
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (qaStableStore != null)
+                signingConfigs.getByName("qaStable")
+                else signingConfigs.getByName("debug")
         }
         create("prod") {
             dimension = "env"
