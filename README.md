@@ -2,7 +2,8 @@
 
 **Two of us, One Space.** A private Flutter app for couples — living together or apart — that keeps the shared life in one place.
 
-- Website: **https://onespace.live** (English + Arabic). Website source: public repo [BoyofKay/onespace-app](https://github.com/BoyofKay/onespace-app).
+- Website: **https://onespace.live** (English, Arabic, Spanish, French, and German). Website source: public repo [BoyofKay/onespace-app](https://github.com/BoyofKay/onespace-app).
+- Canonical launch policy pages: **https://onespace.live/privacy/** · **https://onespace.live/terms/** · **https://onespace.live/delete-account/**. Support: **https://onespace.live/support/**; FAQs: **https://onespace.live/faq/**. Old `.html` addresses redirect to these clean paths.
 - Latest Android preview: **0.1.444** (R80, 17 Nov 2026) on [GitHub Releases](../../releases). iPhone: waiting for the Apple Developer account (TestFlight, see `docs/IOS_SETUP.md`).
 
 **Continuing this project (any assistant): read [docs/DECISION_LOG.md](docs/DECISION_LOG.md) first.** It is the single source of truth for decisions, the working agreement and the iteration plan.
