@@ -29,7 +29,7 @@ begin
  values(activity_id,a,'We made a lovely plan');
  insert into public.activity_component_reactions(
      activity_id,component_id,user_id,opinion)
- values(activity_id,a::uuid,b,1);
+ values(activity_id,component_id,b,1);
  insert into public.activity_decisions(
      activity_id,component_id,action,reason,created_by)
  values(activity_id,component_id,'chosen','We agreed together',a);
