@@ -57,11 +57,19 @@
 - [x] GitHub Action run `44630428012` completed its test step: **33 tests passed, 0 failed** across downloadable ciphertext verification, AES-GCM roundtrip, encrypted staging handler and janitor. Mock-backed Storage E2E only, not a live authenticated user run.
 - [ ] **Not a full archive**: limited to one owner-private trip or checklist package at a time. The full 69-type structured archive and authorized restore remain incomplete; preview files never count toward lifecycle safety gates.
 
+## QA 0182–0186 — substantial structured-history coverage (deployed and regression-tested)
+- [x] QA **0182**: `scrapbook_pages`, `trip_revisions`, `saved_contact_revisions` approved with parent visibility, author/editor lineage, recursive media stripping, shared-private conflict denial and deterministic SHA-256. Rollback test PASS.
+- [x] QA **0183**: all **six activity dependents** (`activity_components`, `activity_comments`, `activity_component_reactions`, `activity_decisions`, `activity_component_revisions`, `activity_revisions`) approved and packaged into owner/member-scoped structured preview; old shared collaborator history is rejected if activity becomes private. Rollback test PASS.
+- [x] QA **0184**: `couple_letters` and `couple_letter_reads` approved with **author-private drafts and future-open dates**. Receiver sees sent letters only once eligible. Hidden reply references and unauthorized/invalid receipts cannot leak. Rollback test PASS.
+- [x] QA **0185**: `place_visits` approved, inherited from `places` visibility; written captions preserved, links to old private memories and trips removed; cross-space and partner-to-private conflicts rejected. Rollback test PASS.
+- [x] QA **0186**: `partner_checkin_acknowledgements` approved as old shared reference-only content, restricted to original sender/recipient, responded check-ins and valid sender-only receipts. Rollback test PASS.
+- **Current QA catalog: 60 of 69 classified; 9 pending (2 roots, 7 dependents).** This is **classification + read-only preview only**, not a full source-of-truth archive, encrypted downloadable bundle, ID-remapping private restore, or authorization for deletion/separation.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
-- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 47 approved, 22 pending; 4 known media types excluded.
+- [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 60 approved, 9 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
 - [x] Migration 0165: five RLS-verified shared roots classified; Love Letters drafts and sealed until-open dates explicitly remain blocked.
-- [ ] Explicitly classify the remaining 4 root and 18 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
+- [ ] Explicitly classify the remaining 2 root and 7 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
 - [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization. Three approved private trip-child types now have verified vault snapshots, but these are not yet downloadable archives.
 - [x] QA migration 0170: stronger structured-only sanitizer removes scrapbook photo_N_id/image_N_id pointers, named document/file identifiers and attachment metadata. QA 0170 plus 0163, 0159 and 0169 regressions pass; zero extant restorable QA vault snapshots require backfill. Media/document uploads remain excluded.
 - [x] QA migration 0169: owner-only nested structured trip package preview (trip + flight options + itinerary items + messages) with deterministic SHA-256 integrity checksum, parent-vault equality, media sanitization, child cap and member privacy checks. Transactional regression passed for partner denial, scope transitions, hash reproducibility and corrupt-vault failure. **Preview only; not encrypted or restorable.**
