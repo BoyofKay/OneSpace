@@ -20,3 +20,6 @@ Included:
 Safety: no actual partner separation, no shared-data deletion, no archive
 generation (archive registry currently empty), and no Production changes.
 Run locked dependencies, Flutter analyze, tests, QA APK signing/package checks.
+
+## QA analyzer correction
+Removed unreachable old account deletion form handler and simplified archive page lint style. No backend or product behavior changed.
