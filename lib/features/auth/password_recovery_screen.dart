@@ -88,9 +88,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 10),
                 Text(tt(_sent
                     ? 'If that email address has an account, follow the '
-                        'recovery link. Open the link on this Android device '
+                        'recovery link. Open the link on this device '
                         'to return to OneSpace.'
                     : 'We will send a recovery link to your account email.')),
+                if (_sent) ...[
+                  const SizedBox(height: 10),
+                  Text(tt('Your current password remains valid until the new one is successfully saved.')),
+                ],
                 const SizedBox(height: 22),
                 if (!_sent)
                   TextField(
@@ -212,6 +216,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(tt('Choose a new password to finish account recovery.')),
+                const SizedBox(height: 10),
+                Text(tt('Your current password remains valid until the new one is successfully saved.')),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _password,
