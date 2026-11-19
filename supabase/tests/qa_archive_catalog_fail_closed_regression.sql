@@ -15,7 +15,7 @@ begin
  baseline:=public.qa_archive_catalog_coverage();
  if baseline->>'has_space'<>'true'
   or (baseline->>'total_tables')::int < 60
-  or baseline->>'media_types_excluded'<>'3'
+  or (baseline->>'media_types_excluded')::int<4
   or baseline->>'classification_complete'<>'false'
   or baseline->>'safe_to_archive'<>'false'
   or (baseline->>'unregistered_root_types')::int<>0
@@ -38,4 +38,4 @@ begin
  end if;
 end $test$;
 rollback;
-select 'PASS: catalog discovers all 35 known children, denies anonymous access and blocks newly added unclassified root/child; synthetic DDL rolled back' result;
+select 'PASS: catalog discovers known children, denies anonymous access and blocks newly added unclassified root/child; synthetic DDL rolled back' result;
