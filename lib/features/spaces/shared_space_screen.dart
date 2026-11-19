@@ -1262,23 +1262,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                     '${pendingInviteExpiry!.toLocal().toString().split('.').first}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.onPrimaryContainer)),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: working ? null : _openInvitation,
-                  icon: const Icon(Icons.autorenew),
-                  label: Text(tr(context, 'replaceInvitation')),
-                ),
-                TextButton.icon(
-                  onPressed: working ? null : _openInvitation,
-                  icon: const Icon(Icons.link_off),
-                  label: Text(tr(context, 'revokeInvitation')),
-                ),
+
               ],
-              TextButton.icon(
+              const SizedBox(height: 8),
+              Center(child: TextButton.icon(
                 onPressed: working ? null : _load,
                 icon: const Icon(Icons.refresh),
                 label: Text(tr(context, 'refreshStatus')),
-              ),
+              )),
             ],
           ],
         ),
