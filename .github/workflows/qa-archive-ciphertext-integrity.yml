@@ -1,0 +1,28 @@
+name: QA archive ciphertext integrity (no APK)
+on:
+  push:
+    branches:
+      - main
+      - qa-archive-content-integrity-0177-20261120
+    paths:
+      - 'supabase/functions/onespace-download-archive/index.ts'
+      - 'supabase/tests/archive_download_integrity.test.mjs'
+      - '.github/workflows/qa-archive-ciphertext-integrity.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/onespace-download-archive/index.ts'
+      - 'supabase/tests/archive_download_integrity.test.mjs'
+      - '.github/workflows/qa-archive-ciphertext-integrity.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Mock Auth, archive registry and Storage; verify actual ciphertext
+        run: node --experimental-strip-types --test supabase/tests/archive_download_integrity.test.mjs

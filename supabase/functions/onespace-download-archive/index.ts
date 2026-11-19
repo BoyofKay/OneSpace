@@ -40,7 +40,8 @@ Deno.serve(async(req)=>{
   const expectedBytes=Number(archive.byte_length);
   if(!path.startsWith(me.id+"/")||path.includes("..")||path.length>500||
      !/^[0-9a-f]{64}$/.test(archive.ciphertext_sha256??"")||
-     !Number.isSafeInteger(expectedBytes)||expectedBytes<=0)
+     !Number.isSafeInteger(expectedBytes)||expectedBytes<=0||
+     expectedBytes>52428800||!['private','shared'].includes(archive.archive_kind))
     return json(409,"Archive is not verified");
   const asset=await fetch(base+"/storage/v1/object/authenticated/onespace-archives/"+
     path.split("/").map(encodeURIComponent).join("/"),{
@@ -53,6 +54,33 @@ Deno.serve(async(req)=>{
   const storageLength=asset.headers.get("content-length");
   if(storageLength!==null&&Number(storageLength)!==expectedBytes)
     return json(409,"Archive bytes no longer match verified metadata");
+  // Verify the actual ciphertext before any bytes reach the client. A size
+  // check alone would accept a same-length replacement, and the registry
+  // could point to an object replaced after its original verification.
+  // Archive bucket caps objects at 50 MiB, so read/verify at most that much.
+  // Read the Storage stream into a *bounded* buffer. Never trust missing,
+  // false, or attacker-controlled Content-Length to allocate unlimited data.
+  const ciphertext=new Uint8Array(expectedBytes);
+  let received=0;
+  const reader=asset.body.getReader();
+  try{
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      if(received+value.byteLength>expectedBytes){
+        await reader.cancel();
+        return json(409,"Archive bytes no longer match verified metadata");
+      }
+      ciphertext.set(value,received);
+      received+=value.byteLength;
+    }
+  }catch{return json(503,"Archive file could not be verified");}
+  if(received!==expectedBytes)
+    return json(409,"Archive bytes no longer match verified metadata");
+  const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",ciphertext));
+  const actualSha=Array.from(digest,x=>x.toString(16).padStart(2,"0")).join("");
+  if(actualSha!==archive.ciphertext_sha256)
+    return json(409,"Archive bytes no longer match verified metadata");
   const headers=new Headers({
     "content-type":"application/octet-stream",
     "cache-control":"private, no-store, max-age=0",
@@ -63,5 +91,5 @@ Deno.serve(async(req)=>{
       '-'+id+'.onespace"',
   });
   headers.set("content-length",String(expectedBytes));
-  return new Response(asset.body,{status:200,headers});
+  return new Response(ciphertext,{status:200,headers});
 });
