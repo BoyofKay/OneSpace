@@ -4,8 +4,11 @@ import {test} from "node:test";
 import {mkdtemp,readFile,rm,stat} from "node:fs/promises";
 import {join} from "node:path";
 import {tmpdir} from "node:os";
-import {exportQaPrivateVaultSubset,verifyLocalQaSubsetFile}
- from "../scripts/qa_private_vault_subset_export.mjs";
+import {
+ exportQaPrivateVaultSubset,verifyLocalQaSubsetFile,
+ uploadQaPrivateVaultSubset,downloadQaPrivateVaultSubset
+} from "../scripts/qa_private_vault_subset_export.mjs";
+import {encryptVaultSubsetFile} from "../functions/_shared/qa_vault_subset_osa.mjs";
 
 const owner="11111111-2222-4333-8444-555555555555";
 const space="99999999-2222-4333-8444-555555555555";
@@ -127,4 +130,70 @@ test("cannot overwrite an existing ciphertext archive file",async()=>{
   const next=await readFile(destination);
   assert.deepEqual(old,next);
  });
+});
+
+test("QA-only encrypted .osa upload and download authenticate file hashes without sending passphrase",async()=>{
+ const data=await encryptVaultSubsetFile(fixture(),passphrase);
+ const id="bbbbbbbb-2222-4333-8444-555555555555";
+ let uploads=0,downloads=0;
+ const backend=async(href,options)=>{
+  assert.equal(options.headers.apikey,anonKey);
+  assert.equal(options.headers.Authorization,"Bearer "+accessToken);
+  assert.ok(!JSON.stringify(options.headers).includes(passphrase));
+  if(href.includes("action=upload")){
+   uploads++;
+   assert.equal(options.headers["content-type"],"application/octet-stream");
+   assert.equal(sha(options.body),sha(data));
+   assert.ok(!href.includes(passphrase));
+   return Response.json({
+     staging_id:id,encrypted_sha256:sha(data),byte_length:data.length,
+     verified_storage_bytes:true,is_verified_archive:false,can_restore:false,
+     safe_to_separate:false
+   });
+  }
+  if(href.includes("action=download")){
+   downloads++;
+   assert.ok(!options.body);
+   return new Response(data,{status:200,headers:{
+    "x-onespace-sha256":sha(data),
+    "x-onespace-unverified-subset":"true",
+    "content-length":String(data.length)
+   }});
+  }
+  throw Error("Unexpected client staging request");
+ };
+ const stored=await uploadQaPrivateVaultSubset({
+  url:host,anonKey,accessToken,archiveBytes:data,passphrase,
+  ownerId:owner,spaceId:space,fetchImpl:backend
+ });
+ assert.equal(stored.verified_source_origin,false);
+ assert.equal(stored.verified_storage_bytes,true);
+ assert.equal(uploads,1);
+ const downloaded=await downloadQaPrivateVaultSubset({
+  url:host,anonKey,accessToken,stagingId:id,passphrase,
+  ownerId:owner,spaceId:space,fetchImpl:backend
+ });
+ assert.equal(downloads,1);
+ assert.equal(downloaded.verified_storage_transfer,true);
+ assert.equal(downloaded.verified_source_origin,false);
+ assert.equal(downloaded.can_restore,false);
+ assert.equal(downloaded.record_evidence.record_count,1);
+ assert.equal(sha(downloaded.archiveBytes),sha(data));
+});
+test("forged server hash and cross-account Storage upload cannot pass local verification",async()=>{
+ const data=await encryptVaultSubsetFile(fixture(),passphrase);
+ const id="bbbbbbbb-2222-4333-8444-555555555555";
+ await assert.rejects(uploadQaPrivateVaultSubset({
+   url:host,anonKey,accessToken,archiveBytes:data,passphrase,
+   ownerId:"22222222-2222-4333-8444-555555555555",spaceId:space,
+   fetchImpl:()=>{throw Error("No network on wrong owner")}
+ }));
+ await assert.rejects(downloadQaPrivateVaultSubset({
+   url:host,anonKey,accessToken,stagingId:id,passphrase,
+   ownerId:owner,spaceId:space,
+   fetchImpl:async()=>new Response(data,{status:200,headers:{
+     "x-onespace-sha256":"0".repeat(64),
+     "x-onespace-unverified-subset":"true"
+   }})
+ }));
 });
