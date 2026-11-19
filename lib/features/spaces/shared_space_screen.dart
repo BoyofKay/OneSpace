@@ -1145,6 +1145,15 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   label: Text(tt('Retry joining your partner')),
                 ),
                 const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: working ? null : () async {
+                    // Preserve the invite securely for the right account.
+                    await client.auth.signOut();
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: Text(tt('Sign in with the invited email')),
+                ),
+                const SizedBox(height: 8),
                 TextButton(
                   onPressed: working ? null : () async {
                     await InvitationLinkInbox.instance.clear();
