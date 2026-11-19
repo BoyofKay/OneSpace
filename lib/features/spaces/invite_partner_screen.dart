@@ -140,6 +140,26 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
 
   Future<void> _resend() async {
     if (_busy || !_hasActive || _recipient == null) return;
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tt('Resend the invitation?')),
+        content: Text(tt('Send another OneSpace invitation to') +
+          ' ' + _recipient! + '? ' +
+          tt('The code and expiry date will stay the same.')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tt('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tt('Resend email')),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
     setState(() { _busy = true; _error = null; });
     try {
       await _sendEmail();
@@ -285,21 +305,29 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
                 ],
               ),
             )),
-            const SizedBox(height: 12),
+            const SizedBox(height: 22),
             FilledButton.icon(
               onPressed: _busy || _recipient == null ? null : _resend,
               icon: const Icon(Icons.send_outlined),
               label: Text(tt('Resend email — same code')),
             ),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              OutlinedButton.icon(onPressed: _busy ? null : () => _share('whatsapp'),
-                icon: const Icon(Icons.chat_bubble_outline),
-                label: const Text('WhatsApp')),
-              OutlinedButton.icon(onPressed: _busy ? null : () => _share('sms'),
-                icon: const Icon(Icons.sms_outlined),
-                label: Text(tt('Text message'))),
-            ]),
             const SizedBox(height: 14),
+            Row(children: [
+              Expanded(child: OutlinedButton.icon(
+                onPressed: _busy ? null : () => _share('whatsapp'),
+                icon: const Icon(Icons.chat_bubble_outline, size: 19),
+                label: const Text('WhatsApp', maxLines: 1),
+              )),
+              const SizedBox(width: 12),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: _busy ? null : () => _share('sms'),
+                icon: const Icon(Icons.sms_outlined, size: 19),
+                label: Text(tt('Text message'), maxLines: 1),
+              )),
+            ]),
+            const SizedBox(height: 22),
+            const Divider(height: 1),
+            const SizedBox(height: 18),
             OutlinedButton.icon(
               onPressed: _busy ? null : () async {
                 if (!_editingRecipient) {
@@ -317,11 +345,12 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
               label: Text(tt(_editingRecipient
                 ? 'Confirm replacement' : 'Generate a replacement code')),
             ),
-            TextButton.icon(
+            const SizedBox(height: 10),
+            Center(child: TextButton.icon(
               onPressed: _busy ? null : _revoke,
               icon: const Icon(Icons.link_off),
               label: Text(tt('Revoke invitation')),
-            ),
+            )),
           ],
           if (_error != null) Padding(
             padding: const EdgeInsets.only(top: 12),
