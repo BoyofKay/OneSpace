@@ -92,7 +92,7 @@ begin
  then raise exception 'Former private child vault survived shared transition';end if;
  perform set_config('request.jwt.claim.sub',b::text,true);
  child_b:=public.qa_private_archive_completeness_preflight()->'mirrored_children';
- if (child_b->>'supported_child_mirrors_consistent'<>'true'
+ if (child_b->>'supported_child_mirrors_consistent')<>'true'
  then raise exception 'Partner saw mismatched child vault from owner A';end if;
 end $qa$;
 rollback;
