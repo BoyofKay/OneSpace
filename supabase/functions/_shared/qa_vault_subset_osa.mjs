@@ -66,7 +66,7 @@ function inspectMedia(node,depth=0){
  if(typeof node==="string"){
   if(/(?:\/storage\/v1\/object\/|\bdata:(?:image|audio|video|application\/(?:pdf|octet-stream))|\bblob:|\bfile:|content:\/\/)/i.test(node))
     fail("media pointer in written value");
-  if(/https?:\\/\\/[^\\s"'<>]+\\.(?:pdf|docx?|xlsx?|pptx?|zip|jpe?g|png|webp|gif|heic|mp3|m4a|wav|mp4|mov)(?:[?#]|\\b)/i.test(node))
+  if(/https?:\/\/[^\s"'<>]+\.(?:pdf|docx?|xlsx?|pptx?|zip|jpe?g|png|webp|gif|heic|mp3|m4a|wav|mp4|mov)(?:[?#]|\b)/i.test(node))
     fail("indirect uploaded file URL");
  }else if(node!==null&&typeof node!=="boolean"&&
          !(typeof node==="number"&&Number.isFinite(node)))
