@@ -9,7 +9,7 @@ branded HTML invitation delivery) except for release marker text.
 - Required Firebase configuration and production environment verification
 - Flutter analyzer and automated tests must pass
 - Check App Bundle package ID, signing certificate and unique version code
-- Email templates use original OneSpace mark and Two of Us. One Space.
+- Email templates use original OneSpace mark and Two of Us. One Space
 - Official store badges only when their validated product URLs are configured
 - Production email sending remains authenticated and rate-limited
 

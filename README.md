@@ -1,6 +1,6 @@
 # OneSpace
 
-**Two of us, One Space.** A private Flutter app for couples — living together or apart — that keeps the shared life in one place.
+**Two of Us. One Space.** A private Flutter app for couples — living together or apart — that keeps the shared life in one place.
 
 - Website: **https://onespace.live** (English, Arabic, Spanish, French, and German). Website source: public repo [BoyofKay/onespace-app](https://github.com/BoyofKay/onespace-app).
 - Canonical launch policy pages: **https://onespace.live/privacy/** · **https://onespace.live/terms/** · **https://onespace.live/delete-account/**. Support: **https://onespace.live/support/**; FAQs: **https://onespace.live/faq/**. Old `.html` addresses redirect to these clean paths.
