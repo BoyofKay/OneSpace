@@ -144,30 +144,26 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                 label: Text(tt(exporting ? tt('Preparing…') : tt('Download')))),
             ]))),
           const SizedBox(height: 8),
-          if (!pending) Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(14), child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Icon(Icons.person_remove_outlined, color: theme.colorScheme.error),
-                const SizedBox(width: 10),
-                Expanded(child: Text(tt('Delete my account'), style: theme.textTheme.titleMedium)),
-              ]),
-              const SizedBox(height: 6),
-              Text(tt('What happens:')),
-              const SizedBox(height: 4),
-              for (final line in const [
-                'Your private items, photos, devices and settings are deleted.',
-                'Items you shared stay for your partner, shown as written by "Former partner".',
-                'You leave our space. Your partner keeps it.',
-                'You have 7 days to change your mind: sign in again and tap Keep my account.',
-              ]) Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('•  '), Expanded(child: Text(tt(line))),
-                ])),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(onPressed: busy ? null : _requestDeletion,
-                style: OutlinedButton.styleFrom(foregroundColor: theme.colorScheme.error),
-                icon: const Icon(Icons.delete_forever_outlined), label: Text(tt('Delete my account'))),
-            ]))),
+          if (!pending) Card(elevation: 0,
+            child: Padding(padding: const EdgeInsets.all(14), child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(Icons.person_remove_outlined, color: theme.colorScheme.error),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(tt('Delete my account'),
+                    style: theme.textTheme.titleMedium)),
+                ]),
+                const SizedBox(height: 8),
+                Text(tt('Temporarily unavailable in QA while OneSpace '
+                  'implements verified private/shared exports and automatic '
+                  'space separation. Your account and records remain unchanged.')),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.shield_outlined),
+                  label: Text(tt('Secure deletion under preparation')),
+                ),
+              ]))),
           if (message != null) Padding(padding: const EdgeInsets.only(top: 12),
             child: Text(tt(message!), style: theme.textTheme.bodyMedium)),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
