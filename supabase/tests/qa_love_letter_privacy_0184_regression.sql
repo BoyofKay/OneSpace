@@ -27,7 +27,7 @@ begin
  insert into public.couple_letters(
    space_id,author_id,title,body,status,open_on,reply_to)
  values(sid,a,'QA LETTER OPEN','SHARED_LOVE_LETTER_VISIBLE','sent',
-        current_date-1,future_id)
+        current_date,future_id)
  returning id into open_id;
  insert into public.couple_letter_reads(letter_id,reader_id)
  values(open_id,b);
