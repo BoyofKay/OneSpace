@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# Verification only: discard obsolete commit checks, but never cancel a
+# signed QA APK build. The Android release workflow has a separate group.
+concurrency:
+  group: onespace-qa-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
