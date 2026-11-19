@@ -21,6 +21,9 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   bool _checking = false;
   Map<String,dynamic>? _readiness;
   Map<String,dynamic>? _personalVault;
+  Map<String,dynamic>? _lifecycle;
+  bool _submitting = false;
+  String? _actionMessage;
 
   @override
   void initState() {
@@ -34,6 +37,10 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       if (me == null) throw StateError('Sign in required');
       final myMembership = await _db.from('space_members')
         .select('space_id').eq('user_id', me).limit(1).maybeSingle();
+      final lifecycleData = await _db.rpc('my_space_lifecycle_status');
+      if (!mounted) return;
+      setState(() => _lifecycle = lifecycleData is Map
+        ? Map<String,dynamic>.from(lifecycleData) : null);
       if (myMembership != null) {
         final id = myMembership['space_id'].toString();
         final space = await _db.from('spaces')
@@ -74,9 +81,79 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
     }
   }
 
+
+  Future<bool> _confirmAction(String title, String body, String confirm) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(tt(title)),
+        content: Text(tt(body)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(tt('Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(tt(confirm)),
+          ),
+        ],
+      ),
+    ) == true;
+  }
+
+  Future<void> _stageAction(String action, String title, String warning) async {
+    if (_submitting || !await _confirmAction(title, warning, 'Prepare securely')) return;
+    if (!mounted) return;
+    setState(() { _submitting = true; _actionMessage = null; _error = null; });
+    try {
+      final response = await _db.rpc('request_space_lifecycle_action',
+        params: {'p_action': action});
+      if (!mounted) return;
+      setState(() => _actionMessage = response is Map
+        ? (response['message']?.toString() ?? 'Preparation request recorded.')
+        : 'Preparation request recorded.');
+      await _load();
+      await _checkReadiness();
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error =
+        tt('Preparation failed. No membership was changed.'));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _cancelStagedAction(String jobId) async {
+    if (_submitting || !await _confirmAction('Cancel separation preparation?',
+      'Requests can only be cancelled before archive export starts.',
+      'Cancel request')) return;
+    if (!mounted) return;
+    setState(() { _submitting = true; _actionMessage = null; _error = null; });
+    try {
+      final cancelled = await _db.rpc('cancel_space_lifecycle_action',
+        params: {'p_job_id': jobId});
+      if (mounted) setState(() => _actionMessage = cancelled == true
+        ? 'Preparation cancelled. The space is unchanged.'
+        : 'Request cannot be cancelled at this stage.');
+      await _load();
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = tt('Unable to cancel request.'));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final pending = _lifecycle?['active_job'] is Map
+      ? Map<String,dynamic>.from(_lifecycle!['active_job'] as Map)
+      : null;
+    final mayAct = !_submitting && pending == null;
     return Scaffold(
       appBar: AppBar(title: Text(tt('My Space'))),
       body: SafeArea(child: _loading
@@ -122,15 +199,62 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
             const Divider(),
             Text(tt('Space separation'), style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(tt('Leaving, removing a partner, and deleting a space '
-              'remain disabled until encrypted exports and private-data '
-              'preservation pass the QA safety gate.')),
+            Text(tt('You may request secure preparation for leaving, removing a partner, '
+              'or closing the space. Actual separation remains blocked until '
+              'encrypted exports, file integrity and privacy checks pass.')),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: _checking ? null : _checkReadiness,
               icon: const Icon(Icons.fact_check_outlined),
               label: Text(tt('Check separation readiness')),
             ),
+
+            if (_submitting) const LinearProgressIndicator(),
+            if (pending != null)
+              Card(child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(tt('Separation preparation requested'),
+                    style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 6),
+                  Text(tt('Request status: ') + (pending['status'] ?? '').toString()),
+                  const SizedBox(height: 6),
+                  Text(tt('No memberships or space content have been removed.')),
+                  if (pending['requested_by_me'] == true)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.close),
+                      onPressed: _submitting ? null
+                        : () => _cancelStagedAction(pending['id'].toString()),
+                      label: Text(tt('Cancel preparation')),
+                    ),
+                ]),
+              )),
+            const SizedBox(height: 10),
+            if (_owner && _members == 2)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.person_remove_outlined),
+                onPressed: mayAct ? () => _stageAction('owner_removes_partner',
+                  'Remove partner?',
+                  'First prepare verified private and shared archives for both people. This request does not remove the partner now.') : null,
+                label: Text(tt('Prepare partner removal')),
+              ),
+            if (!_owner && _members == 2)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.logout),
+                onPressed: mayAct ? () => _stageAction('partner_leaves',
+                  'Leave this space?',
+                  'Your private records and shared history must be archived first. This request does not leave the space now.') : null,
+                label: Text(tt('Prepare to leave space')),
+              ),
+            if (_owner)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: mayAct ? () => _stageAction('owner_deletes_space',
+                  'Delete this space?',
+                  'Both users must receive verified archives first. This request does not delete the space now.') : null,
+                label: Text(tt('Prepare space deletion')),
+              ),
+            const SizedBox(height: 10),
             if (_checking) const LinearProgressIndicator(),
             if (_readiness != null) Card(child: Padding(
               padding: const EdgeInsets.all(12),
@@ -140,8 +264,8 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                   style: theme.textTheme.titleSmall),
                 const SizedBox(height: 8),
                 Text('${tt('Space-linked records')}: ${_readiness!['space_linked_records'] ?? '—'}'),
-                Text('${tt('My private records detected')}: ${_readiness!['private_records_owned_by_me'] ?? '—'}'),
-                Text('${tt('Shared records detected')}: ${_readiness!['nonprivate_records'] ?? '—'}'),
+                Text('${tt('My private records detected')}: ${_readiness!['private_root_records'] ?? '—'}'),
+                Text('${tt('Shared records detected')}: ${_readiness!['shared_root_records'] ?? '—'}'),
                 const SizedBox(height: 8),
                 if (_personalVault != null) ...[
                   Text(tt('My protected private records') +
@@ -154,6 +278,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               ]),
             )),
           ],
+          if (_actionMessage != null) Text(tt(_actionMessage!)),
           if (_error != null) Text(_error!,
             style: TextStyle(color: theme.colorScheme.error)),
         ])),
