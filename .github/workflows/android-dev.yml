@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Verify recovered QA feature baseline
         shell: bash
         run: |
@@ -32,7 +34,7 @@ jobs:
           # Prevent another signed QA release from an older/diverged source.
           # Keep the recovery baseline commit in the checked-out history.
           BASELINE=aa4cbc86056b5253b51e63e7dea59e4473046304
-          git fetch --no-tags --depth=250 origin "$BASELINE" || git fetch --unshallow origin
+          git cat-file -e "$BASELINE^{commit}"
           git merge-base --is-ancestor "$BASELINE" HEAD || {
             echo "::error::QA release source does not contain verified Release 461 features."
             exit 1
