@@ -1,19 +1,14 @@
-# OneSpace Production Android Google Play upload bundle (2026-11-19)
+# OneSpace Production Google Play upload bundle (2026-11-19)
 
-Build a signed Android App Bundle (.aab), package live.onespace.app, for
-OneSpace Production Supabase. Source matches the QA code initiated by commit
-7ac1070d6e5e4fe8b5117720f35b3f221906d921; only release marker text differs.
+Signed Android AAB for live.onespace.app and Production Supabase.
+Code matches QA source (Gmail invitation formatting correction and
+branded HTML invitation delivery) except for release marker text.
 
-Contents:
-- Invitation UX improvements and safer same-code resend
-- Shared invitation landing links and app intake
-- Password-manager autofill and email recovery from Profile
-- No database schema changes
-
-Security/release conditions:
-- Fail if upload signing secrets or production Firebase configuration are absent
-- Flutter analyzer and tests must pass
-- Verify package ID and upload-key signature
-- Generate .aab for manual upload to Google Play closed testing
-- Do not automatically publish in Google Play or alter production accounts
-- iOS archives from the QA marker are UNSIGNED and cannot go to TestFlight
+- Manual Google Play closed-testing upload only; no automated rollout
+- Required signing: OneSpace Play upload key (never QA signing key)
+- Required Firebase configuration and production environment verification
+- Flutter analyzer and automated tests must pass
+- Check App Bundle package ID, signing certificate and unique version code
+- Email templates use original OneSpace mark and Two of Us. One Space.
+- Official store badges only when their validated product URLs are configured
+- Production email sending remains authenticated and rate-limited
