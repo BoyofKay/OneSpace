@@ -9,6 +9,8 @@ declare
   activity_id uuid;
   me jsonb;
   other jsonb;
+  client jsonb;
+  readiness jsonb;
   actual bigint;
 begin
   if has_function_privilege('anon','public.space_archive_dependency_inventory()','execute') then
@@ -25,7 +27,14 @@ begin
   values(activity_id,pair_owner,'Temporary FK comment');
   perform set_config('role','authenticated',true);
   perform set_config('request.jwt.claim.sub',pair_owner::text,true);
-  me:=public.space_archive_dependency_inventory();
+  me:=private.space_archive_dependency_inventory();
+  client:=public.space_archive_dependency_inventory();
+  readiness:=public.space_separation_preflight();
+  if client ? 'details' or client ? 'linked_dependents' or
+     readiness ? 'private_root_records' or readiness ? 'space_linked_records'
+     or readiness ? 'unclassified_root_records' then
+     raise exception 'Partner private-record counts exposed by public readiness API';
+  end if;
   select (e->>'records')::bigint into actual
   from jsonb_array_elements(me->'details') e where e->>'table'='activity_comments';
   if actual is distinct from 1 then
@@ -36,7 +45,7 @@ begin
     raise exception 'Missing dependent table coverage or unsafe export gate: %',me;
   end if;
   perform set_config('request.jwt.claim.sub',other_owner::text,true);
-  other:=public.space_archive_dependency_inventory();
+  other:=private.space_archive_dependency_inventory();
   select (e->>'records')::bigint into actual
     from jsonb_array_elements(other->'details') e where e->>'table'='activity_comments';
   if actual is distinct from 0 then
@@ -44,4 +53,4 @@ begin
   end if;
 end $test$;
 rollback;
-select 'PASS: nested row coverage, signed-in space isolation, anonymous access revoked, all synthetic rows rolled back' as result;
+select 'PASS: nested FK coverage, cross-space isolation, privacy-safe public RPC, anon block, synthetic rows rolled back' as result;
