@@ -89,3 +89,16 @@ and install **OneSpace QA** from the newest `qa-0.1.N` GitHub release.
 - No app data was copied. Only the Founder waitlist (couple #1) moved from QA to Production.
 - **Lesson:** every database change must be a migration. Changes made with ad-hoc SQL do not reach
   Production.
+
+## Public website URLs for Google Play and iOS listings
+
+Use the canonical clean URLs in store consoles, release notes, marketing and any future in-app external links:
+
+- Privacy policy: `https://onespace.live/privacy/`
+- Terms of use: `https://onespace.live/terms/`
+- Account deletion: `https://onespace.live/delete-account/`
+- Customer support: `https://onespace.live/support/`
+- Frequently asked questions: `https://onespace.live/faq/`
+- Founder signup: `https://onespace.live/join/`
+
+The website serves localized clean links under `/ar/`, `/es/`, `/fr/`, and `/de/`, and keeps the previous `.html` addresses as backward-compatible redirects. In-app Terms and Privacy screens are native and must remain consistent with these hosted policies. These documentation-only updates do not change the signed Android AAB or iOS build.
