@@ -45,21 +45,21 @@ String? invitationCodeFromUri(Uri uri, {bool qa = false}) {
 String invitationMessage(String code, {bool qa = false, bool email = false}) {
   final link = invitationWebLink(code, qa: qa);
   if (email) {
-    return 'I would love for us to have our own space on OneSpace. 💙\\n\\n'
-        'OneSpace helps us remember the little things, plan together, and feel connected — wherever we are.\\n\\n'
-        'Tap this invitation to join me:\\n$link\\n\\n'
+    return 'I would love for us to have our own space on OneSpace. 💙\n\n'
+        'OneSpace helps us remember the little things, plan together, and feel connected — wherever we are.\n\n'
+        'Tap this invitation to join me:\n$link\n\n'
         'If OneSpace is already installed, open it from the invitation link. '
-        'Otherwise, you can install it when your platform is available and use this code under Join your partner:\\n\\n'
-        '$code\\n\\n'
-        'Google Play: [OneSpace store link coming soon]\\n'
-        'App Store: [OneSpace store link coming soon]\\n\\n'
-        'This invitation expires at its original expiration time.\\n\\n'
+        'Otherwise, you can install it when your platform is available and use this code under Join your partner:\n\n'
+        '$code\n\n'
+        'Google Play: [OneSpace store link coming soon]\n'
+        'App Store: [OneSpace store link coming soon]\n\n'
+        'This invitation expires at its original expiration time.\n\n'
         'One Life. Two Places. One Space.';
   }
-  return 'Join me on OneSpace! 💙\\n\\n'
-      'Open your invitation:\\n$link\\n\\n'
-      'If the app is not installed, use the links on that page.\\n'
-      'Manual invitation code (if needed):\\n$code\\n\\n'
-      'Google Play: [coming soon] · App Store: [coming soon]\\n'
+  return 'Join me on OneSpace! 💙\n\n'
+      'Open your invitation:\n$link\n\n'
+      'If the app is not installed, use the links on that page.\n'
+      'Manual invitation code (if needed):\n$code\n\n'
+      'Google Play: [coming soon] · App Store: [coming soon]\n'
       'The original invitation expiration still applies.';
 }
