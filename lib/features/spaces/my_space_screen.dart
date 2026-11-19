@@ -12,6 +12,7 @@ class MySpaceScreen extends StatefulWidget {
 class _MySpaceScreenState extends State<MySpaceScreen> {
   final _db = Supabase.instance.client;
   Map<String, dynamic>? _status;
+  Map<String, dynamic>? _readiness;
   bool _loading = true, _busy = false;
   String? _error, _message;
 
@@ -21,8 +22,10 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   Future<void> _load() async {
     try {
       final data = await _db.rpc('my_space_lifecycle_status');
+      final audit = await _db.rpc('space_lifecycle_readiness');
       if (mounted) setState(() {
         _status = Map<String, dynamic>.from(data as Map);
+        _readiness = Map<String, dynamic>.from(audit as Map);
         _error = null;
       });
     } on PostgrestException catch (e) {
@@ -94,6 +97,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   @override
   Widget build(BuildContext context) {
     final s = _status;
+    final readiness = _readiness;
     final job = s?['active_job'] is Map
       ? Map<String, dynamic>.from(s!['active_job'] as Map) : null;
     final hasSpace = s?['has_space'] == true;
@@ -139,6 +143,16 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 const SizedBox(height: 8),
                 Text(tt('OneSpace must verify encrypted private and shared archives and media integrity before any separation or deletion.')),
                 const SizedBox(height: 8),
+                if (readiness != null) ...[
+                  Text(tt('Safety assessment: ') + (readiness['reason'] ?? 'Pending').toString()),
+                  const SizedBox(height: 6),
+                  Text(tt('Space records assessed: ') + (readiness['space_linked_records'] ?? 0).toString()),
+                  if (readiness['storage_reconciliation_pending'] == true)
+                    Text(tt('Older storage files still need reconciliation before a space can be closed.')),
+                  if ((readiness['unclassified_root_records'] as num? ?? 0) > 0)
+                    Text(tt('Some records need an explicit private/shared classification before archiving.')),
+                  const SizedBox(height: 8),
+                ],
                 Text(tt('Verified archives: ') +
                   (s?['archives_verified'] ?? 0).toString() +
                   ' / ' + (s?['archives_expected'] ?? 0).toString()),
