@@ -5,9 +5,9 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 
 ## Deployed policy catalog
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
-- **69 registered table types; 47 explicitly approved; 22 awaiting privacy/restore classification.**
-- Root policies: 14 visibility-scoped private/shared content, 4 owner-private types, 5 system-excluded operational/account types, 7 member-shared types, **4 pending**.
-- Dependent policies: 4 approved media exclusions, 7 parent-scoped content types, **18 pending**.
+- **69 registered table types; 60 explicitly approved; 9 awaiting privacy/restore classification.**
+- Root policies: 16 visibility-scoped private/shared content, 4 owner-private types, 5 system-excluded operational/account types, 7 member-shared types, **2 pending**.
+- Dependent policies: 4 approved media exclusions, 17 parent-scoped private/shared types, 5 member-shared types, 2 operational exclusions, **7 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
@@ -21,23 +21,15 @@ These classifications are grounded in existing RLS SELECT policies for both
 active members. This approves **visibility scope**, not archive serialization,
 encryption, restoration or destruction.
 
-## 4 root types still requiring explicit classification
-couple_letters, item_links, place_visits, record_action_history.
+## 2 root types still requiring explicit classification
+item_links, record_action_history.
 
-**Love Letters requires special handling:** author-private drafts and future
-scheduled-open letters MUST NOT become visible to a partner through an archive
-before their normal authorization rules allow it. Do not treat every row in a
-shared space as shared content.
+**Love Letters protection implemented in QA 0184:** author-private drafts and future-open letters cannot be previewed by a partner before their normal open date. This has not yet been integrated into a complete archive.
 
-## 18 dependent types requiring explicit classification
-activity_comments, activity_component_reactions,
-activity_component_revisions, activity_components, activity_decisions,
-activity_revisions, couple_letter_reads,
+## 7 dependent types requiring explicit classification
 note_references, occasion_budget_items, occasion_budget_log,
 occasion_plan_revisions, occasion_proposal_items,
-partner_checkin_acknowledgements, reminder_actions,
-reminder_recipients, saved_contact_revisions,
-scrapbook_pages, trip_revisions.
+reminder_actions, reminder_recipients.
 
 **Four excluded media-dependent types**: memory_photos, note_images,
 trip_attachments, memory_photo_revisions. This exclusion does not yet prove there are no media URLs
@@ -91,3 +83,12 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 - A member may see all live shared comments, but a comment the other partner archived is excluded from that member's archive preview. The comment's author can still include their own archived text. Reply pointers to unavailable/hidden comments are removed to avoid exposing private comment identifiers.
 - Historical before/after snapshots retain ordinary written descriptions but omit media paths and scrapbook photo IDs through the recursive sanitizer.
 - Current-pair authorship, recipient-only scope, deterministic digest, outsider-denial, incomplete-lineage rejection and non-restorable shared-history flags were verified in a rollback-only two-account regression. **No completed encrypted shared archive or shared-history restoration is claimed.**
+
+## QA 0182–0186 — written nested history reviewed and tested
+- **13 new table types** classified with per-root and per-recipient privacy; **60/69 approved, 9 pending**.
+- Private/shared parent invariants apply to scrapbook pages and editable revision history; no other partner's old contributions may silently be claimed as new private records.
+- Activity components, comments, reactions, decisions and two audit streams are rendered into deterministic, capped structured previews; recursive media/file path redaction preserves textual captions.
+- Love Letters drafts and future-open sent letters remain author-private; read receipts and hidden replies are restricted by real open status.
+- Place visit captions remain while old memory/trip navigation IDs are inert and stripped, cross-space associations rejected.
+- Check-in acknowledgements are accessible only to the original sender/recipient of a responded request, as reference-only history.
+- Five synthetic two-account rollback-only QA regressions passed, including outsider requests, media leaks, digest integrity, and share→private collisions. **No portable full archive, trusted restore, or destructive lifecycle permission is implied.**
