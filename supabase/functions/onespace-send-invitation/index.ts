@@ -100,10 +100,14 @@ Deno.serve(async(req)=>{
   const root=env("SUPABASE_URL"),anon=env("SUPABASE_ANON_KEY"),
     service=env("SUPABASE_SERVICE_ROLE_KEY"),resend=env("RESEND_API_KEY");
   if(!root||!anon||!service||!resend)return json(503,{error:"Email sending is not configured"});
-  const size=Number(req.headers.get("content-length")||"0");
-  if(size>2048)return json(413,{error:"Request too large"});
   let body:Record<string,unknown>;
-  try{body=await req.json();}catch{return json(400,{error:"Invalid request"});}
+  try{
+    const raw=await req.text();
+    if(raw.length>2048)return json(413,{error:"Request too large"});
+    body=JSON.parse(raw);
+    if(!body || Array.isArray(body) || typeof body!=="object")
+      return json(400,{error:"Invalid request"});
+  }catch{return json(400,{error:"Invalid request"});}
   const recipient=typeof body.recipient_email==="string"?body.recipient_email.trim().toLowerCase():"";
   const space=typeof body.space_id==="string"?body.space_id:"";
   if(recipient.length>254||! /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(recipient)||
