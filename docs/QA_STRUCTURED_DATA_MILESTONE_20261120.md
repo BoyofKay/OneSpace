@@ -47,6 +47,15 @@
 - [x] Node 22 QA crypto roundtrip/tamper tests passed in GitHub Actions run `44628764813`, alongside downloader regression tests, **without APK generation**.
 - [ ] Prototype is not wired to a verified server-side archive issuer, durable encrypted Storage registry, app-private download or actual restoration. User-supplied passphrases alone cannot prove trusted server origin. Shared history remains reference-only and unimplemented.
 
+## QA 0179–0180 — encrypted private-preview staging (not lifecycle archives)
+- [x] QA migration **0179**: authenticated, owner-checked private task/trip package RPC; separate `qa_structured_preview_staging` registry with authenticated owner-only RLS, service-only inserts/updates, 5-per-account/24h rate limit, `is_verified_archive=false`, `can_restore=false`, `safe_to_separate=false` constraints. Rollback SQL test **PASS**.
+- [x] QA migration **0180**: service-only due/finish cleanup RPCs for 24-hour preview Storage expiry. Rollback SQL regression **PASS**. Existing 30-day lifecycle archive registry is separate and unchanged.
+- [x] Edge Function `onespace-qa-structured-preview` **v1 deployed to QA** with JWT verification and a QA-project hostname guard: owner-JWT read, AES-GCM passphrase encryption, private Storage upload, server-side readback SHA-256 verification, staging finalize, owner-only verified download and compensating cleanup.
+- [ ] Actual authenticated live QA-account issuance/download and independently decrypted file acceptance still required. Mock-backed GitHub end-to-end tests validate code paths, not live Auth + Storage.
+- [x] QA archive janitor **v2 ACTIVE**, still guarded by the existing cron secret; existing hourly `onespace-archive-janitor` scheduled at minute 37. Its new 24-hour preview cleanup uses Storage API and service-only registry RPCs; the original 30-day archive cleanup remains independent.
+- [x] GitHub Action run `44630428012` completed its test step: **33 tests passed, 0 failed** across downloadable ciphertext verification, AES-GCM roundtrip, encrypted staging handler and janitor. Mock-backed Storage E2E only, not a live authenticated user run.
+- [ ] **Not a full archive**: limited to one owner-private trip or checklist package at a time. The full 69-type structured archive and authorized restore remain incomplete; preview files never count toward lifecycle safety gates.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. 45 approved, 24 pending; 4 known media types excluded.
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.

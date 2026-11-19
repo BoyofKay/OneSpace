@@ -52,5 +52,36 @@ Deno.serve(async(req)=>{
       }catch{}
     }
   }
-  return json(200,{examined:due.length,...results});
+  // A separate 24h TTL applies to QA encrypted *previews* only.
+  // Never mix this staging table into the 30-day real archive workflow.
+  const previews={preview_examined:0,preview_purged:0,preview_failed:0};
+  try{
+    const duePreviews=await rpc("qa_previews_due_for_purge_service",{}) as
+      Array<{preview_id:string,object_path:string}>;
+    previews.preview_examined=duePreviews.length;
+    for(const item of duePreviews){
+      const id=String(item?.preview_id??"");
+      const path=String(item?.object_path??"");
+      if(!/^[0-9a-f-]{36}$/i.test(id)||
+         !/^[0-9a-f-]{36}\/qa-previews\/[0-9a-f-]{36}\.onespace-preview$/i.test(path)||
+         path.includes("..")){
+        previews.preview_failed++;
+        continue;
+      }
+      try{
+        const removed=await fetch(base+"/storage/v1/object/onespace-archives",{
+          method:"DELETE",headers:auth,body:JSON.stringify({prefixes:[path]})});
+        if(!removed.ok)throw new Error("Preview object deletion failed");
+        const recorded=await rpc("qa_preview_finish_purge_service",{
+          p_id:id});
+        if(recorded!==true)throw new Error("Preview purge registry update failed");
+        previews.preview_purged++;
+      }catch{previews.preview_failed++;}
+    }
+  }catch{
+    // Do not break 30-day archive cleanup if QA-only staging is temporarily
+    // unavailable. Report this failure for operational monitoring.
+    previews.preview_failed++;
+  }
+  return json(200,{examined:due.length,...results,...previews});
 });
