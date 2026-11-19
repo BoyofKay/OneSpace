@@ -2,6 +2,18 @@
 // tt('English') looks up here; anything missing stays English.
 
 const Map<String, String> arPhrases = {
+  // Partner invitation email
+  'Send an invitation by email': 'إرسال دعوة عبر البريد الإلكتروني',
+  'Send a professionally formatted email with the OneSpace logo, a clickable invitation, and app store availability.': 'أرسل رسالة منسقة تحمل شعار OneSpace ورابط دعوة قابلًا للنقر وحالة توفر التطبيق في المتاجر.',
+  'Your partner’s email': 'البريد الإلكتروني لشريكك',
+  'Invitation sent. The code and expiry have not changed.': 'تم إرسال الدعوة. لم يتغير الرمز أو موعد انتهاء صلاحيته.',
+  'Or open a plain-text draft in Gmail or your email app. The draft cannot include images or store badges.': 'أو افتح مسودة نصية في Gmail أو تطبيق البريد. لا يمكن للمسودة النصية عرض الصور أو شارات المتاجر.',
+  'Open email draft': 'فتح مسودة البريد',
+  'No email app is available.': 'لا يوجد تطبيق بريد متاح.',
+  'Sending...': 'جارٍ الإرسال...',
+  'Sent': 'تم الإرسال',
+  'Send branded email': 'إرسال البريد المنسق',
+  'Unable to send the email. Use the draft or copy the invitation instead.': 'تعذر إرسال البريد. استخدم المسودة أو انسخ الدعوة بدلاً من ذلك.',
   // R84: opt-in counters and meaningful map markers
   'Add to counters': 'إضافة إلى العدادات',
   'Choose from calendar, dates, occasions, flights or trips': 'اختر من التقويم أو التواريخ أو المناسبات أو الرحلات',

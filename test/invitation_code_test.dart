@@ -44,4 +44,17 @@ void main() {
     expect(invitationCodeFromUri(Uri.parse('https://onespace.live/app-invite/?code=bad')), isNull);
   });
 
+  test('Gmail draft uses RFC 6068 percent encoding, never plus-as-spaces', () {
+    const code = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+    final uri = invitationEmailDraftUri(code, qa: true);
+    final url = uri.toString();
+    expect(uri.scheme, 'mailto');
+    expect(url, contains('subject=A%20little%20space'));
+    expect(url, contains('%0A'));
+    expect(url, isNot(contains('+')));
+    expect(uri.queryParameters['subject'], contains('OneSpace invitation'));
+    expect(uri.queryParameters['body'], contains(invitationWebLink(code, qa: true).toString()));
+    expect(uri.queryParameters['body'], contains('Two of Us. One Space.'));
+  });
+
 }

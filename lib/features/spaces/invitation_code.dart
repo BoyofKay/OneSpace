@@ -46,21 +46,27 @@ String? invitationCodeFromUri(Uri uri, {bool qa = false}) {
 String invitationMessage(String code, {bool qa = false, bool email = false}) {
   final link = invitationWebLink(code, qa: qa);
   if (email) {
-    return 'I would love for us to have our own space on OneSpace. 💙\n\n'
-        'OneSpace helps us remember the little things, plan together, and feel connected — wherever we are.\n\n'
-        'Tap this invitation to join me:\n$link\n\n'
-        'If OneSpace is already installed, open it from the invitation link. '
-        'Otherwise, you can install it when your platform is available and use this code under Join your partner:\n\n'
-        '$code\n\n'
-        'Google Play: [OneSpace store link coming soon]\n'
-        'App Store: [OneSpace store link coming soon]\n\n'
-        'This invitation expires at its original expiration time.\n\n'
-        'One Life. Two Places. One Space.';
+    return 'I would love for us to have a space of our own on OneSpace.\n\n'
+        'Tap the link below to join me:\n$link\n\n'
+        'If the link doesn’t open OneSpace, choose Open in OneSpace on that page, '
+        'or enter this code manually:\n$code\n\n'
+        'Google Play and App Store availability is shown on the invitation page.\n\n'
+        'OneSpace\nTwo of Us. One Space.\nhttps://onespace.live';
   }
   return 'Join me on OneSpace! 💙\n\n'
       'Open your invitation:\n$link\n\n'
-      'If the app is not installed, use the links on that page.\n'
+      'If the app is not installed, use the instructions on that page.\n'
       'Manual invitation code (if needed):\n$code\n\n'
-      'Google Play: [coming soon] · App Store: [coming soon]\n'
-      'The original invitation expiration still applies.';
+      'OneSpace · Two of Us. One Space.';
+}
+
+/// RFC 6068 mailto is NOT HTML form encoding. Gmail may show `+` literally.
+/// Encode query components with %20 and %0A, not Uri.queryParameters.
+Uri invitationEmailDraftUri(String code, {bool qa = false}) {
+  const subject = 'A little space for us — OneSpace invitation';
+  final message = invitationMessage(code, qa: qa, email: true);
+  return Uri(
+    scheme: 'mailto',
+    query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(message)}',
+  );
 }
