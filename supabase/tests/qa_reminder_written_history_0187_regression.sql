@@ -8,14 +8,12 @@ begin
  if sid is null then raise exception 'QA pair missing';end if;
  insert into public.reminders(space_id,created_by,title,due_at,visibility,audience)
  values(sid,a,'QA shared reminder history',now()+interval '1 day','shared','both') returning id into root_id;
- insert into public.reminder_recipients(reminder_id,recipient_id,state,outcome_note,snoozed_until)
- values(root_id,b,'done','Thank you for the reminder',now()+interval '2 hours');
+ update public.reminder_recipients set state='done',outcome_note='Thank you for the reminder',snoozed_until=now()+interval '2 hours' where reminder_id=root_id and recipient_id=b;
  insert into public.reminder_actions(reminder_id,recipient_id,actor_id,action,note,next_alert_at)
  values(root_id,b,b,'done','We finished that together',now()+interval '2 hours');
  insert into public.reminders(space_id,created_by,title,due_at,visibility,audience)
  values(sid,a,'QA my private reminder',now()+interval '2 days','private','me') returning id into private_id;
- insert into public.reminder_recipients(reminder_id,recipient_id,state,outcome_note)
- values(private_id,a,'done','My private completion note');
+ update public.reminder_recipients set state='done',outcome_note='My private completion note' where reminder_id=private_id and recipient_id=a;
  if has_function_privilege('anon','private.qa_reminder_written_history_preview(uuid)','execute')
  then raise exception 'Anon could export reminders';end if;
  perform set_config('role','authenticated',true);
