@@ -710,28 +710,36 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   Future<void> _invite({bool replacing = false}) async {
     final id = spaceId;
     if (id == null || working) return;
-    if (replacing && _hasActiveInvite) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(tr(dialogContext, 'replaceInvitationConfirmTitle')),
-          content: Text(tr(dialogContext, 'replaceInvitationConfirmBody')),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(tr(dialogContext, 'keepInvitation')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(tr(dialogContext, 'replaceInvitationConfirmAction')),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-    }
     setState(() { working = true; issue = null; });
     try {
+      // Server-side state is authoritative. A stale Today cache must not
+      // silently invalidate a code if the user pressed "Create".
+      final activeCode = await _activeInvitationCode(id);
+      if (!mounted) return;
+      if (activeCode != null && !replacing) {
+        await _shareInvitation(activeCode);
+        return;
+      }
+      if (activeCode != null && replacing) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(tr(dialogContext, 'replaceInvitationConfirmTitle')),
+            content: Text(tr(dialogContext, 'replaceInvitationConfirmBody')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(tr(dialogContext, 'keepInvitation')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(tr(dialogContext, 'replaceInvitationConfirmAction')),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+      }
       final token = await client.rpc('create_invitation',
           params: {'p_space_id': id}) as String;
       if (!mounted) return;
