@@ -1,6 +1,6 @@
 # OneSpace Coordinate — Private voice notes, R1
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 ## User experience
 - Inside an Activity use Add → **Voice note** to attach audio, including beneath an Option.
