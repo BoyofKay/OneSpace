@@ -29,7 +29,8 @@ if (report_a->>'classified_table_types')::int<>69
  or (report_a->>'media_excluded_table_types')::int<>4
  or (report_a->>'operational_excluded_table_types')::int<>7
  or (report_a->>'table_types_accounted_for')::int<>69
- or report_a->>'mixed_visibility_shared_rows_censused'<>'false'
+ or jsonb_array_length(report_a->'mixed_shared_per_table')<>42
+ or report_a->>'mixed_visibility_shared_rows_censused'<>'true'
  or report_a->>'full_per_row_source_manifest_complete'<>'false'
  or report_a->>'independently_verified_encrypted_archive'<>'false'
  or report_a->>'can_restore'<>'false'
