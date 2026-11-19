@@ -74,6 +74,12 @@
 - [x] **0194**: shared link/audit targets must have source creators belonging to the original active pair; test of outsider-authored source rejected and rolled back. No Production data touched.
 - [ ] **Next major P0:** implement fully enumerated content manifest, trusted encrypted archive issuance, actual verified download and recipient decryption, then authorized private restore to an independent new space with idempotent ID remapping. Shared history stays separate/reference-only. No leave/remove/delete until this succeeds on both phones.
 
+## QA restore dry-run — explicit remapping, no writes (source-only)
+- [x] `qa_private_restore_dry_run.mjs` takes an authenticated/decrypted owner-private trip/checklist preview, checks exact owner and source-space IDs and requires a distinct destination space, validates complete child table sets, row counts, original parent references and per-child authorship. Rejects orphan checklist checks, duplicate source IDs, shared/foreign-owned data, embedded media or future unreviewed fields.
+- [x] Generates fresh random UUIDs for root/children and remaps task checklist checks to newly mapped checklist items. Preserves written titles, notes, completion and travel details, but drops old partner assignment, migrated-list, traveler and external trip navigation IDs.
+- [x] Performs a passphrase-protected AES-GCM decrypt → structural validation → ID remapping **without ever writing to Postgres or Storage**. All results assert `is_verified_archive=false`, `can_write=false`, `can_restore=false`, `safe_to_separate=false`.
+- [ ] Still missing: full 69-type manifest, server-issued archive authenticity, checked ciphertext readback against a real QA file, authenticated target-space ownership, server transactional restore, duplicate/replay idempotence, shared reference-only history and two-device QA acceptance.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. **69 approved, zero pending; 4 known media types excluded.**
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
