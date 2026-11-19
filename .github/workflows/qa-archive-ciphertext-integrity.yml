@@ -7,6 +7,7 @@ on:
       - qa-archive-encryption-envelope-0178-20261120
       - qa-encrypted-preview-staging-0179-20261120
       - qa-private-restore-dry-run-0195-20261120
+      - qa-encrypted-vault-subset-manifest-0209-20261120
     paths:
       - 'supabase/functions/onespace-download-archive/index.ts'
       - 'supabase/tests/archive_download_integrity.test.mjs'
@@ -18,6 +19,8 @@ on:
       - 'supabase/tests/qa_preview_janitor_handler.test.mjs'
       - 'supabase/tests/qa_private_restore_dry_run.test.mjs'
       - 'supabase/functions/_shared/qa_private_restore_dry_run.mjs'
+      - 'supabase/functions/_shared/qa_vault_subset_osa.mjs'
+      - 'supabase/tests/qa_vault_subset_osa.test.mjs'
       - '.github/workflows/qa-archive-ciphertext-integrity.yml'
   pull_request:
     paths:
@@ -31,6 +34,8 @@ on:
       - 'supabase/tests/qa_preview_janitor_handler.test.mjs'
       - 'supabase/tests/qa_private_restore_dry_run.test.mjs'
       - 'supabase/functions/_shared/qa_private_restore_dry_run.mjs'
+      - 'supabase/functions/_shared/qa_vault_subset_osa.mjs'
+      - 'supabase/tests/qa_vault_subset_osa.test.mjs'
       - '.github/workflows/qa-archive-ciphertext-integrity.yml'
 permissions:
   contents: read
@@ -44,4 +49,4 @@ jobs:
         with:
           node-version: '22'
       - name: Mock Auth, archive registry and Storage; verify actual ciphertext
-        run: node --experimental-strip-types --test supabase/tests/archive_download_integrity.test.mjs supabase/tests/archive_envelope_crypto.test.mjs supabase/tests/qa_archive_staging_handler.test.mjs supabase/tests/qa_preview_janitor_handler.test.mjs supabase/tests/qa_private_restore_dry_run.test.mjs
+        run: node --experimental-strip-types --test supabase/tests/qa_vault_subset_osa.test.mjs supabase/tests/archive_download_integrity.test.mjs supabase/tests/archive_envelope_crypto.test.mjs supabase/tests/qa_archive_staging_handler.test.mjs supabase/tests/qa_preview_janitor_handler.test.mjs supabase/tests/qa_private_restore_dry_run.test.mjs
