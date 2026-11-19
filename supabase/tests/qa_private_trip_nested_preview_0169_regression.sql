@@ -76,7 +76,9 @@ begin
   end;
 
   perform set_config('request.jwt.claim.sub',owner_user::text,true);
+  perform set_config('role','postgres',true);
   update public.shared_trips set visibility='shared' where id=trip_id;
+  perform set_config('role','authenticated',true);
   begin
     perform private.qa_private_trip_structured_package(trip_id);
     raise exception 'Shared trip passed as owner-private';
@@ -86,13 +88,10 @@ begin
       raise exception 'Wrong shared transition behavior: %',err;
     end if;
   end;
+  perform set_config('role','postgres',true);
   update public.shared_trips set visibility='private' where id=trip_id;
+  perform set_config('role','authenticated',true);
   pack2:=private.qa_private_trip_structured_package(trip_id);
-  if pack2->>'payload_sha256'=pack->>'payload_sha256' then
-    -- Visibility transition updates updated_at, so the payload hash may differ;
-    -- the important check is that the resynchronized preview exists.
-    null;
-  end if;
   if (pack2->'payload'->>'child_record_count')::int<>3 then
     raise exception 'Re-private snapshots were not resynchronized';end if;
 
