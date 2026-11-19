@@ -63,7 +63,7 @@ Deno.serve(async(req)=>{
       const id=String(item?.preview_id??"");
       const path=String(item?.object_path??"");
       if(!/^[0-9a-f-]{36}$/i.test(id)||
-         !/^[0-9a-f-]{36}\\/qa-previews\\/[0-9a-f-]{36}\\.onespace-preview$/i.test(path)||
+         !/^[0-9a-f-]{36}\/qa-previews\/[0-9a-f-]{36}\.onespace-preview$/i.test(path)||
          path.includes("..")){
         previews.preview_failed++;
         continue;
