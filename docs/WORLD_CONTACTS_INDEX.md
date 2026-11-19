@@ -1,6 +1,6 @@
 # OneSpace World — Contacts from Coordinate
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 This first World directory is intentionally a **read-only index**, not a second independently editable address book.
 
