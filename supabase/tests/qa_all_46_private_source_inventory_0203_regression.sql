@@ -49,7 +49,7 @@ begin
  first_b:=public.qa_private_source_inventory();
  if (first_b->>'private_source_rows_counted')::int<>0
  or first_b->>'owner_id'<>b::text then
- raise exception 'Partner inventory included first owner's private data';end if;
+ raise exception 'Partner inventory included first owner private data';end if;
  perform set_config('role','postgres',true);
  perform set_config('request.jwt.claim.sub',a::text,true);
  update public.notes set body='This written private note changed'
