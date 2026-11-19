@@ -1,3 +1,8 @@
+> **SUPERSEDED by the founder's confirmed 20 November 2026 requirement:**
+> Archive **and restore remain required** for structured private/shared data.
+> Uploaded media, photos, voice recordings and documents are excluded.
+> This old *no-archive* proposal is NOT approved. See `QA_STRUCTURED_DATA_MILESTONE_20261120.md`.
+
 # OneSpace product scope review: simplify separation without archive generation
 
 Date: 2026-11-19 — founder feedback; **proposal, not implemented deletion authorization**.

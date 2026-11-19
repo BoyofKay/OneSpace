@@ -5,8 +5,8 @@ import 'my_archives_screen.dart';
 import '../../core/app_env.dart';
 
 /// Safe lifecycle preparation only; destructive actions remain server-gated until
-/// private records and media can be
-/// preserved before leaving, removing a partner or deleting a space.
+/// structured private/shared records can be
+/// preserved (excluding media and uploaded documents) before leaving, removing a partner or deleting a space.
 class MySpaceScreen extends StatefulWidget {
   const MySpaceScreen({super.key});
   @override
@@ -219,7 +219,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               ? 'Space separation is not available in Production until the QA archive and privacy checks are completed.'
               : 'You may request secure preparation for leaving, removing a partner, '
                 'or closing the space. Actual separation remains blocked until '
-                'encrypted exports, file integrity and privacy checks pass.')),
+                'structured-data archives, privacy checks and restoration tests pass. Photos, uploaded documents and other media are excluded from archive and restore.')),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: _checking || OneSpaceEnv.isProduction ? null : _checkReadiness,
@@ -253,7 +253,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 icon: const Icon(Icons.person_remove_outlined),
                 onPressed: mayAct ? () => _stageAction('owner_removes_partner',
                   'Remove partner?',
-                  'First prepare verified private and shared archives for both people. This request does not remove the partner now.') : null,
+                  'First prepare verified structured private and shared archives for both people. Photos, documents and other media are excluded. This does not remove the partner now.') : null,
                 label: Text(tt('Prepare partner removal')),
               ),
             if (!OneSpaceEnv.isProduction && !_owner && _members == 2)
@@ -261,7 +261,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 icon: const Icon(Icons.logout),
                 onPressed: mayAct ? () => _stageAction('partner_leaves',
                   'Leave this space?',
-                  'Your private records and shared history must be archived first. This request does not leave the space now.') : null,
+                  'Your structured private records and shared history must be archived first; media and uploaded documents are excluded. This does not leave the space now.') : null,
                 label: Text(tt('Prepare to leave space')),
               ),
             if (!OneSpaceEnv.isProduction && _owner)
@@ -269,7 +269,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
                 icon: const Icon(Icons.delete_outline),
                 onPressed: mayAct ? () => _stageAction('owner_deletes_space',
                   'Delete this space?',
-                  'Both users must receive verified archives first. This request does not delete the space now.') : null,
+                  'Both users must receive verified structured-data archives first. Media and uploaded documents are excluded. This does not delete the space now.') : null,
                 label: Text(tt('Prepare space deletion')),
               ),
             const SizedBox(height: 10),

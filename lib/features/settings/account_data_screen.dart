@@ -119,8 +119,8 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
               const SizedBox(height: 6),
               Text(tt('This exports available account information as an unencrypted '
                 'JSON file in your phone Downloads. Photos, documents and other '
-                'attachments are NOT included. This is not the encrypted '
-                'private/shared separation archive. Store this file privately.')),
+                'attachments are NOT included. This is not the verified private/shared structured-data archive. '
+                'That future archive will also exclude uploaded media and documents. Store this JSON file privately.')),
               const SizedBox(height: 10),
               FilledButton.tonalIcon(onPressed: exporting ? null : _export,
                 icon: exporting ? const SizedBox(width: 18, height: 18,

@@ -207,11 +207,11 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
             Text(tt('Your OneSpace archives'),
               style: theme.textTheme.headlineSmall),
             const SizedBox(height: 8),
-            Text(tt('An automatic encrypted copy stays inside the installed '
-              'OneSpace app and disappears if you uninstall it. Only tapping '
-              'Save archive below creates a separate copy in Downloads. '
-              'Server archives expire after 30 days or after a verified '
-              'user-initiated external save, whichever comes first.')),
+            Text(tt('OneSpace separation archives will preserve supported structured '
+              'private and shared records, but exclude photos, voice recordings, '
+              'uploaded documents and other media. Those excluded files cannot '
+              'be restored from an archive. When a verified archive is ready, '
+              'Download archive saves the file to your device as your external copy.')),
             const SizedBox(height: 16),
             if (_archives.isEmpty) Card(child: Padding(
               padding: const EdgeInsets.all(16),
@@ -251,7 +251,7 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
                           || !Platform.isAndroid ? null
                           : () => _saveOutsideApp(archive),
                         icon: const Icon(Icons.download_outlined),
-                        label: Text(tt('Save archive to Downloads')),
+                        label: Text(tt('Download archive')),
                       ),
                   ],
                 ),

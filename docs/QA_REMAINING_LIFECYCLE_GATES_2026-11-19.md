@@ -1,3 +1,8 @@
+> **Policy correction (20 November 2026):** Earlier media-inclusive archive
+> requirements below are superseded. OneSpace must archive and restore
+> **structured private/shared records, excluding media and uploaded documents**.
+> Source: `docs/QA_STRUCTURED_DATA_MILESTONE_20261120.md`.
+
 # QA backlog — next hard gates (19 November 2026)
 
 **Scope:** QA Supabase `ugwrpeduzyzrujkizqfo`; no Production migration or destructive action.
