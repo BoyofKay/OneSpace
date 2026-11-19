@@ -16,6 +16,7 @@
   - `task_checklist_items` — canonical non-null `task_id`; optional legacy task pointer is not canonical.
   - `task_checklist_checks` — canonical non-null `task_id`; also has `item_id`.
 - The audit is deliberately **not an authorization to export**, since references across two parents need integrity constraints, and the per-user privacy/media lineage must be proven. `safe_to_export` always returns false.
+- **Privacy hardening migration 0155:** signed-in clients receive only schema-level dependency coverage, archive progress and generic blocker summaries—not the partner's private-record counts, root-table cardinalities or nested row detail. The internal scoped audit remains available for server-side verification.
 - QA SQL regression: inserted a temporary private activity + nested comment, verified count and cross-space isolation; inserted an occasion budget item **without a source activity**, verified it still resolves to its plan; all tests explicitly rolled back. Anonymous RPC execution denied.
 
 ## Still unfinished / must not be represented as complete
