@@ -18,6 +18,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _busy = false;
   bool _resetSent = false;
   bool _showPasswords = false;
+
+  // Initial state and incomplete/repeated passwords must never submit.
+  bool get _canUpdate {
+    final oldValue = _current.text;
+    final nextValue = _next.text;
+    final confirmation = _confirm.text;
+    return !_busy && oldValue.isNotEmpty && nextValue.length >= 8 &&
+      nextValue != oldValue && confirmation == nextValue;
+  }
   String? _error;
   final _auth = Supabase.instance.client.auth;
 
@@ -31,8 +40,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Future<void> _update() async {
     if (_busy) return;
-    if (_current.text.isEmpty || _next.text.length < 8 ||
-        _next.text != _confirm.text || _next.text == _current.text) {
+    if (!_canUpdate) {
       setState(() => _error = tt(
         'Enter your current password and a different new password '
         'of at least 8 characters, then confirm it.'));
@@ -98,6 +106,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           AutofillGroup(child: Column(children: [
             TextField(
               controller: _current,
+              onChanged: (_) => setState(() => _error = null),
               obscureText: !_showPasswords,
               autofillHints: const [AutofillHints.password],
               textInputAction: TextInputAction.next,
@@ -108,6 +117,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _next,
+              onChanged: (_) => setState(() => _error = null),
               obscureText: !_showPasswords,
               autofillHints: const [AutofillHints.newPassword],
               textInputAction: TextInputAction.next,
@@ -118,6 +128,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _confirm,
+              onChanged: (_) => setState(() => _error = null),
               obscureText: !_showPasswords,
               textInputAction: TextInputAction.done,
               autocorrect: false,
@@ -141,13 +152,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
           ),
           const SizedBox(height: 18),
-          FilledButton(
-            onPressed: _busy ? null : _update,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(tt(_busy ? 'Updating...' : 'Update password')),
-            ),
-          ),
+          Row(children: [
+            Expanded(child: OutlinedButton(
+              onPressed: _busy ? null : () => Navigator.of(context).pop(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(tt('Cancel')),
+              ),
+            )),
+            const SizedBox(width: 12),
+            Expanded(flex: 2, child: FilledButton(
+              onPressed: _canUpdate ? _update : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(tt(_busy ? 'Updating...' : 'Update password'),
+                  textAlign: TextAlign.center),
+              ),
+            )),
+          ]),
         ],
       )),
     );
