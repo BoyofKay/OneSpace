@@ -53,7 +53,7 @@
                 <data android:scheme="${authScheme}" android:host="invite"/>
             </intent-filter>
             <!-- Verified Android App Link: invitation from email opens the
-                 installed app directly. The website's assetlinks.json must
+                 installed QA app directly for /qa-invite/. The website's assetlinks.json must
                  include this flavor's signing certificate. Uninstalled devices
                  receive the lightweight website/store fallback. -->
             <intent-filter android:autoVerify="true">
@@ -62,7 +62,7 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"
                     android:host="onespace.live"
-                    android:pathPrefix="/app-invite"/>
+                    android:pathPrefix="/qa-invite"/>
             </intent-filter>
             <!-- Optional user-initiated Share -> OneSpace for browser/shop links. -->
             <intent-filter>
