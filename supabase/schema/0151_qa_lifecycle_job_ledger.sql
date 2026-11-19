@@ -22,8 +22,6 @@ create table if not exists public.space_lifecycle_jobs(
  completed_at timestamptz,
  failure_reason text,
  constraint lifecycle_done_timestamp check (
-   status<>'completed' or completed_at is not null),
- constraint lifecycle_done_timestamp check (
    status<>'completed' or completed_at is not null)
 );
 create unique index if not exists one_active_lifecycle_per_space
