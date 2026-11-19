@@ -10,6 +10,7 @@
 
 ## Milestone 0 — app and invitation
 - [x] QA 468 published with trusted QA signing certificate and corrected app/invitation source.
+- [x] QA backend invitation regression rerun on 20 Nov: latest verified recipient, replaced-code resolution, accept/join, duplicate join and anonymous denial PASS (transaction rollback). This is **backend only**.
 - [ ] New-user and existing-user latest-invitation flows verified on both Android phones.
 - [ ] Hosted Supabase signup/reset emails verified in actual delivered messages. GitHub HTML files do not automatically update hosted Auth templates.
 
@@ -42,7 +43,8 @@
 
 ## Milestone 4 — comprehensive QA acceptance and security (NOT COMPLETE)
 - [ ] Two real devices and two-user lifecycle; nested-data archive and restore; error/rollback, offline partner, push, re-pairing.
-- [ ] Complete authorization tests for remaining privileged Supabase functions and public endpoints.
+- [x] QA `export_my_data()` two-partner privacy regression rerun and committed: each user exported their own private note, never the partner's; anonymous access denied; test rows rolled back.
+- [ ] Complete authorization tests for remaining privileged Supabase functions and public endpoints. Latest QA advisor still flags 19 authenticated SECURITY DEFINER functions and 1 public support function; warnings are not by themselves exploit proof.
 - [ ] Produce one signed QA build only after an integrated milestone; Production unchanged.
 
 ## Status reporting contract
