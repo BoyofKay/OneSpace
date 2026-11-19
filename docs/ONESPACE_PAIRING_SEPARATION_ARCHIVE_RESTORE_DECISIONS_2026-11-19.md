@@ -4,7 +4,7 @@
 **Status:** Product decision and handover record; **not an authorization to implement**.  
 **See also:** The full downloadable handover `OneSpace_Pairing_Separation_Archive_Restore_Decisions_2026-11-19.md` provided in the ChatGPT conversation (196 lines, including detailed acceptance tests and open decisions).
 
-> **Newest correction overrides earlier proposals:** Automatically downloaded encrypted archives must live in **OneSpace's installed-app private file storage**, not in the public Files/Downloads area. They **disappear when the app is uninstalled**. Independently, the user receives an email with an authenticated archive download link and can deliberately save a durable external copy. Temporary server archives are deleted upon **verified successful download or after 30 days**, whichever occurs first. What specifically constitutes successful download **is pending**; do not silently decide this in code.
+> **Newest correction overrides earlier proposals:** Automatically downloaded encrypted archives must live in **OneSpace's installed-app private file storage**, not in the public Files/Downloads area. They **disappear when the app is uninstalled**. Independently, the user receives an email with an authenticated archive download link and can deliberately save a durable external copy. Temporary server archives are deleted upon **verified successful download or after 30 days**, whichever occurs first. **Decision 19 Nov: only an explicit USER-INITIATED external archive download/save, completed and verified, triggers early deletion. An automatic copy to app-private storage NEVER triggers server deletion.**
 
 ## Confirmed product decisions
 
@@ -20,7 +20,7 @@
 10. **Private versus shared:** Personal/private notes, contacts, reminders, memories, attachments etc. belong to their original account and survive separation. Old relationship shared objects/media are archived for each entitled partner, then removed from live backend when safe. Any old shared reference within a private item becomes harmless, inert, non-navigable historical text.
 11. **Archive composition:** Each entitled user receives own private-data archive and an authorized old shared-history archive, with actual files/media and integrity information. Do **not** include the other partner's private records. **Only private archives can ever be restored**; old shared-history archives are reference-only.
 12. **Archive locations:** (a) automatic encrypted local copy inside **installed OneSpace app private files** (lost on uninstall); (b) temporary, private encrypted **backend archive object**; (c) optional durable external copy **deliberately saved by user** through emailed authenticated download link. No email ZIP attachments/public permanent links. Email notifies each partner of archive readiness.
-13. **Archive cleanup:** Delete temporary server archive objects after verified successful download or at 30 days, whichever is earlier. No indefinite cloud archives. Ensure the lifecycle is recipient-specific and race-safe; confirm what counts as successful download before coding (P01). App-local archive and deliberately saved external archive are distinct.
+13. **Archive cleanup:** Delete temporary server archive objects after verified successful download or at 30 days, whichever is earlier. No indefinite cloud archives. Ensure recipient-specific and race-safe cleanup. Explicit user download/save with verification—not automatic app-private save—triggers early purge; otherwise purge after 30 days. App-local archive and deliberately saved external archive are distinct.
 14. **Live storage cleanup:** Once entitled archives are actually verified and the safety gate is met, delete old shared database records **and actual Storage files via Storage API**, not SQL-only Storage metadata deletion. Retain private records and attachments. Maintain only legally/operationally necessary audit status.
 15. **Restore private data:** Preferred automatic continuity via user-owned Personal Vault when same account joins another space; no import if data already exists. Where recovery is needed after joining, offer a **full restore subpage** from (a) this installed app's private archive, (b) server archive if still retained, or (c) manually selected user-saved external archive. Validate cryptographic authenticity, identity/account ownership, integrity, archive type and per-record privacy; dedupe and show real progress. Private remains private. Shared content must never enter a new relationship.
 16. **Delete account cascades:** Owner A's Delete account must automatically orchestrate space retirement, exports, notifications and cleanup before account deletion. No separate manual Delete space step. B's Delete account similarly performs a B-leave path so A continues in a clean private-only context. Existing account-deletion grace period requires reconciliation.
@@ -48,10 +48,10 @@ User joins/creates new relationship → if user's private data already exists, c
 | Location | How created | Removal | Survives uninstall? |
 | --- | --- | --- | --- |
 | App-private installed OneSpace files | Automatic encrypted download | App uninstall / app-data removal (plus any separately approved cache policy) | **No** |
-| Private temporary server archives | Backend export job | **Successful verified download OR 30-day deadline**, first event; trigger P01 unresolved | Only until server purge |
+| Private temporary server archives | Backend export job | **Successful verified download OR 30-day deadline**, first event; **explicit user-initiated, verified external download** | Only until server purge |
 | External user-saved archive | User follows authenticated email link and saves deliberately outside app | User controls own copy | **Yes, if actually saved outside app** |
 
-**Loss warning:** If backend archive was deleted after an app-only download and user then uninstalls OneSpace without separately saving an external copy, recovery of that archive is impossible. The deletion threshold must be explicit and user-facing.
+**Loss warning:** The automatic app-private copy MUST NOT cause backend archive deletion. The user-initiated external download must finish saving and pass integrity verification before cleanup can begin. The user must be told that the archive will be removed from the server after that action.
 
 ## Verified existing-system findings (read-only QA/repository investigation)
 
@@ -65,7 +65,7 @@ User joins/creates new relationship → if user's private data already exists, c
 
 ## Pending decisions (NOT settled)
 
-- **P01 / must resolve first:** Define the **verified successful download** event that immediately deletes the server archive: successful automatic save in app-private files? Completed email-link external download? Both? What about separate per-user/per-type archives and retries? The agreed rule is success OR 30 days, not an answer to what success means.
+- **P01 RESOLVED 19 Nov:** Only a deliberate user-initiated archive download to a user-chosen external location, after confirmed save and checksum verification, triggers early server deletion. Automatic app-private downloads never count. The 30-day deadline remains the fallback. Each recipient and archive type is independent.
 - **P02:** Whether to expose an additional **Save external copy** CTA inside the app and warn before server copy is purged.
 - **P03:** Exact start of the 30-day countdown (separation, archive creation, or user notification) and reminder cadence.
 - **P04:** Local app-private archive growth, quotas and user-initiated local cleanup; is it kept until uninstall by default?
@@ -87,7 +87,7 @@ User joins/creates new relationship → if user's private data already exists, c
 - A removes B or B leaves → owner stays in continuous private-only OneSpace and can invite C immediately; no old shared data actions/notifications remain.
 - A deletes space → both unpaired with private data; owner is not silently auto-repaired.
 - Old-space shared data/media included in authorized exports and deleted using Storage API once safe; personal data retained.
-- App-private archives are present while installed, **lost after uninstall**; external copies users deliberately saved remain accessible; server archive success/30-day purge is verified **only after resolving P01**.
+- App-private archives are present while installed, **lost after uninstall**; external copies users deliberately saved remain accessible; server archive success/30-day purge is verified according to resolved P01.
 - Only account-authentic private data restores from app-local/server/manual archive; shared content and other user's data fail verification. Old shared links inert; duplicated imports safe.
 - Owner account deletion cascades without requiring separate manual space deletion, and invited partner is correctly unpaired.
 - Confirm UI has no data-entry popup, owner Leave/Transfer actions do not exist, no new Remember me checkbox.
@@ -104,4 +104,4 @@ User joins/creates new relationship → if user's private data already exists, c
 
 ---
 
-**Handover:** This file records current decisions and explicit open questions. **No database, app, user-account, or storage changes are authorized by this document.** When resuming work, **read this first and resolve P01 before implementing server archive deletion**.
+**Handover:** This file records current decisions and explicit open questions. **No database, app, user-account, or storage changes are authorized by this document.** When resuming work, **read this first; P01 is resolved: only verified user-initiated external save counts toward early purge**.

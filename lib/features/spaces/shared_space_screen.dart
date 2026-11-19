@@ -6,10 +6,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'invitation_code.dart';
-import 'invitation_email_dialog.dart';
+import 'invite_partner_screen.dart';
 import 'invitation_link_inbox.dart';
 import '../../core/app_env.dart';
 import 'invitation_qr.dart';
@@ -116,6 +115,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   DateTime? nextMeetOn;
   DateTime? pendingInviteExpiry;
   bool inviteCollapsed = true;
+  String? _lastAutoJoinKey;
   bool loading = true;
   bool membershipResolved = false;
   bool summaryLoading = false;
@@ -327,6 +327,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         await prefs.remove(_cacheKey);
         if(!mounted)return;
         _apply(null,seenBefore:null);
+        if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
       } else {
         final data = Map<String, dynamic>.from(result as Map);
         final seen=DateTime.tryParse(await prefs.getString(_seenKey)??'');
@@ -581,205 +582,26 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   bool get _hasActiveInvite => pendingInviteExpiry != null &&
       pendingInviteExpiry!.isAfter(DateTime.now());
 
-  /// Only the person who created the invitation can read its code under RLS.
-  /// Reusing it does not write to the database and cannot extend its expiry.
-  Future<String?> _activeInvitationCode(String space) async {
-    final user = client.auth.currentUser?.id;
-    if (user == null) return null;
-    final row = await client.from('space_invitations')
-        .select('token')
-        .eq('space_id', space)
-        .eq('invited_by', user)
-        .isFilter('accepted_at', null)
-        .isFilter('revoked_at', null)
-        .gt('expires_at', DateTime.now().toUtc().toIso8601String())
-        .order('expires_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
-    return normalizedInvitationCode(row?['token']?.toString() ?? '');
+  /// Invites are managed on a full page. No forms or QR code dialogs.
+  Future<void> _openInvitation() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+      builder: (_) => InvitePartnerScreen(spaceId: spaceId),
+    ));
+    if (mounted) await _load();
   }
 
-  Future<void> _shareInvitation(String token) async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(tr(dialogContext, 'inviteTitle')),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(tr(dialogContext, 'inviteShareDescription')),
-              const SizedBox(height: 12),
-              SelectableText(invitationWebLink(token,
-                qa: !OneSpaceEnv.isProduction).toString()),
-              const SizedBox(height: 14),
-              Text(tr(dialogContext, 'inviteQrHint'),
-                style: Theme.of(dialogContext).textTheme.bodySmall),
-              const SizedBox(height: 8),
-              InvitationQr(code: token),
-              const SizedBox(height: 12),
-              Text(tr(dialogContext, 'inviteManualCode'),
-                style: Theme.of(dialogContext).textTheme.bodySmall),
-              SelectableText(token, style:const TextStyle(fontFamily:'monospace')),
-            ],
-          ),
-        ),
-        actions: [
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final way in const [
-              ('whatsapp', Icons.chat_outlined, 'WhatsApp'),
-              ('sms', Icons.sms_outlined, 'Text message'),
-            ])
-              OutlinedButton.icon(
-                icon: Icon(way.$2, size: 18),
-                label: Text(tt(way.$3)),
-                onPressed: () async {
-                  final message = invitationMessage(token,
-                      qa: !OneSpaceEnv.isProduction);
-                  final uri = switch (way.$1) {
-                    'whatsapp' => Uri.parse(
-                      'https://wa.me/?text=${Uri.encodeComponent(message)}'),
-                    'sms' => Uri.parse(
-                      'sms:?body=${Uri.encodeComponent(message)}'),
-                    _ => Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}'),
-                  };
-                  try {
-                    final opened = await launchUrl(uri,
-                        mode: LaunchMode.externalApplication);
-                    if (!opened && mounted) {
-                      ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(
-                        content: Text(tr(this.context, 'inviteShareUnavailable'))));
-                    }
-                  } catch (_) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(
-                        content: Text(tr(this.context, 'inviteShareUnavailable'))));
-                    }
-                  }
-                },
-              ),
-          ]),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.email_outlined),
-            label: Text(tt('Email')),
-            onPressed: () => showInvitationEmailDialog(
-              this.context, token: token, spaceId: spaceId!),
-          ),
-          TextButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text:
-                  invitationMessage(token, qa: !OneSpaceEnv.isProduction)));
-              if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(
-                SnackBar(content: Text(tr(this.context, 'inviteLinkCopied'))));
-            },
-            icon: const Icon(Icons.copy),
-            label: Text(tr(dialogContext, 'copyAgain')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(tr(dialogContext, 'done')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _resendInvitation() async {
-    final id = spaceId;
-    if (id == null || working) return;
-    setState(() { working = true; issue = null; });
-    try {
-      final token = await _activeInvitationCode(id);
-      if (!mounted) return;
-      if (token == null) {
-        await _load();
-        if (mounted) setState(() => issue = tr(context, 'inviteNoActiveCode'));
-        return;
-      }
-      await _shareInvitation(token);
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => issue = e.message);
-    } catch (_) {
-      if (mounted) setState(() => issue = tr(context, 'inviteResendError'));
-    } finally {
-      if (mounted) setState(() => working = false);
-    }
-  }
-
-  Future<void> _invite({bool replacing = false}) async {
-    final id = spaceId;
-    if (id == null || working) return;
-    setState(() { working = true; issue = null; });
-    try {
-      // Server-side state is authoritative. A stale Today cache must not
-      // silently invalidate a code if the user pressed "Create".
-      final activeCode = await _activeInvitationCode(id);
-      if (!mounted) return;
-      if (activeCode != null && !replacing) {
-        await _shareInvitation(activeCode);
-        return;
-      }
-      if (activeCode != null && replacing) {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(tr(dialogContext, 'replaceInvitationConfirmTitle')),
-            content: Text(tr(dialogContext, 'replaceInvitationConfirmBody')),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(tr(dialogContext, 'keepInvitation')),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: Text(tr(dialogContext, 'replaceInvitationConfirmAction')),
-              ),
-            ],
-          ),
-        );
-        if (confirmed != true || !mounted) return;
-      }
-      final token = await client.rpc('create_invitation',
-          params: {'p_space_id': id}) as String;
-      if (!mounted) return;
-      await _load();
-      if (!mounted) return;
-      await _shareInvitation(token);
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => issue = e.message);
-    } catch (_) {
-      if (mounted) setState(() => issue = tr(context, 'requestInviteError'));
-    } finally {
-      if (mounted) setState(() => working = false);
-    }
-  }
-
-  Future<void> _revokeInvite() async {
-    final id = spaceId;
-    if (id == null || pendingInviteExpiry == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(tr(context, 'revokeTitle')),
-        content: Text(tr(context, 'revokeMessage')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(tr(context, 'keepInvitation')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(tr(context, 'revoke')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _perform(() async {
-      await client.rpc('revoke_pending_invitation', params: {'p_space_id': id});
-    });
+  /// QA: complete a verified recipient's pending deep link after sign in.
+  /// Server authorization performs the verified-email comparison and rejects
+  /// expired/revoked/forwarded codes; the client never grants membership.
+  Future<void> _autoJoinPending() async {
+    if (!mounted || spaceId != null || working) return;
+    final code = InvitationLinkInbox.instance.pendingCode;
+    if (code == null || client.auth.currentUser == null) return;
+    final key = '${client.auth.currentUser!.id}:$code';
+    if (key == _lastAutoJoinKey) return;
+    _lastAutoJoinKey = key;
+    invitationController.text = code;
+    await _accept();
   }
 
   int? _dayDistance(DateTime? target) {
@@ -1248,6 +1070,17 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           ]
           else if (spaceId == null) ...[
             _panel(
+              tt('Invite my partner'),
+              tt('Enter your partner’s email and create your shared space automatically.'),
+              Icons.mail_outline,
+              FilledButton.icon(
+                onPressed: working ? null : _openInvitation,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(tt('Invite my partner')),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _panel(
               tr(context, 'createSpaceTitle'),
               tr(context, 'createSpaceDescription'),
               Icons.favorite_border,
@@ -1402,12 +1235,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
             ),
             const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: FilledButton.icon(
-              onPressed: working ? null : _hasActiveInvite
-                  ? _resendInvitation : () => _invite(),
+              onPressed: working ? null : _openInvitation,
               icon: Icon(_hasActiveInvite ? Icons.send_outlined
                   : Icons.person_add_alt_1),
-              label: Text(tr(context, _hasActiveInvite
-                  ? 'resendInvitation' : 'createInvitation')),
+              label: Text(tt(_hasActiveInvite
+                  ? 'Manage invitation' : 'Invite my partner')),
             )),
             if (!inviteCollapsed) ...[
               const SizedBox(height: 12),
@@ -1430,23 +1262,14 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                     '${pendingInviteExpiry!.toLocal().toString().split('.').first}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.onPrimaryContainer)),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: working ? null : () => _invite(replacing: true),
-                  icon: const Icon(Icons.autorenew),
-                  label: Text(tr(context, 'replaceInvitation')),
-                ),
-                TextButton.icon(
-                  onPressed: working ? null : _revokeInvite,
-                  icon: const Icon(Icons.link_off),
-                  label: Text(tr(context, 'revokeInvitation')),
-                ),
+
               ],
-              TextButton.icon(
+              const SizedBox(height: 8),
+              Center(child: TextButton.icon(
                 onPressed: working ? null : _load,
                 icon: const Icon(Icons.refresh),
                 label: Text(tr(context, 'refreshStatus')),
-              ),
+              )),
             ],
           ],
         ),

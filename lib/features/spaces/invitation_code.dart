@@ -11,9 +11,8 @@ String? normalizedInvitationCode(String input) {
 /// Use a first-party HTTPS link so a recipient has a browser fallback.
 /// A verified App/Universal Link can open the installed application directly.
 Uri invitationWebLink(String code, {bool qa = false}) => Uri.https(
-  'onespace.live', '/app-invite/', {
+  'onespace.live', qa ? '/qa-invite/' : '/app-invite/', {
     'code': code,
-    if (qa) 'env': 'qa',
   },
 );
 
@@ -27,10 +26,13 @@ Uri invitationAppLink(String code, {bool qa = false}) => Uri(
 
 /// Reject unrelated links, wrong environments and malformed codes.
 String? invitationCodeFromUri(Uri uri, {bool qa = false}) {
+  final path = uri.path.endsWith('/') ? uri.path : '${uri.path}/';
   final isWebsite = uri.scheme == 'https' &&
       uri.host == 'onespace.live' &&
-      (uri.path == '/app-invite/' || uri.path == '/app-invite') &&
-      ((uri.queryParameters['env'] == 'qa') == qa);
+      (qa
+        ? (path == '/qa-invite/' ||
+           (path == '/app-invite/' && uri.queryParameters['env'] == 'qa'))
+        : (path == '/app-invite/' && uri.queryParameters['env'] != 'qa'));
   final isApp = uri.scheme == (qa ? 'onespace-preview' : 'onespace') &&
       uri.host == 'invite';
   if (!isWebsite && !isApp) return null;
