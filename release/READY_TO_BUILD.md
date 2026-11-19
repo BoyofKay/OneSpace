@@ -19,3 +19,6 @@ Do not automatically deploy to Google Play or TestFlight.
 ## CI correction
 - Fixed email button being outside the invitation popup's widget scope.
 - Removed duplicate Arabic translations. Trigger a replacement release from this commit only.
+
+## Test correction
+- Invitation test now checks presence of both store availability labels instead of obsolete colon-prefixed placeholder lines.
