@@ -67,3 +67,10 @@ No real accounts, spaces, invitations, archives or media were deleted to create 
 - Nested file/Storage pointers are sanitized while retaining written narrative. No physical media is backed up.
 - Rollback-only QA regression passed for all transitions, owner mismatch rejection, sanitization and deletion tombstone. No real accounts, spaces or content removed.
 - These snapshots are not encrypted downloadable archives; full nested serialization, restoration, relationship lifecycle and Production remain gated.
+
+## QA migration 0170: indirect media/document pointers excluded (deployed, verified)
+- The recursive structured sanitizer now removes scrapbook `photo_N_id` and `image_N_id` fields, upload/file metadata (`file_name`, `file_mime`, `file_size`, `voice_seconds`) and direct attachment/document/media ID keys.
+- Captions, notes, original written text and normal non-storage hyperlinks remain intact.
+- QA regressions for written text, nested private-trip package, owner-only root snapshots and the new indirect-ID test all pass.
+- QA had zero restorable vault root/dependent rows at migration time; no existing snapshots needed re-sanitizing. Future migrations need a backfill check if data exists.
+- No changes to archive availability, encryption, restoration or lifecycle safety gates. Production unchanged.
