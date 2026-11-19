@@ -72,23 +72,6 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
     }
   }
 
-  Future<void> _requestDeletion() async {
-    final typed = TextEditingController();
-    final ok = await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
-      builder: (_) => _DeleteConfirmPage(controller: typed)));
-    typed.dispose();
-    if (ok != true || !mounted) return;
-    setState(() { busy = true; error = null; });
-    try {
-      await db.rpc('request_account_deletion');
-      await db.auth.signOut();
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() { busy = false; error = e.message; });
-    } catch (_) {
-      if (mounted) setState(() { busy = false; error = 'Could not request deletion. Please try again.'; });
-    }
-  }
-
   Future<void> _cancelDeletion() async {
     setState(() { busy = true; error = null; });
     try {
@@ -173,45 +156,3 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
   }
 }
 
-class _DeleteConfirmPage extends StatefulWidget {
-  const _DeleteConfirmPage({required this.controller});
-  final TextEditingController controller;
-  @override
-  State<_DeleteConfirmPage> createState() => _DeleteConfirmPageState();
-}
-
-class _DeleteConfirmPageState extends State<_DeleteConfirmPage> {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final ok = AccountDataRules.confirmed(widget.controller.text);
-    return Scaffold(
-      appBar: AppBar(title: Text(tt('Delete my account'))),
-      body: ListView(padding: const EdgeInsets.all(18), children: [
-        Text(tt('Are you sure?'), style: theme.textTheme.titleLarge),
-        const SizedBox(height: 8),
-        Text(tt('You will be signed out now. In 7 days your private items and settings are deleted '
-          'for good and you leave our space. Shared items stay for your partner.')),
-        const SizedBox(height: 8),
-        Text(tt('Tip: download your data first.')),
-        const SizedBox(height: 16),
-        TextField(controller: widget.controller, onChanged: (_) => setState(() {}),
-          textCapitalization: TextCapitalization.characters,
-          decoration: InputDecoration(labelText: tt('Type DELETE to confirm *'),
-            border: OutlineInputBorder())),
-      ]),
-      bottomNavigationBar: SafeArea(child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 10),
-        child: Row(children: [
-          Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context, false),
-            child: Text(tt('Cancel')))),
-          const SizedBox(width: 12),
-          Expanded(child: FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError),
-            onPressed: ok ? () => Navigator.pop(context, true) : null,
-            child: Text(tt('Delete')))),
-        ]))),
-    );
-  }
-}
