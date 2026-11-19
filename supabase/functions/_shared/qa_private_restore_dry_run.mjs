@@ -17,6 +17,26 @@ const CONFIG={
     parentField:"trip_id"
   }
 };
+// Exact reviewed QA columns. Future schema changes must be reviewed before
+// their payload can be considered for any restore mapping.
+const ALLOWED_COLUMNS={
+ tasks:"id space_id created_by title priority target_date deadline_at status created_at updated_at visibility assigned_to recurrence migrated_to_list recurrence_rule trip_id trip_template_key",
+ task_checklist_items:"id task_id created_by title position archived_at created_at legacy_task_id legacy_status legacy_target_date legacy_assigned_to",
+ task_checklist_checks:"id item_id cycle_date user_id completed updated_at task_id",
+ shared_trips:"id space_id created_by title origin destination start_on end_on notes status visibility archived_at created_at updated_at travel_mode trip_type traveler_id adults children infants flexible_dates",
+ trip_flight_options:"id trip_id created_by title provider airline origin destination departure_on return_on flexible_dates stops baggage_details price currency preference_score booking_link status notes archived_at created_at updated_at cabin_bags checked_bags seat_included seat_number",
+ trip_items:"id trip_id created_by kind title location destination local_date local_time end_date end_time provider booking_reference source_url details estimated_cost currency done archived_at created_at updated_at",
+ trip_messages:"id trip_id created_by body created_at archived_at"
+};
+const COLUMNS=Object.fromEntries(Object.entries(ALLOWED_COLUMNS).map(
+ ([name,list])=>[name,new Set(list.split(" "))]));
+function checkColumns(row,table){
+ const allowed=COLUMNS[table];
+ if(!allowed)fail("unsupported structured table");
+ for(const key of Object.keys(row)){
+  if(!allowed.has(key))fail("unreviewed source column");
+ }
+}
 const MEDIA_KEY=/(?:^|_)(?:photo|photos|image|images|media|audio|video|voice|attachment|attachments|document|documents|binary|blob|thumbnail|file|files)(?:_|$)/i;
 const MEDIA_DATA=/(?:\/storage\/v1\/object\/|\bdata:(?:image|audio|video|application\/(?:pdf|octet-stream))|\bblob:|\bfile:|content:\/\/)/i;
 const fail=(msg)=>{throw new Error("Unsafe private restore preview: "+msg)};
@@ -81,6 +101,7 @@ export function planPrivateRestoreDryRun(payload,{ownerId,newSpaceId}){
        :["traveler_id"]){
     stripReference(rootRow,config.root,key,dropped);
   }
+  checkColumns(rootRow,config.root);
   inspect(rootRow);
   const children={};
   const oldItems=new Set();
@@ -116,6 +137,7 @@ export function planPrivateRestoreDryRun(payload,{ownerId,newSpaceId}){
         stripReference(data,name,"legacy_task_id",dropped);
         stripReference(data,name,"legacy_assigned_to",dropped);
       }
+      checkColumns(data,name);
       inspect(data);
       mappings.push({table:name,old_id:oldId,new_id:newId});
       children[name].push(data);
