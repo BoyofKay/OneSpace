@@ -120,7 +120,7 @@ Deno.serve(async(req)=>{
   if(typeof user.email==="string"&&recipient===user.email.toLowerCase())
     return json(400,{error:"You cannot invite your own email"});
   const query=new URL(root+"/rest/v1/space_invitations");
-  query.searchParams.set("select","token,expires_at");
+  query.searchParams.set("select","token,expires_at,invited_email,delivery_status");
   query.searchParams.set("space_id","eq."+space);
   query.searchParams.set("invited_by","eq."+user.id);
   query.searchParams.set("accepted_at","is.null");
@@ -136,6 +136,10 @@ Deno.serve(async(req)=>{
   const invite=rows?.[0];
   if(!invite||!/^[0-9a-f]{64}$/.test(invite.token??""))
     return json(409,{error:"There is no active invitation to send"});
+  // The code was created for exactly one recipient by the owner's
+  // recipient-bound RPC. Never let callers send it to another address.
+  if(!invite.invited_email || invite.invited_email!==recipient)
+    return json(403,{error:"The recipient does not match the invitation"});
   const digestData=await crypto.subtle.digest("SHA-256",
     new TextEncoder().encode(recipient+"|"+resend.slice(-24)));
   const digest=Array.from(new Uint8Array(digestData)).map(x=>x.toString(16).padStart(2,"0")).join("");
@@ -169,5 +173,17 @@ Deno.serve(async(req)=>{
   if(!response.ok){
     return json(502,{error:"Email could not be delivered. Use the copy option instead."});
   }
+  // Provider acceptance does not prove delivery. Never claim 'delivered'.
+  try {
+    const url = new URL(root+"/rest/v1/space_invitations");
+    url.searchParams.set("token", "eq."+invite.token);
+    url.searchParams.set("invited_by", "eq."+user.id);
+    await fetch(url, {
+      method:"PATCH",
+      headers:{apikey:service,Authorization:"Bearer "+service,
+        "content-type":"application/json"},
+      body:JSON.stringify({delivery_status:"sent",email_sent_at:new Date().toISOString()})
+    });
+  }catch{}
   return json(200,{ok:true});
 });
