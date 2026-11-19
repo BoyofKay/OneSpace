@@ -75,3 +75,90 @@ export async function verifyLocalQaSubsetFile({
 }){
  return decryptVaultSubsetFile(archiveBytes,passphrase,ownerId,spaceId);
 }
+
+const QA_SUBSET_FILE_MAX=20*1024*1024;
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+async function responseBytes(response,max=QA_SUBSET_FILE_MAX){
+ if(!response?.ok||!response.body?.getReader)fail();
+ const declared=response.headers.get("content-length");
+ if(declared!==null&&Number(declared)>max)fail();
+ const reader=response.body.getReader();
+ let size=0,parts=[];
+ try{
+   while(true){
+     const {value,done}=await reader.read();
+     if(done)break;
+     size+=value.byteLength;
+     if(size>max){await reader.cancel();fail();}
+     parts.push(value);
+   }
+ }finally{reader.releaseLock();}
+ const file=new Uint8Array(size);
+ let offset=0;
+ for(const part of parts){file.set(part,offset);offset+=part.length;}
+ if(declared!==null&&Number(declared)!==size)fail();
+ return file;
+}
+// Real QA-only ciphertext staging. Independently decrypts and checks every
+// local record BEFORE uploading bytes, but NEVER uploads the passphrase.
+export async function uploadQaPrivateVaultSubset({
+ url,anonKey,accessToken,archiveBytes,passphrase,ownerId,spaceId,
+ fetchImpl=fetch
+}){
+ const base=qaUrl(url);
+ if(!UUID.test(ownerId)||!UUID.test(spaceId)
+   ||typeof anonKey!=="string"||anonKey.length<12
+   ||typeof accessToken!=="string"||accessToken.length<24
+   ||!(archiveBytes instanceof Uint8Array)
+   ||archiveBytes.length<100||archiveBytes.length>QA_SUBSET_FILE_MAX)fail();
+ const evidence=await decryptVaultSubsetFile(
+   archiveBytes,passphrase,ownerId,spaceId);
+ if(evidence.can_restore!==false||
+    evidence.verified_source_origin!==false)fail();
+ const target=new URL(base+"/functions/v1/onespace-qa-subset-file");
+ target.searchParams.set("action","upload");
+ target.searchParams.set("source_space_id",spaceId);
+ const result=await fetchImpl(target.toString(),{
+   method:"POST",headers:{
+     apikey:anonKey,Authorization:"Bearer "+accessToken,
+     "content-type":"application/octet-stream"
+   },body:archiveBytes
+ });
+ const details=await limitedJson(result);
+ const actual=createHash("sha256").update(archiveBytes).digest("hex");
+ if(!UUID.test(details.staging_id)
+  ||details.encrypted_sha256!==actual
+  ||details.byte_length!==archiveBytes.length
+  ||details.verified_storage_bytes!==true
+  ||details.is_verified_archive!==false
+  ||details.can_restore!==false
+  ||details.safe_to_separate!==false)fail();
+ return {...details,verified_source_origin:false};
+}
+export async function downloadQaPrivateVaultSubset({
+ url,anonKey,accessToken,stagingId,passphrase,ownerId,spaceId,
+ fetchImpl=fetch
+}){
+ const base=qaUrl(url);
+ if(!UUID.test(stagingId)||!UUID.test(ownerId)||!UUID.test(spaceId)
+  ||typeof anonKey!=="string"||anonKey.length<12
+  ||typeof accessToken!=="string"||accessToken.length<24)fail();
+ const target=new URL(base+"/functions/v1/onespace-qa-subset-file");
+ target.searchParams.set("action","download");
+ target.searchParams.set("staging_id",stagingId);
+ const response=await fetchImpl(target.toString(),{
+   method:"POST",headers:{
+     apikey:anonKey,Authorization:"Bearer "+accessToken
+   }
+ });
+ if(response.headers.get("x-onespace-unverified-subset")!=="true")
+   fail();
+ const archiveBytes=await responseBytes(response);
+ const digest=createHash("sha256").update(archiveBytes).digest("hex");
+ if(response.headers.get("x-onespace-sha256")!==digest)fail();
+ const verified=await decryptVaultSubsetFile(
+   archiveBytes,passphrase,ownerId,spaceId);
+ return {archiveBytes,verified_storage_transfer:true,
+   verified_source_origin:false,can_restore:false,
+   is_verified_archive:false,record_evidence:verified.evidence};
+}

@@ -41,7 +41,7 @@ The `.osa` envelope includes `format=onespace.qa.vault-subset.osa.v1`, `owner_id
 
 1. **Completeness**: only 23 mirrored owner-private family types are packaged; the other private-eligible and shared written records are still source-censused, not physically archived.
 2. **Server origin**: anyone possessing a passphrase can create a valid encrypted file. AES-GCM authenticity proves integrity under that passphrase, **not** a trusted source-of-truth service signature or authenticated issuance.
-3. **Supabase Storage download**: no actual QA object has been written or recovered using the downloader's ciphertext SHA guard.
+3. **Supabase Storage download**: QA-only authenticated staged ciphertext upload, readback verification, owner-only download and 24h cleanup are now deployed via `onespace-qa-subset-file`. This remains a **staged partial file**, not a real `space_archives` lifecycle object; no genuine signed-in user file has yet completed a live QA Storage roundtrip.
 4. **Restore**: no transactionally verified private restoration, ID remapping for the other 46 types, replay protection or original-pair shared reference preservation.
 5. **Mobile acceptance**: Flutter/iOS/Android UI and two-account device tests are not wired to this prototype. Do not enable partner removal, leave, delete or account deletion.
 
@@ -49,7 +49,13 @@ The `.osa` envelope includes `format=onespace.qa.vault-subset.osa.v1`, `owner_id
 
 1. Expand durable per-row manifests to **all eligible written content** within the 69 classified families; keep media/operational exclusions and original-pair author privacy.
 2. Provide verified authenticated *server issuance* with immutable source snapshot ID/revision and a cryptographic signature verifiable independently after download. Never store the recovery passphrase on the server.
-3. Upload actual ciphertext to the QA private bucket, verify length and SHA after readback, then test the existing `onespace-download-archive` verified-ciphertext path.
+3. **Staging infrastructure complete (QA 0210–0212)**: now run a real authenticated user's `.osa` upload/download through QA private Storage, and independently verify that downloaded bytes decrypt locally. Then implement the separate trusted `space_archives` issuance path, complete source signatures and real downloader acceptance; staging is not lifecycle readiness.
 4. Implement target-space member authorization, transactionality, idempotent ID remapping, private restoration and old shared reference-only history. Run both Android phones and then separately review deletion gates.
 
 CI and QA transactional tests run with temporary synthetic records; all test fixtures must roll back. Do not deploy these QA facilities to Production until the full milestone is accepted.
+
+## QA 0210–0212 staging addendum
+- New private internal 24h registry, service-only reservation/verification/lookup/purge, three-file concurrent-safe owner quota, exact owner/UUID Storage paths, dedicated signed-in subset upload/download function and a 24h janitor extension are deployed on QA only.
+- Existing client adapter now also supports locally validated `uploadQaPrivateVaultSubset` / `downloadQaPrivateVaultSubset`; recovery passphrase remains client-only.
+- All status flags remain nonrestorable and unverified as full lifecycle archives. This is verified **ciphertext transport/storage integrity**, not authoritative **source provenance** or full record coverage.
+- See [QA Subset Encrypted Storage Staging](QA_SUBSET_ENCRYPTED_STORAGE_STAGING_20261120.md).

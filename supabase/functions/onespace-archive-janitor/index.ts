@@ -83,5 +83,32 @@ Deno.serve(async(req)=>{
     // unavailable. Report this failure for operational monitoring.
     previews.preview_failed++;
   }
-  return json(200,{examined:due.length,...results,...previews});
+  // Separate 24h expiry for locally encrypted QA .osa subset files.
+  // These are NOT actual ready archives or deletable relationship records.
+  const subsets={subset_examined:0,subset_purged:0,subset_failed:0};
+  try{
+    const dueFiles=await rpc("qa_subset_due_purge_service",{}) as
+      Array<{staging_id:string,object_path:string}>;
+    subsets.subset_examined=dueFiles.length;
+    for(const item of dueFiles){
+      const id=String(item?.staging_id??"");
+      const path=String(item?.object_path??"");
+      const match=path.match(/^([0-9a-f-]{36})\/qa-subsets\/([0-9a-f-]{36})\.osa$/i);
+      const strictUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if(!strictUuid.test(id)||!match||!strictUuid.test(match[1])||
+          match[2]!==id||path.includes("..")){
+        subsets.subset_failed++;
+        continue;
+      }
+      try{
+        const removed=await fetch(base+"/storage/v1/object/onespace-archives",{
+          method:"DELETE",headers:auth,body:JSON.stringify({prefixes:[path]})});
+        if(!removed.ok)throw new Error("QA subset object cleanup failed");
+        const recorded=await rpc("qa_subset_finish_purge_service",{p_id:id});
+        if(recorded!==true)throw new Error("QA subset cleanup registry refused");
+        subsets.subset_purged++;
+      }catch{subsets.subset_failed++;}
+    }
+  }catch{subsets.subset_failed++;}
+  return json(200,{examined:due.length,...results,...previews,...subsets});
 });
