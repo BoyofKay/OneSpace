@@ -26,19 +26,21 @@ Deno.serve(async(req)=>{
   const id=String(payload.archive_id??"");
   if(!/^[0-9a-f-]{36}$/i.test(id))return json(400,"Invalid archive");
   const url=new URL(base+"/rest/v1/space_archives");
-  url.searchParams.set("select","id,recipient_id,status,expires_at,encrypted_object_path,ciphertext_sha256,byte_length,archive_kind");
+  url.searchParams.set("select","id,recipient_id,status,expires_at,encrypted_object_path,ciphertext_sha256,byte_length,archive_kind,encrypted_bytes_verified");
   url.searchParams.set("id","eq."+id);
   url.searchParams.set("recipient_id","eq."+me.id);
   url.searchParams.set("limit","1");
   const rowsResponse=await fetch(url,{headers:{apikey:anon,Authorization:bearer}});
   if(!rowsResponse.ok)return json(403,"Archive unavailable");
   const archive=(await rowsResponse.json())?.[0];
-  if(!archive||archive.recipient_id!==me.id||archive.status!=="ready"||
+  if(!archive||archive.recipient_id!==me.id||archive.status!=="ready"||archive.encrypted_bytes_verified!==true||
      !archive.expires_at||Date.parse(archive.expires_at)<=Date.now())
     return json(404,"Archive unavailable");
   const path=String(archive.encrypted_object_path??"");
+  const expectedBytes=Number(archive.byte_length);
   if(!path.startsWith(me.id+"/")||path.includes("..")||path.length>500||
-     !/^[0-9a-f]{64}$/.test(archive.ciphertext_sha256??""))
+     !/^[0-9a-f]{64}$/.test(archive.ciphertext_sha256??"")||
+     !Number.isSafeInteger(expectedBytes)||expectedBytes<=0)
     return json(409,"Archive is not verified");
   const asset=await fetch(base+"/storage/v1/object/authenticated/onespace-archives/"+
     path.split("/").map(encodeURIComponent).join("/"),{
@@ -46,6 +48,11 @@ Deno.serve(async(req)=>{
         "cache-control":"no-store"},
     });
   if(!asset.ok||!asset.body)return json(503,"Archive file unavailable");
+  // If Storage provides a transfer size, it must match verified registry
+  // metadata. Do not stream an altered object with a misleading digest header.
+  const storageLength=asset.headers.get("content-length");
+  if(storageLength!==null&&Number(storageLength)!==expectedBytes)
+    return json(409,"Archive bytes no longer match verified metadata");
   const headers=new Headers({
     "content-type":"application/octet-stream",
     "cache-control":"private, no-store, max-age=0",
@@ -55,6 +62,6 @@ Deno.serve(async(req)=>{
     "content-disposition":'attachment; filename="OneSpace-'+archive.archive_kind+
       '-'+id+'.onespace"',
   });
-  if(archive.byte_length>0)headers.set("content-length",String(archive.byte_length));
+  headers.set("content-length",String(expectedBytes));
   return new Response(asset.body,{status:200,headers});
 });
