@@ -78,8 +78,9 @@ begin
   from public.spaces s join public.space_members sm on sm.space_id=s.id
   where sm.user_id=me for update of s;
   if sid is null then raise exception 'Not a member of a space'; end if;
-  select count(*),max(user_id) filter (where user_id<>owner_id)
-  into member_count,partner_id from public.space_members where space_id=sid;
+  select count(*) into member_count from public.space_members where space_id=sid;
+  select user_id into partner_id from public.space_members
+  where space_id=sid and user_id<>owner_id limit 1;
   if member_count<1 or member_count>2 then raise exception 'Invalid membership state'; end if;
   if p_action='partner_leaves' and (me=owner_id or member_count<>2) then
     raise exception 'Only the invited partner can leave';
