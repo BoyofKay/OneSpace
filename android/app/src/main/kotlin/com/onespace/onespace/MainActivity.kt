@@ -508,6 +508,13 @@ class MainActivity : FlutterFragmentActivity() {
                     return@setMethodCallHandler
                 }
                 val bytes = call.argument<ByteArray>("bytes")
+                val expectedHash = call.argument<String>("verifySha256")
+                val durableRequired = call.argument<Boolean>("requireDurable") ?: false
+                if (durableRequired && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                    result.error("DURABLE_SAVE_UNAVAILABLE",
+                        "Saving a durable archive requires Android 10 or newer.", null)
+                    return@setMethodCallHandler
+                }
                 val name = (call.argument<String>("name") ?: "OneSpace-data")
                     .replace(Regex("[^a-zA-Z0-9_.-]"), "-").take(80)
                 if (bytes == null || bytes.isEmpty() || bytes.size > 50 * 1024 * 1024) {
@@ -518,7 +525,7 @@ class MainActivity : FlutterFragmentActivity() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         val fields = ContentValues().apply {
                             put(MediaStore.Downloads.DISPLAY_NAME, name)
-                            put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                            put(MediaStore.Downloads.MIME_TYPE, if (name.endsWith(".onespace")) "application/octet-stream" else "application/json")
                             put(MediaStore.Downloads.RELATIVE_PATH, "Download/OneSpace")
                             put(MediaStore.Downloads.IS_PENDING, 1)
                         }
@@ -526,6 +533,24 @@ class MainActivity : FlutterFragmentActivity() {
                             ?: throw IllegalStateException("Could not create the file")
                         contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                             ?: throw IllegalStateException("Could not write the file")
+                        if (expectedHash != null) {
+                            val actualHash = java.security.MessageDigest.getInstance("SHA-256")
+                            contentResolver.openInputStream(uri)?.use { stream ->
+                                val buffer = ByteArray(8192)
+                                while (true) {
+                                    val count = stream.read(buffer)
+                                    if (count < 0) break
+                                    if (count > 0) actualHash.update(buffer, 0, count)
+                                }
+                            } ?: throw IllegalStateException("Could not verify saved archive")
+                            val verified = actualHash.digest().joinToString("") {
+                                "%02x".format(it.toInt() and 0xff)
+                            }
+                            if (verified != expectedHash) {
+                                contentResolver.delete(uri, null, null)
+                                throw IllegalStateException("Saved archive checksum mismatch")
+                            }
+                        }
                         contentResolver.update(uri, ContentValues().apply {
                             put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
                         result.success("Downloads/OneSpace/$name")
