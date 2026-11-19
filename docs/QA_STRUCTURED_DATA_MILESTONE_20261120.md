@@ -21,6 +21,7 @@
 - [x] Migration 0163: embedded media URLs are redacted without deleting surrounding written notes or captions.
 - [x] Rollback-only database tests pass, with no changes to real users, memberships or stored records.
 - [x] App/archive text now reflects structured-only archive policy and correct external download meaning (source branch; not yet installed).
+- [x] QA migrations 0167–0168 now mirror private trip flight options, itinerary items and messages into owner-scoped Personal Vault child snapshots, with media sanitization and visibility/delete tombstones. The transactional author-isolation and re-private backfill regression passes; synthetic fixture rows rolled back.
 - [ ] Personal Vault remains a shadow of the space-linked source tables, not canonical cutover.
 - [ ] Roughly 35 related FK tables, system/shared-only types and multi-parent associations require complete ownership classification.
 
@@ -29,7 +30,7 @@
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
 - [x] Migration 0165: five RLS-verified shared roots classified; Love Letters drafts and sealed until-open dates explicitly remain blocked.
 - [ ] Explicitly classify the remaining 4 root and 24 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
-- [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization.
+- [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization. Three approved private trip-child types now have verified vault snapshots, but these are not yet downloadable archives.
 - [ ] Portable encrypted archive download, durable server-held copy and retention policy; downloaded file is the external copy.
 - [ ] Prove authorized **private** restore into a new relationship with ID/FK remapping and deduplication; shared-history archive is reference-only.
 - [ ] No incomplete preview may count as a verified archive or authorize a destructive lifecycle action.
