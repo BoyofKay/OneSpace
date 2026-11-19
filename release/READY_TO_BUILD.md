@@ -1,50 +1,47 @@
-# OneSpace QA — complete source recovery and safe space-lifecycle integration
+# OneSpace QA — safe lifecycle, archive privacy, and release source hardening (2026-11-19)
 
 Require-Firebase-Config: true
 
-## This is a QA-only, single signed Android candidate
+Build ONE signed Android QA APK, package `onespace.qa` against QA Supabase
+`ugwrpeduzyzrujkizqfo`. Do not deploy to Production, Play or TestFlight.
 
-The source must contain the complete features from QA Release 461, the verified
-password-recovery fix introduced in 462, and the QA lifecycle-preparation
-integration. Do not build from any older divergent branch.
+## Verified source
+The `main` branch includes the feature-complete R461 restoration, R462
+password-recovery navigation fix, and the merged QA hardening PR #73.
+The release workflow must pass its recovered-main ancestor guard and check
+required source files before building. Never publish from divergent branches.
 
-### Features that MUST remain
-- Profile > My Space: original owner, invited partner and solo-user roles.
-- Dedicated Change password screen, disabled Submit until valid, Cancel and reset email.
-- Invite my partner: addressed invitations, QR/manual code and correct app-link routing.
-- My Archives: app-private encrypted-copy caching and user-initiated external save
-  of already verified server archives; do not claim any archives were generated.
-- Personal Vault protected private-record infrastructure and privacy-aware related records.
-- QA-only authenticated lifecycle staging APIs: Prepare removal, Prepare leaving,
-  Prepare deletion, active-job status and cancellation before export.
-- Accurate readiness audit: detect missing private/shared encrypted exports and
-  refuse unsafe removal, deletion or account purging.
-- Firebase push, core Today/Remember/Coordinate/Connect features, translations.
+## Included QA fixes
+- My Space never calls QA-only lifecycle RPCs in Production.
+- My Archives remains accessible for unpaired QA users and stays hidden in
+  Production until the archive feature is implemented there.
+- Read-only safety check reports archived-copy progress and schema coverage
+  without disclosing the partner's private-record counts or raw table detail.
+- JSON account-data export is accurately described as unencrypted and not
+  containing media, and not equivalent to an encrypted separation archive.
+- Internal QA audit covers 35 dependent tables, correctly follows occasion
+  plan and task-checklist ownership, and flags invalid cross-space linkages.
+- Account deletion remains blocked and now uses caller privileges only.
+- CI source guard protects against another R462-type regression without
+  prohibiting legitimate future UI changes.
 
-### Source gate
-Check preserved feature fingerprints (exact R461 Git blobs) plus Flutter analyzer
-and automated tests. See signed QA GitHub workflow and rollback-only SQL test
-supabase/tests/qa_space_lifecycle_staging_regression.sql.
+## Required automated verification
+- `flutter pub get --enforce-lockfile`
+- `flutter analyze --no-fatal-infos` and `flutter test`
+- QA Firebase configuration and Android QA flavor
+- QA package name, known preview signing cert, signed APK artifact and
+  GitHub release matching the exact build commit.
 
-### QA build gate
-- flutter pub get --enforce-lockfile, flutter analyze, flutter test.
-- Build release Flutter QA flavor with `ONESPACE_ENV=qa`.
-- Verify package `onespace.qa`, QA signing certificate and Firebase QA config.
-- Preserve final signed APK artifact and publish one matching GitHub QA Release.
-- The asset must be traceable to this exact release-triggering source commit.
-- Do not deploy anything to Production, Google Play, App Store or TestFlight.
+## Manual device acceptance after installing
+1. Profile: My Space, My Archives and Change password screens appear.
+2. Signed-in owner: prepare/cancel removal or space close (no real removal).
+3. Signed-in invited partner: prepare/cancel leave (no real leave).
+4. Solo account: owner actions shown correctly; My Archives remains reachable.
+5. Check separation readiness. No partner-private counts or raw records leaked.
+6. Verify correct invitation/QR/manual code, password recovery, Firebase push,
+   both test phones, original accounts and pairings.
+7. Confirm account/space deletion remains blocked while encrypted archive
+   generator, external recovery and private-only restoration are incomplete.
 
-### Manual Android acceptance
-1. Verify My Space, invitation, change password and archive screens remain.
-2. Owner sees Prepare removal/Delete, invited partner sees Prepare leave.
-3. Confirmation-only popup, stage a request, view pending status, cancel it.
-4. Confirm no partner is removed and no account/space deleted: real transitions
-   are deliberately blocked until verified encrypted archives are implemented.
-5. Confirm two QA accounts still have the original pairing and privacy boundaries.
-6. Verify recovery email opens Set a new password without an old dialog covering it.
-
-## Important safety boundary
-This candidate fixes the release regression and completes the **safe request,
-authorization, and readiness cycle**, not the archive export/transition cycle.
-Actual destructive lifecycle transitions remain fail-closed pending complete,
-media-inclusive encrypted archives and separately validated restoration.
+No QA test users, spaces, memberships or storage files may be reset to
+pass these checks. Production Supabase remains untouched.
