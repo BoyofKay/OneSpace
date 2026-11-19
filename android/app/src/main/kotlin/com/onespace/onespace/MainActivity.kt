@@ -379,6 +379,13 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // The package ID is provided by Android, not by Dart configuration.
+        // Flutter checks this BEFORE connecting to a Supabase backend.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "onespace/environment")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "packageId") result.success(applicationContext.packageName)
+                else result.notImplemented()
+            }
         // Speech is explicit, local to this screen and stops on background.
         // No listening or microphone access is involved in this channel.
         checklistVoice = TextToSpeech(applicationContext) { status ->
