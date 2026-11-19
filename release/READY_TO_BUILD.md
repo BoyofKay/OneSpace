@@ -4,7 +4,8 @@ Require-Firebase-Config: true
 ## One signed QA APK only
 - Source includes merged PR #74 (invitation signup/signin), PR #75 (approved
   exact tagline `Two of Us. One Space`), and PR #76 (stable QA signing
-  certificate and aligned source for email templates).
+  certificate and aligned source for email templates), and PR #77 (safe
+  certificate-check pipeline; original signing fingerprint remains required).
 - Android package: `onespace.qa`.
 - Dart target: `ONESPACE_ENV=qa`; QA Supabase project
   `ugwrpeduzyzrujkizqfo`. Production Supabase untouched.
