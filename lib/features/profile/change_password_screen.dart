@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/auth_redirect.dart';
+import 'password_change_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// A dedicated subpage. The system password manager may fill the current
@@ -24,8 +25,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final oldValue = _current.text;
     final nextValue = _next.text;
     final confirmation = _confirm.text;
-    return !_busy && oldValue.isNotEmpty && nextValue.length >= 8 &&
-      nextValue != oldValue && confirmation == nextValue;
+    return PasswordChangeRules.canSubmit(
+      current: oldValue,
+      next: nextValue,
+      confirmation: confirmation,
+      busy: _busy,
+    );
   }
   String? _error;
   final _auth = Supabase.instance.client.auth;
