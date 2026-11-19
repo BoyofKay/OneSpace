@@ -32,6 +32,7 @@
 - [x] Migration 0165: five RLS-verified shared roots classified; Love Letters drafts and sealed until-open dates explicitly remain blocked.
 - [ ] Explicitly classify the remaining 4 root and 24 dependent types; see docs/QA_ARCHIVE_COVERAGE_CATALOG_20261120.md.
 - [ ] Capture every supported structured root and dependent with manifest schema, privacy lineage, deterministic ordering, integrity and media-free sanitization. Three approved private trip-child types now have verified vault snapshots, but these are not yet downloadable archives.
+- [x] QA migration 0169: owner-only nested structured trip package preview (trip + flight options + itinerary items + messages) with deterministic SHA-256 integrity checksum, parent-vault equality, media sanitization, child cap and member privacy checks. Transactional regression passed for partner denial, scope transitions, hash reproducibility and corrupt-vault failure. **Preview only; not encrypted or restorable.**
 - [ ] Portable encrypted archive download, durable server-held copy and retention policy; downloaded file is the external copy.
 - [ ] Prove authorized **private** restore into a new relationship with ID/FK remapping and deduplication; shared-history archive is reference-only.
 - [ ] No incomplete preview may count as a verified archive or authorize a destructive lifecycle action.
