@@ -21,6 +21,7 @@ declare
   table_count int := 0;
   linked jsonb := '[]'::jsonb;
   ambiguity int;
+  conflict_count bigint := 0;
 begin
   if me is null then raise exception 'Sign in required'; end if;
   if (select count(*) from public.space_members where user_id=me)<>1 then
@@ -131,9 +132,41 @@ begin
 
   select count(*) into ambiguity from jsonb_array_elements(linked) r
     where (r->>'relationship_ambiguous')::boolean;
+  -- Every link below may point through a *different* parent. A valid FK is
+  -- not proof that both parents belong to the same relationship.
+  select
+    (select count(*) from public.occasion_budget_items b
+      join public.occasion_plans p on p.id=b.plan_id
+      join public.activities a on a.id=b.source_activity_id
+      where p.space_id=sid and a.space_id<>p.space_id)
+    +(select count(*) from public.occasion_budget_items b
+      join public.occasion_plans p on p.id=b.plan_id
+      join public.activity_components c on c.id=b.source_component_id
+      join public.activities a on a.id=c.activity_id
+      where p.space_id=sid and a.space_id<>p.space_id)
+    +(select count(*) from public.occasion_budget_log l
+      join public.occasion_plans p on p.id=l.plan_id
+      join public.occasion_budget_items b on b.id=l.item_id
+      where p.space_id=sid and b.plan_id<>p.id)
+    +(select count(*) from public.occasion_proposal_items i
+      join public.occasion_proposals pp on pp.id=i.proposal_id
+      join public.occasion_plans p on p.id=pp.plan_id
+      join public.occasion_budget_items b on b.id=i.item_id
+      where p.space_id=sid and b.plan_id<>p.id)
+    +(select count(*) from public.task_checklist_checks k
+      join public.tasks t on t.id=k.task_id
+      join public.task_checklist_items i on i.id=k.item_id
+      where t.space_id=sid and i.task_id<>k.task_id)
+    +(select count(*) from public.task_checklist_items i
+      join public.tasks t on t.id=i.task_id
+      join public.tasks old on old.id=i.legacy_task_id
+      where t.space_id=sid and old.space_id<>t.space_id)
+    into conflict_count;
+
   return jsonb_build_object('has_space',true,'safe_to_export',false,
     'dependent_tables_inspected',table_count,'linked_dependents',total_count,
-    'multi_root_tables',ambiguity,'details',linked,
+    'multi_root_tables',ambiguity,'cross_parent_conflicts',conflict_count,
+    'reference_consistency_verified',conflict_count=0,'details',linked,
     'reason','Dependent record counts are an inventory only; classification, media-inclusive encrypted export and restoration require separate verification');
 end $func$;
 revoke all on function private.space_archive_dependency_inventory() from public,anon;
