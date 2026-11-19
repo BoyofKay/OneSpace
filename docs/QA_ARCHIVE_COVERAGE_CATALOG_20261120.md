@@ -5,23 +5,32 @@ Archive and restore **structured private/shared content**. Exclude media bytes a
 
 ## Deployed policy catalog
 - SQL migration: 0164_qa_structured_archive_table_catalog.sql.
-- **69 registered table types; 20 explicitly approved; 49 awaiting privacy/restore classification.**
-- Root policies: 14 visibility-scoped private/shared content, 1 person-owned days off, 2 system-excluded account/invitation types, **17 pending**.
+- **69 registered table types; 25 explicitly approved; 44 awaiting privacy/restore classification.**
+- Root policies: 14 visibility-scoped private/shared content, 1 person-owned days off, 2 system-excluded account/invitation types, **12 pending**.
 - Dependent policies: 3 approved media exclusions, **32 pending**.
 - Unregistered roots: 0; unregistered FK-linked dependent types: 0.
 - Public QA status always says **safe_to_archive=false and safe_to_separate=false**, even if everything gets classified. The preview remains unverified and un-restorable.
 - Synthetic future root + dependent tables were discovered as missing and blocked by the QA regression. Both synthetic tables were rolled back.
 - Policy table resides in private schema with RLS enabled and no authenticated/anonymous direct table grants.
 
-## 17 root types requiring explicit classification
+## Five additional root types reviewed and approved as member-shared scope
+shared_experiences, partner_gestures, space_special_dates,
+space_holiday_sources, spaces.
+
+These classifications are grounded in existing RLS SELECT policies for both
+active members. This approves **visibility scope**, not archive serialization,
+encryption, restoration or destruction.
+
+## 12 root types still requiring explicit classification
 calendar_partner_reminders, couple_letters, gesture_message_overrides,
 gesture_schedules, gesture_templates, item_links, object_shares,
-partner_checkin_requests, partner_gestures, place_visits,
-record_action_history, shared_experiences, space_holiday_sources,
-space_notifications, space_special_dates, space_tags, spaces.
+partner_checkin_requests, place_visits, record_action_history,
+space_notifications, space_tags.
 
-**Do not assume every root with no visibility field is shared.**
-Some rows may be recipient-private, administrative, or contain security tokens.
+**Love Letters requires special handling:** author-private drafts and future
+scheduled-open letters MUST NOT become visible to a partner through an archive
+before their normal authorization rules allow it. Do not treat every row in a
+shared space as shared content.
 
 ## 32 dependent types requiring explicit classification
 activity_attention_snoozes, activity_comments, activity_component_reactions,
