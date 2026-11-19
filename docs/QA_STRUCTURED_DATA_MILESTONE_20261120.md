@@ -17,6 +17,8 @@
 - [x] Migration 0159: user-owned private snapshots exclude nested media keys/data URIs/Storage pointers, reject cross-space private authors, and invalidate snapshots on visibility/owner changes.
 - [x] Migration 0160: authenticated private/shared **root preview** has sender/member scope, cannot see partner-private rows, and explicitly reports not complete or restorable.
 - [x] Migration 0161: moving private dependent children to another parent/owner invalidates stale relationships; personal-days-off ownership verified.
+- [x] Migration 0162: public lifecycle readiness and role status now report **structured-only**, excluding media/documents, without exposing partner-private counts or enabling separation.
+- [x] Migration 0163: embedded media URLs are redacted without deleting surrounding written notes or captions.
 - [x] Rollback-only database tests pass, with no changes to real users, memberships or stored records.
 - [x] App/archive text now reflects structured-only archive policy and correct external download meaning (source branch; not yet installed).
 - [ ] Personal Vault remains a shadow of the space-linked source tables, not canonical cutover.
