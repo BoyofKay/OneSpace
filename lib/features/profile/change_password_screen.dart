@@ -17,7 +17,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _next = TextEditingController();
   final _confirm = TextEditingController();
   bool _busy = false;
-  bool _resetSent = false;
   bool _showPasswords = false;
 
   // Initial state and incomplete/repeated passwords must never submit.
@@ -71,7 +70,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Future<void> _reset() async {
-    if (_busy || _resetSent) return;
+    if (_busy) return;
     final email = _auth.currentUser?.email;
     if (email == null || email.isEmpty) {
       setState(() => _error = tt('Sign in to request a password reset.'));
@@ -80,7 +79,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     setState(() { _busy = true; _error = null; });
     try {
       await _auth.resetPasswordForEmail(email, redirectTo: oneSpaceAuthRedirectTo);
-      if (mounted) setState(() => _resetSent = true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tt(
+          'Check your email for the OneSpace reset link. Your current password will keep working until you successfully set a new one.'))));
+      // The verified link will take the user into the separate reset flow.
+      // Close this page now to avoid covering that flow on return.
+      Navigator.of(context).pop();
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -144,13 +149,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: TextButton(
-              onPressed: _busy || _resetSent ? null : _reset,
+              onPressed: _busy ? null : _reset,
               child: Text(tt('Send a reset email')),
             ),
-          ),
-          if (_resetSent) Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(tt('Check your email for a password reset link.')),
           ),
           if (_error != null) Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
