@@ -24,7 +24,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor aa4cbc86056b5253b51e63e7dea59e4473046304 HEAD
+          # Verify known-good R461 feature blobs, regardless of Git ancestry.
+          check_blob() {
+            local actual
+            actual="$(git rev-parse "HEAD:$1")"
+            if [ "$actual" != "$2" ]; then
+              echo "::error::Recovered QA feature differs unexpectedly: $1"
+              exit 1
+            fi
+          }
+          check_blob lib/features/spaces/invite_partner_screen.dart 2b7613fd3098168b7d61f43d878c8afcb8ba6bf9
+          check_blob lib/features/spaces/my_archives_screen.dart e6782a67496af0a65e25d1c43d8defee8b2dfd78
+          check_blob lib/features/spaces/space_lifecycle_policy.dart cf7f89592253455ba375386b4aa07aa2febcde86
+          check_blob lib/features/profile/password_change_rules.dart 8706afe0852d9ae2c52f36efe7e76d1eac74a1be
+          check_blob supabase/schema/0146_qa_personal_vault_shadow_migration.sql 6c359feb49fb6253eafee5f78834e287e9828cb2
           test -f lib/features/spaces/my_space_screen.dart
           test -f lib/features/spaces/invite_partner_screen.dart
           test -f lib/features/spaces/my_archives_screen.dart
