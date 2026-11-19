@@ -117,9 +117,10 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                 Expanded(child: Text(tt('Download my data'), style: theme.textTheme.titleMedium)),
               ]),
               const SizedBox(height: 6),
-              Text(tt('A file with everything you created or received: notes, events, to-dos, '
-                'reminders, memories, letters, check-ins, trips and your settings. '
-                'Photos and documents stay in the app.')),
+              Text(tt('This exports available account information as an unencrypted '
+                'JSON file in your phone Downloads. Photos, documents and other '
+                'attachments are NOT included. This is not the encrypted '
+                'private/shared separation archive. Store this file privately.')),
               const SizedBox(height: 10),
               FilledButton.tonalIcon(onPressed: exporting ? null : _export,
                 icon: exporting ? const SizedBox(width: 18, height: 18,
