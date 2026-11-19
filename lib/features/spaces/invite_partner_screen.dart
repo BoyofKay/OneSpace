@@ -27,6 +27,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
   DateTime? _expiry;
   bool _loading = true;
   bool _busy = false;
+  bool _editingRecipient = false;
 
   @override
   void initState() {
@@ -175,6 +176,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
         _recipient = null;
         _delivery = 'pending';
         _email.clear();
+        _editingRecipient = false;
       });
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -219,7 +221,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
           const SizedBox(height: 18),
           TextField(
             controller: _email,
-            enabled: !_busy && !_hasActive,
+            enabled: !_busy && (!_hasActive || _editingRecipient),
             onChanged: (_) => setState(() {}),
             textInputAction: TextInputAction.done,
             keyboardType: TextInputType.emailAddress,
@@ -300,16 +302,20 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: _busy ? null : () async {
-                // Do not silently invalidate the existing code.
-                final target = _email.text.trim();
-                if (target.isEmpty) {
-                  setState(() => _error = tt('Enter a partner email.'));
+                if (!_editingRecipient) {
+                  setState(() => _editingRecipient = true);
+                  return;
+                }
+                if (!_validEmail) {
+                  setState(() => _error = tt('Enter a valid partner email.'));
                   return;
                 }
                 await _invite(replace: true);
+                if (mounted) setState(() => _editingRecipient = false);
               },
               icon: const Icon(Icons.autorenew),
-              label: Text(tt('Generate a replacement code')),
+              label: Text(tt(_editingRecipient
+                ? 'Confirm replacement' : 'Generate a replacement code')),
             ),
             TextButton.icon(
               onPressed: _busy ? null : _revoke,
