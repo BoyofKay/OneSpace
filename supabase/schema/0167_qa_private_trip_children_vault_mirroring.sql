@@ -136,11 +136,4 @@ create trigger qa_trip_vault_mirror after insert or update or delete
 on public.trip_messages for each row
 execute function private.qa_mirror_trip_child();
 
--- Backfill existing private QA trip descendants without touching user content.
-do $backfill$
-declare trip_record record;
-begin
-  for trip_record in select id from public.shared_trips where visibility='private' loop
-    perform private.qa_sync_private_trip_children(trip_record.id);
-  end loop;
-end $backfill$;
+-- 0168 expands the table allowlist and performs the safe initial backfill.
