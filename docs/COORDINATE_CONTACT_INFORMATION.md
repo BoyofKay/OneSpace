@@ -1,6 +1,6 @@
 # Coordinate — Contact information component
 
-**One Life. Two Places. One Space.**
+**Two of Us. One Space**
 
 The reusable **Contact Information** component belongs to either the whole Activity or one specific Option (for instance, gymnastics provider B). It can be added through the Activity add menu or an Option context menu.
 
