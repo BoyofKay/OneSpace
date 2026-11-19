@@ -85,7 +85,8 @@ function mockBackend(opts={}){
       return Response.json(record?[opts.forgedRecipient?
         {...record,recipient_id:other}:record]:[]);
     }
-    if(uri.includes("/storage/v1/object/onespace-archives/")){
+    if(uri.includes("/storage/v1/object/onespace-archives/") ||
+       uri.endsWith("/storage/v1/object/onespace-archives")){
       if(method==="POST"){
         const path=decodeURIComponent(uri.split("/onespace-archives/")[1]);
         const bytes=new Uint8Array(options.body);
