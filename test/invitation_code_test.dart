@@ -28,8 +28,8 @@ void main() {
     expect(url.host, 'onespace.live');
     expect(invitationCodeFromUri(url), code);
     expect(normalizedInvitationCode(invitationMessage(code)), code);
-    expect(invitationMessage(code, email: true), contains('Google Play:'));
-    expect(invitationMessage(code, email: true), contains('App Store:'));
+    expect(invitationMessage(code, email: true), contains('Google Play'));
+    expect(invitationMessage(code, email: true), contains('App Store'));
     expect(invitationMessage(code, email: true), contains(url.toString()));
   });
 
