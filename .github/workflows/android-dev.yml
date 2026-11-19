@@ -6,7 +6,7 @@ name: Build and publish OneSpace QA APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'qa/lifecycle-first-slice-20261119']
+    branches: [main, 'qa/lifecycle-first-slice-20261119', 'qa/recover-release461-full-source-20261119']
     paths:
       - 'release/READY_TO_BUILD.md'
 
