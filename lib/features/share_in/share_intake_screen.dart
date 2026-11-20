@@ -360,7 +360,19 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     avatar: Icon(d.icon, size: 18), showCheckmark: false,
     label: Text(tt(d.label)),
     selected: destination == d,
-    onSelected: (_) => setState(() { destination = d; error = null; }));
+    onSelected: (_) {
+      final solo = !OneSpaceEnv.isProduction && spaceId == null;
+      final supported = d == ShareDestination.newActivity ||
+        d == ShareDestination.todo || d == ShareDestination.note ||
+        d == ShareDestination.placeVisited || d == ShareDestination.placeWishlist;
+      if (solo && !supported) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(tt('Connect with a partner to use this destination. '
+            'Your personal inbox, Notes, Activities, To-do and Places are available.'))));
+        return;
+      }
+      setState(() { destination = d; error = null; });
+    });
 
   Widget _destinationDetails(BuildContext context) {
     final d = destination;
@@ -449,7 +461,11 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       title: sorting ? tt('Sort item') : tt('Save to OneSpace'),
       isNew: true,
       isChanged: () => title.text.isNotEmpty || url.text.isNotEmpty || notes.text.isNotEmpty,
-      isComplete: () => (spaceId != null || !OneSpaceEnv.isProduction) &&
+      isComplete: () => (spaceId != null ||
+        (!OneSpaceEnv.isProduction && onlyMe &&
+         (d == null || d == ShareDestination.todo || d == ShareDestination.note ||
+          d == ShareDestination.newActivity || d == ShareDestination.placeVisited ||
+          d == ShareDestination.placeWishlist))) &&
         title.text.trim().isNotEmpty && (d != null || !sorting),
       missingHint: sorting && d == null ? tt('Choose where it should go') : tt('Give it a title'),
       listenTo: [title, url, notes],
