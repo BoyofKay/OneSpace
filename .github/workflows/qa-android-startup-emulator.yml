@@ -30,8 +30,8 @@ jobs:
           cache: true
       - name: Resolve exact Flutter dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Build fresh QA-only Android debug APK for emulator
-        run: flutter build apk --debug --flavor qa --dart-define=ONESPACE_ENV=qa
+      - name: Build QA-only Android release-mode APK for emulator (not distributable)
+        run: flutter build apk --release --flavor qa --dart-define=ONESPACE_ENV=qa
       - name: Boot emulator and verify installed app produces visible UI
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -43,7 +43,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             set -euo pipefail
-            adb install -r build/app/outputs/flutter-apk/app-qa-debug.apk
+            adb install -r build/app/outputs/flutter-apk/app-qa-release.apk
             adb shell logcat -c
             adb shell am start -W -n onespace.qa/com.onespace.onespace.MainActivity
             sleep 18
