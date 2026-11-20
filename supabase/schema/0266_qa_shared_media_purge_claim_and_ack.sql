@@ -10,7 +10,7 @@ ALTER TABLE public.qa_shared_media_purge_queue
     CHECK(attempts>=0);
 
 CREATE OR REPLACE FUNCTION public.qa_claim_shared_media_purge(p_limit integer DEFAULT 20)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $q$
+RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $q$
 DECLARE result jsonb;
 BEGIN
  IF current_user<>'service_role' THEN
@@ -50,7 +50,7 @@ END $q$;
 CREATE OR REPLACE FUNCTION public.qa_ack_shared_media_purge(
  p_space_id uuid,p_bucket_id text,p_object_path text,
  p_lease_id uuid,p_succeeded boolean)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $q$
+RETURNS boolean LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $q$
 DECLARE changed integer;
 BEGIN
  IF current_user<>'service_role' THEN
