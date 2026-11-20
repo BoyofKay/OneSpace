@@ -11,10 +11,12 @@ class ActivityImagePreview extends StatefulWidget {
     super.key,
     required this.objectPath,
     required this.label,
+    this.bucketId,
   });
 
   final String objectPath;
   final String label;
+  final String? bucketId;
 
   @override
   State<ActivityImagePreview> createState() => _ActivityImagePreviewState();
@@ -24,7 +26,7 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
   late Future<String> signedUrl;
 
   Future<String> sign() => Supabase.instance.client.storage
-      .from(ActivityImageRules.bucket)
+      .from(widget.bucketId??ActivityImageRules.bucket)
       .createSignedUrl(widget.objectPath, 120);
 
   @override
@@ -36,7 +38,8 @@ class _ActivityImagePreviewState extends State<ActivityImagePreview> {
   @override
   void didUpdateWidget(covariant ActivityImagePreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.objectPath != widget.objectPath) {
+    if (oldWidget.objectPath != widget.objectPath ||
+        oldWidget.bucketId != widget.bucketId) {
       signedUrl = sign();
     }
   }
