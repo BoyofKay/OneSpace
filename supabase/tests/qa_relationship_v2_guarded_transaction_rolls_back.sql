@@ -99,9 +99,12 @@ BEGIN
  SELECT count(*) INTO n FROM public.notes WHERE id=current_setting('qa.owner_private')::uuid;
  IF n<>1 THEN RAISE EXCEPTION 'Owner personal Notes lost';END IF;
  SELECT count(*) INTO n FROM public.user_private_spaces
- WHERE owner_id IN(current_setting('qa.owner')::uuid,current_setting('qa.peer')::uuid);
- IF n<>2 THEN RAISE EXCEPTION 'Private namespaces not preserved';END IF;
+ WHERE owner_id=current_setting('qa.owner')::uuid;
+ IF n<>1 THEN RAISE EXCEPTION 'Owner personal namespace lost';END IF;
  PERFORM set_config('request.jwt.claim.sub',current_setting('qa.peer'),true);
+ SELECT count(*) INTO n FROM public.user_private_spaces
+ WHERE owner_id=current_setting('qa.peer')::uuid;
+ IF n<>1 THEN RAISE EXCEPTION 'Partner personal namespace lost';END IF;
  SELECT count(*) INTO n FROM public.notes WHERE id=current_setting('qa.peer_private')::uuid;
  IF n<>1 THEN RAISE EXCEPTION 'Surviving partner private data lost';END IF;
  SELECT count(*) INTO n FROM public.notes WHERE id=current_setting('qa.owner_private')::uuid;
