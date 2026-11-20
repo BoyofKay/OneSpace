@@ -66,6 +66,13 @@
 - Separate website [draft PR #47](https://github.com/BoyofKay/onespace-app/pull/47) corrects the obsolete deletion rule and adds English/Arabic/Spanish/French/German copy; **website main and live onespace.live remain unchanged** pending website CI and founder's publication approval.
 - Remaining: actual Storage API byte removal with disposable QA files, expired signed URL checks, real Auth Admin deletion and stale-token/privileged-RPC tests, scheduled orchestration, full real-device acceptance, then a single consolidated QA APK.
 
+## Follow-up implementation: all four guarded app action flows staged
+
+- **Relationship actions (0295):** the authenticated endpoint `qa_end_current_relationship` validates the signed-in actor, original space, action role and exact `DELETE SHARED CONTENT` warning, then invokes the gated transaction. Owner, guest, outsider, gate-closed and confirmation rejection rollback tests **PASS**.
+- **Account request (0296):** authenticated `qa_request_account_deletion` is also blocked while the account deletion switch is off. Its rollback test **PASS** for gate off, exactly seven-day deadline, idempotent repeat, cancellation, and a new request after cancellation.
+- **Flutter QA source:** My Space now has typed modal confirmation and backend RPC wiring for Remove Partner, Leave Space and Delete Space. Account Data has a separate typed confirmation for seven-day request. **All four controls are still disabled in source using explicit `false` acceptance flags**, independently of backend gates. No APK generated from this milestone.
+- **Website localization:** public-site deletion text is corrected in [unmerged draft PR #47](https://github.com/BoyofKay/onespace-app/pull/47). Its full five-language website quality workflow **PASSED**, but the live site is not updated.
+
 ## HARD RELEASE GATES (all still open)
 
 1. Deploy and verify shared + private Storage API purge on **disposable** QA files, including signed URL lifetime and retries; no SQL-only simulation counts as physical deletion.
