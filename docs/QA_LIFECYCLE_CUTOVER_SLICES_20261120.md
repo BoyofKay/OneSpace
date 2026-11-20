@@ -21,6 +21,8 @@
 | Goals | Migration `0246`: owner-private and current-couple shared Goals, immutable scope, owner-only private action audit | No active Goals UI in current Flutter tree; **backend only** | Rollback SQL owner/partner/outsider, audit, stale writes **PASS** |
 | Places and visits | Migration `0247`: account-private / pair-shared root and visit child scope; no private media or cross-couple trip links | Solo Places, unified map, visit entries, personal-only indicator, search/deep link; shared trip planning withheld for personal places | Rollback SQL owner/partner/outsider, parent/child isolation and immutable scopes **PASS** |
 
+| Items to sort / Share-in | Migration `0248`: account-owned private text/link inbox, current-couple shared inbox, owner audit, frozen scope; private file payloads rejected | Unified inbox while solo or paired, private text share-in routing, personal search, no raw visibility toggling; shared-file uploads require verified current couple | Rollback SQL owner/partner/outsider/audit, immutable scope, rejected private attachments **PASS** |
+
 **Integration gates still open:** the Flutter analyzer and two-phone tests have **not** run. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
 
 ## Checks actually executed
@@ -32,7 +34,7 @@
 - QA migration `0243_qa_personal_saved_contacts_rls.sql` was applied; no Production schema migration applied.
 - No irreversible lifecycle action enabled. No old archive/deletion requests treated as consent.
 
-- `supabase/tests/qa_account_owned_daily_checkins_scope.sql`, `qa_personal_days_off_current_pair_isolation.sql`, `qa_personal_goals_current_pair_isolation.sql`, and `qa_personal_places_visits_owner_scope.sql` each passed with rollback on QA.
+- `supabase/tests/qa_account_owned_daily_checkins_scope.sql`, `qa_personal_days_off_current_pair_isolation.sql`, `qa_personal_goals_current_pair_isolation.sql`, , `qa_personal_places_visits_owner_scope.sql`, and `qa_personal_sort_inbox_text_scope.sql` each passed with rollback on QA.
 - Verified the converted QA root/visit tables remained empty after tests, and all five newly protected tables have RLS enabled.
 
 ## Work still needed before any QA release / irreversible action
