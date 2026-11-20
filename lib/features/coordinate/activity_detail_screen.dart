@@ -10,6 +10,7 @@ import '../../core/linked_items.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../calendar/calendar_rules.dart';
 import 'activity_component_editor.dart';
 import 'activity_countdown_rules.dart';
@@ -65,6 +66,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? mentionSuggestion;
   int mentionOffset = -1;
   String? conversationSpaceId;
+  bool _accountOwnedActivity=false;
   /// R66: for the Belongs to menu.
   SpacePeople? people;
 
@@ -348,8 +350,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
-  Future<void> chooseAdd({String? under, String? underTitle}) async {
-    final choices = <(String,IconData,String)>[
+  Future<void> chooseAdd({String? under,String? underTitle}) async {
+    final choices=<(String,IconData,String)>[
       ('option', Icons.compare_arrows, 'Compare an option'),
       ('link', Icons.link, 'Link'),
       ('image', Icons.image_outlined, 'Photo / screenshot'),
@@ -377,7 +379,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
             const SizedBox(height: 12),
             Wrap(spacing: 7, runSpacing: 7,
               children: [
-                for (final choice in choices)
+                for(final choice in choices)
+                 if(!_accountOwnedActivity ||
+                   const {'option','note','step','price','spec','date',
+                    'reminder','location','tag'}.contains(choice.$1))
                   ActionChip(
                     avatar: Icon(choice.$2, size: 17),
                     label: Text(tt(choice.$3)),
@@ -412,6 +417,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
     String? parentComponentId,
     String? contextLabel,
   }) async {
+    if(_accountOwnedActivity){
+      if(mounted)setState(()=>issue='Personal Activity voice storage is '
+        'not available yet.');
+      return;
+    }
     final sent = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -865,9 +875,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
       case 'add-note':
         await openEditor('note', parent: id);
       case 'add-link':
-        await openEditor('link', parent: id);
+        if(!_accountOwnedActivity)await openEditor('link',parent:id);
       case 'add-contact':
-        await openEditor('contact', parent: id);
+        if(!_accountOwnedActivity)await openEditor('contact',parent:id);
       case 'add-voice':
         await recordVoice(
           destination: VoiceDestination.component,
@@ -1478,7 +1488,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ),
           )),
         ),
-        if(voiceMode)ActivityInlineVoiceComposer(
+        if(voiceMode && !_accountOwnedActivity)ActivityInlineVoiceComposer(
           activityId:widget.id,
           replyToId:replyingTo,
           componentId:onComponent,
@@ -1492,7 +1502,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           onCancel:()=>setState(()=>voiceMode=false),
         )
         else Row(children:[
-          IconButton(
+          if(!_accountOwnedActivity)IconButton(
             tooltip:tt('Record voice message'),
             onPressed:sending?null:(){
               FocusScope.of(context).unfocus();
@@ -1506,7 +1516,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
             textCapitalization:TextCapitalization.sentences,
             textInputAction:TextInputAction.newline,
             decoration:InputDecoration(
-              hintText:tt('Message your partner…'),
+              hintText:tt(_accountOwnedActivity
+                ?'Add a private comment…':'Message your partner…'),
               isDense:true,counterText:'',
               contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:10),
               border:OutlineInputBorder(),
@@ -1646,6 +1657,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
       }
       final item = s.data!.first;
       conversationSpaceId=item['space_id']?.toString();
+      _accountOwnedActivity=!OneSpaceEnv.isProduction &&
+        item['private_space_id']!=null;
       return Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
@@ -1683,7 +1696,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 15),
           children: [
-            LinkedItemsStrip(key: _links, kind: LinkKind.activity, id: widget.id),
+            if(!_accountOwnedActivity)
+              LinkedItemsStrip(key:_links,kind:LinkKind.activity,id:widget.id),
             toolbar(item),
             if (issue != null)
               Padding(padding: const EdgeInsets.only(bottom: 8),
