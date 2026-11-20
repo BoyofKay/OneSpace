@@ -33,7 +33,9 @@ function renderEmail(name:string,code:string,expiresAt:string,isQa:boolean){
   const sender=escapeHtml(name||"Your partner");
   const play=validStoreUrl(env("ONESPACE_PLAY_STORE_URL"),"play");
   const apple=validStoreUrl(env("ONESPACE_APP_STORE_URL"),"apple");
-  const date=new Date(expiresAt).toUTCString();
+  // Invitations last 48 hours from creation; a resend keeps the original end.
+  const hours=Math.max(1,Math.ceil((new Date(expiresAt).getTime()-Date.now())/3600000));
+  const left=hours===1?"1 hour":`${hours} hours`;
   const text=`${name||"Your partner"} invited you to OneSpace!
 
 A little space for us — to remember, plan, and stay close.
@@ -47,7 +49,7 @@ If it is not installed, follow the instructions on the invitation page.
 Manual code (only if needed):
 ${code}
 
-This invitation expires on ${date}. The code is the same when resent.
+This invitation expires in ${left}. The code is the same when resent.
 
 OneSpace
 Two of Us. One Space
@@ -68,7 +70,7 @@ https://onespace.live`;
 <a href="${safeUrl}" style="color:#1F6E78;text-decoration:underline;word-break:break-all">${safeUrl}</a></p>
 <p style="font-size:13px;color:#51657A;line-height:1.6;margin:18px 0 6px">Need to enter the code manually?</p>
 <p style="padding:12px;background:#F2F6F9;font:12px/1.7 monospace;word-break:break-all;color:#14213D">${escapeHtml(code)}</p>
-<p style="font-size:12px;color:#51657A;line-height:1.6">Expires ${escapeHtml(date)}. Resending does not extend its validity.</p>
+<p style="font-size:12px;color:#51657A;line-height:1.6">This invitation expires in ${escapeHtml(left)}. Resending does not extend it.</p>
 </td></tr>
 <tr><td style="padding:8px 23px 24px"><p style="font-size:13px;color:#51657A;margin:4px 5px">OneSpace for your phone</p>
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>${storePanel(play,"play")}${storePanel(apple,"apple")}</tr></table>
