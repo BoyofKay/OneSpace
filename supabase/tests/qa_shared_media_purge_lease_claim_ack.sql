@@ -1,11 +1,27 @@
 -- QA only, rollback. Verify service-role-only deletion leases; no real files.
 BEGIN;
-SELECT set_config('qa.retired_space',gen_random_uuid()::text,true);
-INSERT INTO public.qa_shared_media_purge_queue(space_id,bucket_id,object_path)
-VALUES(current_setting('qa.retired_space')::uuid,'onespace-note-images',
-       '11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333.jpg');
-SELECT set_config('qa.owner',(SELECT user_id::text FROM public.space_members LIMIT 1),true);
+SELECT set_config('qa.retired_space',(SELECT space_id::text FROM public.space_members
+ GROUP BY space_id HAVING count(*)=2 ORDER BY space_id LIMIT 1),true);
+SELECT set_config('qa.owner',(SELECT user_id::text FROM public.space_members
+ WHERE space_id=current_setting('qa.retired_space')::uuid LIMIT 1),true);
 SELECT set_config('request.jwt.claim.sub',current_setting('qa.owner'),true);
+DO $fixture$
+DECLARE note_id uuid; p text; me uuid:=current_setting('qa.owner')::uuid;
+BEGIN
+ INSERT INTO public.notes(space_id,created_by,title,visibility)
+ VALUES(current_setting('qa.retired_space')::uuid,me,'QA lease fixture','shared')
+ RETURNING id INTO note_id;
+ p:=note_id::text||'/'||me::text||'/'||gen_random_uuid()::text||'.jpg';
+ INSERT INTO storage.objects(bucket_id,name,owner_id)
+ VALUES('onespace-note-images',p,me::text);
+ INSERT INTO public.note_images(note_id,created_by,object_path,storage_bucket_id)
+ VALUES(note_id,me,p,'onespace-note-images');
+ INSERT INTO public.qa_shared_media_purge_queue(space_id,bucket_id,object_path)
+ VALUES(current_setting('qa.retired_space')::uuid,'onespace-note-images',p);
+ PERFORM set_config('qa.object_path',p,true);
+END $fixture$;
+-- Deleting a space invalidates its existing membership, but not its queue.
+DELETE FROM public.spaces WHERE id=current_setting('qa.retired_space')::uuid;
 SET LOCAL ROLE authenticated;
 DO $auth$
 BEGIN
@@ -28,12 +44,12 @@ BEGIN
   RAISE EXCEPTION 'Same media leased concurrently';END IF;
  ok:=public.qa_ack_shared_media_purge(current_setting('qa.retired_space')::uuid,
   'onespace-note-images',
-  '11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333.jpg',
+  current_setting('qa.object_path'),
   gen_random_uuid(),true);
  IF ok THEN RAISE EXCEPTION 'False lease acknowledgement accepted';END IF;
  ok:=public.qa_ack_shared_media_purge(current_setting('qa.retired_space')::uuid,
   'onespace-note-images',
-  '11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333.jpg',
+  current_setting('qa.object_path'),
   id,false);
  IF NOT ok THEN RAISE EXCEPTION 'Unable to record failed attempt';END IF;
  jobs:=public.qa_claim_shared_media_purge(1);
@@ -48,7 +64,7 @@ BEGIN
  IF ok THEN RAISE EXCEPTION 'Wrong path acknowledgement accepted';END IF;
  ok:=public.qa_ack_shared_media_purge(current_setting('qa.retired_space')::uuid,
   'onespace-note-images',
-  '11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333.jpg',
+  current_setting('qa.object_path'),
   id,true);
  IF NOT ok THEN RAISE EXCEPTION 'Successful purge not recorded';END IF;
  jobs:=public.qa_claim_shared_media_purge(1);
