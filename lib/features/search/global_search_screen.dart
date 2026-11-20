@@ -113,10 +113,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          db.from('saved_contacts').select('id,title:label')
            .isFilter('archived_at',null).ilike('label',pattern)
            .limit(GlobalSearchRules.maxPerSection),
+         db.from('space_events').select('id,title')
+           .isFilter('archived_at',null).ilike('title',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('space_events').select('id,title')
+           .isFilter('archived_at',null).ilike('details',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
        ]);
        if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
        for(var n=0;n<more.length;n++){
-         final kind=n<2?'Activity':n<4?'Memory':'Contact';
+         final kind=n<2?'Activity':n<4?'Memory':n==4?'Contact':'Calendar';
          for(final row in more[n]){
            final key=row['id']?.toString()??'';
            if(key.isNotEmpty&&seen.add('$kind:$key'))
