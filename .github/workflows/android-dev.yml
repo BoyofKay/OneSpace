@@ -41,7 +41,8 @@ jobs:
           }
           test -s lib/features/spaces/my_space_screen.dart
           test -s lib/features/spaces/invite_partner_screen.dart
-          test -s lib/features/spaces/my_archives_screen.dart
+          test ! -e lib/features/spaces/my_archives_screen.dart
+          test -s docs/ADR_2026-11-20_PERSONAL_SHARED_OWNERSHIP_AND_DELETION.md
           test -s lib/features/profile/change_password_screen.dart
           test -s lib/features/spaces/space_lifecycle_policy.dart
           echo "Recovered QA feature baseline verified."
