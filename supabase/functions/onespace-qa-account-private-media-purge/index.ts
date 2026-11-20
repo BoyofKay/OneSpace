@@ -1,4 +1,4 @@
-// QA-ONLY account-deletion file worker. STAGED, NOT DEPLOYED OR SCHEDULED.
+// QA-only deployed unscheduled JWT-protected file worker; service secret required.
 // The account deletion request must be past its full 7 days, unpaired,
 // original Storage owner intact, and service-only DB gate intentionally on.
 // This worker never touches shared/relationship buckets or Auth users.
