@@ -22,10 +22,10 @@ BEGIN
  VALUES(own,own,'private','QA personal note photo') RETURNING id INTO n_private;
  INSERT INTO public.notes(space_id,created_by,visibility,title)
  VALUES(shared_space,own,'shared','QA couple note photo') RETURNING id INTO n_pair;
- INSERT INTO public.memories(private_space_id,created_by,visibility,title)
- VALUES(own,own,'private','QA personal album') RETURNING id INTO m_private;
- INSERT INTO public.memories(space_id,created_by,visibility,title)
- VALUES(shared_space,own,'shared','QA couple album') RETURNING id INTO m_pair;
+ INSERT INTO public.memories(private_space_id,created_by,visibility,title,memory_date)
+ VALUES(own,own,'private','QA personal album',DATE '2026-11-20') RETURNING id INTO m_private;
+ INSERT INTO public.memories(space_id,created_by,visibility,title,memory_date)
+ VALUES(shared_space,own,'shared','QA couple album',DATE '2026-11-20') RETURNING id INTO m_pair;
  INSERT INTO public.shared_trips(private_space_id,created_by,visibility,title)
  VALUES(own,own,'private','QA personal travel') RETURNING id INTO t_private;
  INSERT INTO public.shared_trips(space_id,created_by,visibility,title)
