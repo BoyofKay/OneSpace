@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../coordinate/activity_image_rules.dart';
+import '../../core/app_env.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Private, RLS-enforced photo attachments for a saved note.
@@ -15,6 +16,26 @@ class NotePhotosPanel extends StatefulWidget{
 class _NotePhotosPanelState extends State<NotePhotosPanel>{
  final db=Supabase.instance.client;
  static const bucket='onespace-note-images';
+ static const personalBucket='onespace-private-note-images';
+ Future<String> bucketForNote()async{
+  if(OneSpaceEnv.isProduction)return bucket;
+  final me=db.auth.currentUser?.id;
+  if(me==null)throw StateError('Sign in to save personal photos.');
+  final note=await db.from('notes')
+   .select('space_id,private_space_id,created_by,visibility')
+   .eq('id',widget.noteId).single();
+  if(note['private_space_id']!=null){
+   if(note['private_space_id']!=me||note['created_by']!=me||
+     note['space_id']!=null||note['visibility']!='private'){
+    throw StateError('This personal note belongs to a different account.');
+   }
+   return personalBucket;
+  }
+  if(note['space_id']==null||note['visibility']!='shared'){
+   throw StateError('Photo storage scope is not available.');
+  }
+  return bucket;
+ }
  late Stream<List<Map<String,dynamic>>> stream;
  bool busy=false;
  String? error;
@@ -41,12 +62,14 @@ class _NotePhotosPanelState extends State<NotePhotosPanel>{
    if(uid==null)throw StateError('Sign in first.');
    final path=widget.noteId+'/'+uid+'/'+const Uuid().v4()+'.'+
     ActivityImageRules.extension(mime);
-   final storage=db.storage.from(bucket);
+   final selectedBucket=await bucketForNote();
+   final storage=db.storage.from(selectedBucket);
    await storage.uploadBinary(path,bytes,
     fileOptions:FileOptions(contentType:mime,upsert:false));
    try{
     await db.from('note_images').insert({
-     'note_id':widget.noteId,'object_path':path,'caption':''});
+     'note_id':widget.noteId,'object_path':path,'caption':'',
+     if(!OneSpaceEnv.isProduction)'storage_bucket_id':selectedBucket});
    }catch(_){
     try{await storage.remove([path]);}catch(_){}
     rethrow;
@@ -88,7 +111,8 @@ class _NotePhotosPanelState extends State<NotePhotosPanel>{
      for(final row in rows)SizedBox(width:160,child:Card(clipBehavior:Clip.antiAlias,
       child:Column(children:[
        FutureBuilder<String>(
-        future:db.storage.from(bucket).createSignedUrl(row['object_path'].toString(),90),
+        future:db.storage.from((row['storage_bucket_id']??bucket).toString())
+         .createSignedUrl(row['object_path'].toString(),90),
         builder:(ctx,image)=>SizedBox(height:128,width:160,
          child:image.hasData?Image.network(image.data!,
           fit:BoxFit.cover,errorBuilder:(_,__,___)=>
