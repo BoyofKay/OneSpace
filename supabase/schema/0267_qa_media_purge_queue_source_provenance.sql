@@ -20,11 +20,11 @@ BEGIN
  END IF;
  IF new.bucket_id IN('onespace-note-images','onespace-memory-photos',
    'onespace-trip-documents','onespace-activity-media','onespace-activity-voice')
-  AND new.object_path !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9a-f-]{36}\\.(jpg|jpeg|png|webp|m4a|pdf)$' THEN
+  AND new.object_path !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9a-f-]{36}[.](jpg|jpeg|png|webp|m4a|pdf)$' THEN
    RAISE EXCEPTION 'Unsupported relationship media path' USING ERRCODE='42501';
  END IF;
  IF new.bucket_id='onespace-share-in' AND
-   new.object_path !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\\.(jpg|jpeg|png|webp|heic|pdf)$' THEN
+   new.object_path !~ '^[0-9a-f-]{36}/[0-9a-f-]{36}[.](jpg|jpeg|png|webp|heic|pdf)$' THEN
    RAISE EXCEPTION 'Unsupported shared inbox media path' USING ERRCODE='42501';
  END IF;
  IF new.bucket_id='onespace-note-images' THEN
