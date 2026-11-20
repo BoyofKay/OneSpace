@@ -36,6 +36,27 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(url,key,{
   auth:{persistSession:false,autoRefreshToken:false},
  });
+ // 7-day due-user pipeline is idempotent. Each service RPC has its own
+ // explicit QA database gate, due check, owner check and rollback rules:
+ // 1. Remove only the current shared relationship; preserve partner private.
+ // 2. Retire the requester's old solo account-created space.
+ // 3. Snapshot own files for the separate Storage API deletion worker.
+ // The first invocation will normally stop at readiness (HTTP 409) while
+ // media jobs remain. Reinvocation after physical removal can finish Auth.
+ const preparatory=[
+  "qa_due_account_close_current_relationship",
+  "qa_retire_due_account_legacy_solo",
+  "qa_prepare_due_account_private_media",
+ ];
+ for(const operation of preparatory){
+  try{
+   const {error}=await db.rpc(operation,{p_user:id});
+   if(error)throw Error("Service preparation failed");
+  }catch{
+   return respond(503,{error:"Account deletion preparation blocked by a safety prerequisite"});
+  }
+ }
+
  let readiness:unknown;
  try{
   const {data,error}=await db.rpc("qa_account_final_deletion_readiness",{
