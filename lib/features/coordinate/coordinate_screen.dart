@@ -67,6 +67,11 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   }
 
   Future<void> load() async {
+    // Never render old couple content while a changed session reloads.
+    if (mounted) setState(() {
+      loading = true; items = null; space = null;
+      personalReady = false; error = null;
+    });
     unawaited(_loadCountdowns());
     try {
       var id = await CurrentSpaceCache.instance.get();
