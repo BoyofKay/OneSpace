@@ -23,14 +23,14 @@ BEGIN
   VALUES('QA should deny new couple',current_setting('qa.owner')::uuid);
   RAISE EXCEPTION 'BUG: pending account created new space';
  EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM LIKE 'BUG:%' OR SQLERRM NOT LIKE '%pending deletion%' THEN RAISE;END IF;
+  IF SQLERRM LIKE 'BUG:%' OR SQLERRM NOT LIKE '%deletion is pending%' THEN RAISE;END IF;
  END;
  BEGIN
   INSERT INTO public.space_members(space_id,user_id)
   VALUES(current_setting('qa.space')::uuid,current_setting('qa.outside')::uuid);
   RAISE EXCEPTION 'BUG: pending member space accepted outsider';
  EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM LIKE 'BUG:%' OR SQLERRM NOT LIKE '%pending account deletion%' THEN RAISE;END IF;
+  IF SQLERRM LIKE 'BUG:%' OR SQLERRM NOT LIKE '%deletion is pending%' THEN RAISE;END IF;
  END;
  BEGIN
   INSERT INTO public.space_invitations(space_id,invited_by,token,expires_at)
@@ -38,7 +38,7 @@ BEGIN
     gen_random_uuid()::text,now()+interval '1 day');
   RAISE EXCEPTION 'BUG: pending inviter sent invitation';
  EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM LIKE 'BUG:%' OR SQLERRM NOT LIKE '%pending deletion%' THEN RAISE;END IF;
+  IF SQLERRM LIKE 'BUG:%' OR SQLERRM NOT LIKE '%deletion is pending%' THEN RAISE;END IF;
  END;
 END $blocked$;
 UPDATE public.account_deletion_requests SET cancelled_at=now()
