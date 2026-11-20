@@ -12,6 +12,17 @@
 | Global Search | QA private+shared title/body searches for Activities/Memories and direct Contacts, including solo mode; Calendar QA lookup now uses RLS scope | Source updated, **not** app tested | Two-phone search and deep-link verification |
 | Production | Guarded behind `OneSpaceEnv.isProduction` for app read/write paths; QA-only SQL migration applied to QA | Production **not modified by this slice** | Do not deploy to Production until approved |
 
+## Continuing QA slices on the same draft branch
+
+| Area | QA database | App implementation | Validation |
+| --- | --- | --- | --- |
+| Feelings / daily check-ins | Migration `0244`: owner-private journal and current-couple shared check-ins; immutable scope and owner-only private audit; stale-client private writes blocked | Solo journals available with one account; partner conversations remain couple-scoped; personal records do not show legacy share control | Rollback SQL owner/partner/outsider, audit, stale write and immutable scope **PASS** |
+| Personal days off | Migration `0245`: owner-private and pair-shared days off, immutable ownership and CRUD; same-day uniqueness retained | Own days-off screen has new personal/shared choice, supports solo entry; unified calendar loads both RLS-authorized scopes | Rollback SQL owner/partner/outsider, edit, delete, immutable scope **PASS** |
+| Goals | Migration `0246`: owner-private and current-couple shared Goals, immutable scope, owner-only private action audit | No active Goals UI in current Flutter tree; **backend only** | Rollback SQL owner/partner/outsider, audit, stale writes **PASS** |
+| Places and visits | Migration `0247`: account-private / pair-shared root and visit child scope; no private media or cross-couple trip links | Solo Places, unified map, visit entries, personal-only indicator, search/deep link; shared trip planning withheld for personal places | Rollback SQL owner/partner/outsider, parent/child isolation and immutable scopes **PASS** |
+
+**Integration gates still open:** the Flutter analyzer and two-phone tests have **not** run. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
+
 ## Checks actually executed
 
 - `supabase/tests/qa_personal_activities_memories_owner_scope.sql` ran successfully on QA with transaction rollback.
@@ -20,6 +31,9 @@
 - No Flutter analyzer, Flutter tests, Android build, iOS build, or two-phone acceptance has run from this branch. GitHub billing remains outside the scope of this slice.
 - QA migration `0243_qa_personal_saved_contacts_rls.sql` was applied; no Production schema migration applied.
 - No irreversible lifecycle action enabled. No old archive/deletion requests treated as consent.
+
+- `supabase/tests/qa_account_owned_daily_checkins_scope.sql`, `qa_personal_days_off_current_pair_isolation.sql`, `qa_personal_goals_current_pair_isolation.sql`, and `qa_personal_places_visits_owner_scope.sql` each passed with rollback on QA.
+- Verified the converted QA root/visit tables remained empty after tests, and all five newly protected tables have RLS enabled.
 
 ## Work still needed before any QA release / irreversible action
 
