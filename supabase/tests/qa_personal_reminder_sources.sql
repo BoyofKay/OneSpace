@@ -45,6 +45,11 @@ begin
   begin update public.reminders set source_id=ours where id=r;
   exception when others then failed:=true; end;
   if not failed then raise exception 'FAIL 5: personal reminder source changed'; end if;
+  -- 7. The owner can still edit a sourced personal reminder.
+  update public.reminders set title='Edited' where id=r;
+  if not exists(select 1 from public.reminders where id=r and title='Edited'
+     and source_id=mine) then
+    raise exception 'FAIL 7: owner cannot edit sourced personal reminder'; end if;
   reset role;
 
   -- 6. Partner cannot see A's personal reminder.
@@ -53,4 +58,5 @@ begin
   if exists(select 1 from public.reminders where id=r) then
     raise exception 'FAIL 6: partner sees personal reminder'; end if;
   reset role;
+  raise notice 'PASS: 7 personal reminder source checks';
 end $t$;

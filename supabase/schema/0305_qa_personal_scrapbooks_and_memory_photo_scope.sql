@@ -11,6 +11,12 @@
 --  * validate_scrapbook_page_photos ignored photo_4_id.
 -- QA only; never apply to Production.
 
+-- 0. 0246 allowed only 'story' Memories in the personal scope. Personal
+--    scrapbooks are now supported too (daily selfies and collages stay couple-only).
+alter table public.memories drop constraint if exists qa_private_memories_story_only;
+alter table public.memories add constraint qa_private_memories_story_only
+ check(private_space_id is null or memory_type in ('story','scrapbook')) not valid;
+
 -- 1. Scrapbook creation follows the ADR scopes.
 create or replace function public.create_scrapbook(
   p_space_id uuid, p_title text, p_template_key text,
