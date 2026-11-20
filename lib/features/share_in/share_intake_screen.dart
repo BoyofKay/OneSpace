@@ -158,7 +158,8 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     final d = destination;
     if (d == null || saving ||
         (spaceId == null && (OneSpaceEnv.isProduction ||
-          d != ShareDestination.note || !onlyMe))) return;
+          (d != ShareDestination.note && d != ShareDestination.todo) ||
+          !onlyMe))) return;
     final problem = _validate(requireBody: d == ShareDestination.activityOption);
     if (problem != null) { setState(() => error = problem); return; }
     setState(() { saving = true; error = null; });
@@ -223,9 +224,24 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           });
           next = OccasionsScreen(initialPlanId: selectedOccasion);
         case ShareDestination.todo:
+          final personal = !OneSpaceEnv.isProduction && visibility=='private';
+          String? pair = spaceId;
+          if (!OneSpaceEnv.isProduction && !personal) {
+            final scopes=await db.rpc('my_storage_scopes');
+            pair=scopes is Map ? scopes['shared_space_id']?.toString() : null;
+          }
+          if (!personal && (pair==null || pair.isEmpty)) {
+            if(mounted) setState((){
+              saving=false;
+              error='Connect with a partner to share a checklist.';
+            });
+            return;
+          }
           await db.from('tasks').insert({
-            'space_id': spaceId, 'created_by': db.auth.currentUser!.id,
-            'title': name, 'status': 'open', 'visibility': visibility,
+            if(personal) 'private_space_id':db.auth.currentUser!.id
+            else 'space_id':pair,
+            'created_by':db.auth.currentUser!.id,
+            'title':name,'status':'open','visibility':visibility,
           });
           next = const PlansScreen();
         case ShareDestination.note:
