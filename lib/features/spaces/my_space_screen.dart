@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
 import 'my_archives_screen.dart';
+import 'space_lifecycle_progress_card.dart';
 import '../../core/app_env.dart';
 
 /// Safe lifecycle preparation only; destructive actions remain server-gated until
@@ -13,7 +15,8 @@ class MySpaceScreen extends StatefulWidget {
   State<MySpaceScreen> createState() => _MySpaceScreenState();
 }
 
-class _MySpaceScreenState extends State<MySpaceScreen> {
+class _MySpaceScreenState extends State<MySpaceScreen>
+    with WidgetsBindingObserver {
   final _db = Supabase.instance.client;
   bool _loading = true;
   String? _error;
@@ -27,12 +30,58 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   Map<String,dynamic>? _archiveCatalog;
   Map<String,dynamic>? _lifecycle;
   bool _submitting = false;
+  bool _refreshingLifecycle = false;
+  Timer? _statusTimer;
   String? _actionMessage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _statusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!OneSpaceEnv.isProduction &&
+          _lifecycle?['active_job'] is Map &&
+          !_refreshingLifecycle && !_submitting) {
+        unawaited(_refreshLifecycle());
+      }
+    });
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !OneSpaceEnv.isProduction &&
+        !_refreshingLifecycle && !_submitting) {
+      unawaited(_refreshLifecycle());
+    }
+  }
+
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Read-only refresh; does not trigger separation or write to the backend.
+  Future<void> _refreshLifecycle() async {
+    if (_refreshingLifecycle || OneSpaceEnv.isProduction) return;
+    if (!mounted) return;
+    setState(() => _refreshingLifecycle = true);
+    try {
+      final result = await _db.rpc('my_space_lifecycle_status');
+      if (result is! Map) throw StateError('No lifecycle status returned');
+      if (mounted) setState(() {
+        _lifecycle = Map<String, dynamic>.from(result);
+        _error = null;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error =
+        tt('Unable to refresh relationship request status. '
+          'The original request has not been cancelled.'));
+    } finally {
+      if (mounted) setState(() => _refreshingLifecycle = false);
+    }
   }
 
   Future<void> _load() async {
@@ -129,6 +178,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
         : 'Preparation request recorded.');
       await _load();
       await _checkReadiness();
+      await _refreshLifecycle();
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -153,6 +203,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
         ? 'Preparation cancelled. The space is unchanged.'
         : 'Request cannot be cancelled at this stage.');
       await _load();
+      await _refreshLifecycle();
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -175,6 +226,19 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       body: SafeArea(child: _loading
         ? const Center(child: CircularProgressIndicator())
         : ListView(padding: const EdgeInsets.all(20), children: [
+          // Both original partners see the same genuine server-side lifecycle
+          // request state. This block is not a progress simulation.
+          if (!OneSpaceEnv.isProduction && _lifecycle != null &&
+              _lifecycle!['active_job'] is Map) ...[
+            SpaceLifecycleProgressCard(
+              lifecycle: _lifecycle!,
+              refreshing: _refreshingLifecycle,
+              submitting: _submitting,
+              onRefresh: _refreshLifecycle,
+              onCancel: _cancelStagedAction,
+            ),
+            const SizedBox(height: 12),
+          ],
           // Keep archive access after leaving or deleting a space. An unpaired
           // member must still be able to save their own verified archives.
           if (!OneSpaceEnv.isProduction) ...[
@@ -232,25 +296,6 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
             ),
 
             if (_submitting) const LinearProgressIndicator(),
-            if (pending != null)
-              Card(child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(tt('Separation preparation requested'),
-                    style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 6),
-                  Text(tt('Request status: ') + (pending['status'] ?? '').toString()),
-                  const SizedBox(height: 6),
-                  Text(tt('No memberships or space content have been removed.')),
-                  if (pending['requested_by_me'] == true)
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.close),
-                      onPressed: _submitting ? null
-                        : () => _cancelStagedAction(pending['id'].toString()),
-                      label: Text(tt('Cancel preparation')),
-                    ),
-                ]),
-              )),
             const SizedBox(height: 10),
             if (!OneSpaceEnv.isProduction && _owner && _members == 2)
               OutlinedButton.icon(
