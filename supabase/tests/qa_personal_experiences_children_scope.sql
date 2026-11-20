@@ -20,7 +20,7 @@ BEGIN
  INSERT INTO public.shared_experience_comments(experience_id,created_by,body)
  VALUES(private_ex,o,'QA private comment') RETURNING id INTO comment_id;
  INSERT INTO public.shared_experience_interests(experience_id,user_id,choice)
- VALUES(private_ex,o,'interested');
+ VALUES(private_ex,o,'yes');
  INSERT INTO public.shared_experience_reviews(experience_id,user_id,rating,review)
  VALUES(private_ex,o,4,'My private review');
  UPDATE public.shared_experiences SET description='Private plan revision' WHERE id=private_ex;
