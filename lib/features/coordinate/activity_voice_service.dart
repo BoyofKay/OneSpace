@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'activity_voice_rules.dart';
+import '../../core/app_env.dart';
 
 enum VoiceDestination { component, comment }
 
@@ -27,12 +28,27 @@ class ActivityVoiceService {
     ActivityVoiceRules.validate(bytes, seconds);
     final userId = client.auth.currentUser?.id;
     if (userId == null) throw StateError('Please sign in to send a voice note.');
+    var bucketId=ActivityVoiceRules.bucket;
+    if(!OneSpaceEnv.isProduction){
+      final activity=await client.from('activities')
+       .select('space_id,private_space_id,created_by,visibility')
+       .eq('id',activityId).single();
+      if(activity['private_space_id']!=null){
+        if(activity['private_space_id']!=userId||activity['created_by']!=userId||
+          activity['space_id']!=null||activity['visibility']!='private'){
+          throw StateError('This personal Activity belongs to another account.');
+        }
+        bucketId='onespace-private-activity-voice';
+      }else if(activity['space_id']==null||activity['visibility']!='shared'){
+        throw StateError('No current shared space for this voice note.');
+      }
+    }
     final path = ActivityVoiceRules.objectPath(
       activityId: activityId,
       userId: userId,
       fileId: const Uuid().v4(),
     );
-    final storage = client.storage.from(ActivityVoiceRules.bucket);
+    final storage = client.storage.from(bucketId);
     await storage.uploadBinary(
       path,
       bytes,
@@ -50,6 +66,7 @@ class ActivityVoiceService {
           'label': 'Voice note',
           'payload': {
             'voice_path': path,
+            if(!OneSpaceEnv.isProduction)'bucket_id':bucketId,
             'voice_seconds': seconds,
             'note': '',
           },
@@ -61,6 +78,7 @@ class ActivityVoiceService {
           'reply_to': replyToCommentId,
           'component_id': relatedComponentId,
           'voice_path': path,
+          if(!OneSpaceEnv.isProduction)'voice_bucket_id':bucketId,
           'voice_seconds': seconds,
         });
       }
