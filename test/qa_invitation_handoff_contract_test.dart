@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:onespace/core/app_env.dart';
 import 'package:onespace/features/auth/auth_gate.dart';
 import 'package:onespace/features/spaces/invitation_code.dart';
+import 'package:onespace/features/spaces/invitation_link_inbox.dart';
 
 void main() {
   const token = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
@@ -54,8 +55,7 @@ void main() {
   test('Unpaired invited account gets one focused handoff instead of 3 setup cards', () {
     final source = File('lib/features/spaces/shared_space_screen.dart')
         .readAsStringSync();
-    final invited = source.indexOf(
-      'else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null)');
+    final invited = source.indexOf('joiningAddressedInvite)) ...[');
     final general = source.indexOf('else if (spaceId == null) ...[', invited);
     expect(invited, greaterThan(0));
     expect(general, greaterThan(invited));
@@ -68,6 +68,31 @@ void main() {
     expect(source, contains("if (data['space_id'] == null)"));
     expect(source, contains("if (status == 'already_joined')"));
     expect(source, contains('InvitationLinkInbox.instance.clear()'));
+    expect(source, contains('dismissedAddressedInvite = true'));
+    expect(source, contains('joiningAddressedInvite = true'));
+  });
+
+  testWidgets('Verified recipient invitation survives a lost browser deep link',
+      (tester) async {
+    final inbox = InvitationLinkInbox.instance;
+    await inbox.clear();
+    expect(inbox.pendingCode, isNull);
+    await inbox.rememberVerifiedQaAddressedCode(token);
+    expect(inbox.pendingCode, token);
+    await inbox.rememberVerifiedQaAddressedCode('bad-token');
+    expect(inbox.pendingCode, token);
+    await inbox.clear();
+    expect(inbox.pendingCode, isNull);
+  });
+
+  test('Unpaired recipient performs authenticated fallback lookup before generic setup', () {
+    final source = File('lib/features/spaces/shared_space_screen.dart')
+      .readAsStringSync();
+    expect(source, contains("client.rpc('qa_find_my_addressed_invitation')"));
+    expect(source, contains('rememberVerifiedQaAddressedCode(code)'));
+    expect(source, contains('checkingAddressedInvite || inviteLookupFailed'));
+    expect(source, contains('Continue without an invitation'));
+    expect(source, contains("if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());"));
   });
 
   test('Android QA and Production packages cannot share Supabase environment', () {

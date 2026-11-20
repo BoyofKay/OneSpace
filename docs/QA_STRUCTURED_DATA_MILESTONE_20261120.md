@@ -33,6 +33,13 @@
 - [ ] Signed QA APK containing this patch and the merged canonical tagline correction, installed **over** the existing QA app on both Android phones. No uninstall, so the pending invitation is preserved. Real user taps and real branded emails still need acceptance.
 - [ ] After verified two-device sign-in/invitation and cancellation, explicitly mark Milestone 1 complete; do not treat successful database rollback simulation as device acceptance.
 
+## QA 0215 — invitation recovery without a deep link (QA deployed; source PR pending)
+- [x] New authenticated, owner/recipient-email-verified `public.qa_find_my_addressed_invitation()` retrieves **only the current user's** newest active invitation, if email is confirmed, they do not already belong to a space, the original inviter remains a member and space has room. It never lists unrelated invitations or returns someone else's code; anonymous execute denied.
+- [x] Live QA transactional regression PASS using actual active newest invitation: intended confirmed account receives the correct code, another user never receives it, unauthenticated/no session fails, no records changed.
+- [x] Flutter sign-in/Today unpaired path first attempts to find the invitation when no browser code was captured; while checking, it shows **one invitation-specific panel**, not Invite/Create/Join cards. A verified code is stored securely and then completed using the existing recipient-authenticated join flow. User can retry a failed lookup or intentionally continue without an invitation.
+- [x] Fixed code-persistence race: write the secure pending invitation **before** notifying listeners that may immediately accept and clear it, avoiding resurrected completed links.
+- [ ] Signed QA APK with 0215 Flutter source + 0214 future-letter privacy + PR102 branding; then run both existing-user and fresh-account device flows, genuine emails, cancellation and wrong-account tests. No completion claim from backend-only green checks.
+
 ## Milestone 0 — app and invitation
 - [x] QA 468 published with trusted QA signing certificate and corrected app/invitation source.
 - [x] QA backend invitation regression rerun on 20 Nov: latest verified recipient, replaced-code resolution, accept/join, duplicate join and anonymous denial PASS (transaction rollback). This is **backend only**.

@@ -116,6 +116,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   DateTime? pendingInviteExpiry;
   bool inviteCollapsed = true;
   String? _lastAutoJoinKey;
+  bool checkingAddressedInvite = false;
+  bool joiningAddressedInvite = false;
+  bool inviteLookupFailed = false;
+  bool dismissedAddressedInvite = false;
   bool loading = true;
   bool membershipResolved = false;
   bool summaryLoading = false;
@@ -327,7 +331,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         await prefs.remove(_cacheKey);
         if(!mounted)return;
         _apply(null,seenBefore:null);
-        if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
+        if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());
       } else {
         final data = Map<String, dynamic>.from(result as Map);
         // Some older server versions returned an empty/unpaired object
@@ -338,7 +342,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           await prefs.remove(_cacheKey);
           if (!mounted || request != _requestVersion) return;
           _apply(null,seenBefore:null);
-          if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
+          if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());
           return;
         }
         final seen=DateTime.tryParse(await prefs.getString(_seenKey)??'');
@@ -666,6 +670,55 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   /// QA: complete a verified recipient's pending deep link after sign in.
   /// Server authorization performs the verified-email comparison and rejects
   /// expired/revoked/forwarded codes; the client never grants membership.
+  /// Recover an original-pair invitation addressed to the authenticated,
+  /// email-confirmed recipient even if the web link was lost during sign in.
+  Future<void> _resumeOrDiscoverAddressedInvite() async {
+    if (!mounted || OneSpaceEnv.isProduction || spaceId != null ||
+        client.auth.currentUser == null) return;
+    if (InvitationLinkInbox.instance.pendingCode != null) {
+      await _autoJoinPending();
+    } else if (!dismissedAddressedInvite) {
+      await _discoverAddressedInvite();
+    }
+  }
+
+  Future<void> _discoverAddressedInvite() async {
+    if (!mounted || OneSpaceEnv.isProduction || working ||
+        checkingAddressedInvite || spaceId != null ||
+        client.auth.currentUser == null) return;
+    final originalUser = client.auth.currentUser!.id;
+    setState(() {
+      checkingAddressedInvite = true;
+      inviteLookupFailed = false;
+    });
+    try {
+      final value = await client.rpc('qa_find_my_addressed_invitation')
+          .timeout(const Duration(seconds: 12));
+      if (!mounted || spaceId != null ||
+          client.auth.currentUser?.id != originalUser) return;
+      final result = value is Map
+          ? Map<String,dynamic>.from(value) : const <String,dynamic>{};
+      if (result['status'] == 'ready') {
+        final code = result['code']?.toString() ?? '';
+        if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(code)) {
+          throw StateError('Invitation lookup returned an invalid code');
+        }
+        await InvitationLinkInbox.instance.rememberVerifiedQaAddressedCode(code);
+      } else if (result['status'] != 'none' &&
+          result['status'] != 'already_paired' &&
+          result['status'] != 'confirm_email') {
+        throw StateError('Unexpected invitation lookup status');
+      }
+    } catch (_) {
+      if (mounted && spaceId == null &&
+          client.auth.currentUser?.id == originalUser) {
+        setState(() => inviteLookupFailed = true);
+      }
+    } finally {
+      if (mounted) setState(() => checkingAddressedInvite = false);
+    }
+  }
+
   Future<void> _autoJoinPending({bool retry = false}) async {
     if (!mounted || spaceId != null || working) return;
     final code = InvitationLinkInbox.instance.pendingCode;
@@ -674,7 +727,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if (!retry && key == _lastAutoJoinKey) return;
     _lastAutoJoinKey = key;
     invitationController.text = code;
-    await _accept();
+    if (mounted) setState(() => joiningAddressedInvite = true);
+    try {
+      await _accept();
+    } finally {
+      if (mounted) setState(() => joiningAddressedInvite = false);
+    }
   }
 
   int? _dayDistance(DateTime? target) {
@@ -1142,7 +1200,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               label: Text(tr(context, 'retry')),
             ),
           ]
-          else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null) ...[
+          else if (spaceId == null &&
+              (InvitationLinkInbox.instance.pendingCode != null ||
+               joiningAddressedInvite)) ...[
             _panel(
               tt('Joining your partner’s OneSpace'),
               tt('Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'),
@@ -1185,10 +1245,42 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                       invitationController.clear();
                       issue = null;
                       _lastAutoJoinKey = null;
+                      dismissedAddressedInvite = true;
                     });
                   },
                   child: Text(tt('Use another invitation or start a new space')),
                 ),
+              ]),
+            ),
+          ] else if (spaceId == null &&
+              (checkingAddressedInvite || inviteLookupFailed)) ...[
+            _panel(
+              tt('Checking for your partner’s invitation'),
+              tt('Your confirmed email may already have an invitation, even if the browser did not pass its link to OneSpace.'),
+              Icons.mark_email_read_outlined,
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch,children:[
+                if (checkingAddressedInvite) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(tt('Checking your invitations…')),
+                ],
+                if (inviteLookupFailed && !checkingAddressedInvite) ...[
+                  Text(tt('Could not verify your invitation right now. Retry without creating another space.')),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: _discoverAddressedInvite,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(tt('Retry invitation lookup')),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      inviteLookupFailed = false;
+                      dismissedAddressedInvite = true;
+                    }),
+                    child: Text(tt('Continue without an invitation')),
+                  ),
+                ],
               ]),
             ),
           ] else if (spaceId == null) ...[
