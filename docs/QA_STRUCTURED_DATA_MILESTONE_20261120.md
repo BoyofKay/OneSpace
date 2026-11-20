@@ -25,6 +25,14 @@
 - Application build guard checks Android package `onespace.qa` against QA Supabase; Production requires `live.onespace.app` and the distinct Production project. This verifies source configuration boundaries, **not** user/device acceptance.
 - Email HTML templates are in source with the approved brand; **Supabase-hosted Auth templates and the actual delivered confirmation/reset emails cannot be considered verified from GitHub source alone**.
 
+## QA invitation Milestone 1 fix — 20 Nov continuation (source PR #103)
+- [x] **Full current-invitation backend acceptance, no persistent mutation:** ran the newest unrevoked QA invite as the confirmed intended recipient inside a single PostgreSQL transaction; verified `ready` → `accept_invitation` returns the original space → `onespace_today` shows that space → second resolver says `already_joined` → replayed acceptance denied. **All writes rolled back**, invitation remains active for actual device testing.
+- [x] QA app source handles both `null` and legacy `{space_id:null}` Today responses with the same invitation-specific join state, not the unrelated three-card setup.
+- [x] Resolver `already_joined` now clears obsolete local pending code and reloads space membership instead of a false error; invitation card identifies the actual signed-in email and provides one contextual **Join your partner's space** action, or Retry after failure.
+- [x] New widget and link-contract regression checks QA-vs-Production deep-link isolation, stand-alone email confirmation screen and single-context join panel.
+- [ ] Signed QA APK containing this patch and the merged canonical tagline correction, installed **over** the existing QA app on both Android phones. No uninstall, so the pending invitation is preserved. Real user taps and real branded emails still need acceptance.
+- [ ] After verified two-device sign-in/invitation and cancellation, explicitly mark Milestone 1 complete; do not treat successful database rollback simulation as device acceptance.
+
 ## Milestone 0 — app and invitation
 - [x] QA 468 published with trusted QA signing certificate and corrected app/invitation source.
 - [x] QA backend invitation regression rerun on 20 Nov: latest verified recipient, replaced-code resolution, accept/join, duplicate join and anonymous denial PASS (transaction rollback). This is **backend only**.
