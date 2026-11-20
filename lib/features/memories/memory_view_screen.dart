@@ -12,16 +12,20 @@ import 'selfie_studio_screen.dart';
 
 /// Signs one private photo and shows it (cached for a minute).
 class SignedMemoryPhoto extends StatefulWidget {
-  const SignedMemoryPhoto({super.key, required this.path, this.height = 180, this.fit = BoxFit.cover});
+  const SignedMemoryPhoto({super.key, required this.path, this.bucketId,
+    this.height = 180, this.fit = BoxFit.cover});
   final String path;
+  final String? bucketId;
   final double height;
   final BoxFit fit;
   static final Map<String, ({DateTime at, Future<String> url})> _cache = {};
-  static Future<String> sign(String path) {
-    final hit = _cache[path];
+  static Future<String> sign(String path,{String? bucketId}) {
+    final cacheKey='${bucketId??MemoryPhotoService.bucket}:$path';
+    final hit = _cache[cacheKey];
     if (hit != null && DateTime.now().difference(hit.at) < const Duration(seconds: 80)) return hit.url;
-    final url = MemoryPhotoService(Supabase.instance.client).signedUrl(path);
-    _cache[path] = (at: DateTime.now(), url: url);
+    final url = MemoryPhotoService(Supabase.instance.client)
+       .signedUrl(path,bucketId:bucketId);
+    _cache[cacheKey] = (at: DateTime.now(), url: url);
     return url;
   }
   @override
@@ -29,12 +33,16 @@ class SignedMemoryPhoto extends StatefulWidget {
 }
 
 class _SignedMemoryPhotoState extends State<SignedMemoryPhoto> {
-  late Future<String> url = SignedMemoryPhoto.sign(widget.path);
+  late Future<String> url = SignedMemoryPhoto.sign(widget.path,
+    bucketId:widget.bucketId);
   @override
   Widget build(BuildContext context) => FutureBuilder<String>(future: url, builder: (ctx, s) {
     if (!s.hasData) {
       return SizedBox(height: widget.height, child: s.hasError
-        ? IconButton(onPressed: () => setState(() { SignedMemoryPhoto._cache.remove(widget.path); url = SignedMemoryPhoto.sign(widget.path); }),
+        ? IconButton(onPressed: () => setState(() {
+            SignedMemoryPhoto._cache.clear();
+            url = SignedMemoryPhoto.sign(widget.path,bucketId:widget.bucketId);
+          }),
             icon: const Icon(Icons.refresh))
         : const Center(child: CircularProgressIndicator(strokeWidth: 2)));
     }
@@ -77,7 +85,7 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
   Future<void> load() async {
     try {
       final m = await db.from('memories').select().eq('id', widget.memoryId).single();
-      final p = await db.from('memory_photos').select('id,object_path,caption,created_by,display_order,created_at')
+      final p = await db.from('memory_photos').select('id,object_path,storage_bucket_id,caption,created_by,display_order,created_at')
         .eq('memory_id', widget.memoryId).isFilter('archived_at', null).order('display_order').order('created_at');
       final pp = await SpacePeople.load();
       if (!mounted) return;
@@ -111,7 +119,8 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
     try {
       final urls = <String>[];
       for (final p in photos) {
-        urls.add(await SignedMemoryPhoto.sign(p['object_path'].toString()));
+        urls.add(await SignedMemoryPhoto.sign(p['object_path'].toString(),
+          bucketId:p['storage_bucket_id']?.toString()));
       }
       final bytes = await MemoryExport.download(urls);
       final title = (m['title'] ?? 'Memory').toString();
@@ -158,7 +167,8 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
                   Text(tt(onAdd == null ? 'Waiting…' : 'Add your selfie'), textAlign: TextAlign.center,
                     style: const TextStyle(color: Color(0xFF3B3533))),
                 ])))
-            : SignedMemoryPhoto(path: p['object_path'].toString(), height: 400)),
+            : SignedMemoryPhoto(path: p['object_path'].toString(),
+                bucketId:p['storage_bucket_id']?.toString(),height: 400)),
           const SizedBox(height: 6),
           Text(tt(name), style: const TextStyle(color: Color(0xFF3B3533), fontWeight: FontWeight.w700)),
           if (p != null && (p['caption'] ?? '').toString().isNotEmpty)
@@ -201,7 +211,8 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
             const SizedBox(height: 14),
             if (selfie) selfieBody(theme) else ...[
               MemoryPhotoLayout(layout: (m['photo_layout'] ?? 'grid').toString(), photos: photos,
-                photo: (p, h) => SignedMemoryPhoto(path: p['object_path'].toString(), height: h)),
+                photo: (p, h) => SignedMemoryPhoto(path: p['object_path'].toString(),
+                  bucketId:p['storage_bucket_id']?.toString(),height: h)),
               if ((m['body'] ?? '').toString().trim().isNotEmpty) ...[
                 const SizedBox(height: 16),
                 SelectableText(m['body'].toString(), style: theme.textTheme.bodyLarge?.copyWith(height: 1.5)),
