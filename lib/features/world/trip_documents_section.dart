@@ -1,6 +1,7 @@
 import '../../core/item_menu.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
+import '../../core/app_env.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -51,9 +52,31 @@ class TravelDocumentService {
  }) async{
   final user=db.auth.currentUser?.id;
   if(user==null)throw StateError('Sign in to add a document.');
+  // Revalidate immediately before each upload, not just when the screen opens.
+  var selectedBucket=TripDocumentRules.bucket;
+  if(!OneSpaceEnv.isProduction){
+    final trip=await db.from('shared_trips')
+      .select('space_id,private_space_id,created_by,visibility')
+      .eq('id',tripId).maybeSingle();
+    final scopes=await db.rpc('my_storage_scopes');
+    if(trip==null||scopes is! Map||
+       scopes['private_space_id']?.toString()!=user){
+      throw StateError('Travel document scope is unavailable.');
+    }
+    if(trip['private_space_id']!=null){
+      if(trip['private_space_id']!=user||trip['created_by']!=user||
+         trip['space_id']!=null||trip['visibility']!='private'){
+        throw StateError('Personal trip documents belong only to the owner.');
+      }
+      selectedBucket='onespace-private-trip-documents';
+    }else if(trip['visibility']!='shared'||trip['space_id']==null||
+        scopes['shared_space_id']?.toString()!=trip['space_id']?.toString()){
+      throw StateError('Shared travel documents require a current paired space.');
+    }
+  }
   final objectPath=TripDocumentRules.path(
     tripId:tripId,userId:user,documentId:const Uuid().v4(),mime:file.mime);
-  final bucket=db.storage.from(TripDocumentRules.bucket);
+  final bucket=db.storage.from(selectedBucket);
   await bucket.uploadBinary(objectPath,file.bytes,
     fileOptions:FileOptions(contentType:file.mime,upsert:false));
   try{
@@ -63,6 +86,7 @@ class TravelDocumentService {
     'kind':kind,'file_name':file.filename,
     'mime_type':file.mime,'file_size':file.bytes.length,
     'object_path':objectPath,
+    if(!OneSpaceEnv.isProduction)'storage_bucket_id':selectedBucket,
    });
   }catch(_){
    // The RLS delete policy only allows removing own unreferenced uploads;
@@ -72,8 +96,8 @@ class TravelDocumentService {
   }
  }
 
- Future<String> privateUrl(String objectPath) =>
-   db.storage.from(TripDocumentRules.bucket).createSignedUrl(objectPath,90);
+ Future<String> privateUrl(String objectPath,{String? bucketId}) =>
+   db.storage.from(bucketId??TripDocumentRules.bucket).createSignedUrl(objectPath,90);
 }
 
 class TripDocumentsSection extends StatefulWidget{
@@ -215,7 +239,8 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
   if(busy)return;
   setState(()=>error=null);
   try{
-   final url=await service.privateUrl(doc['object_path'].toString());
+   final url=await service.privateUrl(doc['object_path'].toString(),
+     bucketId:doc['storage_bucket_id']?.toString());
    if(!mounted)return;
    if(doc['mime_type']=='application/pdf'){
     final opened=await launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication);

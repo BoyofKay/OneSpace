@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
@@ -36,6 +37,7 @@ class OccasionsScreen extends StatefulWidget{
 class _OccasionsScreenState extends State<OccasionsScreen>{
  final db=Supabase.instance.client;
  String? space,error;
+ bool personalReady=false;
  bool loading=true,archived=false,opened=false;
  String filter='upcoming',query='';
  List<Map<String,dynamic>> plans=[];
@@ -81,23 +83,39 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
    return;
   }
   try{
-   final id=await CurrentSpaceCache.instance.get();
+   var id=await CurrentSpaceCache.instance.get();
+   var ownScope=false;
+   if(!OneSpaceEnv.isProduction){
+    final scopes=await db.rpc('my_storage_scopes');
+    if(scopes is! Map||scopes['private_space_id']?.toString()!=user){
+      throw StateError('Account-owned Occasions scope unavailable');
+    }
+    id=scopes['shared_space_id']?.toString();ownScope=true;
+   }
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
-   if(id==null){
-    setState((){loading=false;space=null;plans=[];error=null;});
+   if(id==null&&!ownScope){
+    setState((){loading=false;space=null;personalReady=false;plans=[];error=null;});
     final prior=_channel;
     if(prior!=null)unawaited(db.removeChannel(prior));
     _channel=null;_watchedSpace=null;
     return;
    }
-   final rows=await db.from('occasion_plans').select().eq('space_id',id)
-     .order('updated_at',ascending:false).limit(200);
+   final scopeQuery=OneSpaceEnv.isProduction
+     ?db.from('occasion_plans').select().eq('space_id',id!)
+     :db.from('occasion_plans').select();
+   final rows=await scopeQuery.order('updated_at',ascending:false).limit(200);
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    setState((){
-    space=id;plans=List<Map<String,dynamic>>.from(rows);
+    space=id;personalReady=ownScope;
+    plans=List<Map<String,dynamic>>.from(rows);
     loading=false;error=null;
    });
-   _watch(id);
+   if(id!=null)_watch(id);
+   else {
+    final prior=_channel;
+    if(prior!=null)unawaited(db.removeChannel(prior));
+    _channel=null;_watchedSpace=null;
+   }
    if(!opened&&widget.initialPlanId!=null){
     opened=true;
     final match=plans.where((p)=>p['id']==widget.initialPlanId).firstOrNull;
@@ -116,9 +134,9 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
   }
  }
  Future<void> edit([Map<String,dynamic>? plan])async{
-  if(space==null)return;
+  if(space==null&&!personalReady)return;
   final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>OccasionEditor(spaceId:space!,existing:plan)));
+   builder:(_)=>OccasionEditor(spaceId:space??'',existing:plan)));
   if(saved==true&&mounted)await load();
  }
  Future<void> open(Map<String,dynamic> p)async{
@@ -158,7 +176,8 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
       onApply:(v)=>setState((){filter=v['show']!;}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:archived,onClear:()=>setState((){archived=false;filter='upcoming';}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-occasions',
+   floatingActionButton:space==null&&!personalReady?null:
+    FloatingActionButton.extended(heroTag:'fab-occasions',
     onPressed:()=>edit(),icon:const Icon(Icons.add),label:Text(tt('Add occasion'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
@@ -180,7 +199,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
       style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Center(child:Padding(padding:EdgeInsets.all(24),child:CircularProgressIndicator()))
-    else if(space==null)Text(tt('Connect your shared space first.'))
+    else if(space==null&&!personalReady)Text(tt('Connect your shared space first.'))
     else if(shown.isEmpty)Card(child:Padding(padding:EdgeInsets.all(20),
      child:Text(tt('Nothing planned here yet. Start with an upcoming birthday, anniversary or holiday.'))))
     else for(final p in shown)Card(elevation:0,child:ListTile(
@@ -200,7 +219,9 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      trailing:ItemMenu(kind:'occasion',recordId:p['id'].toString(),title:p['title']?.toString(),
       onOpen:()=>open(p),openLabel:tt('Open'),table:'occasion_plans',
       moreActions:[
-       if(p['archived_at']==null)ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
+       if((OneSpaceEnv.isProduction||p['private_space_id']==null)&&
+           space!=null&&p['archived_at']==null)
+          ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
         ()=>CounterSourceActions.open(context,space!,CounterSource.occasion(p))),
       ],
       removed:p['archived_at']!=null,onChanged:load),
@@ -282,6 +303,12 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   super.dispose();
  }
  Future<void> pickSource()async{
+  if(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content:Text(tt('Enter your personal occasion date manually. '
+     'Linking special dates will be available after the private calendar integration.'))));
+   return;
+  }
   final s=await pickOccasionSource(context,widget.spaceId);
   if(s==null||!mounted)return;
   setState((){
@@ -313,7 +340,11 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
      .eq('id',existing.first['id']);
    }else{
     await db.from('reminders').insert({
-     'space_id':widget.spaceId,'title':short,'due_at':start.toUtc().toIso8601String(),
+     if(!OneSpaceEnv.isProduction&&visibility=='private')
+       'private_space_id':db.auth.currentUser!.id
+     else 'space_id':widget.spaceId,
+     'created_by':db.auth.currentUser!.id,
+     'title':short,'due_at':start.toUtc().toIso8601String(),
      'visibility':visibility,'audience':visibility=='private'?'me':'both',
      'source_kind':'occasion','source_id':planId,
     });
@@ -344,8 +375,16 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
     'source_kind':sourceKind,'source_ref':sourceRef,
    };
    if(widget.existing==null){
+    final personal=!OneSpaceEnv.isProduction&&visibility=='private';
+    if(!personal&&widget.spaceId.isEmpty){
+     throw StateError('Connect with a partner before sharing an occasion');
+    }
     final row=await db.from('occasion_plans').insert({
-     ...values,'annual':false,'space_id':widget.spaceId,'visibility':visibility,'status':'planning',
+     ...values,'annual':false,
+     if(personal) 'private_space_id':db.auth.currentUser!.id
+     else 'space_id':widget.spaceId,
+     'created_by':db.auth.currentUser!.id,
+     'visibility':visibility,'status':'planning',
     }).select('id').single();
     final id=row['id'].toString();
     await syncPrepReminder(id,on,title.text.trim());
@@ -372,7 +411,9 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    listenTo:[title,notes,budget,currency,honoree],saving:busy,onSave:save,
    saveLabel:editing?'Save':'Next',
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
-    enabled:!editing,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
+    enabled:!editing,onChanged:(v)=>setState(()=>visibility=
+     (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+       ?'private':(v.shared?'shared':'private'))),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    Card(elevation:0,color:theme.colorScheme.secondaryContainer.withValues(alpha:.5),
     child:ListTile(
@@ -501,7 +542,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
  Future<void> editPlan()async{
   final p=plan;if(p==null)return;
   final done=await Navigator.of(context).push<bool>(MaterialPageRoute(
-    builder:(_)=>OccasionEditor(spaceId:p['space_id'].toString(),existing:p)));
+    builder:(_)=>OccasionEditor(spaceId:p['space_id']?.toString()??'',existing:p)));
   if(done==true&&mounted)await load();
  }
  Future<void> setCancelled(bool cancel)async{
@@ -582,7 +623,9 @@ class _OccasionDetailState extends State<OccasionDetail>{
      ],
      onOpen:editPlan,
      moreActions:[
-      if(p['archived_at']==null)ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
+      if((OneSpaceEnv.isProduction||p['private_space_id']==null)&&
+         p['space_id']!=null&&p['archived_at']==null)
+       ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
        ()=>CounterSourceActions.open(context,p['space_id'].toString(),CounterSource.occasion(p))),
       if(p['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
        ()=>createFromThis(context,kind:LinkKind.occasion,id:widget.id,
@@ -598,7 +641,8 @@ class _OccasionDetailState extends State<OccasionDetail>{
      physics:const AlwaysScrollableScrollPhysics(),
      padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,35),children:[
      Text(tt(p['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
-     LinkedItemsStrip(key:_links,kind:LinkKind.occasion,id:widget.id),
+     if(OneSpaceEnv.isProduction||p['private_space_id']==null)
+      LinkedItemsStrip(key:_links,kind:LinkKind.occasion,id:widget.id),
      Text(tt([
       occasionKinds[p['kind']]??'Occasion',
       if((p['honoree_name']??'').toString().isNotEmpty)p['honoree_name'].toString(),

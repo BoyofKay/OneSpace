@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/collection_history_screen.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import 'share_intake_screen.dart';
 import 'share_suggestions.dart';
@@ -23,28 +24,52 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
   final db = Supabase.instance.client;
   bool loading = true, showRemoved = false;
   String? error, spaceId;
+  bool personalReady=false;
   List<Map<String, dynamic>> items = const [];
 
   @override void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
-    setState(() { loading = true; error = null; });
+    if(mounted)setState(() {
+      loading=true;error=null;items=const [];spaceId=null;personalReady=false;
+    });
     try {
-      spaceId ??= await CurrentSpaceCache.instance.get();
-      if (spaceId == null) {
-        if (mounted) setState(() { loading = false; error = 'Connect a shared space first.'; });
+      var id=await CurrentSpaceCache.instance.get();
+      var personal=false;
+      if(!OneSpaceEnv.isProduction){
+        final scopes=await db.rpc('my_storage_scopes');
+        if(scopes is! Map ||
+          scopes['private_space_id']?.toString()!=db.auth.currentUser?.id) {
+          throw StateError('Personal inbox scope unavailable');
+        }
+        id=scopes['shared_space_id']?.toString();
+        personal=true;
+      }
+      if(id==null&&!personal){
+        if(mounted)setState((){
+          loading=false;error='Connect a shared space first.';
+        });
         return;
       }
-      var query = db.from('items_to_sort')
-          .select('id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_name,file_mime')
-          .eq('space_id', spaceId!).isFilter('sorted_at', null);
-      query = showRemoved ? query.not('archived_at', 'is', null)
-          : query.isFilter('archived_at', null);
-      final rows = await query.order('created_at', ascending: false).limit(200);
-      if (!mounted) return;
-      setState(() { items = List<Map<String, dynamic>>.from(rows); loading = false; });
-    } catch (_) {
-      if (mounted) setState(() { loading = false; error = 'Items to sort are unavailable right now.'; });
+      var query=OneSpaceEnv.isProduction
+        ? db.from('items_to_sort').select(
+          'id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_bucket_id,file_name,file_mime')
+          .eq('space_id',id!)
+        : db.from('items_to_sort').select(
+          'id,private_space_id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_bucket_id,file_name,file_mime');
+      query=query.isFilter('sorted_at',null);
+      query=showRemoved?query.not('archived_at','is',null)
+        :query.isFilter('archived_at',null);
+      final rows=await query.order('created_at',ascending:false).limit(200);
+      if(!mounted)return;
+      setState((){
+        spaceId=id;personalReady=personal;
+        items=List<Map<String,dynamic>>.from(rows);loading=false;
+      });
+    }catch(_){
+      if(mounted)setState((){
+        loading=false;error='Items to sort are unavailable right now.';
+      });
     }
   }
 
@@ -71,7 +96,10 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
   /// R55: open an attached photo/PDF through a short-lived signed link.
   Future<void> _openFile(Map<String, dynamic> item) async {
     try {
-      final url = await db.storage.from('onespace-share-in')
+      final selectedBucket=OneSpaceEnv.isProduction
+          ? 'onespace-share-in'
+          : (item['file_bucket_id']?.toString()??'onespace-share-in');
+      final url = await db.storage.from(selectedBucket)
           .createSignedUrl(item['file_path'].toString(), 300);
       final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
@@ -162,9 +190,10 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
                       }
                     },
                     itemBuilder: (_) => [
-                      if (item['created_by'] == me) item['visibility'] == 'shared'
-                        ? iconMenuItem('private', MenuIcons.private, 'Make it only mine')
-                        : iconMenuItem('share', MenuIcons.share, 'Share with my partner'),
+                      if (OneSpaceEnv.isProduction && item['created_by'] == me)
+                        item['visibility'] == 'shared'
+                          ? iconMenuItem('private', MenuIcons.private, 'Make it only mine')
+                          : iconMenuItem('share', MenuIcons.share, 'Share with my partner'),
                       if (item['archived_at'] == null) iconMenuItem('sort', Icons.drive_file_move_outlined, 'Sort'),
                       const PopupMenuDivider(),
                       if (item['archived_at'] == null)

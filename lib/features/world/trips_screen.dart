@@ -13,6 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
@@ -38,6 +39,7 @@ class TripsScreen extends StatefulWidget {
 class _TripsScreenState extends State<TripsScreen> {
  final db=Supabase.instance.client;
  String? space,error;
+ bool personalReady=false;
  bool loading=true,openedDeepLink=false,showArchived=false;
  String filter='upcoming',query='';
  List<Map<String,dynamic>> trips=[];
@@ -82,22 +84,39 @@ class _TripsScreenState extends State<TripsScreen> {
    return;
   }
   try{
-   final id=await CurrentSpaceCache.instance.get();
+   var id=await CurrentSpaceCache.instance.get();
+   var ownScope=false;
+   if(!OneSpaceEnv.isProduction){
+     final scopes=await db.rpc('my_storage_scopes');
+     if(scopes is! Map || scopes['private_space_id']?.toString()!=user){
+       throw StateError('Account-owned Trips scope unavailable');
+     }
+     id=scopes['shared_space_id']?.toString();
+     ownScope=true;
+   }
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
-   if(id==null){
-    setState((){loading=false;space=null;trips=[];error=null;});
+   if(id==null&&!ownScope){
+    setState((){loading=false;space=null;personalReady=false;trips=[];error=null;});
     final prior=_changes;
     if(prior!=null)unawaited(db.removeChannel(prior));
     _changes=null;_watchedSpace=null;
     return;
    }
-   final data=await db.from('shared_trips').select().eq('space_id',id)
-     .order('updated_at',ascending:false).limit(200);
+   final tripQuery=OneSpaceEnv.isProduction
+     ? db.from('shared_trips').select().eq('space_id',id!)
+     : db.from('shared_trips').select();
+   final data=await tripQuery.order('updated_at',ascending:false).limit(200);
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=user)return;
    setState((){
-    space=id;loading=false;error=null;trips=List<Map<String,dynamic>>.from(data);
+    space=id;personalReady=ownScope;loading=false;error=null;
+    trips=List<Map<String,dynamic>>.from(data);
    });
-   _watch(id);
+   if(id!=null)_watch(id);
+   else {
+     final prior=_changes;
+     if(prior!=null)unawaited(db.removeChannel(prior));
+     _changes=null;_watchedSpace=null;
+   }
    if(!openedDeepLink&&widget.initialTripId!=null){
     openedDeepLink=true;
     final match=trips.where((t)=>t['id']==widget.initialTripId).firstOrNull;
@@ -119,9 +138,9 @@ class _TripsScreenState extends State<TripsScreen> {
   }
  }
  Future<void> edit([Map<String,dynamic>? trip])async{
-  if(space==null)return;
+  if(space==null&&!personalReady)return;
   final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>TripEditor(spaceId:space!,existing:trip)));
+   builder:(_)=>TripEditor(spaceId:space??'',existing:trip)));
   if(saved==true&&mounted)await load();
  }
  Future<void> open(Map<String,dynamic> trip)async{
@@ -154,7 +173,7 @@ class _TripsScreenState extends State<TripsScreen> {
       onApply:(v)=>setState((){filter=v['when']!;}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;filter='upcoming';}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-trips',
+   floatingActionButton:space==null&&!personalReady?null:FloatingActionButton.extended(heroTag:'fab-trips',
     icon:const Icon(Icons.add),label:Text(tt('Add trip')),onPressed:()=>edit()),
    body:RefreshIndicator(onRefresh:load,child:ListView(
     physics:const AlwaysScrollableScrollPhysics(),
@@ -187,7 +206,7 @@ class _TripsScreenState extends State<TripsScreen> {
       style:Theme.of(context).textTheme.bodySmall)),
     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
     if(loading)const Padding(padding:EdgeInsets.all(24),child:Center(child:CircularProgressIndicator()))
-    else if(space==null)Text(tt('Connect your shared space first.'))
+    else if(space==null&&!personalReady)Text(tt('Connect your shared space first.'))
     else if(visible.isEmpty)Padding(padding:EdgeInsets.all(24),
      child:Text(tt('No trips in this view yet. Your next adventure can start here.')))
     else for(final trip in visible)Card(elevation:0,clipBehavior:Clip.antiAlias,
@@ -207,7 +226,8 @@ class _TripsScreenState extends State<TripsScreen> {
       trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
        onOpen:()=>open(trip),openLabel:tt('Open'),table:'shared_trips',
        moreActions:[
-        if(trip['archived_at']==null&&CounterSource.trip(trip)!=null)
+        if((OneSpaceEnv.isProduction||trip['private_space_id']==null)&&
+           space!=null&&trip['archived_at']==null&&CounterSource.trip(trip)!=null)
          ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
           ()=>CounterSourceActions.open(context,space!,CounterSource.trip(trip))),
        ],
@@ -268,7 +288,8 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
   final o=(x['origin']??'').toString().trim(),d=(x['destination']??'').toString().trim();
   origin=o.isEmpty?null:o;destination=d.isEmpty?null:d;
   originText=TextEditingController(text:o);destinationText=TextEditingController(text:d);
-  visibility=(x['visibility']??'shared').toString();
+  visibility=(x['visibility']??
+    (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?'private':'shared')).toString();
   from=DateTime.tryParse((x['start_on']??'').toString());
   to=DateTime.tryParse((x['end_on']??'').toString());
   traveler=x['traveler_id']?.toString();
@@ -304,8 +325,19 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
     'end_on':to==null||tripType=='one_way'?null:CalendarRules.sqlDate(to!),
    };
    if(widget.existing==null){
+    final personal=!OneSpaceEnv.isProduction&&visibility=='private';
+    if(!personal&&widget.spaceId.isEmpty){
+      throw StateError('Connect with a partner before sharing Trips');
+    }
+    if(personal&&traveler!=null&&traveler!=db.auth.currentUser?.id){
+      throw StateError('A personal trip cannot name another account as traveler');
+    }
     final created=await db.from('shared_trips').insert({
-     ...values,'space_id':widget.spaceId,'visibility':visibility,'status':'planning',
+     ...values,
+     if(personal) 'private_space_id':db.auth.currentUser!.id
+     else 'space_id':widget.spaceId,
+     'created_by':db.auth.currentUser!.id,
+     'visibility':visibility,'status':'planning',
     }).select('id').single();
     final id=created['id'].toString();
     await widget.onCreated?.call(id);
@@ -340,7 +372,9 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    listenTo:[title,notes,originText,destinationText],saving:saving,onSave:save,
    saveLabel:editing?'Save':'Next',
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
-    enabled:!editing,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private')),
+    enabled:!editing,onChanged:(v)=>setState(()=>visibility=
+      (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+        ?'private':(v.shared?'shared':'private'))),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    TextField(controller:title,maxLength:160,autofocus:!editing,
     textCapitalization:TextCapitalization.sentences,
@@ -518,7 +552,7 @@ class _TripDetailState extends State<TripDetail>{
  Future<void> editTrip()async{
   if(trip==null)return;
   final saved=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>TripEditor(spaceId:trip!['space_id'].toString(),existing:trip)));
+   builder:(_)=>TripEditor(spaceId:trip!['space_id']?.toString()??'',existing:trip)));
   if(saved==true&&mounted)await load();
  }
  Future<void> editItem([Map<String,dynamic>? item])async{
@@ -711,13 +745,15 @@ class _TripDetailState extends State<TripDetail>{
      ],
      onOpen:editTrip,
      moreActions:[
-      if(t['archived_at']==null&&CounterSource.trip(t)!=null)
+      if((OneSpaceEnv.isProduction||t['private_space_id']==null)&&
+        t['space_id']!=null&&t['archived_at']==null&&CounterSource.trip(t)!=null)
        ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
         ()=>CounterSourceActions.open(context,t['space_id'].toString(),CounterSource.trip(t))),
       if(isFlight)ItemMenuAction(tt('Search on Google Flights'),Icons.travel_explore,
        ()=>openLink(tripGoogleFlights(t).toString())),
-      ItemMenuAction(tt('Add a travel checklist'),Icons.checklist_outlined,
-       ()=>TripPreparationSection.addChecklist(context,widget.tripId)),
+      if(OneSpaceEnv.isProduction||t['private_space_id']==null)
+        ItemMenuAction(tt('Add a travel checklist'),Icons.checklist_outlined,
+         ()=>TripPreparationSection.addChecklist(context,widget.tripId)),
       if(t['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
        ()=>createFromThis(context,kind:LinkKind.trip,id:widget.tripId,
         spaceId:t['space_id'].toString(),title:t['title'].toString(),
@@ -733,7 +769,8 @@ class _TripDetailState extends State<TripDetail>{
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsetsDirectional.fromSTEB(16,10,16,32),children:[
      Text(tt(t['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
-     LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
+     if(OneSpaceEnv.isProduction||t['private_space_id']==null)
+       LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
      summary(t),
      if((t['notes']??'').toString().isNotEmpty)
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
@@ -775,12 +812,17 @@ class _TripDetailState extends State<TripDetail>{
       Text(tt('Costs so far: ')+tt(TripRules.formatTotals(amounts)),
        style:Theme.of(context).textTheme.titleSmall),
      ],
-     TripPreparationSection(tripId:widget.tripId),
+     if(OneSpaceEnv.isProduction||t['private_space_id']==null)
+       TripPreparationSection(tripId:widget.tripId),
      const Divider(height:30),
-     Text(tt('Trip conversation'),style:Theme.of(context).textTheme.titleLarge),
+     Text(tt(!OneSpaceEnv.isProduction&&t['private_space_id']!=null
+       ?'My trip notes':'Trip conversation'),
+       style:Theme.of(context).textTheme.titleLarge),
      const SizedBox(height:8),
      if(messages.where((m)=>m['archived_at']==null).isEmpty)
-      Text(tt('Share ideas or updates for this trip.')),
+      Text(tt(!OneSpaceEnv.isProduction&&t['private_space_id']!=null
+         ?'Keep personal notes about this trip.'
+         :'Share ideas or updates for this trip.')),
      for(final m in messages.where((m)=>m['archived_at']==null))
       Card(elevation:0,child:ListTile(
        title:Text(tt(label(m['created_by']))),
@@ -790,7 +832,8 @@ class _TripDetailState extends State<TripDetail>{
          onPressed:busy?null:()=>retract(m)):null)),
      const SizedBox(height:10),
      TextField(controller:message,maxLength:3000,minLines:2,maxLines:4,
-      decoration:InputDecoration(labelText:tt('Share a thought'),
+      decoration:InputDecoration(labelText:tt(!OneSpaceEnv.isProduction&&t['private_space_id']!=null
+         ?'Add my note':'Share a thought'),
        border:const OutlineInputBorder())),
      Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(
       onPressed:busy?null:postMessage,

@@ -148,8 +148,11 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
     if (ok != true || !mounted) return;
     setState(() { pin = null; pinInfo = null; });
     try {
-      final rows = await Supabase.instance.client.from('places').select()
-        .eq('space_id', widget.spaceId).isFilter('archived_at', null);
+      final query=OneSpaceEnv.isProduction
+        ? Supabase.instance.client.from('places').select()
+          .eq('space_id',widget.spaceId)
+        : Supabase.instance.client.from('places').select();
+      final rows=await query.isFilter('archived_at',null);
       if (mounted) setState(() => places = List<Map<String, dynamic>>.from(rows));
     } catch (_) {}
   }
