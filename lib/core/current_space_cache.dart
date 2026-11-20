@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// User-scoped, short-lived in-memory membership lookup.
@@ -7,6 +8,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class CurrentSpaceCache {
   CurrentSpaceCache._();
   static final instance = CurrentSpaceCache._();
+
+  /// True only when the current space has both partners. A space with one
+  /// person can't hold shared content yet, so editors offer "Only me" only.
+  /// Null while unknown.
+  static final ValueNotifier<bool?> paired = ValueNotifier<bool?>(null);
 
   String? _userId;
   String? _spaceId;
@@ -24,6 +30,11 @@ class CurrentSpaceCache {
     // They never touch local disk and expire with the membership lookup.
     _memberNames = memberNames == null
         ? null : Map<String, String>.unmodifiable(memberNames);
+    if (spaceId == null) {
+      paired.value = false;
+    } else if (memberNames != null) {
+      paired.value = memberNames.length >= 2;
+    }
     _loadedAt = DateTime.now();
     _pending = null;
   }
@@ -45,6 +56,7 @@ class CurrentSpaceCache {
     _memberNames = null;
     _loadedAt = null;
     _pending = null;
+    paired.value = null;
   }
 
   Future<String?> get({bool refresh = false}) {
@@ -66,8 +78,17 @@ class CurrentSpaceCache {
     final generation=++_generation;
     final request = client.from('space_members')
         .select('space_id').eq('user_id', id).limit(1)
-        .then((rows) {
+        .then((rows) async {
           final spaceId = rows.isEmpty ? null : rows.first['space_id'] as String?;
+          var members = 0;
+          if (spaceId != null) {
+            final list = await client.from('space_members')
+                .select('user_id').eq('space_id', spaceId);
+            members = list.length;
+          }
+          if (_userId == id && _generation == generation) {
+            paired.value = members >= 2;
+          }
           if (_userId == id && _generation == generation) {
             if (_spaceId != spaceId) _memberNames = null;
             _spaceId = spaceId;

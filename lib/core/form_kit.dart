@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'current_space_cache.dart';
+import 'app_env.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// R57 (Ahmed, 15 Nov): one form language for every editor.
@@ -120,14 +121,27 @@ class MetaStrip extends StatelessWidget {
     final me = people?.me ?? '';
     final loc = MaterialLocalizations.of(context);
     final chips = <Widget>[
-      if (showVisibility) _MenuChip<bool>(enabled: enabled,
-        icon: value.shared ? Icons.people_outline : Icons.lock_outline,
-        label: value.shared ? tt('Shared') : tt('Only me'),
-        tooltip: tt('Who can see it'),
-        options: const {true: 'Shared', false: 'Only me'},
-        icons: const {true: Icons.people_outline, false: Icons.lock_outline},
-        selected: value.shared,
-        onSelected: (v) => onChanged(MetaRules.setShared(value, v, me))),
+      if (showVisibility) ValueListenableBuilder<bool?>(
+        valueListenable: CurrentSpaceCache.paired,
+        builder: (context, paired, _) {
+          // QA: alone in a space, new content is "Only me" and "Shared" is
+          // unavailable until a partner joins. Existing records keep theirs.
+          final soloNew = !OneSpaceEnv.isProduction && enabled && paired == false;
+          if (soloNew && value.shared) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (value.shared) onChanged(MetaRules.setShared(value, false, me));
+            });
+          }
+          return _MenuChip<bool>(enabled: enabled,
+            icon: value.shared ? Icons.people_outline : Icons.lock_outline,
+            label: value.shared ? tt('Shared') : tt('Only me'),
+            tooltip: tt('Who can see it'),
+            options: const {true: 'Shared', false: 'Only me'},
+            icons: const {true: Icons.people_outline, false: Icons.lock_outline},
+            disabled: soloNew ? const {true} : const {},
+            selected: value.shared,
+            onSelected: (v) => onChanged(MetaRules.setShared(value, v, me)));
+        }),
       if (showBelongs) _MenuChip<String>(enabled: enabled,
         icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
         label: MetaRules.belongsLabel(value.belongsTo, people),
@@ -167,8 +181,10 @@ class MetaStrip extends StatelessWidget {
 class _MenuChip<T> extends StatelessWidget {
   const _MenuChip({required this.icon, required this.label, required this.tooltip,
     required this.options, required this.selected, required this.onSelected, this.icons = const {},
-    this.enabled = true});
+    this.enabled = true, this.disabled = const {}});
   final bool enabled;
+  /// Options shown but not selectable (e.g. "Shared" before a partner joins).
+  final Set<T> disabled;
   final IconData icon;
   final String label, tooltip;
   final Map<T, String> options;
@@ -186,6 +202,7 @@ class _MenuChip<T> extends StatelessWidget {
     itemBuilder: (_) => [
       for (final e in options.entries) CheckedPopupMenuItem<T>(
         value: e.key, checked: e.key == selected,
+        enabled: !disabled.contains(e.key),
         child: Row(children: [
           if (icons[e.key] != null) ...[Icon(icons[e.key], size: 20), const SizedBox(width: 10)],
           Text(tt(e.value)),
