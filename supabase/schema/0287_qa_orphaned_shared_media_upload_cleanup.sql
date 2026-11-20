@@ -1,7 +1,5 @@
--- QA lifecycle: physical purge must include authenticated orphan uploads
--- whose metadata insert was interrupted, not only persisted attachment rows.
--- Source guard independently validates author/parent/relation before queueing.
--- Does not enable relationship deletion or deploy Storage worker.
+-- QA: queued physical media must include orphan Storage objects from
+-- uploads interrupted before metadata save. Not enabled for app users.
 CREATE OR REPLACE FUNCTION private.qa_purge_queue_source_guard()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $q$
 DECLARE uploader uuid;storage_owner text;filename_owner text;
@@ -53,32 +51,14 @@ BEGIN
  ELSE
   RAISE EXCEPTION 'Unknown relationship media bucket' USING ERRCODE='42501';
  END IF;
- -- An interrupted upload has a Storage object but no metadata row.
- -- Source ownership is independently validated against parent scope, owner
- -- and exact account UUID embedded in the path; never trust a bare prefix.
+ -- Resolve interrupted Storage uploads without attachment metadata.
+ -- Only a real Storage object whose owner UUID matches the original path,
+ -- currently in the same pair and parent namespace, may be queued.
  IF uploader IS NULL AND new.bucket_id IN(
   'onespace-note-images','onespace-memory-photos','onespace-trip-documents') THEN
   SELECT o.owner_id::uuid INTO uploader FROM storage.objects o
   WHERE o.bucket_id=new.bucket_id AND o.name=new.object_path
-    AND o.owner_id ~ '^[0-9a-f-]{36}
-  RAISE EXCEPTION 'Queued shared file author is not a current member'
-   USING ERRCODE='42501';
- END IF;
- filename_owner:=CASE WHEN new.bucket_id='onespace-share-in'
-  THEN split_part(new.object_path,'/',1) ELSE split_part(new.object_path,'/',2) END;
- IF filename_owner<>uploader::text THEN
-  RAISE EXCEPTION 'File prefix does not belong to its recorded author'
-   USING ERRCODE='42501';
- END IF;
- SELECT o.owner_id INTO storage_owner FROM storage.objects o
-  WHERE o.bucket_id=new.bucket_id AND o.name=new.object_path;
- IF storage_owner IS NOT NULL AND storage_owner<>uploader::text THEN
-  RAISE EXCEPTION 'File object was uploaded by another account'
-   USING ERRCODE='42501';
- END IF;
- new.expected_uploader_id:=uploader;
- RETURN new;
-END $q$;
+    AND o.owner_id ~ '^[0-9a-f-]{36}$'
     AND o.owner_id=split_part(o.name,'/',2)
     AND (
       (o.bucket_id='onespace-note-images'
@@ -201,27 +181,26 @@ BEGIN
  WHERE parent.space_id=p_space AND parent.private_space_id IS NULL
    AND d.storage_bucket_id='onespace-trip-documents'
  ON CONFLICT DO NOTHING;
- -- Catch Storage objects from interrupted uploads where the media file
- -- exists but the note/memory/trip attachment row was never committed.
- -- The source-guard trigger verifies uploader, parent and current pair.
+ -- Include interrupted note, memory and trip uploads that lack a
+ -- committed metadata row. Guard checks ownership, provenance and pair.
  INSERT INTO public.qa_shared_media_purge_queue(space_id,bucket_id,object_path)
  SELECT p_space,o.bucket_id,o.name FROM storage.objects o
  WHERE o.bucket_id IN(
-   'onespace-note-images','onespace-memory-photos','onespace-trip-documents')
- AND (
+  'onespace-note-images','onespace-memory-photos','onespace-trip-documents')
+  AND (
    (o.bucket_id='onespace-note-images' AND EXISTS(
       SELECT 1 FROM public.notes parent
       WHERE parent.id::text=split_part(o.name,'/',1)
-       AND parent.space_id=p_space AND parent.private_space_id IS NULL))
+      AND parent.space_id=p_space AND parent.private_space_id IS NULL))
    OR (o.bucket_id='onespace-memory-photos' AND EXISTS(
       SELECT 1 FROM public.memories parent
       WHERE parent.id::text=split_part(o.name,'/',1)
-       AND parent.space_id=p_space AND parent.private_space_id IS NULL))
+      AND parent.space_id=p_space AND parent.private_space_id IS NULL))
    OR (o.bucket_id='onespace-trip-documents' AND EXISTS(
       SELECT 1 FROM public.shared_trips parent
       WHERE parent.id::text=split_part(o.name,'/',1)
-       AND parent.space_id=p_space AND parent.private_space_id IS NULL))
- )
+      AND parent.space_id=p_space AND parent.private_space_id IS NULL))
+  )
  ON CONFLICT DO NOTHING;
  INSERT INTO public.qa_shared_media_purge_queue(space_id,bucket_id,object_path)
  SELECT p_space,o.bucket_id,o.name FROM storage.objects o
