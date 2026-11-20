@@ -25,6 +25,7 @@ class SharedTask {
     required this.createdBy,
     required this.visibility,
     this.assignedTo,
+    this.privateSpaceId,
     this.targetDate,
     this.recurrence='none',
     this.rule=const {},
@@ -35,6 +36,7 @@ class SharedTask {
   final TaskStatus status;
   final TaskVisibility visibility;
   final String createdBy;
+  final String? privateSpaceId;
   final String? assignedTo;
   final String? targetDate;
   final String recurrence;
@@ -63,6 +65,7 @@ class SharedTask {
         (v) => v.name == (row['visibility'] ?? 'shared'),
         orElse: () => TaskVisibility.shared),
       createdBy: (row['created_by'] ?? '').toString(),
+      privateSpaceId: row['private_space_id']?.toString(),
       assignedTo: row['assigned_to']?.toString(),
       targetDate: row['target_date']?.toString(),
       recurrence: (row['recurrence'] ?? 'none').toString(),
