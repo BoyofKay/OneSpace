@@ -81,7 +81,7 @@ void main() {
     expect(start, greaterThan(0));
     expect(end, greaterThan(start));
     final branch = source.substring(start, end);
-    expect(RegExp(r'_panel\\(').allMatches(branch).length, 1);
+    expect('_panel('.allMatches(branch).length, 1);
     expect(branch, contains('Your personal OneSpace is ready'));
     expect(branch, contains('joinSpaceSingleAction'));
     expect(branch, contains('joinSpaceInvitationCode'));
