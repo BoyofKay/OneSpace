@@ -197,11 +197,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     floatingActionButton:_spaceId==null&&_privateSpaceId==null?null:AddFabMenu(label:tt('Add memory'),options:[
       AddFabOption(tt('Story journal'),Icons.menu_book_outlined,()=>_edit()),
       AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
-      if(_spaceId!=null) AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
+      if(_spaceId!=null||!OneSpaceEnv.isProduction) AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
         final current=_spaceId;
-        if(current==null)return;
+        if(current==null&&OneSpaceEnv.isProduction)return;
         await Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(spaceId:current)));
+          MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(spaceId:current??'')));
         if(mounted)await _load();
       }),
     ]),

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/app_env.dart';
 import '../../core/item_menu.dart';
 import 'memory_photo_gallery.dart';
 import 'memory_photo_service.dart';
@@ -34,6 +35,8 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
  final signedTimes=<String,DateTime>{};
  StreamSubscription<List<Map<String,dynamic>>>? pageChanges,photoChanges,inviteChanges;
  bool busy=false,loading=true,shared=true,justCreated=false;
+ /// QA: an unpaired account can only make a personal scrapbook.
+ bool get canShare=>OneSpaceEnv.isProduction||widget.spaceId.isNotEmpty;
  String get me=>db.auth.currentUser?.id??'';
  bool get isOwner=>memory?['created_by']==me;
  bool get isShared=>memory?['visibility']=='shared';
@@ -46,6 +49,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
  }
  @override void initState(){
   super.initState();id=widget.memoryId;
+  if(!canShare)shared=false;
   if(id!=null){_load();}else{loading=false;}
  }
  @override void dispose(){
@@ -59,9 +63,12 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   if(current==null)return;
   if(mounted)setState((){loading=true;error=null;});
   try{
-   final row=await db.from('memories').select(
-    'id,space_id,title,created_by,visibility,memory_type,archived_at')
-    .eq('id',current).eq('space_id',widget.spaceId).single();
+   // QA: personal scrapbooks have no couple space; RLS decides visibility.
+   var query=db.from('memories').select(
+    'id,space_id,private_space_id,title,created_by,visibility,memory_type,archived_at')
+    .eq('id',current);
+   if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
+   final row=await query.single();
    if(row['memory_type']!='scrapbook')throw StateError('Not a scrapbook');
    final photos=await db.from('memory_photos')
     .select('id,object_path,caption,display_order,people_tags,place_tag,other_tags,archived_at')
@@ -107,8 +114,11 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   setState((){busy=true;error=null;});
   try{
    final key=await db.rpc('create_scrapbook',params:{
-    'p_space_id':widget.spaceId,'p_title':tt('Our scrapbook'),
-    'p_template_key':design.key,'p_visibility':shared?'shared':'private',
+    // QA: a personal scrapbook belongs to the account, never to a couple.
+    'p_space_id':(!OneSpaceEnv.isProduction&&(!shared||widget.spaceId.isEmpty))
+      ?null:widget.spaceId,
+    'p_title':shared&&canShare?tt('Our scrapbook'):tt('My scrapbook'),
+    'p_template_key':design.key,'p_visibility':shared&&canShare?'shared':'private',
     'p_memory_date':ScrapbookTemplates.compactDate(DateTime.now()),
    });
    if(!mounted)return;
@@ -358,7 +368,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   return ListView(padding:const EdgeInsets.all(18),children:[
    Text(tt('Pick a design to start. You can name it and fill it right on the page.')),
    const SizedBox(height:10),
-   Wrap(spacing:8,children:[
+   if(canShare)Wrap(spacing:8,children:[
     ChoiceChip(avatar:const Icon(Icons.people_outline,size:18),label:Text(tt('Both of us')),selected:shared,
      onSelected:(_)=>setState(()=>shared=true)),
     ChoiceChip(avatar:const Icon(Icons.lock_outline,size:18),label:Text(tt('Only me')),selected:!shared,
