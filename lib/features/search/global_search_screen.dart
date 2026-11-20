@@ -59,47 +59,14 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        throw StateError('Connect your shared space first');
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
      final pattern=GlobalSearchRules.pattern(term);
-     // Solo QA accounts still have their private space. Its notes are
-     // searchable even without a current relationship.
-     if(id==null && !OneSpaceEnv.isProduction){
-       final names=await db.from('notes').select('id,title')
-         .isFilter('archived_at',null).ilike('title',pattern)
-         .limit(GlobalSearchRules.maxPerSection);
-       final bodies=await db.from('notes').select('id,title')
-         .isFilter('archived_at',null).ilike('body',pattern)
-         .limit(GlobalSearchRules.maxPerSection);
-       if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
-       final tasks=await db.from('tasks').select('id,title')
-         .isFilter('migrated_to_list',null).ilike('title',pattern)
-         .limit(GlobalSearchRules.maxPerSection);
-       final seen=<String>{};
-       final found=<_Hit>[];
-       for(final note in [...names,...bodies]){
-         final key=note['id']?.toString()??'';
-         if(key.isNotEmpty && seen.add('note:'+key))
-           found.add(_Hit('Note',note['title']?.toString()??'',key));
-       }
-       for(final task in tasks){
-         final key=task['id']?.toString()??'';
-         if(key.isNotEmpty && seen.add('task:'+key))
-           found.add(_Hit('To-do',task['title']?.toString()??'',key));
-       }
-       final reminders=await db.from('reminders').select('id,title')
-          .isFilter('archived_at',null).ilike('title',pattern)
-          .limit(GlobalSearchRules.maxPerSection);
-       final reminderBodies=await db.from('reminders').select('id,title')
-          .isFilter('archived_at',null).ilike('details',pattern)
-          .limit(GlobalSearchRules.maxPerSection);
-       for(final reminder in [...reminders,...reminderBodies]){
-         final key=reminder['id']?.toString()??'';
-         if(key.isNotEmpty && seen.add('reminder:'+key))
-           found.add(_Hit('Reminder',reminder['title']?.toString()??'',key));
-       }
-       setState((){hits=found;busy=false;error=null;});
-       return;
-     }
-     // Remaining categories belong to a current relationship.
-     if (id==null) throw StateError('No current shared space');
+     // QA: Row Level Security returns the account's own personal records plus
+     // the current couple's shared ones, so personal-capable sections are not
+     // filtered by space. A solo QA account still searches its personal space.
+     // Couple-only sections are skipped when there is no current relationship.
+     final personal=!OneSpaceEnv.isProduction;
+     final couple=id??'';
+     dynamic own(dynamic request)=>personal?request:request.eq('space_id',couple);
+     const none=<Map<String,dynamic>>[];
      var failedCategories=0;
      Future<dynamic> guarded(String kind,dynamic request) async {
        // A category filter avoids starting unrelated network searches.
@@ -115,74 +82,77 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        }
      }
      final qaNoteTitles = OneSpaceEnv.isProduction
-       ? db.from('notes').select('id,title,updated_at').eq('space_id',id)
+       ? db.from('notes').select('id,title,updated_at').eq('space_id',couple)
        : db.from('notes').select('id,title,updated_at');
      final qaNoteBodies = OneSpaceEnv.isProduction
-       ? db.from('notes').select('id,title').eq('space_id',id)
+       ? db.from('notes').select('id,title').eq('space_id',couple)
        : db.from('notes').select('id,title');
      final groups=await Future.wait([
-       guarded('Activity',db.from('activities').select('id,title,updated_at').eq('space_id',id)
+       guarded('Activity',own(db.from('activities').select('id,title,updated_at'))
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Calendar',db.from('space_events').select('id,title,event_date').eq('space_id',id)
+       guarded('Calendar',own(db.from('space_events').select('id,title,event_date'))
          .isFilter('archived_at',null).ilike('title',pattern).order('event_date').limit(GlobalSearchRules.maxPerSection)),
        guarded('To-do',(OneSpaceEnv.isProduction
-          ? db.from('tasks').select('id,title,created_at').eq('space_id',id)
+          ? db.from('tasks').select('id,title,created_at').eq('space_id',couple)
           : db.from('tasks').select('id,title,created_at'))
          .isFilter('migrated_to_list',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Note',qaNoteTitles
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Letter',db.from('couple_letters').select('id,title,created_at').eq('space_id',id)
+       guarded('Letter',id==null?none:db.from('couple_letters').select('id,title,created_at').eq('space_id',couple)
          .eq('status','sent').ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Tag',db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
-         .eq('kind','tag').eq('activities.space_id',id)
+       guarded('Tag',(personal
+          ? db.from('activity_components').select('id,activity_id,label,activities!inner(archived_at)')
+          : db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
+             .eq('activities.space_id',couple))
+         .eq('kind','tag')
          .isFilter('archived_at',null).isFilter('activities.archived_at',null)
          .ilike('label',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Trip',db.from('shared_trips').select('id,title').eq('space_id',id)
+       guarded('Trip',id==null?none:db.from('shared_trips').select('id,title').eq('space_id',couple)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Experience',db.from('shared_experiences').select('id,title').eq('space_id',id)
+       guarded('Experience',id==null?none:db.from('shared_experiences').select('id,title').eq('space_id',couple)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Trip item',db.from('trip_items').select('id,trip_id,title')
+       guarded('Trip item',id==null?none:db.from('trip_items').select('id,trip_id,title')
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Travel document',db.from('trip_attachments').select('id,trip_id,title')
+       guarded('Travel document',id==null?none:db.from('trip_attachments').select('id,trip_id,title')
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Occasion',db.from('occasion_plans').select('id,title').eq('space_id',id)
+       guarded('Occasion',id==null?none:db.from('occasion_plans').select('id,title').eq('space_id',couple)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Reminder',(OneSpaceEnv.isProduction
-          ? db.from('reminders').select('id,title').eq('space_id',id)
+          ? db.from('reminders').select('id,title').eq('space_id',couple)
           : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',own(db.from('memories').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // Content search uses independent parameterized PostgREST ilike calls,
        // never a string-built .or() filter that could alter query grammar.
-       guarded('Activity',db.from('activities').select('id,title').eq('space_id',id)
+       guarded('Activity',own(db.from('activities').select('id,title'))
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Calendar',db.from('space_events').select('id,title').eq('space_id',id)
+       guarded('Calendar',own(db.from('space_events').select('id,title'))
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Experience',db.from('shared_experiences').select('id,title').eq('space_id',id)
+       guarded('Experience',id==null?none:db.from('shared_experiences').select('id,title').eq('space_id',couple)
          .isFilter('archived_at',null).ilike('description',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Note',qaNoteBodies
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',own(db.from('memories').select('id,title'))
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Reminder',(OneSpaceEnv.isProduction
-          ? db.from('reminders').select('id,title').eq('space_id',id)
+          ? db.from('reminders').select('id,title').eq('space_id',couple)
           : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // R54: people and the share-in tray are searchable too.
-       guarded('Contact',db.from('saved_contacts').select('id,title:label').eq('space_id',id)
+       guarded('Contact',id==null?none:db.from('saved_contacts').select('id,title:label').eq('space_id',couple)
          .isFilter('archived_at',null).ilike('label',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Item to sort',db.from('items_to_sort').select('id,title').eq('space_id',id)
+       guarded('Item to sort',id==null?none:db.from('items_to_sort').select('id,title').eq('space_id',couple)
          .isFilter('archived_at',null).isFilter('sorted_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
      ]);
