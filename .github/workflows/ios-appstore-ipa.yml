@@ -1,0 +1,211 @@
+name: Build OneSpace iOS signed App Store IPA
+
+# This is intentionally manual: generating an IPA must not automatically
+# upload or release anything to Apple or change the Android release.
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: 'App Store version (for example 0.1.0)'
+        required: true
+        default: '0.1.0'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onespace-ios-signed-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  production-ipa:
+    name: Signed iOS production IPA
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require App Store signing and production Firebase credentials
+        shell: bash
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CERT: ${{ secrets.IOS_APPSTORE_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_APPSTORE_CERT_P12_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_APPSTORE_PROFILE_BASE64 }}
+          FIREBASE_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$APP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::app_version must look like 0.1.0"
+            exit 1
+          fi
+          for required in TEAM_ID CERT CERT_PASSWORD PROFILE FIREBASE_PLIST; do
+            if [ -z "${!required}" ]; then
+              echo "::error::Missing credential $required. See docs/IOS_APPSTORE_IPA.md"
+              exit 1
+            fi
+          done
+          if [[ ! "$TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "::error::APPLE_TEAM_ID must be a 10-character Apple team identifier"
+            exit 1
+          fi
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+
+      - name: Configure production Firebase iOS app
+        shell: bash
+        env:
+          FIREBASE_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$FIREBASE_PLIST" | base64 -D > ios/Runner/GoogleService-Info.plist
+          /usr/bin/plutil -lint ios/Runner/GoogleService-Info.plist
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' ios/Runner/GoogleService-Info.plist)"
+          if [ "$bundle_id" != "com.onespace.onespace" ]; then
+            echo "::error::Production Firebase plist bundle ID does not match com.onespace.onespace"
+            exit 1
+          fi
+
+      - name: Import Apple Distribution certificate and App Store provisioning profile
+        shell: bash
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          P12_BASE64: ${{ secrets.IOS_APPSTORE_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_APPSTORE_CERT_P12_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_APPSTORE_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$P12_BASE64" | base64 -D > "$RUNNER_TEMP/onespace-distribution.p12"
+          printf '%s' "$PROFILE_BASE64" | base64 -D > "$RUNNER_TEMP/onespace.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/onespace.mobileprovision" > "$RUNNER_TEMP/onespace-profile.plist"
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/onespace-profile.plist")"
+          profile_team="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$RUNNER_TEMP/onespace-profile.plist")"
+          profile_app="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/onespace-profile.plist")"
+          push_env="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$RUNNER_TEMP/onespace-profile.plist" 2>/dev/null || true)"
+          if [[ ! "$profile_uuid" =~ ^[0-9A-Fa-f-]{36}$ ]] ||
+             [ "$profile_team" != "$TEAM_ID" ] ||
+             [ "$profile_app" != "$TEAM_ID.com.onespace.onespace" ] ||
+             [ "$push_env" != "production" ]; then
+            echo "::error::App Store profile must match Apple team, OneSpace production App ID, and production push entitlement"
+            exit 1
+          fi
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/onespace.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
+
+          keychain_path="$RUNNER_TEMP/onespace-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 7200 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          security import "$RUNNER_TEMP/onespace-distribution.p12" -k "$keychain_path" -P "$P12_PASSWORD" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path"
+          if ! security find-identity -v -p codesigning "$keychain_path" | grep -q 'Apple Distribution'; then
+            echo "::error::The P12 must contain an Apple Distribution identity and its private key"
+            exit 1
+          fi
+          echo "ONESP_PROFILE_UUID=$profile_uuid" >> "$GITHUB_ENV"
+          echo "ONESP_TEAM_ID=$TEAM_ID" >> "$GITHUB_ENV"
+
+      - name: Configure production signing in temporary checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("ios/Runner.xcodeproj/project.pbxproj")
+          source = path.read_text()
+          marker = "PRODUCT_BUNDLE_IDENTIFIER = com.onespace.onespace;"
+          if source.count(marker) != 3:
+              raise SystemExit("Unexpected Runner signing configuration; refusing to patch.")
+          team = os.environ["ONESP_TEAM_ID"]
+          profile = os.environ["ONESP_PROFILE_UUID"]
+          signing = (
+              marker
+              + f"\n\t\t\t\tDEVELOPMENT_TEAM = {team};"
+              + "\n\t\t\t\tCODE_SIGN_STYLE = Manual;"
+              + '\n\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";'
+              + f'\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{profile}";'
+          )
+          path.write_text(source.replace(marker, signing))
+          PY
+          /usr/libexec/PlistBuddy -c 'Set :aps-environment production' ios/Runner/Runner.entitlements
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>teamID</key><string>$ONESP_TEAM_ID</string>
+            <key>provisioningProfiles</key>
+            <dict><key>com.onespace.onespace</key><string>$ONESP_PROFILE_UUID</string></dict>
+          </dict>
+          </plist>
+          EOF
+          /usr/bin/plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Resolve locked Flutter dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build signed production IPA (do not upload to Apple)
+        shell: bash
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          set -euo pipefail
+          flutter build ipa --release \
+            --build-name="$APP_VERSION" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --dart-define=ONESPACE_ENV=production \
+            --dart-define=ONESPACE_VERSION="ios-production-$GITHUB_RUN_NUMBER" \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Verify signed IPA and production bundle ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(build/ios/ipa/*.ipa)
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one IPA"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/ipa-inspection"
+          unzip -qq "${files[0]}" -d "$RUNNER_TEMP/ipa-inspection"
+          app="$RUNNER_TEMP/ipa-inspection/Payload/Runner.app"
+          codesign --verify --deep --strict "$app"
+          bundle="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
+          if [ "$bundle" != "com.onespace.onespace" ]; then
+            echo "::error::The generated IPA has the wrong production bundle identifier"
+            exit 1
+          fi
+
+      - name: Save uploadable IPA as private workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneSpace-iOS-AppStore-signed-${{ github.run_number }}
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          security delete-keychain "$RUNNER_TEMP/onespace-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/onespace-distribution.p12" "$RUNNER_TEMP/onespace.mobileprovision" "$RUNNER_TEMP/onespace-profile.plist"
