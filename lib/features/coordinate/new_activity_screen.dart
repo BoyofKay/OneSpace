@@ -1,4 +1,5 @@
 import '../../core/form_kit.dart';
+import '../../core/app_env.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -57,8 +58,11 @@ class NewActivityDraft {
   /// A draft becomes a record only once it has a title (no half-empty records).
   bool get canSave => title.trim().isNotEmpty;
 
-  Map<String, dynamic> toInsert(String spaceId) => {
-    'space_id': spaceId,
+  /// QA private records belong to the account, never the current couple.
+  /// Production continues using its existing schema until its own cutover.
+  Map<String, dynamic> toInsert(String spaceId, {String? ownerId}) => {
+    if (ownerId != null && !shared) 'private_space_id': ownerId
+    else 'space_id': spaceId,
     'title': title.trim(),
     'body': details.trim(),
     'visibility': shared ? 'shared' : 'private',
@@ -94,7 +98,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
   late final title = TextEditingController(text: widget.initialTitle);
   late final details = TextEditingController(text: widget.initialDetails);
   ActivityPurpose? purpose;
-  bool shared = true;
+  late bool shared = OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty;
   DateTime? dueOn;
   String? forUserId;
   SpacePeople? people;
@@ -116,10 +120,16 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
 
   Future<void> _save() async {
     if (!draft.canSave || saving) return;
+    if (!OneSpaceEnv.isProduction && shared && widget.spaceId.isEmpty) {
+      setState(() => error = 'Join a partner to create a shared Activity.');
+      return;
+    }
     setState(() { saving = true; error = null; });
     try {
       final created = await db.from('activities')
-          .insert(draft.toInsert(widget.spaceId)).select('id').single();
+          .insert(draft.toInsert(widget.spaceId,
+            ownerId: OneSpaceEnv.isProduction ? null : db.auth.currentUser!.id))
+          .select('id').single();
       final sections = purpose?.sectionsFor(created['id'].toString()) ?? const [];
       if (sections.isNotEmpty) {
         try { await db.from('activity_components').insert(sections); }
@@ -141,8 +151,13 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
    isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,saveLabel:'Next',
    listenTo:[title,details],saving:saving,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:shared,belongsTo:forUserId,date:dueOn),people:people,
-    showBelongs:people!=null,dateLabel:tt('Due date'),
-    enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;forUserId=v.belongsTo;})),
+    showBelongs:shared&&people!=null,dateLabel:tt('Due date'),
+    enabled:!saving,onChanged:(v)=>setState((){
+      shared = !OneSpaceEnv.isProduction && widget.spaceId.isEmpty
+        ? false : v.shared;
+      dueOn=v.date;
+      forUserId=shared?v.belongsTo:null;
+    })),
    body: SafeArea(child: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 24),
         children: [
