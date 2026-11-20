@@ -130,7 +130,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if(existing?['memory_type']=='scrapbook'){
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
-         spaceId:id,memoryId:existing!['id'].toString())));
+         spaceId:id??'',memoryId:existing!['id'].toString())));
       if(mounted)await _load();
       return;
     }
