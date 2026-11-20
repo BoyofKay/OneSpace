@@ -208,4 +208,5 @@
 
 ## QA 0222 — privileged trip checklist visibility safeguard
 - QA live migration 0222 applied and verified; merged PR #108. `public.create_trip_preparation_checklist` had two existing-template fast paths returning a task ID without checking the task's separate private/shared visibility. Both now require same space and either shared visibility or current user ownership; a conflicting inaccessible private template fails with `42501` rather than revealing its ID.
-- SQL function-definition verification passed. Full synthetic two-account invoke/denial test and signed Android acceptance remain open, so security sign-off is **not** claimed. Production unchanged and all QA records retained.
+- **Rollback-only QA two-account regression PASSED** against the live protected RPC: partner B was denied access to an A-private checklist on a shared trip (SQLSTATE 42501), and owner A could retrieve the existing checklist ID. Transaction rolled back; QA still had zero trips/tasks afterward. Signed Android acceptance remains pending; this is not overall API sign-off.
+- Matching Production migration 0223 deployed and verified; PR #109 merged. Both environments now enforce the same task-level visibility check. Production records preserved.
