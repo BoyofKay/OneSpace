@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'activity_image_rules.dart';
 import 'activity_media_scope.dart';
 import 'package:onespace/l10n/phrases.dart';
 
