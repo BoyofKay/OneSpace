@@ -33,8 +33,16 @@ BEGIN
   AND cancelled_at IS NULL AND completed_at IS NULL) THEN
   RAISE EXCEPTION 'Cancel did not restore account';END IF;
  second_due:=public.qa_request_account_deletion();
- IF second_due<=first_due THEN
-  RAISE EXCEPTION 'Fresh request after cancellation did not get new seven-day period';END IF;
+ -- PostgreSQL now() is transaction-stable. In this single rollback
+ -- transaction the recomputed 7-day date equals the first date by design.
+ -- Check that the request has actually been REACTIVATED, not just returned.
+ IF second_due IS DISTINCT FROM now()+interval '7 days' OR NOT EXISTS(
+  SELECT 1 FROM public.account_deletion_requests
+  WHERE user_id=current_setting('qa.user')::uuid
+   AND cancelled_at IS NULL AND completed_at IS NULL
+   AND processing_at IS NULL AND purge_after=second_due
+ ) THEN
+  RAISE EXCEPTION 'Cancelled account was not re-scheduled';END IF;
 END $open$;
 RESET ROLE;
 ROLLBACK;
