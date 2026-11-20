@@ -67,7 +67,6 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   }
 
   Future<void> load() async {
-    unawaited(_loadCountdowns());
     try {
       final legacy = await CurrentSpaceCache.instance.get();
       final scopes = await AccountContentScope.load(db, legacySpaceId: legacy);
