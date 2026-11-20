@@ -2,7 +2,9 @@
 // existing strict private task/trip restore *rehearsal*. This NEVER writes.
 import {decryptVaultSubsetFile} from "./qa_vault_subset_osa.mjs";
 import {planPrivateRestoreDryRun} from "./qa_private_restore_dry_run.mjs";
+import {planReviewedPrivateRoot} from "./qa_osa_private_roots_plan.mjs";
 
+const STANDALONE=new Set(["notes","goals","daily_checkins"]);
 const SUPPORTED={
   tasks:["task_checklist_items","task_checklist_checks"],
   shared_trips:["trip_flight_options","trip_items","trip_messages"]
@@ -34,7 +36,7 @@ export async function rehearsePrivateRestoreFromOsa({
       newSpaceId.toLowerCase()===sourceSpaceId.toLowerCase())
     fail("target must be a distinct valid relationship space");
 
-  const roots=new Map(),children=new Map(),unplanned=new Map();
+  const roots=new Map(),standaloneRoots=[],children=new Map(),unplanned=new Map();
   for(const rec of checked.manifest.records){
     let snapshot;
     try{snapshot=JSON.parse(rec.snapshot_json);}
@@ -43,6 +45,10 @@ export async function rehearsePrivateRestoreFromOsa({
     if(rec.kind==="root"&&Object.hasOwn(SUPPORTED,rec.source_table)){
       const id=rec.source_id.toLowerCase();
       roots.set(rec.source_table+"|"+id,rec);
+      continue;
+    }
+    if(rec.kind==="root"&&STANDALONE.has(rec.source_table)){
+      standaloneRoots.push(rec);
       continue;
     }
     if(rec.kind==="child"&&Object.hasOwn(PARENT,rec.source_table)){
@@ -55,7 +61,8 @@ export async function rehearsePrivateRestoreFromOsa({
     }
     unplanned.set(rec.source_table,(unplanned.get(rec.source_table)??0)+1);
   }
-  if(roots.size>500)fail("rehearsal root bound exceeded");
+  if(roots.size+standaloneRoots.length>500)
+    fail("rehearsal root bound exceeded");
   const plans=[];
   let mapped=0;
   for(const [key,root] of roots){
@@ -97,6 +104,18 @@ export async function rehearsePrivateRestoreFromOsa({
     mapped+=plan.id_mappings.length;
     plans.push(plan);
   }
+  // Reviewed independent private roots are planned from the very same
+  // already-decrypted, owner/space-bound, SHA-verified .osa source bytes.
+  // Notes with arbitrary embeds or unknown rich-text fields fail closed.
+  for(const rec of standaloneRoots){
+    const plan=planReviewedPrivateRoot(rec,{
+      ownerId,sourceSpaceId,newSpaceId
+    });
+    if(plan.can_write!==false||plan.can_restore!==false
+       ||plan.safe_to_separate!==false)fail("unsafe root authority");
+    mapped+=plan.id_mappings.length;
+    plans.push(plan);
+  }
   // Every eligible child must be accounted for; do not silently leave a child.
   const plannedChildren=plans.reduce(
     (count,plan)=>count+plan.id_mappings.length-1,0);
@@ -120,6 +139,6 @@ export async function rehearsePrivateRestoreFromOsa({
     is_verified_archive:false,can_write:false,can_restore:false,
     safe_to_archive:false,safe_to_separate:false,
     media_included:false,documents_included:false,
-    warning:"QA read-only rehearsal. Only reviewed private task/trip subtrees are mapped. No trusted archive issuance or database writes. Other private families and all original-pair shared reference content remain un-restored; media and uploaded documents are excluded."
+    warning:"QA read-only rehearsal. Reviewed private task/trip subtrees plus owner-private notes (root-only), goals and daily check-ins are mapped. Note references, other private families and original-pair shared history remain un-restored. No trusted issuance or database writes; media and uploaded documents excluded."
   };
 }
