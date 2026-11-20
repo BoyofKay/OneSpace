@@ -1,0 +1,75 @@
+name: QA Android installed-app startup emulator (no release)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/main.dart'
+      - 'lib/core/android_startup_gate.dart'
+      - 'android/app/src/main/res/**'
+      - 'android/app/src/main/kotlin/com/onespace/onespace/MainActivity.kt'
+      - '.github/workflows/qa-android-startup-emulator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Resolve exact Flutter dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Build fresh QA-only Android debug APK for emulator
+        run: flutter build apk --debug --flavor qa --dart-define=ONESPACE_ENV=qa
+      - name: Boot emulator and verify installed app produces visible UI
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -euo pipefail
+            adb install -r build/app/outputs/flutter-apk/app-qa-debug.apk
+            adb shell logcat -c
+            adb shell am start -W -n onespace.qa/com.onespace.onespace.MainActivity
+            sleep 18
+            adb exec-out screencap -p > /tmp/onespace-qa-startup.png
+            timeout 30s adb shell uiautomator dump /sdcard/onespace-startup.xml
+            adb shell cat /sdcard/onespace-startup.xml > /tmp/onespace-startup.xml
+            adb logcat -d -v time > /tmp/onespace-qa-startup-logcat.txt
+            test -s /tmp/onespace-qa-startup.png
+            if ! grep -E 'OneSpace|Sign in|Opening your secure|Create account|Email' /tmp/onespace-startup.xml >/dev/null; then
+              echo "::error::Installed QA app did not expose the expected visible startup/sign-in UI on the Android emulator."
+              tail -n 80 /tmp/onespace-qa-startup-logcat.txt || true
+              exit 1
+            fi
+            if grep -E 'FATAL EXCEPTION|Process: onespace.qa.*Exception' /tmp/onespace-qa-startup-logcat.txt >/dev/null; then
+              echo "::error::Android runtime log contains a fatal exception for installed QA app."
+              exit 1
+            fi
+            echo "Installed QA app displayed visible startup or sign-in UI (emulator only)."
+      - name: Preserve installed-app startup screenshot and log on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-android-startup-emulator-evidence
+          path: |
+            /tmp/onespace-qa-startup.png
+            /tmp/onespace-startup.xml
+            /tmp/onespace-qa-startup-logcat.txt
+          if-no-files-found: warn
+          retention-days: 7
