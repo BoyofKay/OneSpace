@@ -170,12 +170,15 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       bool done = true;
       switch (d) {
         case ShareDestination.newActivity:
-          final created = await db.from('activities').insert({
-            'space_id': spaceId, 'title': name, 'body': _bodyWithLink,
-            'visibility': visibility,
+          final personal=!OneSpaceEnv.isProduction && onlyMe;
+          final created=await db.from('activities').insert({
+            if(personal) 'private_space_id':db.auth.currentUser!.id
+            else 'space_id':spaceId,
+            'title':name,'body':_bodyWithLink,
+            'visibility':visibility,
           }).select('id').single();
           final id = created['id'].toString();
-          if (link.isNotEmpty) {
+          if (link.isNotEmpty && !personal) {
             try {
               await db.from('activity_components').insert({
                 'activity_id': id, 'kind': 'link', 'label': name,
