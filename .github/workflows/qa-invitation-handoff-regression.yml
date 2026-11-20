@@ -1,0 +1,31 @@
+name: QA invitation secure-store regression (no APK)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'test/qa_invitation_handoff_contract_test.dart'
+      - 'lib/features/spaces/invitation_link_inbox.dart'
+      - '.github/workflows/qa-invitation-handoff-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'test/qa_invitation_handoff_contract_test.dart'
+      - 'lib/features/spaces/invitation_link_inbox.dart'
+      - '.github/workflows/qa-invitation-handoff-regression.yml'
+permissions:
+  contents: read
+jobs:
+  invitation-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Resolve exact committed dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Verify invitation recovery without platform-keystore hang
+        run: flutter test test/qa_invitation_handoff_contract_test.dart --reporter expanded
