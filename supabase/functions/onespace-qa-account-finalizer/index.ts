@@ -1,0 +1,60 @@
+// QA-ONLY: STAGED UNSCHEDULED Auth finalizer; never deployed or activated.
+// Must require BOTH QA DB gate and explicit second server-only activation.
+// Called only by trusted scheduler after 7-day cancellation window, all
+// relationships erased, and every Storage object fully removed via API.
+import {createClient} from "npm:@supabase/supabase-js@2.58.0";
+import {isAccountReadyForAuthDeletion,validAccountId}
+  from "../_shared/qa_account_finalizer_contract.mjs";
+
+const env=(k:string)=>(Deno.env.get(k)??"").trim();
+const respond=(status:number,body:Record<string,unknown>)=>
+ new Response(JSON.stringify(body),{status,headers:{
+  "content-type":"application/json","cache-control":"no-store",
+  "x-content-type-options":"nosniff",
+ }});
+
+Deno.serve(async(req:Request)=>{
+ if(req.method!=="POST")return respond(405,{error:"POST required"});
+ if(env("ONESPACE_QA_ALLOW_AUTH_FINALIZATION")!=="ENABLED_AFTER_ACCEPTANCE")
+  return respond(503,{error:"QA Auth finalizer remains disabled"});
+ const secret=env("ONESPACE_QA_AUTH_FINALIZER_SECRET");
+ if(!secret)return respond(503,{error:"QA finalizer is not configured"});
+ if(req.headers.get("x-onespace-qa-auth-finalizer-secret")!==secret)
+  return respond(401,{error:"Unauthorized"});
+ let raw:unknown;
+ try{raw=await req.json();}catch{return respond(400,{error:"Invalid request"});}
+ const id=(raw&&typeof raw==="object"&&"user_id" in raw)
+  ? (raw as {user_id:unknown}).user_id:null;
+ if(!validAccountId(id))return respond(400,{error:"Valid account UUID required"});
+ const url=env("SUPABASE_URL"),key=env("SUPABASE_SERVICE_ROLE_KEY");
+ let target:URL;
+ try{target=new URL(url);}catch{return respond(503,{error:"QA backend unavailable"});}
+ if(target.protocol!=="https:"||
+   target.hostname!=="ugwrpeduzyzrujkizqfo.supabase.co"||!key)
+  return respond(503,{error:"QA-only project safety check failed"});
+
+ const db=createClient(url,key,{
+  auth:{persistSession:false,autoRefreshToken:false},
+ });
+ let readiness:unknown;
+ try{
+  const {data,error}=await db.rpc("qa_account_final_deletion_readiness",{
+   p_user:id,
+  });
+  if(error)throw Error("Readiness RPC refused");
+  readiness=data;
+ }catch{return respond(503,{error:"Account finalizer backend gate closed"});}
+ if(!isAccountReadyForAuthDeletion(readiness))
+  return respond(409,{error:"Account cannot be removed until all dependencies and media are gone"});
+
+ try{
+  // Supabase Auth Admin API: delete user AND cascade account-private namespace.
+  // The DB's NO ACTION owner/child constraints must already pass the verified
+  // synthetic SQL deletion. Do not use this API before full acceptance tests.
+  const {error}=await db.auth.admin.deleteUser(id as string);
+  if(error)throw Error("Auth Admin deletion refused");
+ }catch{
+  return respond(503,{error:"Auth deletion failed; account requires review"});
+ }
+ return respond(200,{status:"deleted",environment:"qa_only"});
+});
