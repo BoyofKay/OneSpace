@@ -49,7 +49,7 @@ begin
     and not exists (
      select 1 from public.qa_archive_job_progress pr
      where pr.lifecycle_job_id=x.id)
-  order by x.requested_at for update skip locked limit p_limit
+  order by x.requested_at limit p_limit for update skip locked
  loop
   processed:=processed+1;
   for member in
