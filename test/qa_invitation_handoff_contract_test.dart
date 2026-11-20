@@ -73,6 +73,24 @@ void main() {
     expect(source, contains('joiningAddressedInvite = true'));
   });
 
+  test('Unpaired account has one personal onboarding panel, not three setup cards', () {
+    final source = File('lib/features/spaces/shared_space_screen.dart')
+        .readAsStringSync();
+    final start = source.indexOf('else if (spaceId == null) ...[');
+    final end = source.indexOf('if (memberCount < 2) ...[', start);
+    expect(start, greaterThan(0));
+    expect(end, greaterThan(start));
+    final branch = source.substring(start, end);
+    expect(RegExp(r'_panel\\(').allMatches(branch).length, 1);
+    expect(branch, contains('Your personal OneSpace is ready'));
+    expect(branch, contains('joinSpaceSingleAction'));
+    expect(branch, contains('joinSpaceInvitationCode'));
+    expect(branch, contains('Scan invitation QR code'));
+    expect(branch, contains('Invite my partner'));
+    expect(branch, isNot(contains("tr(context, 'createSpaceTitle')")));
+    expect(branch, isNot(contains("tr(context, 'joinPartner')")));
+  });
+
   testWidgets('Verified recipient invitation survives a lost browser deep link',
       (tester) async {
     // A widget test has no Android/iOS keystore. Without this test double,
