@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/performance_timings.dart';
 import '../../l10n/onespace_strings.dart';
@@ -35,6 +36,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   final _search = TextEditingController();
   List<Map<String,dynamic>> _photoMetadata = const [];
   String? _spaceId;
+  bool _personalReady = false;
   Stream<List<Map<String, dynamic>>>? _stream;
   StreamSubscription<List<Map<String,dynamic>>>? _grants;
   bool _loading = true;
@@ -60,23 +62,37 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     super.dispose();
   }
 
-  Stream<List<Map<String, dynamic>>> _createStream(String id) =>
-      _client.from('memories')
-          .stream(primaryKey: ['id'])
-          .eq('space_id', id)
-          .order('memory_date', ascending: false);
+  Stream<List<Map<String, dynamic>>> _createStream(String? id) =>
+      OneSpaceEnv.isProduction
+        ? _client.from('memories').stream(primaryKey: ['id'])
+            .eq('space_id', id!).order('memory_date', ascending: false)
+        : _client.from('memories').stream(primaryKey: ['id'])
+            .order('memory_date', ascending: false);
 
   Future<void> _load() async {
     final timer = Stopwatch()..start();
-    if (mounted) setState(() { _loading = _spaceId == null; _error = null; });
+    if (mounted) setState(() {
+      _loading = true; _error = null;
+      _stream = null; _personalReady = false;
+      _photoMetadata = const []; // Clear previous pair before reloading.
+    });
     try {
-      final id = await CurrentSpaceCache.instance.get();
+      var id = await CurrentSpaceCache.instance.get();
+      bool hasPrivateScope = false;
+      if (!OneSpaceEnv.isProduction) {
+        final scopes = await _client.rpc('my_storage_scopes');
+        if (scopes is! Map ||
+            scopes['private_space_id']?.toString() != _client.auth.currentUser?.id) {
+          throw StateError('Personal Memory scope unavailable');
+        }
+        id = scopes['shared_space_id']?.toString();
+        hasPrivateScope = true;
+      }
       if (!mounted) return;
       _grants?.cancel();
       setState(() {
-        _spaceId = id;
-        if(id==null)_photoMetadata=const [];
-        _stream = id == null ? null : _createStream(id);
+        _spaceId = id; _personalReady = hasPrivateScope;
+        _stream = id == null && OneSpaceEnv.isProduction ? null : _createStream(id);
         _loading = false;
       });
       if (id != null) {
@@ -94,11 +110,12 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           },
         );
       }
-      if(id!=null&&widget.initialMemoryId!=null&&!_openedDeepLink){
+      if((id!=null||hasPrivateScope)&&widget.initialMemoryId!=null&&!_openedDeepLink){
        _openedDeepLink=true;
        try{
-        final rows=await _client.from('memories').select()
-         .eq('space_id',id).eq('id',widget.initialMemoryId!).limit(1);
+        var lookup = _client.from('memories').select();
+         if (OneSpaceEnv.isProduction) lookup = lookup.eq('space_id',id!);
+         final rows = await lookup.eq('id',widget.initialMemoryId!).limit(1);
         if(mounted&&rows.isNotEmpty){
          WidgetsBinding.instance.addPostFrameCallback((_){
           if(mounted)_view(rows.first);
@@ -116,7 +133,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
   Future<void> _edit({Map<String,dynamic>? existing,bool selfie=false}) async {
     final id = _spaceId;
-    if (id == null) return;
+    if (id == null && !_personalReady) return;
     if(existing?['memory_type']=='scrapbook'){
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
@@ -126,7 +143,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     }
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(builder: (_) =>
-        MemoryEditorScreen(spaceId: id, existing: existing,
+        MemoryEditorScreen(spaceId: id ?? '', existing: existing,
          initialType:selfie?'daily_selfie':null)),
     );
     if (mounted && changed == true) await _load();
@@ -136,11 +153,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   /// is a button there or in ⋮.
   Future<void> _view(Map<String,dynamic> memory)async{
     final id=_spaceId;
-    if(id==null)return;
+    if(id==null&&!_personalReady)return;
     final type=memory['memory_type']?.toString();
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>type=='scrapbook'
-      ?ScrapbookViewerScreen(spaceId:id,memoryId:memory['id'].toString())
-      :MemoryViewScreen(spaceId:id,memoryId:memory['id'].toString(),
+      ?ScrapbookViewerScreen(spaceId:id ?? '',memoryId:memory['id'].toString())
+      :MemoryViewScreen(spaceId:id ?? '',memoryId:memory['id'].toString(),
         onEdit:(m)=>_edit(existing:m))));
     if(mounted)await _load();
   }
@@ -184,10 +201,12 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
     ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
-    floatingActionButton:_spaceId==null?null:AddFabMenu(label:tt('Add memory'),options:[
+    floatingActionButton:_spaceId==null&&!_personalReady?null:AddFabMenu(label:tt('Add memory'),options:[
       AddFabOption(tt('Story journal'),Icons.menu_book_outlined,()=>_edit()),
-      AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
-      AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
+      if (_spaceId != null)
+        AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
+      if (_spaceId != null)
+        AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
         final current=_spaceId;
         if(current==null)return;
         await Navigator.of(context).push<void>(
@@ -216,7 +235,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           if (_loading)
             const Padding(padding: EdgeInsets.all(38),
               child: Center(child: CircularProgressIndicator()))
-          else if (_spaceId == null)
+          else if (_spaceId == null && !_personalReady)
             Text(tr(context, 'noSpace'))
           else ...[
             const SizedBox(height: 14),
@@ -286,7 +305,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           removed: memory['archived_at'] != null, onChanged: _load),
                         onTap: () => _view(memory),
                       ),
-                      if (ownerShare) Align(
+                      if (ownerShare && (OneSpaceEnv.isProduction ||
+                          memory['private_space_id'] == null)) Align(
                         alignment: AlignmentDirectional.centerEnd,
                         child: PrivateShareButton(
                           objectType: 'memory',
@@ -365,7 +385,9 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     _place = TextEditingController(text: widget.existing?['place']?.toString() ?? widget.prefill?['place'] ?? '');
     _date = DateTime.tryParse(widget.existing?['memory_date'] as String? ?? widget.prefill?['memory_date'] ?? '')
         ?? DateTime.now();
-    _visibility = widget.existing?['visibility'] as String? ?? 'shared';
+    _visibility = widget.existing?['visibility'] as String? ??
+        (!OneSpaceEnv.isProduction && widget.spaceId.isEmpty
+          ? 'private' : 'shared');
     _pinned = widget.existing?['pinned'] == true;
     _memoryType=(widget.existing?['memory_type']??widget.initialType??'story').toString();
     _record=widget.existing;
@@ -407,7 +429,12 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
       final row = await _client.from('memories').insert({
         'title': title, 'body': _body.text.trim(), 'place': _place.text.trim(), 'memory_date': CalendarRules.sqlDate(_date),
         'pinned': _pinned, 'memory_type': _memoryType, 'photo_layout': _photoLayout,
-        'space_id': widget.spaceId, 'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
+        if (!OneSpaceEnv.isProduction && _visibility == 'private')
+          'private_space_id': _client.auth.currentUser!.id
+        else if (!OneSpaceEnv.isProduction && _visibility == 'private')
+             'private_space_id': _client.auth.currentUser!.id
+           else 'space_id': widget.spaceId,
+           'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
       }).select().single();
       if (mounted) setState(() => _record = row);
       widget.onSaved?.call(row['id'].toString());
@@ -470,7 +497,10 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body,_place],saving:_busy,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),showBelongs:false,showDate:false,
-     enabled:!_editing&&!_busy,onChanged:(v)=>setState(()=>_visibility=v.shared?'shared':'private')),
+     enabled:!_editing&&!_busy,onChanged:(v)=>setState((){
+       _visibility = !OneSpaceEnv.isProduction && widget.spaceId.isEmpty
+         ? 'private' : (v.shared ? 'shared' : 'private');
+     })),
    body: SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(18),
@@ -509,6 +539,13 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           Align(alignment: AlignmentDirectional.centerStart, child: OptionChip(label: tt('Pin to the top'),
             icon: Icons.push_pin_outlined, value: _pinned,
             onChanged: !_editable || _busy ? null : (v) => setState(() => _pinned = v))),
+          if (!OneSpaceEnv.isProduction && _visibility == 'private')
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(tt('Your personal story stays with your account. '
+                'Personal photo storage is not enabled yet; use a shared '
+                'memory for photos until private media is ready.'),
+                style: Theme.of(context).textTheme.bodySmall)),
+          if (OneSpaceEnv.isProduction || _visibility == 'shared') ...[
           FormSection(tt('Photos')),
           if(_record!=null&&!_archived)MemoryPhotoGallery(
            memoryId:_record!['id'].toString(),
@@ -517,6 +554,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           else if(_record==null)Align(alignment:AlignmentDirectional.centerStart,child:ActionChip(
            avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
            label:Text(tt('Add photos')),onPressed:_busy?null:_ensureSaved)),
+          ],
           if(_editing&&_visibility=='shared')Padding(
            padding:const EdgeInsets.symmetric(vertical:6),
            child:Text(tt('Shared memories are written together: both of you can add photos, captions and tags.'),
