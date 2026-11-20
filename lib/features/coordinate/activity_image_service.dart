@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'activity_image_rules.dart';
+import '../../core/app_env.dart';
 
 /// Selects one user-approved photo and attaches it to a Coordinate Activity.
 /// Storage uploads use a private bucket. Failed database inserts roll back the
@@ -33,13 +34,28 @@ class ActivityImageService {
     final userId = client.auth.currentUser?.id;
     if (userId == null) throw StateError('Please sign in first.');
 
+    var bucketId=ActivityImageRules.bucket;
+    if(!OneSpaceEnv.isProduction){
+      final item=await client.from('activities')
+        .select('space_id,private_space_id,created_by,visibility')
+        .eq('id',activityId).single();
+      if(item['private_space_id']!=null){
+        if(item['private_space_id']!=userId||item['created_by']!=userId||
+           item['space_id']!=null||item['visibility']!='private'){
+          throw StateError('Only your personal Activity can receive your private photo.');
+        }
+        bucketId='onespace-private-activity-media';
+      }else if(item['space_id']==null||item['visibility']!='shared'){
+        throw StateError('No current pair owns this shared Activity.');
+      }
+    }
     final filename = '${const Uuid().v4()}.${ActivityImageRules.extension(mime)}';
     final path = ActivityImageRules.objectPath(
       activityId: activityId,
       userId: userId,
       filename: filename,
     );
-    final storage = client.storage.from(ActivityImageRules.bucket);
+    final storage = client.storage.from(bucketId);
     await storage.uploadBinary(
       path, bytes,
       fileOptions: FileOptions(contentType: mime, upsert: false),
@@ -53,6 +69,7 @@ class ActivityImageService {
         'label': 'Photo',
         'payload': {
           'object_path': path,
+          if(!OneSpaceEnv.isProduction)'bucket_id':bucketId,
           'mime': mime,
           'note': '',
         },
