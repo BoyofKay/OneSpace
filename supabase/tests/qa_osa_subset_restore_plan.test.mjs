@@ -226,7 +226,8 @@ test("rehashed unreviewed rich-text links are rejected, not transplanted",async(
   m.subset_sha256=sha("onespace.qa.private.vault-subset.v1|"+owner+"|"+space+
     "|"+m.records.map(r=>r.kind+"|"+r.source_table+"|"+r.source_id+"|"+
       r.snapshot_sha256).join("\n"));
-  await assert.rejects(()=>plan(await seal(m)),
+  const sealed=await seal(m);
+  await assert.rejects(()=>plan(sealed),
     /Unsafe QA standalone private root rehearsal/);
 });
 test("unreviewed root types remain counted as unplanned",async()=>{
