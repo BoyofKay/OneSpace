@@ -458,8 +458,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
         final a = await db.from('activities').select('title,visibility,space_id')
           .eq('id', widget.id).single();
         if (!mounted) return;
+        // A personal Activity has no couple space: the reminder is personal too.
         await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => ReminderEditorScreen(
-          spaceId: a['space_id'].toString(), initialTitle: a['title']?.toString() ?? '',
+          spaceId: a['space_id']?.toString() ?? '', initialTitle: a['title']?.toString() ?? '',
           initialShared: a['visibility'] != 'private',
           initialSourceKind: 'activity', initialSourceId: widget.id)));
       } catch (_) {}

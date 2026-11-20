@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/editor_scaffold.dart';
+import '../../core/account_content_scope.dart';
+import '../../core/app_env.dart';
 import '../../core/form_kit.dart';
 import '../calendar/calendar_rules.dart';
 import 'memory_photo_service.dart';
@@ -40,6 +42,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   void initState() {
     super.initState();
     _joinId = widget.addToMemoryId;
+    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty)_private=true;
     _loadWeek();
     if (_joinId == null) _findTodayToJoin();
     WidgetsBinding.instance.addPostFrameCallback((_) => _take(ImageSource.camera));
@@ -54,17 +57,16 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   Future<void> _loadWeek() async {
     try {
       final from = CalendarRules.sqlDate(DateTime.now().subtract(const Duration(days: 6)));
-      final rows = await _db.from('memories')
-          .select('created_by,memory_date')
-          .eq('space_id', widget.spaceId)
-          .eq('memory_type', 'daily_selfie')
-          .isFilter('archived_at', null)
-          .gte('memory_date', from);
+      var query=_db.from('memories').select('created_by,memory_date');
+      if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
+      final rows=await query.eq('memory_type', 'daily_selfie')
+          .isFilter('archived_at', null).gte('memory_date', from);
       if (mounted) setState(() => _week = List<Map<String, dynamic>>.from(rows));
     } catch (_) {/* the strip is a nicety; the studio still works */}
   }
 
   Future<void> _findTodayToJoin() async {
+    if(widget.spaceId.isEmpty)return; // No current couple to join.
     final me = _db.auth.currentUser?.id;
     if (me == null) return;
     try {
@@ -116,11 +118,13 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
         if (mounted) Navigator.pop(context, true);
         return;
       }
+      final scopes=await AccountContentScope.load(_db,
+          legacySpaceId:widget.spaceId.isEmpty?null:widget.spaceId);
       final row = await _db.from('memories').insert({
-        'space_id': widget.spaceId, 'created_by': user,
+        ...scopes.fieldsForNew(shared: !_private),
+        'created_by': user,
         'title': caption.isEmpty ? 'Daily selfie · $today' : caption,
         'body': '', 'memory_date': today,
-        'visibility': _private ? 'private' : 'shared',
         'memory_type': 'daily_selfie', 'photo_layout': 'polaroid',
       }).select('id').single();
       created = row['id'].toString();
@@ -190,7 +194,8 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       listenTo: [_caption],
       onSave: _save,
       meta: _joinId != null ? null : MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
-        enabled: !_saving, onChanged: (v) => setState(() => _private = !v.shared)),
+        enabled: !_saving && (widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction),
+        onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [
         if (_joinId != null) Card(elevation: 0, color: scheme.secondaryContainer,
           child: ListTile(leading: const Icon(Icons.favorite_outline),

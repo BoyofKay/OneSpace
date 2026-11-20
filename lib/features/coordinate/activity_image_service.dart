@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'activity_image_rules.dart';
+import 'activity_media_scope.dart';
+import '../../core/app_env.dart';
 
 /// Selects one user-approved photo and attaches it to a Coordinate Activity.
 /// Storage uploads use a private bucket. Failed database inserts roll back the
@@ -39,7 +41,8 @@ class ActivityImageService {
       userId: userId,
       filename: filename,
     );
-    final storage = client.storage.from(ActivityImageRules.bucket);
+    final bucket = await ActivityMediaScope.imageBucket(client, activityId);
+    final storage = client.storage.from(bucket);
     await storage.uploadBinary(
       path, bytes,
       fileOptions: FileOptions(contentType: mime, upsert: false),
@@ -53,6 +56,7 @@ class ActivityImageService {
         'label': 'Photo',
         'payload': {
           'object_path': path,
+          if (!OneSpaceEnv.isProduction) 'bucket_id': bucket,
           'mime': mime,
           'note': '',
         },

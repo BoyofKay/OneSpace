@@ -2433,6 +2433,7 @@ const Map<String, String> arPhrases = {
   'Could not open this scrapbook.': 'تعذّر فتح دفتر الذكريات.',
   'Scrapbook': 'دفتر الذكريات',
   'Our scrapbook': 'دفتر ذكرياتنا',
+  'My scrapbook': 'دفتر ذكرياتي',
   'Remove this page?': 'إزالة هذه الصفحة؟',
   'Its words and photo choices are removed. The photos stay in the scrapbook library.': 'تُزال كلماتها واختيارات الصور. تبقى الصور في مكتبة الدفتر.',
   'Remove page': 'إزالة الصفحة',

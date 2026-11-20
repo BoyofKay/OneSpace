@@ -1,4 +1,6 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/account_content_scope.dart';
 
 import '../calendar/calendar_event_editor.dart';
 import '../checkins/checkins_screen.dart';
@@ -68,14 +70,19 @@ Future<void> showQuickAdd(BuildContext context, {required String spaceId}) async
 /// Opens the draft page for [kind]. [title] and [details] pre-fill where the
 /// page supports it (used by "Items to sort").
 Future<void> openQuickAdd(BuildContext context, QuickAddKind kind,
-    {required String spaceId, String title = '', String details = ''}) {
+    {required String spaceId, String title = '', String details = ''}) async {
+  final scope = kind == QuickAddKind.research
+      ? await AccountContentScope.load(Supabase.instance.client,
+          legacySpaceId: spaceId)
+      : null;
+  if (!context.mounted) return;
   final Widget page = switch (kind) {
     QuickAddKind.reminder => ReminderEditorScreen(spaceId: spaceId),
     QuickAddKind.todo => const PlansScreen(startNewTask: true),
     QuickAddKind.event => CalendarEventEditor(spaceId: spaceId,
         initialDate: DateTime.now()),
     QuickAddKind.note => QuillNoteEditorScreen(spaceId: spaceId),
-    QuickAddKind.research => NewActivityScreen(spaceId: spaceId,
+    QuickAddKind.research => NewActivityScreen(scope: scope!,
         initialTitle: title, initialDetails: details),
     QuickAddKind.gift => const OccasionsScreen(),
     QuickAddKind.trip => TripEditor(spaceId: spaceId),

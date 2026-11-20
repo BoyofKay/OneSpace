@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'activity_image_rules.dart';
+import 'activity_media_scope.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Private Activity image preview. Each access obtains a short-lived URL
@@ -23,9 +23,12 @@ class ActivityImagePreview extends StatefulWidget {
 class _ActivityImagePreviewState extends State<ActivityImagePreview> {
   late Future<String> signedUrl;
 
-  Future<String> sign() => Supabase.instance.client.storage
-      .from(ActivityImageRules.bucket)
-      .createSignedUrl(widget.objectPath, 120);
+  Future<String> sign() async {
+    final db = Supabase.instance.client;
+    final activityId = ActivityMediaScope.activityIdFromPath(widget.objectPath);
+    final bucket = await ActivityMediaScope.imageBucket(db, activityId);
+    return db.storage.from(bucket).createSignedUrl(widget.objectPath, 120);
+  }
 
   @override
   void initState() {

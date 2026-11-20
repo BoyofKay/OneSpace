@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/account_content_scope.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/status_look.dart';
 import 'activity_detail_screen.dart';
@@ -28,6 +30,7 @@ class CoordinateScreen extends StatefulWidget {
 class _CoordinateScreenState extends State<CoordinateScreen> {
   final db = Supabase.instance.client;
   String? space;
+  AccountContentScope? contentScope;
   Stream<List<Map<String, dynamic>>>? items;
   String? error;
   bool loading = true;
@@ -64,18 +67,25 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   }
 
   Future<void> load() async {
-    unawaited(_loadCountdowns());
     try {
-      final id = await CurrentSpaceCache.instance.get();
+      final legacy = await CurrentSpaceCache.instance.get();
+      final scopes = await AccountContentScope.load(db, legacySpaceId: legacy);
       if (!mounted) return;
       setState(() {
-        space = id;
+        contentScope = scopes;
+        space = scopes.sharedSpaceId;
         loading = false;
         error = null;
-        items = id == null ? null : db.from('activities')
-            .stream(primaryKey: ['id']).eq('space_id', id)
-            .order('updated_at', ascending: false);
+        // QA: RLS is the union of account-owned + current-couple rows.
+        // Do not filter by a former/shared space or private items disappear.
+        items = scopes.accountOwned
+            ? db.from('activities').stream(primaryKey: ['id'])
+                .order('updated_at', ascending: false)
+            : (space == null ? null : db.from('activities')
+                .stream(primaryKey: ['id']).eq('space_id', space!)
+                .order('updated_at', ascending: false));
       });
+      unawaited(_loadCountdowns());
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -88,9 +98,10 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
 
   /// R51: a new Activity opens as a full draft page (no dialog).
   Future<void> create() async {
-    if (space == null) return;
+    final scopes = contentScope;
+    if (scopes == null || !scopes.canCreatePrivate) return;
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
-      builder: (_) => NewActivityScreen(spaceId: space!)));
+      builder: (_) => NewActivityScreen(scope: scopes)));
     if (mounted) await load();
   }
 
@@ -224,7 +235,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
-    floatingActionButton: space == null ? null
+    floatingActionButton: contentScope?.canCreatePrivate != true ? null
         : AddFab(label: tt('Start activity'), onPressed: create),
     body: RefreshIndicator(
     onRefresh: load,
@@ -253,7 +264,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         ],
         if (loading)
           const Center(child: CircularProgressIndicator())
-        else if (space == null)
+        else if (contentScope == null || (OneSpaceEnv.isProduction && space == null))
           Text(tt('Connect your shared space to start coordinating.'))
         else if (items != null)
           StreamBuilder<List<Map<String,dynamic>>>(
