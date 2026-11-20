@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/status_look.dart';
 import 'activity_detail_screen.dart';
@@ -28,6 +29,8 @@ class CoordinateScreen extends StatefulWidget {
 class _CoordinateScreenState extends State<CoordinateScreen> {
   final db = Supabase.instance.client;
   String? space;
+  bool personalReady = false;
+  String who = 'all';
   Stream<List<Map<String, dynamic>>>? items;
   String? error;
   bool loading = true;
@@ -66,15 +69,31 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   Future<void> load() async {
     unawaited(_loadCountdowns());
     try {
-      final id = await CurrentSpaceCache.instance.get();
+      var id = await CurrentSpaceCache.instance.get();
+      bool hasPrivateScope = false;
+      if (!OneSpaceEnv.isProduction) {
+        final scopes = await db.rpc('my_storage_scopes');
+        if (scopes is! Map ||
+            scopes['private_space_id']?.toString() != db.auth.currentUser?.id) {
+          throw StateError('Personal Activity scope unavailable');
+        }
+        id = scopes['shared_space_id']?.toString();
+        hasPrivateScope = true;
+      }
       if (!mounted) return;
       setState(() {
         space = id;
+        personalReady = hasPrivateScope;
         loading = false;
         error = null;
-        items = id == null ? null : db.from('activities')
-            .stream(primaryKey: ['id']).eq('space_id', id)
-            .order('updated_at', ascending: false);
+        // QA reads only RLS-authorized private and current-pair rows.
+        // A new partner never grants access to previous shared activities.
+        items = OneSpaceEnv.isProduction
+          ? (id == null ? null : db.from('activities')
+              .stream(primaryKey: ['id']).eq('space_id', id)
+              .order('updated_at', ascending: false))
+          : db.from('activities').stream(primaryKey: ['id'])
+              .order('updated_at', ascending: false);
       });
     } catch (_) {
       if (mounted) {
@@ -88,9 +107,9 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
 
   /// R51: a new Activity opens as a full draft page (no dialog).
   Future<void> create() async {
-    if (space == null) return;
+    if (space == null && !personalReady) return;
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
-      builder: (_) => NewActivityScreen(spaceId: space!)));
+      builder: (_) => NewActivityScreen(spaceId: space ?? '')));
     if (mounted) await load();
   }
 
@@ -183,7 +202,8 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   Widget activityOverview(List<Map<String,dynamic>> all) {
     final now = DateTime.now();
     final inView=all.where((row)=>
-      (row['archived_at']!=null)==showArchived).toList();
+      (row['archived_at']!=null)==showArchived &&
+      (who == 'all' || row['visibility'] == who)).toList();
     final view=showArchived?CoordinateActivityView.all:selected;
     final shown=CoordinateActivityFilters.visible(inView,view,search,now);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -224,7 +244,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
-    floatingActionButton: space == null ? null
+    floatingActionButton: space == null && !personalReady ? null
         : AddFab(label: tt('Start activity'), onPressed: create),
     body: RefreshIndicator(
     onRefresh: load,
@@ -239,8 +259,18 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
           historyKinds:const ['activity'],historyTitle:tt('Activities'),
           showHistory:showArchived,
           onToggleHistory:()=>setState(()=>showArchived=!showArchived),
-          groups:[FilterGroupSpec(id:'view',label:tt('Activities'),options:{for(final v in CoordinateActivityView.values)v.name:label(v)},selected:selected.name,defaultValue:CoordinateActivityView.active.name)],
-           onApply:(v)=>setState(()=>selected=CoordinateActivityView.values.byName(v['view']!)),
+          groups:[
+            FilterGroupSpec(id:'view',label:tt('Activities'),
+              options:{for(final v in CoordinateActivityView.values)v.name:label(v)},
+              selected:selected.name,defaultValue:CoordinateActivityView.active.name),
+            FilterGroupSpec(id:'who',label:tt('Who can see'),
+              options:const {'all':'All','shared':'Shared','private':'Only me'},
+              selected:who,defaultValue:'all'),
+          ],
+          onApply:(v)=>setState((){
+            selected=CoordinateActivityView.values.byName(v['view']!);
+            who=v['who']!;
+          }),
          ),
         ]),
         const SizedBox(height: 3),
@@ -253,7 +283,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         ],
         if (loading)
           const Center(child: CircularProgressIndicator())
-        else if (space == null)
+        else if (space == null && !personalReady)
           Text(tt('Connect your shared space to start coordinating.'))
         else if (items != null)
           StreamBuilder<List<Map<String,dynamic>>>(
