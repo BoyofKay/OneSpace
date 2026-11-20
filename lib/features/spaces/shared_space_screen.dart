@@ -117,6 +117,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   bool inviteCollapsed = true;
   String? _lastAutoJoinKey;
   bool checkingAddressedInvite = false;
+  bool joiningAddressedInvite = false;
   bool inviteLookupFailed = false;
   bool dismissedAddressedInvite = false;
   bool loading = true;
@@ -708,7 +709,12 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if (!retry && key == _lastAutoJoinKey) return;
     _lastAutoJoinKey = key;
     invitationController.text = code;
-    await _accept();
+    if (mounted) setState(() => joiningAddressedInvite = true);
+    try {
+      await _accept();
+    } finally {
+      if (mounted) setState(() => joiningAddressedInvite = false);
+    }
   }
 
   int? _dayDistance(DateTime? target) {
@@ -1176,7 +1182,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               label: Text(tr(context, 'retry')),
             ),
           ]
-          else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null) ...[
+          else if (spaceId == null &&
+              (InvitationLinkInbox.instance.pendingCode != null ||
+               joiningAddressedInvite)) ...[
             _panel(
               tt('Joining your partner’s OneSpace'),
               tt('Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'),
@@ -1219,6 +1227,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                       invitationController.clear();
                       issue = null;
                       _lastAutoJoinKey = null;
+                      dismissedAddressedInvite = true;
                     });
                   },
                   child: Text(tt('Use another invitation or start a new space')),
