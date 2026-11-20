@@ -11,6 +11,7 @@ import 'note_references_panel.dart';
 import 'note_format_bar.dart';
 import '../mentions/rich_note_mention_button.dart';
 import 'dart:async';
+import '../../core/app_env.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// OneSpace Notes 2.0: real rich-text editing, native selection/copy/paste,
@@ -62,7 +63,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   editor=quill.QuillController(document:document,
    selection:const TextSelection.collapsed(offset:0));
   editor.readOnly=!canEdit||archived;
-  visibility=(old?['visibility']??'shared').toString();
+  visibility=(old?['visibility']??(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty ? 'private' : 'shared')).toString();
   pinned=old?['pinned']==true;
   if(editing&&!canEdit){
    revocationWatcher=watchObjectShares(client:db,spaceId:widget.spaceId,
@@ -98,16 +99,24 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   final fields=<String,dynamic>{
    'title':name,'body':plain,'rich_delta':delta,'pinned':pinned,
   };
+  if (!OneSpaceEnv.isProduction && visibility=='shared' && widget.spaceId.isEmpty) {
+    setState(()=>error='Connect with a partner before sharing a note.');
+    return;
+  }
   try{
    if(!editing){
     await db.from('notes').insert({
-     ...fields,'space_id':widget.spaceId,
+     ...fields,
+     if (!OneSpaceEnv.isProduction && visibility=='private')
+       'private_space_id':db.auth.currentUser!.id
+     else 'space_id':widget.spaceId,
      'visibility':visibility,'created_by':db.auth.currentUser!.id,
     });
    }else{
     final old=record!;
     var query=db.from('notes').update(fields)
-     .eq('id',old['id']).eq('space_id',widget.spaceId);
+     .eq('id',old['id']);
+    if (OneSpaceEnv.isProduction) query=query.eq('space_id',widget.spaceId);
     // Created a moment ago in this editor: photos may have touched it since.
     if(!createdHere)query=query.eq('updated_at',old['updated_at']);
     final result=await query.select('id');
@@ -130,11 +139,17 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   if(name.isEmpty){setState(()=>error='Add a title first, then photos and links.');return;}
   setState((){busy=true;error=null;});
   try{
+   if (!OneSpaceEnv.isProduction && visibility=='shared' && widget.spaceId.isEmpty) {
+     if(mounted)setState(()=>error='Connect with a partner before sharing a note.');
+     return;
+   }
    final row=await db.from('notes').insert({
     'title':name,'body':editor.document.toPlainText().trim(),
     'rich_delta':editor.document.toDelta().toJson(),'pinned':pinned,
-    'space_id':widget.spaceId,'visibility':visibility,
-    'created_by':db.auth.currentUser!.id,
+    if (!OneSpaceEnv.isProduction && visibility=='private')
+      'private_space_id':db.auth.currentUser!.id
+    else 'space_id':widget.spaceId,
+    'visibility':visibility,'created_by':db.auth.currentUser!.id,
    }).select('id,updated_at,visibility,created_by,archived_at').single();
    if(mounted)setState((){record=row;createdHere=true;});
   }on PostgrestException catch(e){
@@ -163,7 +178,9 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    isNew:!editing,isChanged:()=>changed,isComplete:()=>isEditingAllowed&&title.text.trim().isNotEmpty,
    listenTo:[title,editor],saving:busy,onSave:save,
    meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
-     enabled:!editing&&!busy,onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private'),
+     enabled:!editing&&!busy &&
+       (OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty),
+     onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private'),
      extras:[FilterChip(avatar:Icon(pinned?Icons.push_pin:Icons.push_pin_outlined,size:18),
       showCheckmark:false,label:Text(tt(pinned?'Pinned':'Pin')),selected:pinned,
       tooltip:tt('Pin to the top'),
@@ -196,21 +213,24 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
         controller:editor,config:const quill.QuillEditorConfig())),
      ),
      const SizedBox(height:12),
-     if(editing)...[
-      NotePhotosPanel(
-       noteId:record!['id'].toString(),canEdit:isEditingAllowed),
-      const SizedBox(height:12),
-      NoteReferencesPanel(
-       noteId:record!['id'].toString(),
-       spaceId:widget.spaceId,
-       noteVisibility:visibility,
-       canEdit:isEditingAllowed),
-     ]else Wrap(spacing:8,runSpacing:6,children:[
-      ActionChip(avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
-       label:Text(tt('Add photos')),onPressed:busy?null:ensureSaved),
-      ActionChip(avatar:const Icon(Icons.link,size:18),
-       label:Text(tt('Link an item')),onPressed:busy?null:ensureSaved),
-     ]),
+     // Personal attachments and links need independent Storage/child guards.
+     if (OneSpaceEnv.isProduction || visibility=='shared') ...[
+       if(editing)...[
+        NotePhotosPanel(
+         noteId:record!['id'].toString(),canEdit:isEditingAllowed),
+        const SizedBox(height:12),
+        NoteReferencesPanel(
+         noteId:record!['id'].toString(),
+         spaceId:widget.spaceId,
+         noteVisibility:visibility,
+         canEdit:isEditingAllowed),
+       ]else Wrap(spacing:8,runSpacing:6,children:[
+        ActionChip(avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
+         label:Text(tt('Add photos')),onPressed:busy?null:ensureSaved),
+        ActionChip(avatar:const Icon(Icons.link,size:18),
+         label:Text(tt('Link an item')),onPressed:busy?null:ensureSaved),
+       ]),
+     ],
      if(error!=null)Padding(padding:const EdgeInsets.all(8),
       child:Text(tt(error!),style:TextStyle(
        color:Theme.of(context).colorScheme.error))),
