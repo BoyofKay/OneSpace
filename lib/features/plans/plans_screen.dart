@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/performance_timings.dart';
 import 'task_editor_sheet.dart';
 import 'task_checklist_panel.dart';
@@ -39,6 +40,7 @@ class PlansScreen extends StatefulWidget {
 class _PlansScreenState extends State<PlansScreen> {
   final _client = Supabase.instance.client;
   String? _spaceId;
+  bool _personalScopeReady = false;
   Stream<List<Map<String, dynamic>>>? _tasksStream;
   StreamSubscription<List<Map<String, dynamic>>>? _shareWatcher;
   Map<String, String> _memberNames = const {};
@@ -85,10 +87,11 @@ class _PlansScreenState extends State<PlansScreen> {
       objectType: 'task',
       onChanged: () {
         if (!mounted || _spaceId != id) return;
-        setState(() => _tasksStream = _client.from('tasks')
-            .stream(primaryKey: ['id'])
-            .eq('space_id', id)
-            .order('created_at', ascending: false));
+        setState(() => _tasksStream = OneSpaceEnv.isProduction
+           ? _client.from('tasks').stream(primaryKey: ['id'])
+               .eq('space_id', id).order('created_at', ascending: false)
+           : _client.from('tasks').stream(primaryKey: ['id'])
+               .order('created_at', ascending: false));
       },
     );
   }
@@ -113,9 +116,18 @@ class _PlansScreenState extends State<PlansScreen> {
         });
         return;
       }
-      final id = await CurrentSpaceCache.instance.get();
+      String? id = await CurrentSpaceCache.instance.get();
+      bool personalReady = false;
+      if (!OneSpaceEnv.isProduction) {
+        final scopes = await _client.rpc('my_storage_scopes');
+        if (scopes is! Map || scopes['private_space_id']?.toString()!=userId) {
+          throw StateError('Personal scope unavailable');
+        }
+        id = scopes['shared_space_id']?.toString();
+        personalReady = true;
+      }
       if (!mounted || _client.auth.currentUser?.id!=userId) return;
-      if (id == null) {
+      if (id == null && OneSpaceEnv.isProduction) {
         setState(() {
           _spaceId = null;
           _memberNames = const {};
@@ -125,21 +137,24 @@ class _PlansScreenState extends State<PlansScreen> {
       }
       // Home has already fetched partner names in the same secure snapshot.
       // Reuse them to avoid two more Seoul network round trips.
-      final cachedNames = CurrentSpaceCache.instance.memberNamesFor(id);
+      final cachedNames = id==null
+        ? null : CurrentSpaceCache.instance.memberNamesFor(id);
       _firstTasksClock..reset()..start();
       _tasksFirstDataRecorded = false;
       setState(() {
         _spaceId = id;
+        _personalScopeReady = personalReady;
         _memberNames = {
           ...?cachedNames,
           _me: tr(context, 'me'),
         };
-        _tasksStream = _client.from('tasks')
-            .stream(primaryKey: ['id'])
-            .eq('space_id', id)
-            .order('created_at', ascending: false);
+        _tasksStream = OneSpaceEnv.isProduction
+          ? _client.from('tasks').stream(primaryKey: ['id'])
+             .eq('space_id', id!).order('created_at', ascending: false)
+          : _client.from('tasks').stream(primaryKey: ['id'])
+             .order('created_at', ascending: false);
       });
-      _watchGrants(id);
+      if(id!=null) _watchGrants(id);
       if (widget.startNewTask && !_startedNewTask) {
         _startedNewTask = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -147,7 +162,7 @@ class _PlansScreenState extends State<PlansScreen> {
         });
       }
       // Direct Plans entry (before Home completes) still has a safe fallback.
-      if (cachedNames == null) unawaited(_loadMemberNames(id));
+      if (cachedNames == null && id!=null) unawaited(_loadMemberNames(id));
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -186,7 +201,7 @@ class _PlansScreenState extends State<PlansScreen> {
 
   Future<void> _taskEditor({SharedTask? existing}) async {
     final spaceId = _spaceId;
-    if (_busy || spaceId == null || !mounted) return;
+    if (_busy || (!(_personalScopeReady) && spaceId == null) || !mounted) return;
     // R55: a full page (no bottom sheet), starting with the list's items.
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
       builder: (_) => TaskEditorSheet(
@@ -195,12 +210,18 @@ class _PlansScreenState extends State<PlansScreen> {
         members: _memberNames,
         currentUserId: _me,
         spaceId:spaceId,
+        allowShared: spaceId != null,
         onSave: (draft) async {
           final fields = draft.toEditableFields();
           if (existing == null) {
+            if(draft.visibility==TaskVisibility.shared && spaceId==null)
+              throw StateError('Connect with a partner to share a checklist.');
             final created = await _client.from('tasks').insert({
               ...fields,
-              'space_id': spaceId,
+              if (!OneSpaceEnv.isProduction &&
+                  draft.visibility==TaskVisibility.private)
+                'private_space_id':_me
+              else 'space_id': spaceId,
               'created_by': _me,
               'status': 'open',
               'visibility': draft.visibility.name,
@@ -213,11 +234,10 @@ class _PlansScreenState extends State<PlansScreen> {
             }
             if (mounted) setState(() => _expandedLists.add(created['id'].toString()));
           } else {
-            final rows = await _client.from('tasks')
-              .update(fields)
-              .eq('id', existing.id)
-              .eq('space_id', spaceId)
-              .select('id');
+            var query = _client.from('tasks')
+              .update(fields).eq('id', existing.id);
+            if (OneSpaceEnv.isProduction) query=query.eq('space_id',spaceId!);
+            final rows=await query.select('id');
             if (rows.isEmpty) {
               throw StateError('Task is no longer available for editing.');
             }
@@ -228,14 +248,17 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
-    if (_busy || task.status == status || _spaceId == null) return;
+    if (_busy || task.status == status ||
+      (OneSpaceEnv.isProduction && _spaceId == null)) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await _client.from('tasks').update({'status': status.name})
-          .eq('id', task.id).eq('space_id', _spaceId!);
+      var query=_client.from('tasks').update({'status': status.name})
+        .eq('id',task.id);
+      if (OneSpaceEnv.isProduction) query=query.eq('space_id',_spaceId!);
+      await query.select('id');
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -300,7 +323,7 @@ class _PlansScreenState extends State<PlansScreen> {
         })),
       ],bottom:filterShowingBar(_filterGroups(),removed:false,onClear:()=>setState((){
         _filter=TaskFilter.open;_scope=TaskScope.all;_todayOnly=false;}))),
-      floatingActionButton:_spaceId==null||_me.isEmpty?null:
+      floatingActionButton:(_spaceId==null&&!_personalScopeReady)||_me.isEmpty?null:
         AddFab(label:tt('New list'),onPressed:_busy?null:()=>_taskEditor()),
       body:RefreshIndicator(
       onRefresh: _loadSpace,
@@ -332,7 +355,7 @@ class _PlansScreenState extends State<PlansScreen> {
               padding: EdgeInsets.all(20),
               child: Text(tt('Your session is unavailable. Sign in to open checklists.')),
             )
-          else if (_spaceId == null)
+          else if (_spaceId == null && !_personalScopeReady)
             _emptySpace()
           else ...[
             StreamBuilder<List<Map<String, dynamic>>>(
@@ -447,10 +470,12 @@ class _PlansScreenState extends State<PlansScreen> {
       createdBy: task.createdBy,
       userId: _me,
     );
-    final canShare = ObjectPermissions.canManagePrivateShare(
-      visibility: task.visibility.name,
-      createdBy: task.createdBy,
-      userId: _me,
+    final canShare = (OneSpaceEnv.isProduction ||
+       task.privateSpaceId==null) &&
+       ObjectPermissions.canManagePrivateShare(
+       visibility: task.visibility.name,
+       createdBy: task.createdBy,
+       userId: _me,
     );
     // R55: only what helps decide what to do next; no "Shared · Normal priority" noise.
     final details = <String>[
