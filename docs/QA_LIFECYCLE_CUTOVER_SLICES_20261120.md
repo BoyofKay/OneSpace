@@ -57,6 +57,8 @@
 - `lib/features/spaces/relationship_exit_confirmation.dart`: reusable typed irreversible-confirmation dialog with warnings about permanent shared loss and private preservation. Its widget test covers exact phrase + cancellation. It is deliberately **not connected to active Leave/Remove/Delete buttons**.
 - **21 QA rollback regression scripts** have now passed at least once. The six new tests from the previous checkpoint plus the service-only purge lease test do not substitute for a live physical-file deletion acceptance test, full lifecycle race/re-pair tests, or a finalizer.
 
+**Account-finalizer FK audit (read-only):** `qa_account_finalizer_auth_fk_blocker_census.sql` inventoried Auth-user foreign keys across QA public/private schemas. Still-populated NO ACTION references include retired archive progress (**8**), former/legacy created spaces (**9**), old space invitations (**4 total author/acceptance references**), and holiday configuration (**1**). These are a concrete reason the account finalizer cannot yet delete Auth users safely. The audit is read-only, does not include user identifiers or content and does not delete records.
+
 **Integration gates still open:** latest-head Flutter CI verification and two-phone tests have **not** both completed. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
 
 ## Checks actually executed
