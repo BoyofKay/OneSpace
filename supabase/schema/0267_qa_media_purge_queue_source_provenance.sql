@@ -98,6 +98,28 @@ BEGIN
   WHERE q.deleted_at IS NULL AND q.expected_uploader_id IS NOT NULL
    AND (q.leased_at IS NULL OR q.leased_at<now()-interval '5 minutes')
    AND NOT EXISTS(SELECT 1 FROM public.spaces s WHERE s.id=q.space_id)
+   -- Fail closed if an object was re-owned after the trusted queue snapshot.
+   AND NOT EXISTS(SELECT 1 FROM storage.objects o
+     WHERE o.bucket_id=q.bucket_id AND o.name=q.object_path
+       AND o.owner_id IS DISTINCT FROM q.expected_uploader_id::text)
+   -- If a live item elsewhere still references this exact object, the worker
+   -- may not delete it as part of a different relationship's cleanup.
+   AND NOT EXISTS(SELECT 1 FROM public.note_images n
+     WHERE q.bucket_id='onespace-note-images'
+       AND n.storage_bucket_id=q.bucket_id AND n.object_path=q.object_path)
+   AND NOT EXISTS(SELECT 1 FROM public.memory_photos m
+     WHERE q.bucket_id='onespace-memory-photos'
+       AND m.storage_bucket_id=q.bucket_id AND m.object_path=q.object_path)
+   AND NOT EXISTS(SELECT 1 FROM public.trip_attachments t
+     WHERE q.bucket_id='onespace-trip-documents'
+       AND t.storage_bucket_id=q.bucket_id AND t.object_path=q.object_path)
+   AND NOT EXISTS(SELECT 1 FROM public.items_to_sort i
+     WHERE q.bucket_id='onespace-share-in' AND i.file_path=q.object_path)
+   AND NOT EXISTS(SELECT 1 FROM public.activity_components c
+     WHERE q.bucket_id='onespace-activity-media'
+       AND (c.payload->>'object_path')=q.object_path)
+   AND NOT EXISTS(SELECT 1 FROM public.activity_comments cm
+     WHERE q.bucket_id='onespace-activity-voice' AND cm.voice_path=q.object_path)
   ORDER BY q.queued_at,q.space_id,q.bucket_id,q.object_path
   FOR UPDATE OF q SKIP LOCKED LIMIT p_limit
  ), leased AS(
