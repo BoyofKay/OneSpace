@@ -6,6 +6,7 @@ const ZERO_FIELDS=Object.freeze([
  "legacy_couple_private_rows","unresolved_auth_user_fk_references",
  "remaining_storage_objects_owned","remaining_storage_folder_references",
  "unfinished_private_file_purges","unfinished_shared_file_purges",
+ "remaining_shared_storage_objects",
 ]);
 export function validAccountId(id){
  return typeof id==="string"&&UUID.test(id);
