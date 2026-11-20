@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import 'note_draft_rules.dart';
 import 'notes_library_rules.dart';
@@ -61,10 +62,12 @@ class _NotesScreenState extends State<NotesScreen> {
       objectType: 'note',
       onChanged: () {
         if (!mounted || _spaceId != id) return;
-        setState(() => _stream = _client.from('notes')
-            .stream(primaryKey: ['id'])
-            .eq('space_id', id)
-            .order('updated_at', ascending: false));
+        setState(() => _stream = OneSpaceEnv.isProduction
+          ? _client.from('notes').stream(primaryKey: ['id'])
+              .eq('space_id', id)
+              .order('updated_at', ascending: false)
+          : _client.from('notes').stream(primaryKey: ['id'])
+              .order('updated_at', ascending: false));
       },
     );
   }
@@ -72,21 +75,35 @@ class _NotesScreenState extends State<NotesScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final id = await CurrentSpaceCache.instance.get();
+      final legacy = await CurrentSpaceCache.instance.get();
+      String? id = legacy;
+      if (!OneSpaceEnv.isProduction) {
+        final scopes = await _client.rpc('my_storage_scopes');
+        if (scopes is! Map || scopes['private_space_id'] == null) {
+          throw StateError('Personal scope unavailable');
+        }
+        id = scopes['shared_space_id']?.toString();
+      }
       if (!mounted) return;
       setState(() {
         _spaceId = id;
-        _stream = id == null ? null : _client.from('notes')
-            .stream(primaryKey: ['id'])
-            .eq('space_id', id)
-            .order('updated_at', ascending: false);
+        // In QA, row-level security combines account-owned and current
+        // relationship-owned notes into one feed.
+        _stream = OneSpaceEnv.isProduction
+          ? (id == null ? null : _client.from('notes')
+              .stream(primaryKey: ['id'])
+              .eq('space_id', id)
+              .order('updated_at', ascending: false))
+          : _client.from('notes').stream(primaryKey: ['id'])
+              .order('updated_at', ascending: false);
       });
       if (id != null) _watchGrants(id);
-      if(id!=null&&widget.initialNoteId!=null&&!_deepLinkOpened){
+      if((id!=null||!OneSpaceEnv.isProduction)&&widget.initialNoteId!=null&&!_deepLinkOpened){
         _deepLinkOpened=true;
         try{
-          final found=await _client.from('notes').select()
-            .eq('space_id',id).eq('id',widget.initialNoteId!).limit(1);
+          var lookup=_client.from('notes').select();
+          if (OneSpaceEnv.isProduction) lookup=lookup.eq('space_id',id!);
+          final found=await lookup.eq('id',widget.initialNoteId!).limit(1);
           if(mounted&&found.isNotEmpty){
             WidgetsBinding.instance.addPostFrameCallback((_){
               if(mounted){_openEditor(note:found.first);}
@@ -105,10 +122,10 @@ class _NotesScreenState extends State<NotesScreen> {
 
   Future<void> _openEditor({Map<String, dynamic>? note}) async {
     final id = _spaceId;
-    if (id == null) return;
+    if (id == null && OneSpaceEnv.isProduction) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => QuillNoteEditorScreen(spaceId: id, existing: note),
+        builder: (_) => QuillNoteEditorScreen(spaceId: id ?? '', existing: note),
       ),
     );
   }
@@ -128,7 +145,8 @@ class _NotesScreenState extends State<NotesScreen> {
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
       ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,onClear:()=>setState((){_showArchived=false;_scope='all';}))),
-      floatingActionButton:_spaceId==null?null:AddFab(label:tt('Add note'),onPressed:()=>_openEditor()),
+      floatingActionButton:_spaceId==null&&OneSpaceEnv.isProduction
+        ?null:AddFab(label:tt('Add note'),onPressed:()=>_openEditor()),
       body:RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -143,7 +161,7 @@ class _NotesScreenState extends State<NotesScreen> {
           if (_loading)
             const Padding(padding: EdgeInsets.all(36),
               child: Center(child: CircularProgressIndicator()))
-          else if (_spaceId == null)
+          else if (_spaceId == null && OneSpaceEnv.isProduction)
             Text(tr(context, 'noSpace'))
           else ...[
             TextField(
