@@ -26,11 +26,11 @@ begin
   failed:=false;
   begin
     insert into public.memory_photos(memory_id,created_by,mime_type,byte_size,object_path)
-     values(personal,a,'image/jpeg',10,personal||'/'||a||'/x.jpg');
+     values(personal,a,'image/jpeg',10,personal||'/'||a||'/'||gen_random_uuid()||'.jpg');
   exception when others then failed:=true; end;
   if not failed then raise exception 'FAIL 3: personal photo accepted in shared bucket'; end if;
   insert into public.memory_photos(memory_id,created_by,mime_type,byte_size,object_path,storage_bucket_id)
-   values(personal,a,'image/jpeg',10,personal||'/'||a||'/y.jpg','onespace-private-memory-photos');
+   values(personal,a,'image/jpeg',10,personal||'/'||a||'/'||gen_random_uuid()||'.jpg','onespace-private-memory-photos');
   -- A shared scrapbook needs the current couple.
   shared:=public.create_scrapbook(couple,'Ours','polaroid_letters','shared',current_date);
   failed:=false;
