@@ -639,7 +639,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
    meta:MetaStrip(value:MetaValues(date:planned,shared:visibility=='shared'),
-    showVisibility:!OneSpaceEnv.isProduction,showBelongs:false,
+    showVisibility:!OneSpaceEnv.isProduction&&widget.original==null,showBelongs:false,
     dateLabel:tt('Plan a date'),onChanged:(v)=>setState((){
       planned=v.date;
       if(widget.original==null)visibility=
@@ -685,8 +685,10 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    TextField(controller:description,maxLength:5000,minLines:2,maxLines:6,
     decoration:InputDecoration(labelText:tt('Why this one?'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
-   Align(alignment:AlignmentDirectional.centerStart,
-    child:PartnerMentionButton(spaceId:widget.spaceId,controller:description)),
+   if(widget.spaceId.isNotEmpty&&
+      (OneSpaceEnv.isProduction||visibility=='shared'))
+    Align(alignment:AlignmentDirectional.centerStart,
+     child:PartnerMentionButton(spaceId:widget.spaceId,controller:description)),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
     child:Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
@@ -1035,7 +1037,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    if(r!=null)ItemMenu(kind:'experience',recordId:widget.id,title:r['title']?.toString(),
     onOpen:edit,
     moreActions:[
-     if(r['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
+     if((OneSpaceEnv.isProduction||r['private_space_id']==null)&&r['space_id']!=null)
+       ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
       ()=>createFromThis(context,kind:LinkKind.experience,id:widget.id,spaceId:r['space_id'].toString(),
        title:r['title'].toString(),date:DateTime.tryParse(r['planned_on']?.toString()??''),
        shared:r['visibility']!='private',onLinked:()=>_links.currentState?.reload())),
@@ -1047,7 +1050,9 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     Text(tt(r['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
      if(OneSpaceEnv.isProduction||r['private_space_id']==null)
       LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
-    Text(tt((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested'))),
+    Text(tt((experienceTypes[r['category']]??'Other')+' · '+
+      (experienceStates[r['status']]??'Suggested')+
+      (!OneSpaceEnv.isProduction&&r['private_space_id']!=null?' · Only me':''))),
     if(r['planned_on']!=null)Text(tt('Planned together: ')+r['planned_on'].toString()),
     if(r['enjoyed_on']!=null)Text(
      tt(ExperiencePickerRules.completionState(r['category'].toString())+
