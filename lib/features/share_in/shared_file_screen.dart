@@ -49,6 +49,15 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
     setState(() { saving = true; error = null; });
     final bytes = Uint8List.fromList(widget.file.bytes);
     try {
+      // An old cached solo or former-couple ID is not proof of a live pair.
+      // Verify the current QA pairing *before* writing any Storage object.
+      if(!OneSpaceEnv.isProduction){
+        final scopes=await db.rpc('my_storage_scopes');
+        if(scopes is! Map ||
+           scopes['shared_space_id']?.toString()!=widget.spaceId){
+          throw StateError('No current shared space for this file');
+        }
+      }
       if (toMemory && widget.file.isImage) {
         final memory = await db.from('memories').insert({
           'space_id': widget.spaceId, 'created_by': user,
