@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS private.qa_account_v2_gate(
 INSERT INTO private.qa_account_v2_gate(id,enabled) VALUES(1,false)
 ON CONFLICT(id) DO UPDATE SET enabled=false;
 REVOKE ALL ON private.qa_account_v2_gate FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON private.qa_account_v2_gate TO service_role;
 
 CREATE TABLE IF NOT EXISTS public.qa_account_private_media_purge_queue(
  owner_id uuid NOT NULL,
