@@ -34,7 +34,7 @@
 | Links (cross-record references) | Migration `0257`: account-owned vs current-couple links require both endpoint roots in the exact same storage namespace; immutable link IDs/ownership, no reactivation after unlink | Existing linked-item strips continue under RLS; QA solo private-link UI and cross-module integration acceptance still need device tests | `qa_item_links_same_storage_scope.sql`: private/shared peer/outsider, blocked mixed endpoints and scope mutation **PASS** |
 | Unpaired Today + retired archive UI | No database change | Removed obsolete `my_archives_screen.dart` and aligned CI assertions with the approved no-archives ADR; replaced the three unrelated unpaired setup cards with one account-owned panel and invitation join action | Added static source regression for a single setup panel; **Flutter CI still pending on latest head** |
 
-## 21 November milestone continuation — QA code only
+## 20 November milestone continuation — QA code only
 
 | Area | Implemented and tested | Still blocked |
 | --- | --- | --- |
@@ -48,6 +48,14 @@
 **QA test checkpoint:** All **20** rollback regression scripts added to the active lifecycle effort have produced passing results, including 14 earlier scripts and six new Storage/lifecycle/gesture tests. The legacy census is an additional read-only rollback, not counted as a PASS assertion. No media, account-deletion requests or shared deletion jobs persisted after the tests.
 
 **Verified safety gate:** `private.qa_relationship_v2_gate.enabled=false`; authenticated cannot execute `private.qa_close_relationship_v2` or `public.request_account_deletion`. No Production changes. No APK release.
+
+## Further QA implementation — physical media purge and confirmation staging
+
+- Migrations `0266`–`0267`: trusted service-role-only claim/acknowledge queue for post-separation shared files, UUID leases, five-minute recovery, attempt logging, idempotent success and failure retries. Claims are **blocked for live relationships**; an active file that has been re-owned or is still referenced by another live record cannot be claimed. The original couple uploader is verified at **enqueue** against parent metadata, path and Storage owner to prevent another user's file being scheduled for removal.
+- `supabase/tests/qa_shared_media_purge_lease_claim_ack.sql` **PASS** in a rollback transaction: app roles denied; only service role claims retired-space work; duplicate lease rejected; wrong token/path rejected; failed deletion requeued; successful deletion acknowledged once; a changed uploader prevents claiming.
+- Staged Edge worker source `supabase/functions/onespace-qa-shared-media-purge/index.ts` uses an exact QA project hostname, service-role credentials, a **separate required secret header**, and the Supabase Storage `remove()` API for actual bytes (never DELETE from `storage.objects`). It is **NOT DEPLOYED**, **NOT SCHEDULED** and does not modify Production. Its pure validation module rejects all private buckets and mismatched owner paths; Node CI has passed. A new Deno type-check CI step remains pending.
+- `lib/features/spaces/relationship_exit_confirmation.dart`: reusable typed irreversible-confirmation dialog with warnings about permanent shared loss and private preservation. Its widget test covers exact phrase + cancellation. It is deliberately **not connected to active Leave/Remove/Delete buttons**.
+- **21 QA rollback regression scripts** have now passed at least once. The six new tests from the previous checkpoint plus the service-only purge lease test do not substitute for a live physical-file deletion acceptance test, full lifecycle race/re-pair tests, or a finalizer.
 
 **Integration gates still open:** latest-head Flutter CI verification and two-phone tests have **not** both completed. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
 
@@ -73,4 +81,4 @@
 5. Seven-day request/cancel backend exists, **submission disabled**; implement and test scheduled finalization, physical Storage cleanup, Auth deletion, survivor unpaired and survivor-private preservation.
 6. My Archives and three-card unpaired UI were retired on QA; validate invitation/signup and branding in CI/phones, then one QA APK only after gates, Production only upon founder approval.
 
-**Release policy:** No intermediate APK, no GitHub Actions release/upload run, no Production rollout. The founder confirmed GitHub billing is repaired; run no-APK verification against the latest PR branch, then consolidate **one** QA APK only after all remaining lifecycle gates are safe.
+**Release policy:** No intermediate APK, no GitHub Actions release/upload run, no Production rollout. The founder confirmed GitHub billing is repaired; run no-APK Flutter and staged-worker verification against the latest PR branch, then consolidate **one** QA APK only after all remaining lifecycle gates are safe.
