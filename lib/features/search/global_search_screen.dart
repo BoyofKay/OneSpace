@@ -126,10 +126,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          db.from('places').select('id,title:name')
            .isFilter('archived_at',null).ilike('notes',pattern)
            .limit(GlobalSearchRules.maxPerSection),
+         db.from('items_to_sort').select('id,title')
+           .isFilter('archived_at',null).isFilter('sorted_at',null)
+           .ilike('title',pattern).limit(GlobalSearchRules.maxPerSection),
+         db.from('items_to_sort').select('id,title')
+           .isFilter('archived_at',null).isFilter('sorted_at',null)
+           .ilike('note',pattern).limit(GlobalSearchRules.maxPerSection),
        ]);
        if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
        for(var n=0;n<more.length;n++){
-         final kind=n<2?'Activity':n<4?'Memory':n==4?'Contact':n<7?'Calendar':'Place';
+         final kind=n<2?'Activity':n<4?'Memory':n==4?'Contact':
+           n<7?'Calendar':n<9?'Place':'Item to sort';
          for(final row in more[n]){
            final key=row['id']?.toString()??'';
            if(key.isNotEmpty&&seen.add('$kind:$key'))
@@ -254,7 +261,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Contact',contactNames
          .isFilter('archived_at',null).ilike('label',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Item to sort',db.from('items_to_sort').select('id,title').eq('space_id',id)
+       guarded('Item to sort',(OneSpaceEnv.isProduction
+         ? db.from('items_to_sort').select('id,title').eq('space_id',id)
+         : db.from('items_to_sort').select('id,title'))
          .isFilter('archived_at',null).isFilter('sorted_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Place',placeNames.isFilter('archived_at',null)
