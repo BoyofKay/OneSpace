@@ -7,6 +7,7 @@ import '../settings/account_data_screen.dart';
 import '../settings/onespace_settings_screen.dart';
 import '../support/support_screens.dart';
 import '../support/whats_new.dart';
+import '../spaces/my_archives_screen.dart';
 import 'profile_settings_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -93,6 +94,13 @@ class _MeScreenState extends State<MeScreen> {
         tile(Icons.privacy_tip_outlined, 'About and privacy', 'What we keep, what we never do',
           () => _open(const AboutPrivacyScreen())),
       ])),
+      const SizedBox(height: 12),
+      Card(elevation: 0, child: tile(
+        Icons.folder_zip_outlined,
+        'My Archives',
+        'Personal archive progress, verified downloads and expiry',
+        () => _open(const MyArchivesScreen()),
+      )),
       const SizedBox(height: 12),
       Card(elevation: 0, child: tile(Icons.shield_outlined, 'Your data and account',
         'Download my data · Delete my account', () => _open(const AccountDataScreen()))),
