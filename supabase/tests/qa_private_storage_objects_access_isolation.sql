@@ -29,7 +29,7 @@ BEGIN
  ('onespace-private-memory-photos',m_path,me::text),
  ('onespace-private-trip-documents',t_path,me::text);
  SELECT count(*) INTO counts FROM storage.objects WHERE name IN(n_path,m_path,t_path);
- IF counts<>0 THEN RAISE EXCEPTION 'Unattached objects should not be readable by parent view';END IF;
+ IF counts<>3 THEN RAISE EXCEPTION 'Owner cannot view unattached uploads for cleanup';END IF;
  INSERT INTO public.note_images(note_id,created_by,object_path,storage_bucket_id)
  VALUES(note_id,me,n_path,'onespace-private-note-images');
  INSERT INTO public.memory_photos(memory_id,created_by,object_path,storage_bucket_id,mime_type,byte_size)
