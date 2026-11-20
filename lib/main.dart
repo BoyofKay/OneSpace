@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'core/app_env.dart';
+import 'core/android_startup_gate.dart';
 import 'features/spaces/invitation_link_inbox.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
@@ -144,6 +145,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
   bool _ready = false;
   bool _busy = true;
   String? _error;
+  String _stage = 'Verifying your app installation…';
 
   @override
   void initState() {
@@ -156,19 +158,20 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
   }
 
   Future<void> _initialize() async {
-    setState(() { _busy = true; _error = null; });
+    setState(() {
+      _busy = true;
+      _error = null;
+      _stage = 'Verifying your app installation…';
+    });
     final clock = Stopwatch()..start();
     try {
       // No network or Auth session may start until Android confirms that this
       // installed application ID belongs to the selected backend.
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-        const channel = MethodChannel('onespace/environment');
-        final installedPackage = await channel.invokeMethod<String>('packageId');
-        if (!OneSpaceEnv.packageMatchesEnvironment(installedPackage)) {
-          throw StateError('QA/Production configuration mismatch: this build '
-            'cannot connect to its configured database. Please install the '
-            'correct OneSpace app version.');
-        }
+        await AndroidStartupGate.verify();
+      }
+      if (mounted) {
+        setState(() => _stage = 'Opening your secure session…');
       }
       await Supabase.initialize(
         url: OneSpaceEnv.supabaseUrl,
@@ -176,7 +179,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
         authOptions: FlutterAuthClientOptions(
           localStorage: SecureAuthStorage(),
         ),
-      );
+      ).timeout(const Duration(seconds: 25));
       PerformanceTimings.instance.record(
         'Supabase session initialization', clock.elapsed);
       if (mounted) setState(() { _ready = true; _busy = false; });
@@ -186,10 +189,15 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = e is StateError && e.message.toString().startsWith('QA/Production')
+          _error = e is StateError
             ? e.message.toString()
-            : 'OneSpace could not open its saved session. '
-              'Check the device and network, then retry.';
+            : e is TimeoutException
+              ? 'Opening your saved secure session timed out. '
+                'Your saved data has not been erased. '
+                'Close and reopen OneSpace, then retry.'
+              : 'OneSpace could not open its saved session. '
+                'Your saved data has not been erased. '
+                'Please check the device and network, then retry.';
         });
       }
     }
@@ -200,6 +208,12 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     if (_ready) return const OneSpaceApp();
     return MaterialApp(
       debugShowCheckedModeBanner:false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF244C73)),
+      ),
       home:Scaffold(
         body:SafeArea(
           child:Center(child:ConstrainedBox(
@@ -208,17 +222,19 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
               padding:const EdgeInsets.all(28),
               child:Column(mainAxisSize:MainAxisSize.min,children:[
                 Image.asset('assets/branding/mark.png',width:96,height:96,
-                  semanticLabel:tt('OneSpace logo')),
+                  semanticLabel:'OneSpace logo',
+                  errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.favorite_outline,size:70)),
                 const SizedBox(height:12),
                 Text(tt('OneSpace'),style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                Text(tr(context, 'tagline')),
+                const Text('Two of Us. One Space'),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),
                   const SizedBox(height:16),
-                  Text(tt('Opening your secure space…')),
+                  Text(_stage),
                 ],
                 if (_error != null) ...[
                   Text(tt(_error!),textAlign:TextAlign.center),
