@@ -25,8 +25,14 @@ BEGIN
  SELECT count(*) INTO cnt FROM public.user_private_spaces
  WHERE owner_id=current_setting('qa.user')::uuid;
  IF cnt<>1 THEN RAISE EXCEPTION 'Read-only preflight deleted private namespace';END IF;
+
+END $service$;
+RESET ROLE;
+DO $auth$
+DECLARE cnt integer;
+BEGIN
  SELECT count(*) INTO cnt FROM auth.users WHERE id=current_setting('qa.user')::uuid;
  IF cnt<>1 THEN RAISE EXCEPTION 'Read-only preflight deleted Auth user';END IF;
-END $service$;
+END $auth$;
 ROLLBACK;
 SELECT 'PASS account finalizer service-only counts due/Auth FK orphan blocks, no account or personal-content deletion; rolled back' result;
