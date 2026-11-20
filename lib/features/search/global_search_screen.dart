@@ -141,11 +141,18 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          db.from('trip_items').select('id,trip_id,title')
            .isFilter('archived_at',null).ilike('title',pattern)
            .limit(GlobalSearchRules.maxPerSection),
+         db.from('occasion_plans').select('id,title')
+           .isFilter('archived_at',null).ilike('title',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('occasion_plans').select('id,title')
+           .isFilter('archived_at',null).ilike('notes',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
        ]);
        if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
        for(var n=0;n<more.length;n++){
          final kind=n<2?'Activity':n<4?'Memory':n==4?'Contact':
-           n<7?'Calendar':n<9?'Place':n<11?'Item to sort':n<13?'Trip':'Trip item';
+           n<7?'Calendar':n<9?'Place':n<11?'Item to sort':
+           n<13?'Trip':n==13?'Trip item':'Occasion';
          for(final row in more[n]){
            final key=(kind=='Trip item'?row['trip_id']:row['id'])?.toString()??'';
            if(key.isNotEmpty&&seen.add('$kind:$key'))
@@ -201,6 +208,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      final qaTripTitles=OneSpaceEnv.isProduction
        ? db.from('shared_trips').select('id,title').eq('space_id',id)
        : db.from('shared_trips').select('id,title');
+     final qaOccasions=OneSpaceEnv.isProduction
+       ? db.from('occasion_plans').select('id,title').eq('space_id',id)
+       : db.from('occasion_plans').select('id,title');
      final calendarTitles=OneSpaceEnv.isProduction
        ? db.from('space_events').select('id,title,event_date').eq('space_id',id)
        : db.from('space_events').select('id,title,event_date');
@@ -238,8 +248,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Travel document',db.from('trip_attachments').select('id,trip_id,title')
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Occasion',db.from('occasion_plans').select('id,title').eq('space_id',id)
-         .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
+       guarded('Occasion',qaOccasions
+         .isFilter('archived_at',null).ilike('title',pattern)
+         .limit(GlobalSearchRules.maxPerSection)),
        guarded('Reminder',(OneSpaceEnv.isProduction
           ? db.from('reminders').select('id,title').eq('space_id',id)
           : db.from('reminders').select('id,title'))
