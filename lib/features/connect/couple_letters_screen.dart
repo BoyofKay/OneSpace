@@ -236,7 +236,7 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
       }
       final personal=!OneSpaceEnv.isProduction&&!send;
       final copyingPersonalDraft=!OneSpaceEnv.isProduction&&send&&
-         old?['private_space_id']!=null;
+         (old?['private_space_id']!=null);
       if(old!=null&&!copyingPersonalDraft){
         final updated=await db.from('couple_letters').update(fields)
           .eq('id',old['id'] as String)
@@ -320,7 +320,7 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
           ?null:()=>save(send:true),
         label:Text(tt(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty
           ?'Connect with a partner to send'
-          :widget.existing?['private_space_id']!=null
+          :(widget.existing?['private_space_id']!=null)
             ?'Send a copy (keep my draft)'
             :saving?'Saving…':openOn==null?'Send to my partner':'Send for that day'))),
       const SizedBox(height:7),
