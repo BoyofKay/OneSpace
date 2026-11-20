@@ -110,7 +110,9 @@ class VoiceAssistant {
     final space = await CurrentSpaceCache.instance.get();
     if (space == null && c.action != VoiceAction.stop && c.action != VoiceAction.help &&
         !(!OneSpaceEnv.isProduction &&
-          (c.action == VoiceAction.note || c.action == VoiceAction.readNotes))) {
+          (c.action == VoiceAction.note || c.action == VoiceAction.readNotes ||
+           c.action == VoiceAction.reminder || c.action == VoiceAction.readReminders ||
+           c.action == VoiceAction.reminderDone || c.action == VoiceAction.snooze))) {
       return VoiceReply(l('Connect your shared space first.', 'اربط مساحتكما المشتركة أولًا.'), end: true);
     }
     final s = space ?? '';
@@ -294,13 +296,17 @@ class VoiceAssistant {
   }
 
   static Future<VoiceReply> _reminderAction(SupabaseClient db, String s, VoiceCommand c, bool ar) async {
-    final rows = List<Map<String, dynamic>>.from(await db.from('reminders').select('id,title')
-      .eq('space_id', s).isFilter('archived_at', null).order('due_at', ascending: false).limit(200));
+    final query=OneSpaceEnv.isProduction
+      ? db.from('reminders').select('id,title').eq('space_id',s)
+      : db.from('reminders').select('id,title');
+    final rows=List<Map<String,dynamic>>.from(await query
+      .isFilter('archived_at',null).order('due_at',ascending:false).limit(200));
     final r = VoiceCommandRules.best(rows, (x) => x['title'].toString(), c.title);
     if (r == null) {
       if (c.action == VoiceAction.reminderDone) {
         // "I packed the chargers": maybe it is a list item.
-        final viaList = await _tryCheckOff(db, s, c.copyWith(action: VoiceAction.checkOff), ar);
+        final viaList = s.isEmpty ? null :
+          await _tryCheckOff(db, s, c.copyWith(action: VoiceAction.checkOff), ar);
         if (viaList != null) return viaList;
       }
       return VoiceReply(ar ? 'لم أجد تذكيرًا باسم ${c.title}.' : 'I couldn’t find a reminder called ${c.title}.');
@@ -387,7 +393,10 @@ class VoiceAssistant {
   }
 
   static Future<String> _remindersText(SupabaseClient db, String s, bool ar) async {
-    final rows = await db.from('reminders').select('title,due_at').eq('space_id', s)
+    final query=OneSpaceEnv.isProduction
+      ? db.from('reminders').select('title,due_at').eq('space_id',s)
+      : db.from('reminders').select('title,due_at');
+    final rows=await query
       .isFilter('archived_at', null).gte('due_at', DateTime.now().toUtc().toIso8601String())
       .order('due_at').limit(6);
     if (rows.isEmpty) return ar ? 'لا توجد تذكيرات قادمة.' : 'You have no upcoming reminders.';

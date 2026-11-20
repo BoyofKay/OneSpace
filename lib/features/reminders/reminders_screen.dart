@@ -9,6 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import '../calendar/calendar_rules.dart';
 import '../calendar/calendar_screen.dart';
@@ -51,13 +52,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
    if(mounted)load(quiet:true);
   });
  }
- void _watchChanges(String id){
-  if(_watchedSpace==id)return;
-  _watchedSpace=id;
+ void _watchChanges(String? id){
+  final key=OneSpaceEnv.isProduction ? id : 'personal:$me|pair:$id';
+  if(_watchedSpace==key)return;
+  _watchedSpace=key;
   _reminderSubscription?.cancel();_recipientSubscription?.cancel();
   _reminderFingerprint=null;_recipientFingerprint=null;
-  _reminderSubscription=db.from('reminders').stream(primaryKey:['id'])
-   .eq('space_id',id).limit(250).listen((rows){
+  final reminderStream=OneSpaceEnv.isProduction
+   ? db.from('reminders').stream(primaryKey:['id'])
+      .eq('space_id',id!).limit(250)
+   : db.from('reminders').stream(primaryKey:['id']).limit(250);
+  _reminderSubscription=reminderStream.listen((rows){
     final stamp=rows.map((r)=>r.toString()).join('|');
     if(_reminderFingerprint!=null&&_reminderFingerprint!=stamp)_queueRefresh();
     _reminderFingerprint=stamp;
@@ -75,19 +80,29 @@ class _RemindersScreenState extends State<RemindersScreen> {
   if(!mounted)return;
   if(!quiet)setState((){loading=true;error=null;});
   try{
-   final id=await CurrentSpaceCache.instance.get();
-   if(id==null){
+   String? id=await CurrentSpaceCache.instance.get();
+   if (!OneSpaceEnv.isProduction) {
+     final scopes=await db.rpc('my_storage_scopes');
+     if(scopes is! Map || scopes['private_space_id']?.toString()!=me) {
+       throw StateError('Personal reminders scope unavailable');
+     }
+     id=scopes['shared_space_id']?.toString();
+   }
+   if(id==null && OneSpaceEnv.isProduction){
     if(mounted)setState((){space=null;reminders=[];loading=false;});
     return;
    }
-   final data=await db.from('reminders').select(
-    'id,title,details,due_at,created_by,visibility,audience,'
+   // Production has not received the QA personal-scope migration.
+   final scopeColumn=OneSpaceEnv.isProduction?'':'private_space_id,';
+   var query=db.from('reminders').select(
+    'id,title,details,due_at,created_by,${scopeColumn}visibility,audience,'
     'source_kind,source_id,reminder_intent,reminder_gesture_kind,archived_at,updated_at,'
     'repeat_rule,urgent,source_closed_at,'
     'reminder_recipients(recipient_id,state,next_alert_at,open_occurrence_at,'
     'snoozed_until,acknowledged_at,outcome_note,updated_at),'
-    'reminder_actions(actor_id,recipient_id,action,note,next_alert_at,recorded_at)')
-     .eq('space_id',id).order('due_at',ascending:true).limit(250);
+    'reminder_actions(actor_id,recipient_id,action,note,next_alert_at,recorded_at)');
+   if (OneSpaceEnv.isProduction) query=query.eq('space_id',id!);
+   final data=await query.order('due_at',ascending:true).limit(250);
    if(mounted)_watchChanges(id);
    if(mounted)setState((){
     space=id;reminders=List<Map<String,dynamic>>.from(data);
@@ -131,10 +146,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
   return day+' · '+hour.toString()+':'+minute+(dt.hour>=12?' PM':' AM');
  }
  Future<void> editor({Map<String,dynamic>? existing})async{
-  final id=space;if(id==null)return;
+  final id=space;
+  if(id==null && OneSpaceEnv.isProduction)return;
   final saved=await Navigator.of(context).push<bool>(
    MaterialPageRoute<bool>(builder:(_)=>ReminderEditorScreen(
-    spaceId:id,existing:existing)));
+    spaceId:id??'',existing:existing)));
   if(saved==true&&mounted)await load(quiet:true);
  }
  Future<String?> notesPrompt(String type)async{
@@ -337,7 +353,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
      onRemove:r['created_by']==me?()=>archive(r):null),
    childrenPadding:const EdgeInsetsDirectional.fromSTEB(16,0,16,14),
    children:[
-    LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
+    if(OneSpaceEnv.isProduction || r['private_space_id']==null)
+     LinkedItemsStrip(kind:LinkKind.reminder,id:r['id'].toString()),
     if((r['details']??'').toString().isNotEmpty)
      Align(alignment:AlignmentDirectional.centerStart,
       child:Padding(padding:const EdgeInsets.symmetric(vertical:8),
@@ -406,7 +423,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       onApply:(v)=>setState((){showCompleted=v['show']=='done';}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;showCompleted=false;}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(heroTag:'fab-reminders',
+   floatingActionButton:space==null&&OneSpaceEnv.isProduction
+    ?null:FloatingActionButton.extended(heroTag:'fab-reminders',
     onPressed:busy?null:()=>editor(),icon:const Icon(Icons.add),
     label:Text(tt('Add reminder'))),
    body:RefreshIndicator(onRefresh:load,child:ListView(
@@ -431,8 +449,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
        color:Theme.of(context).colorScheme.error))),
      if(loading)const Padding(padding:EdgeInsets.all(40),
       child:Center(child:CircularProgressIndicator())),
-     if(!loading&&space==null)Text(tt('Connect a shared space first.')),
-     if(!loading&&space!=null&&visible.isEmpty)
+     if(!loading&&space==null&&OneSpaceEnv.isProduction)
+      Text(tt('Connect a shared space first.')),
+     if(!loading&&visible.isEmpty &&
+       (space!=null || !OneSpaceEnv.isProduction))
       Padding(padding:EdgeInsets.all(40),
        child:Center(child:Text(tt('No reminders in this view.')))),
      for(final r in visible)tile(r),
@@ -486,7 +506,8 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   belongsTo:audience=='both'?null:audience=='me'?people?.me??'me':people?.partnerId??'partner');
  void setMeta(MetaValues v){
   setState((){
-   visibility=v.shared?'shared':'private';
+   visibility=(OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty) && v.shared
+     ?'shared':'private';
    audience=v.belongsTo==null?'both':v.belongsTo==(people?.me??'me')?'me':'partner';
    if(!v.shared)audience='me';
   });
@@ -498,7 +519,9 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   details=TextEditingController(text:prior?['details']?.toString()??widget.initialDetails);
   due=DateTime.tryParse(prior?['due_at']?.toString()??'')?.toLocal()
    ??widget.initialDue??DateTime.now().add(const Duration(hours:1));
-  visibility=prior?['visibility']?.toString()??(widget.initialShared?'shared':'private');
+  visibility=prior?['visibility']?.toString()??
+    ((OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty) &&
+      widget.initialShared ?'shared':'private');
   audience=prior?['audience']?.toString()??(widget.initialShared?'both':'me');
   sourceKind=prior?['source_kind']?.toString()??widget.initialSourceKind;
   linkType=sourceKind;
@@ -561,6 +584,10 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   onChanged:(r)=>setState(()=>repeat=r));
  @override void dispose(){title.dispose();details.dispose();super.dispose();}
  Future<void> loadLinks()async{
+  if (!OneSpaceEnv.isProduction && widget.spaceId.isEmpty) {
+    if(mounted)setState((){links=[];loadingLinks=false;});
+    return;
+  }
   try{
    final lists=await Future.wait([
     db.from('tasks').select('id,title,visibility')
@@ -613,6 +640,16 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
     widget.existing==null){
    setState(()=>error='Choose a future date and time.');return;
   }
+  final personal=!OneSpaceEnv.isProduction && visibility=='private'
+    && widget.existing==null;
+  if(visibility=='shared' && widget.spaceId.isEmpty) {
+    setState(()=>error='Connect with a partner before sharing a reminder.');
+    return;
+  }
+  if(personal && sourceKind!=null) {
+    setState(()=>error='Linking items to personal reminders is not available yet.');
+    return;
+  }
   if(sourceKind!=null&&sourceId!=null){
    final match=links.where((x)=>x['id']==sourceId).toList();
    if(match.isEmpty||visibility=='shared'&&match.first['visibility']=='private'){
@@ -630,11 +667,14 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    };
    if(widget.existing==null){
     final created=await db.from('reminders').insert({
-     ...fields,'space_id':widget.spaceId,
+     ...fields,
+     if(personal) 'private_space_id':db.auth.currentUser!.id
+     else 'space_id':widget.spaceId,
      'visibility':visibility,'audience':audience,
      'source_kind':sourceKind,'source_id':sourceId,
     }).select('id').single();
-    await widget.onCreated?.call(created['id'].toString());
+    // Never insert an account-owned reminder into a shared object's links.
+    if (!personal) await widget.onCreated?.call(created['id'].toString());
    }else{
     await db.from('reminders').update(fields)
       .eq('id',widget.existing!['id'].toString());
@@ -692,19 +732,22 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
     TextField(controller:details,maxLength:4000,minLines:2,maxLines:5,
      decoration:InputDecoration(labelText:tt('Details / instructions'),
       border:OutlineInputBorder())),
-    if(visibility=='shared')Align(
+    if(visibility=='shared' && widget.spaceId.isNotEmpty)Align(
      alignment:AlignmentDirectional.centerStart,
      child:PartnerMentionButton(
       spaceId:widget.spaceId,controller:details,
       enabled:!saving)),
     const SizedBox(height:10),
     if(loadingLinks)const LinearProgressIndicator(),
-    if(!editing)ChoiceRow<String>(label:tt('About an item (optional)'),
+    if(!editing && (OneSpaceEnv.isProduction || visibility=='shared'))
+     ChoiceRow<String>(label:tt('About an item (optional)'),
      options:{for(final k in linkKinds)k:linkLabels[k]!},icons:linkIcons,
      selected:linkType,allowNone:true,
      onSelected:(v)=>setState((){linkType=v;
       if(sourceKind!=v){sourceKind=null;sourceId=null;}})),
-    if(!editing&&linkType!=null)ChoicePickerField<String>(label:tt(linkLabels[linkType]!),
+    if(!editing&&linkType!=null &&
+      (OneSpaceEnv.isProduction || visibility=='shared'))
+     ChoicePickerField<String>(label:tt(linkLabels[linkType]!),
      icon:linkIcons[linkType]!,noneLabel:tt('Choose one'),options:options,
      selected:selected!=null&&options.containsKey(selected)?selected:null,
      onSelected:(v)=>setState((){
