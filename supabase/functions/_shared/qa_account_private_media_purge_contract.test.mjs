@@ -18,8 +18,11 @@ test("Each account-private file type passes only its own bucket/path contract",(
   ["onespace-private-share-in","heic",true],
   ["onespace-private-activity-media","png",false],
   ["onespace-private-activity-voice","m4a",false],
+  ["onespace-support","jpg",true],
  ]){
-  const original=sample(bucket,ext,inbox);
+  const original=bucket==="onespace-support"
+    ? {...sample(bucket,ext,inbox),object_path:`${owner}/1763638800000.jpg`}
+    :sample(bucket,ext,inbox);
   assert.deepEqual(validateAccountPurgeJob(original),original);
  }
 });
@@ -55,4 +58,17 @@ test("Private Share-in accepts account-root path only",()=>{
  assert.deepEqual(validateAccountPurgeJob(ok),ok);
  assert.equal(validateAccountPurgeJob({...ok,object_path:`${root}/${owner}/${file}.pdf`}),null);
  assert.equal(validateAccountPurgeJob({...ok,object_path:`${other}/${file}.pdf`}),null);
+});
+
+test("Support screenshot cleanup only allows actual owner and 13-digit timestamp",()=>{
+ const ok={...sample("onespace-support","png",true),
+  object_path:`${owner}/1763638800000.png`};
+ assert.deepEqual(validateAccountPurgeJob(ok),ok);
+ for(const path of [
+  `${other}/1763638800000.png`,
+  `${owner}/1763638800000.pdf`,
+  `${owner}/image.png`,
+  `${owner}/17636388000000.jpg`,
+  `${root}/${owner}/1763638800000.jpg`,
+ ]) assert.equal(validateAccountPurgeJob({...ok,object_path:path}),null);
 });
