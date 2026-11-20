@@ -47,8 +47,7 @@ void main() {
   test('Unpaired invited account gets one focused handoff instead of 3 setup cards', () {
     final source = File('lib/features/spaces/shared_space_screen.dart')
         .readAsStringSync();
-    final invited = source.indexOf(
-      'else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null)');
+    final invited = source.indexOf('joiningAddressedInvite)) ...[');
     final general = source.indexOf('else if (spaceId == null) ...[', invited);
     expect(invited, greaterThan(0));
     expect(general, greaterThan(invited));
@@ -61,6 +60,8 @@ void main() {
     expect(source, contains("if (data['space_id'] == null)"));
     expect(source, contains("if (status == 'already_joined')"));
     expect(source, contains('InvitationLinkInbox.instance.clear()'));
+    expect(source, contains('dismissedAddressedInvite = true'));
+    expect(source, contains('joiningAddressedInvite = true'));
   });
 
   testWidgets('Verified recipient invitation survives a lost browser deep link',
