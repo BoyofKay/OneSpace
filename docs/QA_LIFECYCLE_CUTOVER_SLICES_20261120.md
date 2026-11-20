@@ -72,6 +72,16 @@
 
 **Release status:** Earlier latest-head Flutter Analyze and Test + invitation and media worker CI completed successfully at `66a74b94`; newer head is pending separate CI verification. No new APK or deploy. One consolidated QA APK remains the only planned build. Production remains off limits.
 
+## QA Activity image and voice privacy cutover
+
+- `0273`: account-only `onespace-private-activity-media` and `onespace-private-activity-voice` buckets (both private); account-private Activity image/voice component author, path and bucket guards; private voice conversation `voice_bucket_id`; owner-authenticated file upload/read and unused-upload cleanup. Flutter image and voice upload services now choose the bucket from the actual Activity scope, and image previews, voice-component playback and chat voice playback read the saved bucket ID. Old shared attachments still default to their historical bucket.
+- `0274`: the **service-only seven-day account file inventory** now includes both personal Activity media buckets. Rollback test checks owner Activity media included and partner media excluded.
+- `0275`: restrictive old couple Activity-media Storage policies require a current two-member relationship for upload, read and cleanup. A private Activity cannot upload into old couple buckets. A former partner or an unpaired original uploader cannot read the old shared file through Storage RLS even while a stale root still exists. Existing signed URLs already issued before unpairing may remain usable until their short expiry; physical deletion must precede enabling the destructive lifecycle API.
+- `qa_account_private_activity_media_voice_isolation.sql` **PASS**: owner photo+voice metadata and file access, partner/outsider denial, immutable personal media path, no couple bucket substitution.
+- `qa_current_pair_activity_media_bucket_guard.sql` **PASS**: shared upload/read only during current pair, private root rejected in couple Storage, read access revoked when membership becomes unpaired.
+- **27 distinct QA rollback SQL regression scripts have passed** since the scope cutover; the previously re-run 25 remain verified before this Activity-specific cutover, and new tests plus the Activity/day-seven regression were run after it. Latest-head Flutter CI still requires a fresh success after commits.
+- Remaining destructive lifecycle blockers: full physical file purge worker acceptance across *all* media families and signed-URL expiry, account finalization/auth user removal after exact seven-day deadline, legacy/orphan-space cleanup, race/re-pair A/B/C tests. No production changes, no merge, no APK.
+
 **Integration gates still open:** latest-head Flutter CI verification and two-phone tests have **not** both completed. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
 
 ## Checks actually executed
