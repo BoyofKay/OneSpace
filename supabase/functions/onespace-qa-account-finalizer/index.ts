@@ -47,6 +47,18 @@ Deno.serve(async(req:Request)=>{
  if(!isAccountReadyForAuthDeletion(readiness))
   return respond(409,{error:"Account cannot be removed until all dependencies and media are gone"});
 
+ // The second DB readiness check prevents any completed file paths or
+ // uploader identifiers being retained from the queues after Auth deletion.
+ // Unfinished work must NEVER be scrubbed. Failure aborts Auth deletion.
+ try{
+  const {error}=await db.rpc("qa_scrub_completed_account_media_jobs",{
+   p_user:id,
+  });
+  if(error)throw Error("Completed-media cleanup not allowed");
+ }catch{
+  return respond(503,{error:"Completed media audit cleanup was not verified"});
+ }
+
  try{
   // Supabase Auth Admin API: delete user AND cascade account-private namespace.
   // The DB's NO ACTION owner/child constraints must already pass the verified
