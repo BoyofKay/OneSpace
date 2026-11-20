@@ -15,10 +15,12 @@ class ActivityVoicePlayer extends StatefulWidget {
     super.key,
     required this.objectPath,
     required this.seconds,
+    this.bucketId,
   });
 
   final String objectPath;
   final int seconds;
+  final String? bucketId;
 
   @override
   State<ActivityVoicePlayer> createState() => _ActivityVoicePlayerState();
@@ -29,6 +31,15 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
   bool loading = false;
   String? error;
   DateTime? signedAt;
+
+  @override
+  void didUpdateWidget(covariant ActivityVoicePlayer oldWidget){
+    super.didUpdateWidget(oldWidget);
+    if(oldWidget.objectPath!=widget.objectPath||oldWidget.bucketId!=widget.bucketId){
+      signedAt=null;
+      unawaited(player.stop());
+    }
+  }
 
   @override
   void dispose() {
@@ -52,7 +63,7 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
               const Duration(seconds: 90);
       if (expired) {
         final url = await Supabase.instance.client.storage
-            .from(ActivityVoiceRules.bucket)
+            .from(widget.bucketId??ActivityVoiceRules.bucket)
             .createSignedUrl(widget.objectPath, 120);
         await player.setUrl(url);
         signedAt = DateTime.now();
