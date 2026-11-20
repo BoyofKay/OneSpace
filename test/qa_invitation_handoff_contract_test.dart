@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:onespace/core/app_env.dart';
 import 'package:onespace/features/auth/auth_gate.dart';
@@ -74,6 +75,10 @@ void main() {
 
   testWidgets('Verified recipient invitation survives a lost browser deep link',
       (tester) async {
+    // A widget test has no Android/iOS keystore. Without this test double,
+    // FlutterSecureStorage.read/write/delete can await a platform response
+    // forever; CI then times out after 10 minutes before building the APK.
+    FlutterSecureStorage.setMockInitialValues({});
     final inbox = InvitationLinkInbox.instance;
     await inbox.clear();
     expect(inbox.pendingCode, isNull);
