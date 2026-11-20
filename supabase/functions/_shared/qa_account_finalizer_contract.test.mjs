@@ -7,6 +7,7 @@ const clean=()=>({
  legacy_couple_private_rows:0,unresolved_auth_user_fk_references:0,
  remaining_storage_objects_owned:0,remaining_storage_folder_references:0,
  unfinished_private_file_purges:0,unfinished_shared_file_purges:0,
+ remaining_shared_storage_objects:0,
 });
 test("Only real UUIDs are eligible for the server account-deletion API",()=>{
  assert.equal(validAccountId("a1111111-1111-4111-8111-111111111111"),true);
@@ -26,7 +27,8 @@ test("One live pair, user-owned file, personal queue or missing due state blocks
   "remaining_relationship_memberships","remaining_created_spaces",
   "legacy_couple_private_rows","unresolved_auth_user_fk_references",
   "remaining_storage_objects_owned","remaining_storage_folder_references",
-  "unfinished_private_file_purges","unfinished_shared_file_purges"
+  "unfinished_private_file_purges","unfinished_shared_file_purges",
+  "remaining_shared_storage_objects"
  ]){
   const x=clean();x[key]=1;
   assert.equal(isAccountReadyForAuthDeletion(x),false,key);
