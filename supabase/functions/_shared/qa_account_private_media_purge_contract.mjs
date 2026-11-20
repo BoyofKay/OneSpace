@@ -7,6 +7,7 @@ const BUCKETS=Object.freeze({
  "onespace-private-share-in":new Set(["pdf","jpg","jpeg","png","webp","heic"]),
  "onespace-private-activity-media":new Set(["jpg","jpeg","png","webp"]),
  "onespace-private-activity-voice":new Set(["m4a"]),
+ "onespace-support":new Set(["jpg","png"]),
 });
 export function validateAccountPurgeJob(input){
  if(!input||typeof input!=="object")return null;
@@ -18,14 +19,17 @@ export function validateAccountPurgeJob(input){
     object_path.startsWith("/")||object_path.includes("..")||
     object_path.includes("\\"))return null;
  const parts=object_path.split("/");
- const inbox=bucket_id==="onespace-private-share-in";
- if(parts.length!==(inbox?2:3))return null;
- const pathOwner=inbox?parts[0]:parts[1];
+ const simple=bucket_id==="onespace-private-share-in"||
+  bucket_id==="onespace-support";
+ if(parts.length!==(simple?2:3))return null;
+ const pathOwner=simple?parts[0]:parts[1];
  if(pathOwner!==owner_id)return null;
- if(!inbox&&!UUID.test(parts[0]))return null;
+ if(!simple&&!UUID.test(parts[0]))return null;
  const file=parts.at(-1);
  const dot=file.lastIndexOf(".");
- if(dot<=0||!UUID.test(file.slice(0,dot))||
-    !BUCKETS[bucket_id].has(file.slice(dot+1)))return null;
+ if(dot<=0||!BUCKETS[bucket_id].has(file.slice(dot+1)))return null;
+ if(bucket_id==="onespace-support"){
+  if(!/^[0-9]{13}$/.test(file.slice(0,dot)))return null;
+ }else if(!UUID.test(file.slice(0,dot)))return null;
  return {owner_id,bucket_id,object_path,lease_id};
 }
