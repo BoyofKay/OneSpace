@@ -12,7 +12,7 @@ DECLARE own uuid:=current_setting('qa.owner')::uuid;
  peer uuid:=current_setting('qa.peer')::uuid;
  outsider uuid:=current_setting('qa.other')::uuid;
  pair uuid:=current_setting('qa.space')::uuid;
- a uuid;b uuid;c uuid;d uuid;mine uuid;both uuid;n int;
+ a uuid;b uuid;c uuid;d uuid;mine uuid;pair_link_id uuid;n int;
 BEGIN
  IF own IS NULL OR peer IS NULL OR outsider IS NULL OR pair IS NULL THEN
  RAISE EXCEPTION 'QA needs owner, partner and outsider'; END IF;
@@ -27,18 +27,18 @@ BEGIN
  INSERT INTO public.item_links(private_space_id,from_kind,from_id,to_kind,to_id)
  VALUES(own,'note',a,'note',b) RETURNING id INTO mine;
  INSERT INTO public.item_links(space_id,from_kind,from_id,to_kind,to_id)
- VALUES(pair,'note',c,'note',d) RETURNING id INTO both;
+ VALUES(pair,'note',c,'note',d) RETURNING id INTO pair_link_id;
  SELECT count(*) INTO n FROM public.item_links WHERE id=mine;
  IF n<>1 THEN RAISE EXCEPTION 'Owner cannot see account-owned item link';END IF;
- SELECT count(*) INTO n FROM public.item_links WHERE id=both;
+ SELECT count(*) INTO n FROM public.item_links WHERE id=pair_link_id;
  IF n<>1 THEN RAISE EXCEPTION 'Owner cannot see current shared item link';END IF;
  PERFORM set_config('request.jwt.claim.sub',peer::text,true);
  SELECT count(*) INTO n FROM public.item_links WHERE id=mine;
  IF n<>0 THEN RAISE EXCEPTION 'Partner sees personal link';END IF;
- SELECT count(*) INTO n FROM public.item_links WHERE id=both;
+ SELECT count(*) INTO n FROM public.item_links WHERE id=pair_link_id;
  IF n<>1 THEN RAISE EXCEPTION 'Partner cannot see shared link';END IF;
  PERFORM set_config('request.jwt.claim.sub',outsider::text,true);
- SELECT count(*) INTO n FROM public.item_links WHERE id IN(mine,both);
+ SELECT count(*) INTO n FROM public.item_links WHERE id IN(mine,pair_link_id);
  IF n<>0 THEN RAISE EXCEPTION 'Outsider sees personal or pair link';END IF;
  PERFORM set_config('request.jwt.claim.sub',own::text,true);
  BEGIN
