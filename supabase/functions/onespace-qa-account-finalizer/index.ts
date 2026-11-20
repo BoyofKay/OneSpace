@@ -68,16 +68,27 @@ Deno.serve(async(req:Request)=>{
  if(!isAccountReadyForAuthDeletion(readiness))
   return respond(409,{error:"Account cannot be removed until all dependencies and media are gone"});
 
- // The second DB readiness check prevents any completed file paths or
- // uploader identifiers being retained from the queues after Auth deletion.
- // Unfinished work must NEVER be scrubbed. Failure aborts Auth deletion.
+ // Atomically scrub completed media metadata + set sticky processing.
+ // This DB transaction takes the SAME per-user advisory lock as pairing and
+ // cancellation. A second finalizer cannot claim the account again.
+ // IMPORTANT: if Auth Admin fails, leave processing sticky for manual review.
+ let claim:unknown;
  try{
-  const {error}=await db.rpc("qa_scrub_completed_account_media_jobs",{
+  const {data,error}=await db.rpc("qa_claim_account_for_auth_finalization",{
    p_user:id,
   });
-  if(error)throw Error("Completed-media cleanup not allowed");
+  if(error)throw Error("Account claim was refused");
+  claim=data;
  }catch{
-  return respond(503,{error:"Completed media audit cleanup was not verified"});
+  return respond(503,{error:"Account finalization claim blocked; manual safety review may be required"});
+ }
+ const finalized=claim&&typeof claim==="object"
+  ? claim as {claimed?:unknown;claim_id?:unknown;readiness?:unknown}:null;
+ if(finalized?.claimed!==true ||
+    !validAccountId(finalized?.claim_id) ||
+    !isAccountReadyForAuthDeletion(finalized?.readiness)){
+  // A claim may already be committed; do NOT blindly retry Auth deletion.
+  return respond(503,{error:"Unexpected claim verification; manual review required"});
  }
 
  try{
