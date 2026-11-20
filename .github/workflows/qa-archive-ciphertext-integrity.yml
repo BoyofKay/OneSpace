@@ -20,6 +20,8 @@ on:
       - 'supabase/tests/qa_preview_janitor_handler.test.mjs'
       - 'supabase/tests/qa_private_restore_dry_run.test.mjs'
       - 'supabase/functions/_shared/qa_private_restore_dry_run.mjs'
+      - 'supabase/functions/_shared/qa_osa_subset_restore_plan.mjs'
+      - 'supabase/tests/qa_osa_subset_restore_plan.test.mjs'
       - 'supabase/functions/_shared/qa_vault_subset_osa.mjs'
       - 'supabase/tests/qa_vault_subset_osa.test.mjs'
       - 'supabase/scripts/qa_private_vault_subset_export.mjs'
@@ -39,6 +41,8 @@ on:
       - 'supabase/tests/qa_preview_janitor_handler.test.mjs'
       - 'supabase/tests/qa_private_restore_dry_run.test.mjs'
       - 'supabase/functions/_shared/qa_private_restore_dry_run.mjs'
+      - 'supabase/functions/_shared/qa_osa_subset_restore_plan.mjs'
+      - 'supabase/tests/qa_osa_subset_restore_plan.test.mjs'
       - 'supabase/functions/_shared/qa_vault_subset_osa.mjs'
       - 'supabase/tests/qa_vault_subset_osa.test.mjs'
       - 'supabase/scripts/qa_private_vault_subset_export.mjs'
@@ -58,4 +62,4 @@ jobs:
         with:
           node-version: '22'
       - name: Mock Auth, archive registry and Storage; verify actual ciphertext
-        run: node --experimental-strip-types --test supabase/tests/qa_subset_storage_roundtrip_0211.test.mjs supabase/tests/qa_private_vault_subset_export.test.mjs supabase/tests/qa_vault_subset_osa.test.mjs supabase/tests/archive_download_integrity.test.mjs supabase/tests/archive_envelope_crypto.test.mjs supabase/tests/qa_archive_staging_handler.test.mjs supabase/tests/qa_preview_janitor_handler.test.mjs supabase/tests/qa_private_restore_dry_run.test.mjs
+        run: node --experimental-strip-types --test supabase/tests/qa_subset_storage_roundtrip_0211.test.mjs supabase/tests/qa_private_vault_subset_export.test.mjs supabase/tests/qa_vault_subset_osa.test.mjs supabase/tests/archive_download_integrity.test.mjs supabase/tests/archive_envelope_crypto.test.mjs supabase/tests/qa_archive_staging_handler.test.mjs supabase/tests/qa_preview_janitor_handler.test.mjs supabase/tests/qa_private_restore_dry_run.test.mjs supabase/tests/qa_osa_subset_restore_plan.test.mjs
