@@ -306,6 +306,11 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               : const {'none': 'No reminder', '1h': 'An hour before', '1d': 'A day before', '1w': 'A week before'},
             selected: _remind,
             onSelected: (v) { if (_canEdit && !_saving) setState(() => _remind = v ?? 'none'); }),
+          if (!OneSpaceEnv.isProduction && _visibility=='private' &&
+              _remind!='none')
+            Text(tt('Your private reminder is saved independently. '
+              'Removing this event will not automatically cancel it.'),
+              style:Theme.of(context).textTheme.bodySmall),
           FormSection(tt('Where')),
           TextField(
             controller: _location,
