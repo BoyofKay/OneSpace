@@ -23,6 +23,8 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
   static const _export = MethodChannel('onespace/data_export');
   final _db = Supabase.instance.client;
   List<Map<String,dynamic>> _archives = [];
+  List<Map<String,dynamic>> _archiveJobs = [];
+  Timer? _inventoryPoll;
   final Set<String> _inProgress = {};
   final Set<String> _cached = {};
   bool _loading = true;
@@ -32,6 +34,17 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
   void initState() {
     super.initState();
     unawaited(_load());
+    if (!OneSpaceEnv.isProduction) {
+      _inventoryPoll = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (mounted && _inProgress.isEmpty) unawaited(_load());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _inventoryPoll?.cancel();
+    super.dispose();
   }
 
   bool _isReady(Map<String,dynamic> archive) =>
@@ -89,9 +102,24 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
         .select('id,archive_kind,status,created_at,expires_at,ciphertext_sha256,byte_length,explicit_download_confirmed_at')
         .eq('recipient_id',me)
         .order('created_at',ascending:false).limit(50);
+      // QA-only in-progress snapshots: backend worker records a real census,
+      // never a fictional percentage. RLS limits rows to the recipient.
+      final jobs = OneSpaceEnv.isProduction
+          ? <Map<String,dynamic>>[]
+          : List<Map<String,dynamic>>.from(await _db
+              .from('qa_archive_job_progress')
+              .select('id,archive_kind,status,records_identified,'
+                      'records_archived,bytes_encrypted,inventoried_at,error_code')
+              .eq('recipient_id', me)
+              .order('last_transition_at', ascending: false)
+              .limit(50));
       if (!mounted) return;
-      setState(() { _archives = List<Map<String,dynamic>>.from(data);
-        _loading = false; _error = null; });
+      setState(() {
+        _archives = List<Map<String,dynamic>>.from(data);
+        _archiveJobs = jobs;
+        _loading = false;
+        _error = null;
+      });
       for (final a in _archives) {
         if (_isReady(a)) { unawaited(_cacheInApp(a)); }
       }
@@ -213,7 +241,58 @@ class _MyArchivesScreenState extends State<MyArchivesScreen> {
               'be restored from an archive. When a verified archive is ready, '
               'Download archive saves the file to your device as your external copy.')),
             const SizedBox(height: 16),
-            if (_archives.isEmpty) Card(child: Padding(
+            if (_archiveJobs.isNotEmpty) ...[
+              Text(tt('Archive processing'),
+                style: theme.textTheme.titleMedium),
+              const SizedBox(height: 6),
+              Text(tt('The background inventory is complete for the entries '
+                'marked below. Export, encryption, integrity validation and '
+                'delivery have not started until a verified archive appears '
+                'in the download section. No estimated completion time exists.')),
+              const SizedBox(height: 10),
+              for (final job in _archiveJobs) ...[
+                Card(
+                  key: Key('archiveJob-${job['id']}'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          const Icon(Icons.fact_check_outlined),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(tt(
+                            job['archive_kind'] == 'private'
+                              ? 'My private record export'
+                              : 'Our original shared history export'
+                          ), style: theme.textTheme.titleSmall)),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text(tt(job['status'] == 'inventory_complete'
+                          ? 'Record identification completed — export not started'
+                          : job['status'] == 'inventory_blocked'
+                            ? 'Record identification needs review'
+                            : job['status'] == 'cancelled'
+                              ? 'Preparation cancelled'
+                              : 'Queued for inventory')),
+                        const SizedBox(height: 7),
+                        Text(tt('Eligible records identified') + ': ' +
+                          (job['records_identified']?.toString() ?? '—')),
+                        Text(tt('Records archived') + ': ' +
+                          (job['records_archived']?.toString() ?? '0')),
+                        Text(tt('Encrypted bytes issued') + ': ' +
+                          (job['bytes_encrypted']?.toString() ?? '0')),
+                        if (job['status'] == 'inventory_blocked')
+                          Text(tt('The complete source census did not pass '
+                            'its safety checks; no export was attempted.')),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 10),
+            ],
+            if (_archives.isEmpty && _archiveJobs.isEmpty) Card(child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(tt('No separation archives are available yet. '
                 'Your personal data and current shared space are unchanged.')),
