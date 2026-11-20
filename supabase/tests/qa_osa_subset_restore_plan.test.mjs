@@ -94,10 +94,10 @@ test("actual AES-GCM .osa generates private task+trip remap without writes",asyn
   assert.equal(result.can_restore,false);
   assert.equal(result.safe_to_separate,false);
   assert.equal(result.private_restore_complete,false);
-  assert.equal(result.plans.length,2);
-  assert.equal(result.mapped_private_record_count,5);
-  assert.equal(result.unplanned_record_count,1);
-  assert.equal(result.unplanned_table_counts.notes,1);
+  assert.equal(result.plans.length,3);
+  assert.equal(result.mapped_private_record_count,6);
+  assert.equal(result.unplanned_record_count,0);
+  assert.equal(result.unplanned_table_counts.notes,undefined);
   const task=result.plans.find(p=>p.source_family==="tasks");
   const trip=result.plans.find(p=>p.source_family==="shared_trips");
   assert.ok(task&&trip);
@@ -118,7 +118,13 @@ test("actual AES-GCM .osa generates private task+trip remap without writes",asyn
   assert.equal(trip.rows.children.trip_flight_options[0].trip_id,trip.rows.root.id);
   assert.notEqual(trip.rows.root.id,ids.trip);
   assert.notEqual(task.rows.root.id,ids.task);
-  assert.ok(!JSON.stringify(result.plans).includes(ids.note));
+  const note=result.plans.find(p=>p.source_family==="notes");
+  assert.equal(note.rows.root.title,"Not mapped yet");
+  assert.equal(note.rows.root.body,"Private note is still protected");
+  assert.equal(note.rows.root.space_id,destination);
+  assert.equal(note.rows.root.visibility,"private");
+  assert.notEqual(note.rows.root.id,ids.note);
+  assert.equal(note.dependent_content_restored,false);
 });
 test("wrong user, old relationship boundary and wrong passphrase fail closed",async()=>{
   const file=await seal();
@@ -141,4 +147,98 @@ test("private plan rejects unknown columns even if archive hashes are updated",a
       r.snapshot_sha256).join("\n"));
   const file=await seal(manifest);
   await assert.rejects(()=>plan(file),/Unsafe private restore preview/);
+});
+
+function appendRootAndRefresh(m,table,id,row){
+  m.records.push(record("root",table,id,row));
+  m.records.sort((a,b)=>{
+    const ak=a.kind+"|"+a.source_table+"|"+a.source_id;
+    const bk=b.kind+"|"+b.source_table+"|"+b.source_id;
+    return ak<bk?-1:ak>bk?1:0;
+  });
+  m.record_count=m.records.length;
+  m.root_record_count=m.records.filter(r=>r.kind==="root").length;
+  m.child_record_count=m.records.filter(r=>r.kind==="child").length;
+  m.snapshot_plaintext_bytes=m.records.reduce((n,r)=>n+r.snapshot_bytes,0);
+  m.subset_sha256=sha("onespace.qa.private.vault-subset.v1|"+owner+"|"+space+
+    "|"+m.records.map(r=>r.kind+"|"+r.source_table+"|"+r.source_id+"|"+
+      r.snapshot_sha256).join("\n"));
+}
+test("real encrypted goals and daily check-ins create distinct private-only root plans",async()=>{
+  const m=fixture();
+  const goal="77777777-2222-4333-8444-555555555555";
+  const checkin="66666666-2222-4333-8444-555555555555";
+  appendRootAndRefresh(m,"goals",goal,{
+    id:goal,space_id:space,created_by:owner,visibility:"private",
+    title:"Personal milestone",description:"Write my own plan",
+    target_date:"2027-01-12",progress:20,status:"active"
+  });
+  appendRootAndRefresh(m,"daily_checkins",checkin,{
+    id:checkin,space_id:space,created_by:owner,visibility:"private",
+    checkin_date:"2026-11-20",mood:4,message:"Feeling hopeful",
+    gratitude:"Time together"
+  });
+  const result=await plan(await seal(m));
+  assert.equal(result.plans.length,5);
+  assert.equal(result.mapped_private_record_count,8);
+  assert.equal(result.unplanned_record_count,0);
+  const g=result.plans.find(p=>p.source_family==="goals");
+  const c=result.plans.find(p=>p.source_family==="daily_checkins");
+  assert.equal(g.rows.root.title,"Personal milestone");
+  assert.equal(c.rows.root.gratitude,"Time together");
+  for(const p of [g,c]){
+    assert.equal(p.rows.root.created_by,owner);
+    assert.equal(p.rows.root.space_id,destination);
+    assert.equal(p.rows.root.visibility,"private");
+    assert.equal(p.can_write,false);
+    assert.equal(p.can_restore,false);
+    assert.notEqual(p.id_mappings[0].old_id,p.id_mappings[0].new_id);
+  }
+});
+test("reviewed plain-text Quill formatting is kept without external links",async()=>{
+  const m=fixture();
+  const n=m.records.find(r=>r.source_table==="notes");
+  const payload=JSON.parse(n.snapshot_json);
+  payload.rich_delta=[{insert:"Private prose"},{insert:"\n",attributes:{bold:true,header:2}}];
+  n.snapshot_json=JSON.stringify(payload);
+  n.snapshot_sha256=sha(n.snapshot_json);
+  n.snapshot_bytes=new TextEncoder().encode(n.snapshot_json).length;
+  // Recompute the immutable source aggregate after fixture changes.
+  m.snapshot_plaintext_bytes=m.records.reduce((t,r)=>t+r.snapshot_bytes,0);
+  m.subset_sha256=sha("onespace.qa.private.vault-subset.v1|"+owner+"|"+space+
+    "|"+m.records.map(r=>r.kind+"|"+r.source_table+"|"+r.source_id+"|"+
+      r.snapshot_sha256).join("\n"));
+  const result=await plan(await seal(m));
+  assert.deepEqual(result.plans.find(p=>p.source_family==="notes")
+    .rows.root.rich_delta,payload.rich_delta);
+});
+test("rehashed unreviewed rich-text links are rejected, not transplanted",async()=>{
+  const m=fixture();
+  const n=m.records.find(r=>r.source_table==="notes");
+  const payload=JSON.parse(n.snapshot_json);
+  payload.rich_delta=[{insert:"A link",attributes:{
+    link:"https://example.org/other-relationship"
+  }}];
+  n.snapshot_json=JSON.stringify(payload);
+  n.snapshot_sha256=sha(n.snapshot_json);
+  n.snapshot_bytes=new TextEncoder().encode(n.snapshot_json).length;
+  m.snapshot_plaintext_bytes=m.records.reduce((t,r)=>t+r.snapshot_bytes,0);
+  m.subset_sha256=sha("onespace.qa.private.vault-subset.v1|"+owner+"|"+space+
+    "|"+m.records.map(r=>r.kind+"|"+r.source_table+"|"+r.source_id+"|"+
+      r.snapshot_sha256).join("\n"));
+  const sealed=await seal(m);
+  await assert.rejects(()=>plan(sealed),
+    /Unsafe QA standalone private root rehearsal/);
+});
+test("unreviewed root types remain counted as unplanned",async()=>{
+  const m=fixture();
+  const memory="55555555-2222-4333-8444-555555555555";
+  appendRootAndRefresh(m,"memories",memory,{
+    id:memory,space_id:space,created_by:owner,
+    visibility:"private",title:"Needs reviewed dependency mapping"
+  });
+  const result=await plan(await seal(m));
+  assert.equal(result.unplanned_record_count,1);
+  assert.equal(result.unplanned_table_counts.memories,1);
+  assert.equal(result.can_restore,false);
 });
