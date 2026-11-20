@@ -16,6 +16,22 @@ void main() {
     expect(const NewActivityDraft(title: 'A').toInsert('s').containsKey('due_on'), isFalse);
   });
 
+  test('QA personal Activity uses account-owned scope, never couple scope', () {
+    final row=const NewActivityDraft(title:'Private plan',shared:false)
+      .toInsert('old-couple',accountOwned:true,ownerId:'owner-123');
+    expect(row['private_space_id'],'owner-123');
+    expect(row.containsKey('space_id'),isFalse);
+    expect(row['visibility'],'private');
+  });
+
+  test('QA shared Activity retains current couple scope', () {
+    final row=const NewActivityDraft(title:'Our plan',shared:true)
+      .toInsert('current-couple',accountOwned:true,ownerId:'owner-123');
+    expect(row['space_id'],'current-couple');
+    expect(row.containsKey('private_space_id'),isFalse);
+    expect(row['visibility'],'shared');
+  });
+
   test('purpose outline never overwrites typed details', () {
     expect(NewActivityDraft.detailsFor(ActivityPurpose.buy, ''),
         ActivityPurpose.buy.outline);
