@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'activity_media_scope.dart';
+import 'activity_voice_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// One compact audio control, reused by chat bubbles and Activity components.
