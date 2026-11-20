@@ -37,3 +37,9 @@ Require-Firebase-Config: true
   clear user-facing disclosure. Do not remove all archive/restore features.
 - Do not enable destructive lifecycle actions until ownership and structured
   restore are proven safe.
+
+## Milestone 1 invitation and branded QA release verification (20 November 2026)
+- Release source includes merged PR #102 (canonical **Two of Us. One Space** tagline in themes, strings and historical documentation; broader brand regression) and merged PR #103 (newest QA invitation source, original-space after-login handoff, already-joined idempotence and single contextual join card).
+- Signed QA Android APK only: `onespace.qa`, `ONESPACE_ENV=qa`, QA Supabase `ugwrpeduzyzrujkizqfo`, original trusted preview signature; no Production writes. Existing workflow must test and sign before publishing one APK.
+- Before calling Milestone 1 closed: install **over** previous QA on both devices, exercise invitation as a **new email-confirmed account** and as an **already-existing account**, correct/wrong email and reused/replaced/expired codes, standalone confirmation screen, and sender branding; confirm app opens one join panel then original existing space, no three setup cards.
+- Real hosted Supabase signup/forgot-password templates and delivered emails still require external/manual verification. No space or account deletion, leave, partner removal, or automatic cleanup while full structured archive+restore milestone is incomplete. Media/documents excluded from structured archive by design.
