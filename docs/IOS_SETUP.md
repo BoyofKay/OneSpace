@@ -1,4 +1,4 @@
-# OneSpace iOS — launch preparation (18 November 2026)
+# OneSpace iOS — launch preparation (updated 20 November 2026)
 
 This document separates what is already coded from what has actually been
 built, signed, tested, and released. The same Flutter application is shared
@@ -8,8 +8,13 @@ services, permissions, Face ID integration and Arabic permission text.
 
 ## Status
 
+- 20 November 2026: the iOS readiness work (formerly PRs #65 and #66) was
+  re-applied on top of current main, which now includes private/shared
+  spaces, the leave/remove/delete lifecycle, 7-day account deletion and the
+  48-hour invitations. Signed TestFlight now supports QA and Production, and
+  the app requests Universal Links for onespace.live invitations.
 - An unsigned iOS compilation previously passed on 16 November 2026.
-- The branch ios/launch-readiness-20261118 adds separate QA/production iOS
+- The iOS readiness work adds separate QA/production iOS
   identifiers, callback schemes, native startup validation, APNs token
   readiness retries, Firebase plist bundling, a manual signing/TestFlight
   workflow, and a native Share Extension for links, text, images and PDFs.
@@ -29,7 +34,8 @@ services, permissions, Face ID integration and Arabic permission text.
 | Dart environment | ONESPACE_ENV=qa | ONESPACE_ENV=production |
 | Callback URL | onespace-preview://auth-callback/ | onespace://auth-callback/ |
 | Backend | existing QA Supabase | clean production Supabase |
-| Distribution | unsigned build verification | signed IPA / TestFlight |
+| Invitation link | https://onespace.live/qa-invite/ | https://onespace.live/app-invite/ |
+| Distribution | TestFlight (internal testers) | TestFlight, then App Store |
 
 For local iOS work, first run:
 
@@ -51,12 +57,16 @@ their packaged Firebase registration.
 1. Build OneSpace iOS QA (unsigned) is the GitHub workflow at
    .github/workflows/ios-build.yml. It produces an unsigned diagnostic
    artifact, which CANNOT be installed directly on a normal iPhone.
+   It runs manually, or automatically when release/READY_TO_BUILD.md changes
+   on main (the same trigger as the Android release).
 2. Build and optionally upload OneSpace iOS to TestFlight is at
-   .github/workflows/ios-testflight.yml. It requires production signing and
-   production Firebase, verifies identity and push entitlements, exports a
-   signed IPA, and only uploads when upload_testflight is explicitly enabled.
+   .github/workflows/ios-testflight.yml. Choose environment qa or production.
+   It requires that environment's signing profiles and Firebase file,
+   verifies identity, push, App Group and Associated Domains entitlements,
+   exports a signed IPA, and only uploads when upload_testflight is enabled.
+   Uploading to TestFlight never submits the app for App Store review.
 
-Neither workflow runs on normal GitHub commits. Mac CI is expensive for
+Neither signed workflow runs on normal GitHub commits. Mac CI is expensive for
 private repositories. Use a physical iPhone + TestFlight for actual UAT;
 a Windows PC cannot run Apple's iPhone Simulator.
 
@@ -68,7 +78,7 @@ a Windows PC cannot run Apple's iPhone Simulator.
   enrollment is normally US $99/year in the United States, with regional
   pricing differences.
 - Create the production App ID com.onespace.onespace and enable Push
-  Notifications and App Groups. Register a second production App ID for
+  Notifications, App Groups and Associated Domains. Register a second production App ID for
   com.onespace.onespace.ShareExtension. Associate both with App Group
   group.com.onespace.onespace and generate separate App Store provisioning
   profiles for the host and extension. For signed QA, use the analogous
@@ -80,8 +90,8 @@ a Windows PC cannot run Apple's iPhone Simulator.
   exact respective bundle IDs; download each GoogleService-Info.plist.
 - Create an Apple Push Notifications authentication key (p8) and configure
   Firebase Cloud Messaging with the Apple Key ID and Team ID.
-- Create the production iOS listing in App Store Connect for the production
-  bundle ID. If automated upload is required, create an App Store Connect API
+- Create two App Store Connect apps: "OneSpace QA" for com.onespace.onespace.qa
+  (TestFlight only, never released) and "OneSpace" for com.onespace.onespace. If automated upload is required, create an App Store Connect API
   key for the publisher account.
 - In Supabase Auth redirect allowlists add the QA and production callbacks
   for their matching backend projects. Test email verification/recovery,
@@ -91,12 +101,14 @@ a Windows PC cannot run Apple's iPhone Simulator.
 
 | Secret name | Purpose |
 |---|---|
-| IOS_GOOGLE_SERVICE_INFO_QA_BASE64 | Optional QA iOS Firebase registration |
+| IOS_GOOGLE_SERVICE_INFO_QA_BASE64 | QA iOS Firebase registration (required for signed QA) |
 | IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 | Required production iOS Firebase registration |
 | IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 | Distribution certificate and private key |
 | IOS_DISTRIBUTION_CERTIFICATE_PASSWORD | p12 password |
 | IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 | App Store profile for production host app |
 | IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 | App Store profile for production Share Extension |
+| IOS_APPSTORE_PROVISIONING_PROFILE_QA_BASE64 | App Store profile for the QA host app (com.onespace.onespace.qa) |
+| IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_QA_BASE64 | App Store profile for the QA Share Extension |
 | APPLE_TEAM_ID | Apple developer team |
 | ASC_KEY_ID | App Store Connect upload key identifier |
 | ASC_ISSUER_ID | App Store Connect API issuer |
@@ -105,6 +117,24 @@ a Windows PC cannot run Apple's iPhone Simulator.
 Encode private files locally on your computer. Never commit signing keys,
 service-account credentials or private keys into source control, nor paste
 them into a chat. Store GitHub Actions secrets in the repository settings.
+
+## Invitation Universal Links
+
+Runner.entitlements requests `applinks:onespace.live`. The app already
+accepts https://onespace.live/qa-invite/ (QA) and /app-invite/ (Production)
+and rejects links for the other environment. To make the link open the app
+directly instead of the web page, the website (onespace-app repository) must
+publish `/.well-known/apple-app-site-association` once the Apple Team ID is
+known:
+
+    {"applinks":{"details":[
+      {"appIDs":["TEAMID.com.onespace.onespace.qa"],
+       "components":[{"/":"/qa-invite/*"}]},
+      {"appIDs":["TEAMID.com.onespace.onespace"],
+       "components":[{"/":"/app-invite/*"}]}]}}
+
+Until then, invitations still work through the web page's "Open in OneSpace"
+button and manual code entry.
 
 ## Real-device launch acceptance
 
@@ -139,8 +169,11 @@ them into a chat. Store GitHub Actions secrets in the repository settings.
   signing, and physical testing of the iOS share sheet are still pending.
   Test Safari, Photos, Files, denied access, cancellation, and both QA and
   production inbox isolation before releasing.
-- Signed iOS QA for testers, if required, needs a separate QA signing
-  profile. The existing QA build is only an unsigned compile check.
+- Signed iOS QA uses the same TestFlight workflow with environment=qa and
+  the QA profiles listed above.
+- Lifecycle parity (leave/remove/delete space, 7-day account deletion,
+  48-hour invitations) is shared Dart code with no iOS-specific native code,
+  but must be exercised on a signed iPhone build.
 - A verified production IPA, TestFlight install and real iPhone acceptance
   remain blocked on Apple credentials and physical testing.
 - Voice app-icon shortcut is intentionally disabled pending voice QA.

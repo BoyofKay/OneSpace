@@ -29,6 +29,14 @@ class IOSProjectTests(unittest.TestCase):
         self.assertEqual(extension["NSExtension"]["NSExtensionPointIdentifier"],
                          "com.apple.share-services")
 
+    def test_invitation_universal_links_entitlement(self):
+        with (RUNNER / "Runner.entitlements").open("rb") as stream:
+            ent = plistlib.load(stream)
+        # onespace.live/app-invite/ (Production) and /qa-invite/ (QA) open the
+        # installed app once the website publishes apple-app-site-association.
+        self.assertEqual(ent["com.apple.developer.associated-domains"],
+                         ["applinks:onespace.live"])
+
     def test_xcode_share_target_and_flutter_receiver_connected(self):
         project = (ROOT / "ios/Runner.xcodeproj/project.pbxproj").read_text()
         self.assertIn("OneSpaceShare.appex in Embed App Extensions", project)

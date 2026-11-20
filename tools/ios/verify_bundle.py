@@ -54,15 +54,15 @@ def main() -> None:
                 firebase_paths = [name for name in archive.namelist()
                                   if name.startswith("Payload/") and name.endswith(".app/GoogleService-Info.plist")]
                 if len(firebase_paths) != 1:
-                    sys.exit("Production IPA is missing its Firebase iOS configuration")
+                    sys.exit("IPA is missing its Firebase iOS configuration")
                 firebase = plistlib.loads(archive.read(firebase_paths[0]))
                 if firebase.get("BUNDLE_ID") != EXPECTED[args.environment][0]:
-                    sys.exit("Production IPA contains Firebase config for the wrong bundle ID")
+                    sys.exit("IPA contains Firebase config for the wrong bundle ID")
                 extension_plists = [name for name in archive.namelist()
                                     if name.startswith("Payload/") and
                                     name.endswith(".app/PlugIns/OneSpaceShare.appex/Info.plist")]
                 if len(extension_plists) != 1:
-                    sys.exit("Production IPA is missing the Share Extension")
+                    sys.exit("IPA is missing the Share Extension")
                 extension = plistlib.loads(archive.read(extension_plists[0]))
                 if extension.get("CFBundleIdentifier") != EXPECTED[args.environment][0] + ".ShareExtension":
                     sys.exit("Share Extension bundle ID does not match its host app")
