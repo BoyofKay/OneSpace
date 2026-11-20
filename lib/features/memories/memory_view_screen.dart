@@ -17,11 +17,15 @@ class SignedMemoryPhoto extends StatefulWidget {
   final double height;
   final BoxFit fit;
   static final Map<String, ({DateTime at, Future<String> url})> _cache = {};
+  static String _key(String path) =>
+      '${Supabase.instance.client.auth.currentUser?.id ?? 'signed-out'}:$path';
+
   static Future<String> sign(String path) {
-    final hit = _cache[path];
+    final key = _key(path);
+    final hit = _cache[key];
     if (hit != null && DateTime.now().difference(hit.at) < const Duration(seconds: 80)) return hit.url;
     final url = MemoryPhotoService(Supabase.instance.client).signedUrl(path);
-    _cache[path] = (at: DateTime.now(), url: url);
+    _cache[key] = (at: DateTime.now(), url: url);
     return url;
   }
   @override
@@ -34,7 +38,7 @@ class _SignedMemoryPhotoState extends State<SignedMemoryPhoto> {
   Widget build(BuildContext context) => FutureBuilder<String>(future: url, builder: (ctx, s) {
     if (!s.hasData) {
       return SizedBox(height: widget.height, child: s.hasError
-        ? IconButton(onPressed: () => setState(() { SignedMemoryPhoto._cache.remove(widget.path); url = SignedMemoryPhoto.sign(widget.path); }),
+        ? IconButton(onPressed: () => setState(() { SignedMemoryPhoto._cache.remove(SignedMemoryPhoto._key(widget.path)); url = SignedMemoryPhoto.sign(widget.path); }),
             icon: const Icon(Icons.refresh))
         : const Center(child: CircularProgressIndicator(strokeWidth: 2)));
     }
