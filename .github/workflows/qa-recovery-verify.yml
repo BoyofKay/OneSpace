@@ -40,7 +40,7 @@ jobs:
           }
           test -f lib/features/spaces/my_space_screen.dart
           test -f lib/features/spaces/invite_partner_screen.dart
-          test -f lib/features/spaces/my_archives_screen.dart
+          test ! -e lib/features/spaces/my_archives_screen.dart
           test -f lib/features/profile/change_password_screen.dart
           test -f test/auth_recovery_widget_test.dart
       - name: Set up Flutter
