@@ -116,6 +116,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   DateTime? pendingInviteExpiry;
   bool inviteCollapsed = true;
   String? _lastAutoJoinKey;
+  bool checkingAddressedInvite = false;
+  bool inviteLookupFailed = false;
+  bool dismissedAddressedInvite = false;
   bool loading = true;
   bool membershipResolved = false;
   bool summaryLoading = false;
@@ -327,7 +330,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         await prefs.remove(_cacheKey);
         if(!mounted)return;
         _apply(null,seenBefore:null);
-        if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
+        if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());
       } else {
         final data = Map<String, dynamic>.from(result as Map);
         // Some older server versions returned an empty/unpaired object
@@ -338,7 +341,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           await prefs.remove(_cacheKey);
           if (!mounted || request != _requestVersion) return;
           _apply(null,seenBefore:null);
-          if (!OneSpaceEnv.isProduction) unawaited(_autoJoinPending());
+          if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());
           return;
         }
         final seen=DateTime.tryParse(await prefs.getString(_seenKey)??'');
@@ -666,6 +669,852 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   /// QA: complete a verified recipient's pending deep link after sign in.
   /// Server authorization performs the verified-email comparison and rejects
   /// expired/revoked/forwarded codes; the client never grants membership.
+  /// Missing browser deep links are not proof that the confirmed user has
+  /// no invitation. A signed-in QA account can independently discover only
+  /// its own unexpired, email-addressed invitation from the backend.
+  Future<void> _resumeOrDiscoverAddressedInvite() async {
+    if (!mounted || OneSpaceEnv.isProduction || spaceId != null ||
+        client.auth.currentUser == null) return;
+    if (InvitationLinkInbox.instance.pendingCode != null) {
+      await _autoJoinPending();
+    } else if (!dismissedAddressedInvite) {
+      await _discoverAddressedInvite();
+    }
+  }
+
+  Future<void> _discoverAddressedInvite() async {
+    if (!mounted || OneSpaceEnv.isProduction || working ||
+        checkingAddressedInvite || spaceId != null ||
+        client.auth.currentUser == null) return;
+    final originalUser = client.auth.currentUser!.id;
+    setState(() {
+      checkingAddressedInvite = true;
+      inviteLookupFailed = false;
+    });
+    try {
+      final value = await client.rpc('qa_find_my_addressed_invitation')
+          .timeout(const Duration(seconds: 12));
+      if (!mounted || spaceId != null ||
+          client.auth.currentUser?.id != originalUser) return;
+      final result = value is Map
+          ? Map<String,dynamic>.from(value) : const <String,dynamic>{};
+      if (result['status'] == 'ready') {
+        final code = result['code']?.toString() ?? '';
+        if (!RegExp(r'^[0-9a-fA-F]{64}
+    if (!mounted || spaceId != null || working) return;
+    final code = InvitationLinkInbox.instance.pendingCode;
+    if (code == null || client.auth.currentUser == null) return;
+    final key = '${client.auth.currentUser!.id}:$code';
+    if (!retry && key == _lastAutoJoinKey) return;
+    _lastAutoJoinKey = key;
+    invitationController.text = code;
+    await _accept();
+  }
+
+  int? _dayDistance(DateTime? target) {
+    if (target == null) return null;
+    final now=DateTime.now();
+    return DateTime(target.year,target.month,target.day)
+      .difference(DateTime(now.year,now.month,now.day)).inDays;
+  }
+
+  static const _loveDismissKey='onespace_love_nudge_dismissed_v1';
+
+  String? _loveNudge()=>clockMembers.length<2?null:LoveNudgeRules.nudge(
+    lastSent:lastLoveSent,now:DateTime.now(),apart:!_together,dismissedOn:loveDismissedOn);
+
+  Future<void> _loadLoveDismissed() async {
+    try{
+      final raw=await SharedPreferencesAsync().getString(_loveDismissKey);
+      if(mounted&&raw!=null)setState(()=>loveDismissedOn=DateTime.tryParse(raw));
+    }catch(_){}
+  }
+
+  static const _hiddenOnThisDayKey='onespace_hidden_on_this_day_v1';
+
+  Future<void> _loadHiddenOnThisDay() async {
+    try{
+      final raw=await SharedPreferencesAsync().getStringList(_hiddenOnThisDayKey);
+      if(mounted&&raw!=null)setState(()=>hiddenOnThisDay=raw.toSet());
+    }catch(_){}
+  }
+
+  /// Spec 3.5: at most one past memory from today's date, hideable per memory.
+  Widget? _onThisDayTile(){
+    final memory=onThisDay;
+    final id=memory?['id']?.toString();
+    if(memory==null||id==null||hiddenOnThisDay.contains(id))return null;
+    final years=(memory['years_ago'] as num?)?.toInt()??1;
+    return ListTile(
+      dense:true,
+      contentPadding:const EdgeInsets.symmetric(horizontal:4),
+      leading:const Icon(Icons.auto_awesome_outlined),
+      title:Text(tt(memory['title']?.toString()??'A memory')),
+      subtitle:Text(tt('On this day · $years year${years==1?'':'s'} ago')),
+      onTap:()=>_push(MemoriesScreen(initialMemoryId:id)),
+      trailing:IconButton(
+        tooltip:tt('Hide this memory from Today'),
+        icon:const Icon(Icons.close,size:18),
+        onPressed:()async{
+          final next={...hiddenOnThisDay,id};
+          setState(()=>hiddenOnThisDay=next);
+          try{await SharedPreferencesAsync().setStringList(_hiddenOnThisDayKey,next.toList());}catch(_){}
+        }));
+  }
+
+  bool get _together=>relationshipMode=='living_together';
+
+  String _greeting(){
+    final hour=DateTime.now().hour;
+    final part=hour<5?'Good evening':hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+    final me=FirstName.of(clockMembers.where((m)=>m['is_me']==true)
+      .map((m)=>m['name']).firstOrNull);
+    // R75: translate the greeting itself; the name stays as typed.
+    return '${tt(part)}${OneSpacePhrases.arabic?'، ':', '}$me';
+  }
+
+  /// "Your space with your love" (an endearment) or "Your space with Kay".
+  String _spaceWith(){
+    final partnerName=clockMembers.where((m)=>m['is_me']!=true)
+      .map((m)=>FirstName.of(m['name'])).firstOrNull??'your partner';
+    final label=partnerLabel?.trim();
+    if(label==null||label.isEmpty)return 'Your space with $partnerName';
+    if(!partnerLabelIsEndearment)return 'Your space with $label';
+    final bare=label.replaceFirst(RegExp(r'^(my|your)\s+',caseSensitive:false),'');
+    return 'Your space with your $bare';
+  }
+
+  // ---- Hero (spec 3.2) ------------------------------------------------------
+  Widget _hero(){
+    final theme=Theme.of(context);
+    final colors=theme.colorScheme;
+    final apart=!_together;
+    TalkWindow? window;
+    if(relationshipMode=='apart_different_tz'&&schedulesMine.isNotEmpty&&
+       schedulesPartner.isNotEmpty){
+      window=nextTalkWindow(schedulesMine.first,schedulesPartner.first,DateTime.now().toUtc());
+    }
+    final missingSchedules=relationshipMode=='apart_different_tz'&&
+      (schedulesMine.isEmpty||!schedulesMine.first.hasAny||
+       schedulesPartner.isEmpty||!schedulesPartner.first.hasAny);
+    final trip=activeTrip;
+    final tripEnd=DateTime.tryParse(trip?['end_on']?.toString()??'');
+    final backIn=_dayDistance(tripEnd);
+    final countdown=milestoneCountdowns.isEmpty?null:milestoneCountdowns.first;
+    return Card(
+      elevation:0,
+      margin:const EdgeInsets.only(bottom:12),
+      color:Color.alphaBlend((_together?colors.tertiary:colors.primary)
+        .withValues(alpha:.09),colors.surface),
+      child:Padding(
+        padding:const EdgeInsetsDirectional.fromSTEB(14,6,6,12),
+        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[
+            Expanded(child:Text(tt(_together?'Together under one roof':
+              relationshipMode=='not_set'?'Tell OneSpace how you live':'Living apart'),
+              style:theme.textTheme.titleSmall?.copyWith(color:colors.onSurfaceVariant))),
+            IconButton(
+              tooltip:tt('How we live'),
+              onPressed:_chooseHowWeLive,
+              icon:Icon(_together?Icons.home_rounded:Icons.flight_rounded,
+                color:colors.primary)),
+          ]),
+          if(_together)Row(children:[
+            Icon(Icons.favorite_rounded,size:30,color:colors.primary),
+            const SizedBox(width:12),
+            Expanded(child:Text(tt('One home, one shared space.'))),
+          ])
+          else PartnerClockStrip(members:clockMembers,relationshipMode:relationshipMode),
+          if(trip!=null)Padding(
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
+            child:Row(children:[
+              Icon(Icons.luggage_outlined,size:18,color:colors.primary),
+              const SizedBox(width:6),
+              Expanded(child:Text(tt([
+                'Travelling',
+                (trip['destination']?.toString().trim().isNotEmpty??false)
+                  ?trip['destination'].toString():trip['title']?.toString()??'Trip',
+                if(backIn!=null&&backIn>0)'back in $backIn day${backIn==1?'':'s'}'
+                else if(backIn==0)'back today',
+              ].join(' · ')))),
+            ])),
+          if(window!=null)Padding(
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
+            child:Row(children:[
+              Icon(Icons.phone_in_talk_outlined,size:18,color:colors.primary),
+              const SizedBox(width:6),
+              Expanded(child:Text(tt(talkWindowLabel(window,DateTime.now().toUtc(),myZone)))),
+            ]))
+          else if(missingSchedules)Padding(
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
+            child:Text(tt('Add your work and sleep hours in Profile to see good times to talk.'),
+              style:theme.textTheme.bodySmall)),
+          if(apart&&(lastMetOn!=null||nextMeetOn!=null))Padding(
+            padding:const EdgeInsetsDirectional.only(top:8,end:8),
+            child:_meetingCounters()),
+          if(countdown!=null)Padding(
+            padding:const EdgeInsetsDirectional.only(top:6,end:8),
+            child:InkWell(
+              onTap:()=>_openFocusActivity(countdown['activity_id'].toString()),
+              child:Row(children:[
+                Icon(Icons.hourglass_bottom_outlined,size:18,color:colors.primary),
+                const SizedBox(width:6),
+                Expanded(child:Text('${countdown['label']} · '+
+                  ActivityCountdownRules.summary(countdown['date'].toString(),
+                    repeatYearly:countdown['annual']==true,now:DateTime.now()))),
+              ]))),
+        ]),
+      ),
+    );
+  }
+
+  Widget _meetingCounters(){
+    final ago=_dayDistance(lastMetOn);
+    final until=_dayDistance(nextMeetOn);
+    return Row(children:[
+      if(ago!=null)Expanded(child:Column(
+        crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(tr(context,'lastMetLabel'),
+            style:Theme.of(context).textTheme.bodySmall),
+          Text(tt(ago==0?'Today':ago>0?'Coming up':
+            ago==-1?'Yesterday':'${-ago} days ago'),
+            style:Theme.of(context).textTheme.titleSmall),
+        ])),
+      if(until!=null)Expanded(child:Column(
+        crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(tr(context,'nextMeetingLabel'),
+            style:Theme.of(context).textTheme.bodySmall),
+          Text(tt(until<0?'Meeting date passed':
+            until==0?tr(context,'meetingToday'):
+            '$until days to go'),
+            style:Theme.of(context).textTheme.titleSmall),
+        ])),
+    ]);
+  }
+
+  /// B-09/B-10: switch How we live, with Undo and the journey memory offer.
+  Future<void> _chooseHowWeLive() async {
+    final choice=await showModalBottomSheet<bool>(
+      context:context,showDragHandle:true,
+      builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,children:[
+        ListTile(title:Text(tt('How do you live?'),
+          style:TextStyle(fontWeight:FontWeight.w700))),
+        ListTile(
+          leading:const Icon(Icons.home_rounded),
+          title:Text(tt('Together')),
+          subtitle:Text(tt('We share one home')),
+          trailing:_together?const Icon(Icons.check):null,
+          onTap:()=>Navigator.pop(ctx,true)),
+        ListTile(
+          leading:const Icon(Icons.flight_rounded),
+          title:Text(tt('Apart')),
+          subtitle:Text(tt('We live in different places for now')),
+          trailing:!_together&&relationshipMode!='not_set'?const Icon(Icons.check):null,
+          onTap:()=>Navigator.pop(ctx,false)),
+        const SizedBox(height:8),
+      ])));
+    if(choice==null||!mounted)return;
+    final wasTogether=_together;
+    if(choice==wasTogether&&relationshipMode!='not_set')return;
+    final previousMode=relationshipMode;
+    try{
+      await client.rpc('set_how_we_live',params:{'p_together':choice});
+    }catch(_){
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:Text(tt('Could not save. Check your connection and try again.'))));
+      }
+      return;
+    }
+    if(!mounted)return;
+    await _load();
+    if(!mounted)return;
+    if(choice&&!wasTogether&&previousMode!='not_set'){
+      final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+        title:Text(tt('Moving in together')),
+        content:Text(tt('Save our journey apart as a memory? Nothing is deleted; '
+          'the meeting counters simply hide while you live together.')),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Not now'))),
+          FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:Text(tt('Save memory'))),
+        ]));
+      if(save==true&&spaceId!=null){
+        final today=CalendarRules.sqlDate(DateTime.now());
+        final met=lastMetOn==null?null:CalendarRules.sqlDate(lastMetOn!);
+        try{
+          await client.from('memories').insert({
+            'space_id':spaceId,
+            'created_by':client.auth.currentUser!.id,
+            'title':'Our journey apart',
+            'body':'We lived apart and kept our love close across the distance. '
+              'On $today we started living together.'
+              '${met==null?'':' The last time we met while apart: $met.'}',
+            'memory_date':today,
+            'visibility':'shared',
+          });
+        }catch(_){
+          if(mounted){
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content:Text(tt('The memory could not be saved; you can add it from Memories.'))));
+          }
+        }
+      }
+    }
+    if(!mounted)return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      duration:const Duration(seconds:10),
+      content:Text(tt(choice?tt('Saved: we live together'):tt('Saved: we live apart'))),
+      action:SnackBarAction(label:tt('Undo'),onPressed:()async{
+        try{
+          await client.rpc('set_how_we_live',params:{'p_together':!choice});
+          if(mounted)await _load();
+        }catch(_){}
+      }),
+    ));
+  }
+
+  // ---- Since you were away (spec 3.3) --------------------------------------
+  Widget _sinceAwaySection(){
+    final theme=Theme.of(context);
+    return TodaySectionCard(
+      icon:Icons.mark_chat_unread_outlined,
+      title:tt('Since you were away'),
+      trailing:sinceAwayTotal==0?null:TextButton(
+        onPressed:_openNotifications,child:Text(tt('See all'))),
+      children:[
+        if(sinceAway.isEmpty)TodayEmptyHint(tt("You're all caught up."))
+        else if(sinceAwayCollapsed)ListTile(
+          dense:true,
+          contentPadding:const EdgeInsets.symmetric(horizontal:4),
+          title:Text('$sinceAwayTotal update${sinceAwayTotal==1?'':'s'} you have already seen'),
+          trailing:const Icon(Icons.expand_more),
+          onTap:()=>setState(()=>sinceAwayCollapsed=false))
+        else ...[
+          for(final item in sinceAway)ListTile(
+            dense:true,
+            contentPadding:const EdgeInsets.symmetric(horizontal:4),
+            leading:Icon(notificationIcon(item)),
+            title:Text(tt(item['title']?.toString()??'Update'),
+              maxLines:2,overflow:TextOverflow.ellipsis),
+            subtitle:Text(tt([
+              item['body']?.toString()??'',
+              notificationAge(item['created_at']),
+            ].where((x)=>x.trim().isNotEmpty).join(' · ')),
+              maxLines:2,overflow:TextOverflow.ellipsis),
+            onTap:()async{
+              await openNotificationTarget(context,item);
+              if(mounted)await _load();
+            }),
+          if(sinceAwayTotal>sinceAway.length)Padding(
+            padding:const EdgeInsetsDirectional.only(start:4,top:2),
+            child:Text('${tt('and')} ${sinceAwayTotal-sinceAway.length} ${tt('more')}',
+              style:theme.textTheme.bodySmall)),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
+      builder:(_)=>const NotificationsScreen()));
+    if(mounted)await _load();
+  }
+
+  Future<void> _push(Widget screen) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>screen));
+    if(mounted)await _load();
+  }
+
+  // ---- Our space shortcuts (spec 3.7) ---------------------------------------
+  Widget _shortcuts(){
+    final theme=Theme.of(context);
+    final colors=theme.colorScheme;
+    final dueReminders=focusItems.where((i)=>i.isReminder).length;
+    Widget group(String label,Color color,List<_Shortcut> tiles)=>Column(
+      crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,10,2,6),
+          child:Text(tt(label).toUpperCase(),style:theme.textTheme.labelSmall?.copyWith(
+            color:color,fontWeight:FontWeight.w800,letterSpacing:.8))),
+        GridView.count(
+          crossAxisCount:3,
+          shrinkWrap:true,
+          physics:const NeverScrollableScrollPhysics(),
+          crossAxisSpacing:8,mainAxisSpacing:8,
+          childAspectRatio:1.05,
+          children:[for(final t in tiles)_shortcutTile(t,color)],
+        ),
+      ]);
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(tt('Our space'),
+        style:theme.textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w700)),
+      // R55: grouped by what you are doing, not by tab, so no group has one tile.
+      group('Plan together',colors.primary,[
+        _Shortcut(tt('Calendar'),Icons.calendar_month_outlined,widget.onOpenCalendar),
+        _Shortcut(tt('To-do lists'),Icons.checklist_outlined,widget.onOpenPlans),
+        _Shortcut(tt('Reminders'),Icons.alarm_outlined,
+          ()=>_push(const RemindersScreen()),badge:dueReminders),
+        _Shortcut(tt('Activities'),Icons.hub_outlined,widget.onOpenCoordinate),
+        _Shortcut(tt('Trips'),Icons.flight_takeoff_outlined,
+          ()=>_push(const TripsScreen())),
+        _Shortcut(tt('Occasions'),Icons.card_giftcard_outlined,
+          ()=>_push(const OccasionsScreen())),
+        _Shortcut(tt('Notes'),Icons.sticky_note_2_outlined,widget.onOpenNotes),
+        _Shortcut(tt('Contact cards'),Icons.contacts_outlined,
+          ()=>_push(const WorldContactsScreen())),
+        ..._extraTools(),
+      ]),
+      group('Stay close',colors.tertiary,[
+        _Shortcut(tt('Letters'),Icons.mark_email_unread_outlined,widget.onOpenLetters,
+          badge:lettersBadge),
+        _Shortcut(tt('A little love'),Icons.volunteer_activism_outlined,
+          ()=>_push(const PartnerGesturesScreen())),
+        _Shortcut(tt('Daily connection'),Icons.favorite_outline,widget.onOpenCheckins),
+        _Shortcut(tt('Shared experiences'),Icons.movie_outlined,
+          ()=>_push(const SharedExperiencesScreen())),
+        _Shortcut(tt('Memories'),Icons.auto_stories_outlined,widget.onOpenMemories),
+        // R78: our places and counters.
+        _Shortcut(tt('Our places'),Icons.place_outlined,()=>_push(const PlacesScreen())),
+        _Shortcut(tt('Counters'),Icons.hourglass_bottom_rounded,()=>_push(const CountersScreen())),
+        _Shortcut(tt('Search our space'),Icons.search,
+          ()=>_push(const GlobalSearchScreen())),
+      ]),
+    ]);
+  }
+
+  /// R52: the share-in tray, with a count when something waits.
+  List<_Shortcut> _extraTools()=>[
+    _Shortcut(tt('Items to sort'),Icons.inbox_outlined,
+      ()=>_push(const ItemsToSortScreen()),badge:itemsToSort),
+  ];
+
+  Widget _shortcutTile(_Shortcut tile,Color color){
+    final colors=Theme.of(context).colorScheme;
+    return Card(
+      elevation:0,clipBehavior:Clip.antiAlias,margin:EdgeInsets.zero,
+      color:Color.alphaBlend(color.withValues(alpha:.10),colors.surface),
+      child:InkWell(
+        onTap:tile.onTap,
+        child:Padding(padding:const EdgeInsets.all(6),
+          child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+            Badge(
+              isLabelVisible:tile.badge>0,
+              label:Text(tt(tile.badge>99?'99+':'${tile.badge}')),
+              child:Icon(tile.icon,color:color,size:26)),
+            const SizedBox(height:6),
+            Text(tt(tile.label),textAlign:TextAlign.center,maxLines:2,
+              overflow:TextOverflow.ellipsis,
+              style:Theme.of(context).textTheme.labelMedium),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme=Theme.of(context);
+    return Scaffold(
+      backgroundColor:Colors.transparent,
+      floatingActionButton:spaceId==null?null:FloatingActionButton.extended(
+        heroTag:'quick-add',
+        onPressed:()async{
+          await showQuickAdd(context,spaceId:spaceId!);
+          if(mounted)await _load();
+        },
+        icon:const Icon(Icons.add),
+        label:Text(tt('Quick add'))),
+      body:RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsetsDirectional.fromSTEB(16,16,16,24),
+        children: [
+          Text(tt(spaceId == null ? tr(context, 'ourSpace') : _greeting()),
+            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+          if(spaceId!=null && clockMembers.length>1)
+            Padding(
+              padding:const EdgeInsets.only(top:2,bottom:6),
+              child:Text(tt(_spaceWith()),style:theme.textTheme.bodyMedium))
+          else const SizedBox(height:10),
+          if(spaceId!=null&&(offline||(lastUpdated!=null&&summaryLoading)))
+            Padding(
+              padding:const EdgeInsets.only(bottom:6),
+              child:Row(children:[
+                Icon(offline?Icons.cloud_off_outlined:Icons.sync,size:16,
+                  color:theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width:6),
+                Expanded(child:Text(
+                  tt(lastUpdated==null?'Showing your saved copy':
+                  'Last updated ${PartnerTimeZones.timeLabel(lastUpdated!)}'),
+                  style:theme.textTheme.bodySmall)),
+                if(offline)TextButton(onPressed:_load,child:Text(tt('Retry'))),
+              ])),
+          const SeasonalThemePreview(compact:true),
+          const SizedBox(height:8),
+          if (issue != null &&
+              !(spaceId == null && InvitationLinkInbox.instance.pendingCode != null)) ...[
+            Text(tt(issue!), style:TextStyle(color:theme.colorScheme.error)),
+            const SizedBox(height: 12),
+          ],
+          if (loading)
+            Padding(
+              padding: const EdgeInsets.all(36),
+              child: Center(
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 14),
+                    Text(tr(context, 'openingSpace')),
+                  ],
+                ),
+              ),
+            )
+          else if (!membershipResolved && spaceId == null) ...[
+            Text(tr(context, 'loadedError')),
+            TextButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+              label: Text(tr(context, 'retry')),
+            ),
+          ]
+          else if (spaceId == null && InvitationLinkInbox.instance.pendingCode != null) ...[
+            _panel(
+              tt('Joining your partner’s OneSpace'),
+              tt('Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'),
+              Icons.mark_email_read_outlined,
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (working) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(tt('Verifying your invitation…')),
+                ],
+                if (issue != null) ...[
+                  Text(tt(issue!), style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  const SizedBox(height: 10),
+                ],
+                Text(tt('Signed in as: ${client.auth.currentUser?.email ?? 'unknown'}'),
+                  style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  key: const Key('completePendingInvitation'),
+                  onPressed: working ? null : () => _autoJoinPending(retry: true),
+                  icon: Icon(issue == null ? Icons.people_alt_outlined : Icons.refresh),
+                  label: Text(tt(issue == null
+                      ? 'Join your partner’s space'
+                      : 'Retry joining your partner')),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: working ? null : () async {
+                    // Preserve the invite securely for the right account.
+                    await client.auth.signOut();
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: Text(tt('Sign in with the invited email')),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: working ? null : () async {
+                    await InvitationLinkInbox.instance.clear();
+                    if (mounted) setState(() {
+                      invitationController.clear();
+                      issue = null;
+                      _lastAutoJoinKey = null;
+                    });
+                  },
+                  child: Text(tt('Use another invitation or start a new space')),
+                ),
+              ]),
+            ),
+          ] else if (spaceId == null &&
+              (checkingAddressedInvite || inviteLookupFailed)) ...[
+            _panel(
+              tt('Checking for your partner’s invitation'),
+              tt('Your confirmed email may already have an invitation, even if the browser did not pass its link to OneSpace.'),
+              Icons.mark_email_read_outlined,
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch,children:[
+                if (checkingAddressedInvite) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(tt('Checking your invitations…')),
+                ],
+                if (inviteLookupFailed && !checkingAddressedInvite) ...[
+                  Text(tt('Could not verify your invitation right now. You can retry without creating another space.')),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: _discoverAddressedInvite,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(tt('Retry invitation lookup')),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      inviteLookupFailed = false;
+                      dismissedAddressedInvite = true;
+                    }),
+                    child: Text(tt('Continue without an invitation')),
+                  ),
+                ],
+              ]),
+            ),
+          ] else if (spaceId == null) ...[
+            _panel(
+              tt('Invite my partner'),
+              tt('Enter your partner’s email and create your shared space automatically.'),
+              Icons.mail_outline,
+              FilledButton.icon(
+                onPressed: working ? null : _openInvitation,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(tt('Invite my partner')),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _panel(
+              tr(context, 'createSpaceTitle'),
+              tr(context, 'createSpaceDescription'),
+              Icons.favorite_border,
+              FilledButton(
+                onPressed: working ? null : _create,
+                child: Text(tr(context, 'createSpaceButton')),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _panel(
+              tr(context, 'joinPartner'),
+              tr(context, 'joinDescription'),
+              Icons.people_outline,
+              Column(
+                children: [
+                  TextField(
+                    controller: invitationController,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    decoration: InputDecoration(
+                      labelText: tr(context, 'invitationCode'),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        tooltip: tr(context, 'pasteCode'),
+                        icon: const Icon(Icons.content_paste),
+                        onPressed: () async {
+                          final clip = await Clipboard.getData('text/plain');
+                          if (!mounted) return;
+                          final text = clip?.text;
+                          if (text != null) {
+                            invitationController.text = text.trim();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: Text(tt('Scan your partner’s QR code')),
+                    onPressed: working ? null : () async {
+                      final code = await scanInvitation(context);
+                      if (code == null || !mounted) return;
+                      invitationController.text = code;
+                      await _accept();
+                    }),
+                  const SizedBox(height: 6),
+                  FilledButton.tonal(
+                    onPressed: working ? null : _accept,
+                    child: Text(tr(context, 'joinSpace')),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            if (memberCount < 2) ...[
+              _invitePanel(),
+              const SizedBox(height:12),
+            ],
+            _hero(),
+            _sinceAwaySection(),
+            TodayAttentionSection(
+              items:focusItems,
+              loading:focusLoading,
+              error:focusError,
+              onRetry:()=>unawaited(_load()),
+              onOpen:_openAttentionActivity,
+              onOpenPlans:widget.onOpenPlans,
+              onOpenCheckins:widget.onOpenCheckins,
+              onOpenReminder:_openReminder,
+              onSnooze:_snoozeFocus,
+              leading:[
+                if(_loveNudge() case final String text)ListTile(
+                  dense:true,
+                  contentPadding:const EdgeInsets.symmetric(horizontal:4),
+                  leading:const Icon(Icons.volunteer_activism_outlined),
+                  title:Text(tt(text)),
+                  subtitle:Text(tt('Send a hug, a thought or a good-night')),
+                  onTap:()=>_push(const PartnerGesturesScreen()),
+                  trailing:TextButton(onPressed:()async{
+                    final now=DateTime.now();
+                    setState(()=>loveDismissedOn=now);
+                    try{await SharedPreferencesAsync().setString(_loveDismissKey,now.toIso8601String());}catch(_){}
+                  },child:Text(tt('Not today')))),
+                if(itemsToSort>0)ListTile(
+                  dense:true,
+                  contentPadding:const EdgeInsets.symmetric(horizontal:4),
+                  leading:const Icon(Icons.inbox_outlined),
+                  title:Text('$itemsToSort item${itemsToSort==1?'':'s'} to sort'),
+                  subtitle:Text(tt('Saved from other apps')),
+                  trailing:const Icon(Icons.chevron_right),
+                  onTap:()=>_push(const ItemsToSortScreen())),
+              ],
+            ),
+            TodayCalendarSection(entries:nearEvents,
+              onOpen:widget.onOpenCalendar ?? () {},
+              onOpenPlans:widget.onOpenPlans,
+              onOpenActivity:_openFocusActivity,
+              onOpenExperience:(id)=>_push(SharedExperiencesScreen(initialExperienceId:id)),
+              onOpenTrip:(id)=>_push(TripsScreen(initialTripId:id)),
+              onOpenOccasion:(id)=>_push(OccasionsScreen(initialPlanId:id)),
+              onOpenReminder:_openReminder,
+              leading:[if(_onThisDayTile() case final Widget tile)tile]),
+            const SizedBox(height:4),
+            _shortcuts(),
+            const SizedBox(height:72),
+          ],
+        ],
+      ),
+    ));
+  }
+
+  Widget _invitePanel() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Card(
+      elevation: 0,
+      color: colors.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: () => setState(() => inviteCollapsed = !inviteCollapsed),
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(children: [
+                  Icon(Icons.favorite_rounded,
+                    color: colors.onPrimaryContainer, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tr(context, 'inviteTitle'),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colors.onPrimaryContainer,
+                          fontWeight: FontWeight.w700)),
+                      Text(_hasActiveInvite
+                          ? tr(context, 'invitePendingHint')
+                          : tr(context, 'invitePartnerDescription'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onPrimaryContainer)),
+                    ],
+                  )),
+                  Icon(inviteCollapsed
+                      ? Icons.expand_more : Icons.expand_less,
+                      color: colors.onPrimaryContainer),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: FilledButton.icon(
+              onPressed: working ? null : _openInvitation,
+              icon: Icon(_hasActiveInvite ? Icons.send_outlined
+                  : Icons.person_add_alt_1),
+              label: Text(tt(_hasActiveInvite
+                  ? 'Manage invitation' : 'Invite my partner')),
+            )),
+            if (!inviteCollapsed) ...[
+              const SizedBox(height: 12),
+              Text('${tr(context, 'members')}: $memberCount / 2',
+                style: TextStyle(color: colors.onPrimaryContainer)),
+              for (final memberName in memberDisplayNames)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(children: [
+                    Icon(Icons.person_outline, size: 18,
+                      color: colors.onPrimaryContainer),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(tt(memberName),
+                      style: TextStyle(color: colors.onPrimaryContainer))),
+                  ]),
+                ),
+              if (_hasActiveInvite) ...[
+                const SizedBox(height: 8),
+                Text('${tr(context, 'invitationExpires')}: '
+                    '${pendingInviteExpiry!.toLocal().toString().split('.').first}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onPrimaryContainer)),
+
+              ],
+              const SizedBox(height: 8),
+              Center(child: TextButton.icon(
+                onPressed: working ? null : _load,
+                icon: const Icon(Icons.refresh),
+                label: Text(tr(context, 'refreshStatus')),
+              )),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _panel(String title, String description, IconData icon, Widget action) {
+    return Card(
+      elevation: 0,
+      color:Theme.of(context).colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 30, color:Theme.of(context).colorScheme.onPrimaryContainer),
+            const SizedBox(height: 12),
+            Text(tt(title), style:TextStyle(fontSize:21,fontWeight:FontWeight.w700,
+             color:Theme.of(context).colorScheme.onPrimaryContainer)),
+            const SizedBox(height: 8),
+            Text(tt(description),style:TextStyle(color:Theme.of(context).colorScheme.onPrimaryContainer)),
+            const SizedBox(height: 14),
+            action,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Shortcut {
+  const _Shortcut(this.label,this.icon,this.onTap,{this.badge=0});
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final int badge;
+}
+).hasMatch(code)) {
+          throw StateError('Invitation lookup did not return a valid code');
+        }
+        await InvitationLinkInbox.instance.rememberVerifiedQaAddressedCode(code);
+      } else if (result['status'] != 'none' &&
+          result['status'] != 'already_paired' &&
+          result['status'] != 'confirm_email') {
+        throw StateError('Unexpected invitation lookup status');
+      }
+    } catch (_) {
+      if (mounted && spaceId == null &&
+          client.auth.currentUser?.id == originalUser) {
+        setState(() => inviteLookupFailed = true);
+      }
+    } finally {
+      if (mounted) setState(() => checkingAddressedInvite = false);
+    }
+  }
+
   Future<void> _autoJoinPending({bool retry = false}) async {
     if (!mounted || spaceId != null || working) return;
     final code = InvitationLinkInbox.instance.pendingCode;
