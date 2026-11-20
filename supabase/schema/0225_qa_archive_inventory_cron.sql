@@ -8,7 +8,7 @@ begin
  select j.command into original from cron.job j
  where j.jobname='onespace-archive-janitor' and j.active;
  if original is null or original not like
-   '%/functions/v1/onespace-archive-janitor%' or
+   '%https://ugwrpeduzyzrujkizqfo.supabase.co/functions/v1/onespace-archive-janitor%' or
    original not like '%x-onespace-push-secret%' then
    raise exception 'Existing Vault-backed QA janitor invocation missing';
  end if;
