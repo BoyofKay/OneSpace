@@ -95,6 +95,20 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          if(key.isNotEmpty && seen.add('reminder:'+key))
            found.add(_Hit('Reminder',reminder['title']?.toString()??'',key));
        }
+       for(final table of const ['activities','memories']){
+         final names=await db.from(table).select('id,title')
+           .isFilter('archived_at',null).ilike('title',pattern)
+           .limit(GlobalSearchRules.maxPerSection);
+         final bodies=await db.from(table).select('id,title')
+           .isFilter('archived_at',null).ilike('body',pattern)
+           .limit(GlobalSearchRules.maxPerSection);
+         final kind=table=='activities'?'Activity':'Memory';
+         for(final row in [...names,...bodies]){
+           final key=row['id']?.toString()??'';
+           if(key.isNotEmpty&&seen.add('${kind.toLowerCase()}:$key'))
+             found.add(_Hit(kind,row['title']?.toString()??'',key));
+         }
+       }
        setState((){hits=found;busy=false;error=null;});
        return;
      }
@@ -121,7 +135,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        ? db.from('notes').select('id,title').eq('space_id',id)
        : db.from('notes').select('id,title');
      final groups=await Future.wait([
-       guarded('Activity',db.from('activities').select('id,title,updated_at').eq('space_id',id)
+       guarded('Activity',(OneSpaceEnv.isProduction
+          ? db.from('activities').select('id,title,updated_at').eq('space_id',id)
+          : db.from('activities').select('id,title,updated_at'))
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
        guarded('Calendar',db.from('space_events').select('id,title,event_date').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).order('event_date').limit(GlobalSearchRules.maxPerSection)),
@@ -153,12 +169,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',(OneSpaceEnv.isProduction
+          ? db.from('memories').select('id,title').eq('space_id',id)
+          : db.from('memories').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // Content search uses independent parameterized PostgREST ilike calls,
        // never a string-built .or() filter that could alter query grammar.
-       guarded('Activity',db.from('activities').select('id,title').eq('space_id',id)
+       guarded('Activity',(OneSpaceEnv.isProduction
+          ? db.from('activities').select('id,title').eq('space_id',id)
+          : db.from('activities').select('id,title'))
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Calendar',db.from('space_events').select('id,title').eq('space_id',id)
