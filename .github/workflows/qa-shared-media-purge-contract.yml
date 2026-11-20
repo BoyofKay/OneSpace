@@ -21,3 +21,8 @@ jobs:
           node-version: '22'
       - name: Verify personal Storage buckets are excluded and paths remain owner-scoped
         run: node --test supabase/functions/_shared/qa_shared_media_purge_contract.test.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check staged service-only Edge Function without deployment
+        run: deno check supabase/functions/onespace-qa-shared-media-purge/index.ts
