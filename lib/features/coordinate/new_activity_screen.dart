@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../calendar/calendar_rules.dart';
+import '../../core/app_env.dart';
 import 'activity_detail_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -57,8 +58,11 @@ class NewActivityDraft {
   /// A draft becomes a record only once it has a title (no half-empty records).
   bool get canSave => title.trim().isNotEmpty;
 
-  Map<String, dynamic> toInsert(String spaceId) => {
-    'space_id': spaceId,
+  Map<String,dynamic> toInsert(String spaceId,
+    {bool accountOwned=false,String? ownerId}) => {
+    if(accountOwned && !shared && ownerId!=null)
+      'private_space_id':ownerId
+    else 'space_id':spaceId,
     'title': title.trim(),
     'body': details.trim(),
     'visibility': shared ? 'shared' : 'private',
@@ -104,6 +108,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
   @override void initState() {
     super.initState();
     purpose = widget.initialPurpose == ActivityPurpose.note ? null : widget.initialPurpose;
+    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty)shared=false;
     SpacePeople.load().then((p) { if (mounted) setState(() => people = p); });
     title.addListener(() => setState(() {}));
   }
@@ -119,7 +124,9 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
     setState(() { saving = true; error = null; });
     try {
       final created = await db.from('activities')
-          .insert(draft.toInsert(widget.spaceId)).select('id').single();
+          .insert(draft.toInsert(widget.spaceId,
+            accountOwned:!OneSpaceEnv.isProduction,
+            ownerId:db.auth.currentUser!.id)).select('id').single();
       final sections = purpose?.sectionsFor(created['id'].toString()) ?? const [];
       if (sections.isNotEmpty) {
         try { await db.from('activity_components').insert(sections); }
@@ -141,8 +148,12 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
    isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,saveLabel:'Next',
    listenTo:[title,details],saving:saving,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:shared,belongsTo:forUserId,date:dueOn),people:people,
-    showBelongs:people!=null,dateLabel:tt('Due date'),
-    enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;forUserId=v.belongsTo;})),
+    showBelongs:people!=null && shared,dateLabel:tt('Due date'),
+    enabled:!saving,onChanged:(v)=>setState((){
+      shared=(OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty) && v.shared;
+      dueOn=v.date;
+      forUserId=shared?v.belongsTo:null;
+    })),
    body: SafeArea(child: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 24),
         children: [
