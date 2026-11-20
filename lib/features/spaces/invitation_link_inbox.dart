@@ -51,12 +51,31 @@ class InvitationLinkInbox extends ChangeNotifier {
     final code = invitationCodeFromUri(uri, qa: !OneSpaceEnv.isProduction);
     if (code == null || code == _pending) return;
     _pending = code;
-    notifyListeners();
     try {
+      // Persist before notifying. A successful automatic join may clear the
+      // saved code immediately; a later write must not resurrect that invite.
       await _storage.write(key: _pendingKey, value: code);
     } catch (_) {
       // In memory remains available for this session.
     }
+    notifyListeners();
+  }
+
+  /// QA fallback for an invited, signed-in, email-confirmed account whose
+  /// browser deep link was lost. The backend first verifies the recipient
+  /// against Auth; never accept a client-supplied different account's code.
+  Future<void> rememberVerifiedQaAddressedCode(String code) async {
+    if (OneSpaceEnv.isProduction ||
+        !RegExp(r'^[0-9a-fA-F]{64}
+    _pending = null;
+    notifyListeners();
+    try {
+      await _storage.delete(key: _pendingKey);
+    } catch (_) {}
+  }
+}
+).hasMatch(code)) return;
+    await _receive(invitationAppLink(code.toLowerCase(), qa: true));
   }
 
   Future<void> clear() async {
