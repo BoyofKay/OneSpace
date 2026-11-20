@@ -542,10 +542,9 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           if (!OneSpaceEnv.isProduction && _visibility == 'private')
             Padding(padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(tt('Your personal story stays with your account. '
-                'Personal photo storage is not enabled yet; use a shared '
-                'memory for photos until private media is ready.'),
+                'Personal photos are stored in your account-owned private media '
+                'bucket, not the relationship space.'),
                 style: Theme.of(context).textTheme.bodySmall)),
-          if (OneSpaceEnv.isProduction || _visibility == 'shared') ...[
           FormSection(tt('Photos')),
           if(_record!=null&&!_archived)MemoryPhotoGallery(
            memoryId:_record!['id'].toString(),
@@ -554,7 +553,6 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
           else if(_record==null)Align(alignment:AlignmentDirectional.centerStart,child:ActionChip(
            avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
            label:Text(tt('Add photos')),onPressed:_busy?null:_ensureSaved)),
-          ],
           if(_editing&&_visibility=='shared')Padding(
            padding:const EdgeInsets.symmetric(vertical:6),
            child:Text(tt('Shared memories are written together: both of you can add photos, captions and tags.'),
