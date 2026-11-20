@@ -21,7 +21,15 @@ VALUES(
  (
  'onespace-private-note-images',
  gen_random_uuid()::text||'/'||current_setting('qa.peer')||'/'||gen_random_uuid()::text||'.jpg',
- current_setting('qa.peer'));
+ current_setting('qa.peer')),
+ (
+ 'onespace-private-activity-media',
+ gen_random_uuid()::text||'/'||current_setting('qa.owner')||'/'||gen_random_uuid()::text||'.jpg',
+ current_setting('qa.owner')),
+ (
+ 'onespace-private-activity-voice',
+ gen_random_uuid()::text||'/'||current_setting('qa.owner')||'/'||gen_random_uuid()::text||'.m4a',
+ current_setting('qa.owner'));
 SET LOCAL ROLE authenticated;
 DO $client$
 BEGIN
@@ -46,14 +54,14 @@ DO $allowed$
 DECLARE out jsonb;cnt integer;
 BEGIN
  out:=private.qa_inventory_due_private_media(current_setting('qa.owner')::uuid);
- IF (out->>'files_queued')::integer<>2 THEN
+ IF (out->>'files_queued')::integer<>4 THEN
   RAISE EXCEPTION 'Private file inventory counted partner or missed owner';END IF;
  SELECT count(*) INTO cnt FROM public.qa_account_private_media_purge_queue
  WHERE owner_id=current_setting('qa.peer')::uuid;
  IF cnt<>0 THEN RAISE EXCEPTION 'Partner files included in requester account purge';END IF;
  SELECT count(*) INTO cnt FROM public.qa_account_private_media_purge_queue
  WHERE owner_id=current_setting('qa.owner')::uuid AND deleted_at IS NULL;
- IF cnt<>2 THEN RAISE EXCEPTION 'Account purge queue count mismatch';END IF;
+ IF cnt<>4 THEN RAISE EXCEPTION 'Account purge queue count mismatch';END IF;
 END $allowed$;
 ROLLBACK;
-SELECT 'PASS due-only account file inventory, service gate, two personal buckets, partner exclusion and client denial; rolled back' result;
+SELECT 'PASS due-only account file inventory, service gate, all four seeded personal buckets including Activity photo/voice, partner exclusion and client denial; rolled back' result;
