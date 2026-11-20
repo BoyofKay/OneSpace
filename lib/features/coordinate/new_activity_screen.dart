@@ -1,5 +1,6 @@
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
+import '../../core/account_content_scope.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -66,6 +67,16 @@ class NewActivityDraft {
     if (forUserId != null) 'for_user_id': forUserId,
   };
 
+  /// QA uses the independent personal namespace for private Activities.
+  /// The older toInsert helper remains for legacy-production compatibility.
+  Map<String, dynamic> toScopedInsert(AccountContentScope scope) => {
+    ...scope.fieldsForNew(shared: shared),
+    'title': title.trim(),
+    'body': details.trim(),
+    if (dueOn != null) 'due_on': CalendarRules.sqlDate(dueOn!),
+    if (shared && forUserId != null) 'for_user_id': forUserId,
+  };
+
   /// Switching purpose replaces the outline only while the details still hold
   /// an untouched outline (or nothing), never text the person typed.
   static String detailsFor(ActivityPurpose purpose, String current) {
@@ -78,9 +89,9 @@ class NewActivityDraft {
 /// R51 (B-15): a new Activity opens as a full page in draft, never a dialog.
 /// Leaving without a title creates nothing.
 class NewActivityScreen extends StatefulWidget {
-  const NewActivityScreen({super.key, required this.spaceId,
+  const NewActivityScreen({super.key, required this.scope,
     this.initialPurpose, this.initialTitle = '', this.initialDetails = ''});
-  final String spaceId;
+  final AccountContentScope scope;
   final ActivityPurpose? initialPurpose;
   final String initialTitle, initialDetails;
   @override State<NewActivityScreen> createState() => _NewActivityScreenState();
@@ -104,6 +115,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
   @override void initState() {
     super.initState();
     purpose = widget.initialPurpose == ActivityPurpose.note ? null : widget.initialPurpose;
+    shared = widget.scope.canCreateShared;
     SpacePeople.load().then((p) { if (mounted) setState(() => people = p); });
     title.addListener(() => setState(() {}));
   }
@@ -119,7 +131,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
     setState(() { saving = true; error = null; });
     try {
       final created = await db.from('activities')
-          .insert(draft.toInsert(widget.spaceId)).select('id').single();
+          .insert(draft.toScopedInsert(widget.scope)).select('id').single();
       final sections = purpose?.sectionsFor(created['id'].toString()) ?? const [];
       if (sections.isNotEmpty) {
         try { await db.from('activity_components').insert(sections); }
