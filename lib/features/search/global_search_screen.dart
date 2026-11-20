@@ -1,4 +1,5 @@
 import '../world/world_contacts_screen.dart';
+import '../places/places_screen.dart';
 import '../share_in/items_to_sort_screen.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
@@ -119,10 +120,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          db.from('space_events').select('id,title')
            .isFilter('archived_at',null).ilike('details',pattern)
            .limit(GlobalSearchRules.maxPerSection),
+         db.from('places').select('id,title:name')
+           .isFilter('archived_at',null).ilike('name',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('places').select('id,title:name')
+           .isFilter('archived_at',null).ilike('notes',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
        ]);
        if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
        for(var n=0;n<more.length;n++){
-         final kind=n<2?'Activity':n<4?'Memory':n==4?'Contact':'Calendar';
+         final kind=n<2?'Activity':n<4?'Memory':n==4?'Contact':n<7?'Calendar':'Place';
          for(final row in more[n]){
            final key=row['id']?.toString()??'';
            if(key.isNotEmpty&&seen.add('$kind:$key'))
@@ -169,6 +176,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      final contactNames=OneSpaceEnv.isProduction
        ? db.from('saved_contacts').select('id,title:label').eq('space_id',id)
        : db.from('saved_contacts').select('id,title:label');
+     final placeNames=OneSpaceEnv.isProduction
+       ? db.from('places').select('id,title:name').eq('space_id',id)
+       : db.from('places').select('id,title:name');
+     final placeNotes=OneSpaceEnv.isProduction
+       ? db.from('places').select('id,title:name').eq('space_id',id)
+       : db.from('places').select('id,title:name');
      final calendarTitles=OneSpaceEnv.isProduction
        ? db.from('space_events').select('id,title,event_date').eq('space_id',id)
        : db.from('space_events').select('id,title,event_date');
@@ -244,10 +257,14 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Item to sort',db.from('items_to_sort').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).isFilter('sorted_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
+       guarded('Place',placeNames.isFilter('archived_at',null)
+         .ilike('name',pattern).limit(GlobalSearchRules.maxPerSection)),
+       guarded('Place',placeNotes.isFilter('archived_at',null)
+         .ilike('notes',pattern).limit(GlobalSearchRules.maxPerSection)),
      ]);
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
      final types=['Activity','Calendar','To-do','Note','Letter','Tag','Trip','Experience','Trip item','Travel document','Occasion','Reminder','Memory',
-      'Activity','Calendar','Experience','Note','Memory','Reminder','Contact','Item to sort'];
+      'Activity','Calendar','Experience','Note','Memory','Reminder','Contact','Item to sort','Place','Place'];
      final output=<_Hit>[];
      for(var n=0;n<groups.length;n++){
        for(final row in groups[n]){
@@ -288,6 +305,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Occasion':target=OccasionsScreen(initialPlanId:hit.id);break;
      case 'Memory':target=MemoriesScreen(initialMemoryId:hit.id);break;
      case 'Contact':target=const WorldContactsScreen();break;
+     case 'Place':target=PlacesScreen(initialId:hit.id);break;
      case 'Item to sort':target=const ItemsToSortScreen();break;
      default:target=const CoupleLettersScreen();
    }
@@ -307,7 +325,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       for(final category in [
        'All','Activity','Calendar','To-do','Note','Letter','Tag',
        'Trip','Experience','Trip item','Travel document','Occasion','Contact','Item to sort',
-       'Reminder','Memory',
+       'Reminder','Memory','Place',
       ])PopupMenuItem(value:category,child:Text(tt(category))),
      ]),
    ]),
