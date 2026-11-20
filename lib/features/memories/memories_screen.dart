@@ -431,10 +431,8 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
         'pinned': _pinned, 'memory_type': _memoryType, 'photo_layout': _photoLayout,
         if (!OneSpaceEnv.isProduction && _visibility == 'private')
           'private_space_id': _client.auth.currentUser!.id
-        else if (!OneSpaceEnv.isProduction && _visibility == 'private')
-             'private_space_id': _client.auth.currentUser!.id
-           else 'space_id': widget.spaceId,
-           'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
+        else 'space_id': widget.spaceId,
+        'created_by': _client.auth.currentUser!.id, 'visibility': _visibility,
       }).select().single();
       if (mounted) setState(() => _record = row);
       widget.onSaved?.call(row['id'].toString());
@@ -464,7 +462,9 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
       if (_record == null) {
         final created = await _client.from('memories').insert({
           ...fields,
-          'space_id': widget.spaceId,
+          if (!OneSpaceEnv.isProduction && _visibility == 'private')
+            'private_space_id': _client.auth.currentUser!.id
+          else 'space_id': widget.spaceId,
           'created_by': _client.auth.currentUser!.id,
           'visibility': _visibility,
         }).select('id').single();
