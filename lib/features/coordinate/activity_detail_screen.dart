@@ -65,6 +65,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? mentionSuggestion;
   int mentionOffset = -1;
   String? conversationSpaceId;
+  bool personalActivity = false;
   /// R66: for the Belongs to menu.
   SpacePeople? people;
 
@@ -351,9 +352,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> chooseAdd({String? under, String? underTitle}) async {
     final choices = <(String,IconData,String)>[
       ('option', Icons.compare_arrows, 'Compare an option'),
-      ('link', Icons.link, 'Link'),
-      ('image', Icons.image_outlined, 'Photo / screenshot'),
-      ('voice', Icons.mic_none_outlined, 'Voice note'),
+      if (!personalActivity) ('link', Icons.link, 'Link'),
+      if (!personalActivity) ('image', Icons.image_outlined, 'Photo / screenshot'),
+      if (!personalActivity) ('voice', Icons.mic_none_outlined, 'Voice note'),
       ('note', Icons.subject, 'Note'),
       ('step', Icons.check_circle_outline, 'Step'),
       ('price', Icons.payments_outlined, 'Price'),
@@ -361,7 +362,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ('date', Icons.event, 'Date or countdown'),
       ('reminder', Icons.notifications_outlined, 'Remind us'),
       ('location', Icons.place_outlined, 'Map location'),
-      ('contact', Icons.contact_phone_outlined, 'Contact information'),
+      if (!personalActivity) ('contact', Icons.contact_phone_outlined, 'Contact information'),
       ('tag', Icons.sell_outlined, 'Tag'),
     ];
     final chosen = await showModalBottomSheet<String>(
@@ -788,15 +789,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   leading: const Icon(Icons.note_add_outlined),
                   title: Text(tt('Add a note or response')),
                   onTap: () => Navigator.pop(ctx, 'add-note')),
-                ListTile(
+                if (!personalActivity) ListTile(
                   leading: const Icon(Icons.link),
                   title: Text(tt('Attach another source link')),
                   onTap: () => Navigator.pop(ctx, 'add-link')),
-                ListTile(
+                if (!personalActivity) ListTile(
                   leading: const Icon(Icons.mic_none_outlined),
                   title: Text(tt('Attach voice note')),
                   onTap: () => Navigator.pop(ctx, 'add-voice')),
-                ListTile(
+                if (!personalActivity) ListTile(
                   leading: const Icon(Icons.contact_phone_outlined),
                   title: Text(tt('Attach contact information')),
                   onTap: () => Navigator.pop(ctx, 'add-contact')),
@@ -1492,7 +1493,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           onCancel:()=>setState(()=>voiceMode=false),
         )
         else Row(children:[
-          IconButton(
+          if (!personalActivity) IconButton(
             tooltip:tt('Record voice message'),
             onPressed:sending?null:(){
               FocusScope.of(context).unfocus();
@@ -1506,7 +1507,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
             textCapitalization:TextCapitalization.sentences,
             textInputAction:TextInputAction.newline,
             decoration:InputDecoration(
-              hintText:tt('Message your partner…'),
+              hintText:tt(personalActivity
+                ? 'Add a private note…' : 'Message your partner…'),
               isDense:true,counterText:'',
               contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:10),
               border:OutlineInputBorder(),
@@ -1646,6 +1648,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       }
       final item = s.data!.first;
       conversationSpaceId=item['space_id']?.toString();
+      personalActivity = item['private_space_id'] != null;
       return Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
@@ -1683,7 +1686,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
           keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 15),
           children: [
-            LinkedItemsStrip(key: _links, kind: LinkKind.activity, id: widget.id),
+            if (!personalActivity)
+              LinkedItemsStrip(key: _links, kind: LinkKind.activity, id: widget.id),
+            if (personalActivity) Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(tt('Only you can see this Activity. Photos, '
+                'voice notes and partner-linked actions are available '
+                'for shared Activities until personal media is supported.'),
+                style: Theme.of(context).textTheme.bodySmall)),
             toolbar(item),
             if (issue != null)
               Padding(padding: const EdgeInsets.only(bottom: 8),
