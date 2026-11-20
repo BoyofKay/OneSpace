@@ -79,6 +79,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        setState((){hits=found;busy=false;error=null;});
        return;
      }
+     // Remaining categories belong to a current relationship.
+     if (id==null) throw StateError('No current shared space');
      var failedCategories=0;
      Future<dynamic> guarded(String kind,dynamic request) async {
        // A category filter avoids starting unrelated network searches.
