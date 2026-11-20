@@ -1,5 +1,11 @@
 # OneSpace definitive relationship lifecycle — NO ARCHIVING (2026-11-20)
 
+> **Correction (20 Nov 2026, later):** the user journeys, warning texts and acceptance tests below still apply.
+> The *mechanics* in rules 1–5 ("move private content into a solo space", "move before dropping S1") are **out of date**.
+> Private content now lives in the account's own private space (`private_space_id`), never in the couple space, so nothing
+> is moved when a couple ends: shared rows are deleted, private rows are untouched. Follow
+> `ADR_2026-11-20_PERSONAL_SHARED_OWNERSHIP_AND_DELETION.md` where the two differ.
+
 This specification **replaces** the November 2026 verified archive/restore workflow. **No archive, export, download link, email, restore or archive progress step belongs to any relationship or account deletion action.**
 
 ## Rules and durable state
