@@ -776,11 +776,7 @@ class _TripDetailState extends State<TripDetail>{
       Card(elevation:0,child:Padding(padding:const EdgeInsets.all(14),
        child:SelectableText(t['notes'].toString()))),
      const SizedBox(height:12),
-     if(OneSpaceEnv.isProduction||t['private_space_id']==null)
-       TripDocumentsSection(tripId:widget.tripId,itineraryItems:items)
-     else Card(elevation:0,child:Padding(padding:const EdgeInsets.all(12),
-       child:Text(tt('Personal travel documents are unavailable until '
-         'account-owned private file storage is enabled.')))),
+     TripDocumentsSection(tripId:widget.tripId,itineraryItems:items),
      if(isFlight)...[
       const SizedBox(height:12),
       Card(elevation:0,clipBehavior:Clip.antiAlias,child:ExpansionTile(
