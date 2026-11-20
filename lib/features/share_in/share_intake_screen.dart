@@ -96,14 +96,18 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
         : db.from('activities').select('id,title,visibility,archived_at');
       final rows=await activityQuery.isFilter('archived_at', null)
           .order('updated_at', ascending: false).limit(100);
-      final plans = await db.from('occasion_plans').select('id,title,occasion_on,status')
-          .eq('space_id', id).isFilter('archived_at', null)
-          .not('status', 'in', '(celebrated,cancelled)')
-          .order('occasion_on', ascending: true).limit(60);
-      final tripRows = await db.from('shared_trips').select()
-          .eq('space_id', id).isFilter('archived_at', null)
-          .not('status', 'in', '(completed,cancelled)')
-          .order('updated_at', ascending: false).limit(60);
+      final planQuery=OneSpaceEnv.isProduction
+          ?db.from('occasion_plans').select('id,title,occasion_on,status').eq('space_id',id)
+          :db.from('occasion_plans').select('id,title,occasion_on,status,space_id,private_space_id');
+      final plans=await planQuery.isFilter('archived_at',null)
+          .not('status','in','(celebrated,cancelled)')
+          .order('occasion_on',ascending:true).limit(60);
+      final tripQuery=OneSpaceEnv.isProduction
+          ?db.from('shared_trips').select().eq('space_id',id)
+          :db.from('shared_trips').select();
+      final tripRows=await tripQuery.isFilter('archived_at',null)
+          .not('status','in','(completed,cancelled)')
+          .order('updated_at',ascending:false).limit(60);
       if (!mounted) return;
       setState(() {
         trips = List<Map<String, dynamic>>.from(tripRows);
@@ -176,7 +180,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     if (d == null || saving ||
         (spaceId == null && (OneSpaceEnv.isProduction ||
           (d != ShareDestination.note && d != ShareDestination.todo &&
-           d != ShareDestination.newActivity &&
+           d != ShareDestination.newActivity && d != ShareDestination.trip &&
            d != ShareDestination.placeVisited &&
            d != ShareDestination.placeWishlist) ||
           !onlyMe))) return;
@@ -332,7 +336,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           if (!mounted) return;
           String day(DateTime d) => d.toIso8601String().substring(0, 10);
           done = await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
-            builder: (_) => TripEditor(spaceId: spaceId!,
+            builder: (_) => TripEditor(spaceId: spaceId ?? '',
               prefill: {'title': name, 'notes': _bodyWithLink,
                 if (draft.origin != null) 'origin': draft.origin!,
                 if (draft.destination != null) 'destination': draft.destination!,
@@ -364,6 +368,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       final solo = !OneSpaceEnv.isProduction && spaceId == null;
       final supported = d == ShareDestination.newActivity ||
         d == ShareDestination.todo || d == ShareDestination.note ||
+        d == ShareDestination.trip ||
         d == ShareDestination.placeVisited || d == ShareDestination.placeWishlist;
       if (solo && !supported) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -464,7 +469,8 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       isComplete: () => (spaceId != null ||
         (!OneSpaceEnv.isProduction && onlyMe &&
          (d == null || d == ShareDestination.todo || d == ShareDestination.note ||
-          d == ShareDestination.newActivity || d == ShareDestination.placeVisited ||
+          d == ShareDestination.newActivity || d == ShareDestination.trip ||
+          d == ShareDestination.placeVisited ||
           d == ShareDestination.placeWishlist))) &&
         title.text.trim().isNotEmpty && (d != null || !sorting),
       missingHint: sorting && d == null ? tt('Choose where it should go') : tt('Give it a title'),
