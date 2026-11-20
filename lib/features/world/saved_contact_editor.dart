@@ -1,5 +1,7 @@
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
+import '../../core/account_content_scope.dart';
+import '../../core/app_env.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -70,9 +72,16 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
    setState((){busy=true;error=null;});
    try{
      final entry=widget.existing;
+     final scopes=entry==null
+         ? await AccountContentScope.load(db,
+             legacySpaceId:widget.spaceId.isEmpty?null:widget.spaceId)
+         : null;
      if(entry==null && (contact.phone.isNotEmpty||contact.email.isNotEmpty)){
-       final existingRows=await db.from('saved_contacts')
-        .select('id,label,payload').eq('space_id',widget.spaceId).limit(300);
+       var candidateQuery=db.from('saved_contacts').select('id,label,payload');
+       if(OneSpaceEnv.isProduction){
+         candidateQuery=candidateQuery.eq('space_id',widget.spaceId);
+       }
+       final existingRows=await candidateQuery.limit(300);
        final normalizedPhone=contact.dialableNumber;
        final matching=existingRows.where((row){
         final payload=Map<String,dynamic>.from(row['payload'] as Map? ??const {});
@@ -96,14 +105,16 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
      }
      if(entry==null){
        await db.from('saved_contacts').insert({
-         'space_id':widget.spaceId,'created_by':db.auth.currentUser!.id,
+         ...scopes!.fieldsForNew(shared:!onlyMe),
+         'created_by':db.auth.currentUser!.id,
          'label':label,'payload':contact.toPayload(),
-         'visibility':onlyMe?'private':'shared',
        });
      }else if(entry.direct){
        await db.from('saved_contacts').update({
          'label':label,'payload':contact.toPayload(),
-         'visibility':onlyMe?'private':'shared',
+         // QA: immutable account vs couple ownership; scope changes must be
+         // an explicit audited server operation, never a simple edit.
+         if(OneSpaceEnv.isProduction) 'visibility':onlyMe?'private':'shared',
        }).eq('id',entry.id);
      }else{
        await db.from('activity_components').update({
@@ -122,8 +133,11 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
    return EditorScaffold(title:widget.existing==null?tt('Add contact card'):tt('Edit contact card'),
    isNew:widget.existing==null,isChanged:()=>changed,isComplete:()=>name.text.trim().isNotEmpty,
    listenTo:[name,person,phone,email,address,hours,notes,company,role,website],saving:busy,onSave:save,
-   meta:fromActivity?null:MetaStrip(value:MetaValues(shared:!onlyMe),showBelongs:false,showDate:false,
-     enabled:!busy,onChanged:(v)=>setState(()=>onlyMe=!v.shared)),
+   meta:fromActivity?null:MetaStrip(value:MetaValues(shared:!onlyMe),
+     showVisibility: widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction,
+     showBelongs:false,showDate:false,
+     enabled:!busy && (OneSpaceEnv.isProduction || widget.existing==null),
+     onChanged:(v)=>setState(()=>onlyMe=!v.shared)),
    body:SafeArea(child:ListView(
        padding:const EdgeInsets.all(18),children:[
        if(widget.imported!=null)Padding(

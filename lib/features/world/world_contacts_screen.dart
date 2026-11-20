@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/account_content_scope.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import '../coordinate/activity_contact_view.dart';
 import '../coordinate/activity_detail_screen.dart';
@@ -24,6 +26,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  final db=Supabase.instance.client;
  List<WorldContactEntry> contacts=const [];
  String? space,error;
+ bool personalAvailable=false;
  bool loading=true,showDeleted=false;
  String sourceFilter='all';
  final expanded=<String>{};
@@ -39,24 +42,34 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  Future<void> load()async{
    if(mounted)setState((){loading=true;error=null;});
    try{
-     final id=await CurrentSpaceCache.instance.get();
-     if(id==null){
-       if(mounted)setState((){space=null;loading=false;contacts=[];});
+     final legacy=await CurrentSpaceCache.instance.get();
+     final scopes=await AccountContentScope.load(db,legacySpaceId:legacy);
+     final id=scopes.sharedSpaceId;
+     if(id==null && OneSpaceEnv.isProduction){
+       if(mounted)setState((){
+         space=null;personalAvailable=false;loading=false;contacts=[];
+       });
        return;
      }
+     var linked=db.from('activity_components').select(
+       'id,activity_id,created_by,label,payload,archived_at,updated_at,'
+       'activities!inner(title,space_id,archived_at)')
+       .eq('kind','contact');
+     var standalone=db.from('saved_contacts').select(
+       'id,created_by,visibility,label,payload,archived_at,updated_at');
+     if(OneSpaceEnv.isProduction){
+       linked=linked.eq('activities.space_id',id!);
+       standalone=standalone.eq('space_id',id);
+     }
+     // QA RLS merges current pair + account ownership. Never filter out
+     // personal contacts using the current or a previous couple space.
      final raw=await Future.wait([
-       db.from('activity_components').select(
-         'id,activity_id,created_by,label,payload,archived_at,updated_at,'
-         'activities!inner(title,space_id,archived_at)')
-         .eq('kind','contact').eq('activities.space_id',id)
-         .order('created_at',ascending:false).limit(200),
-       db.from('saved_contacts').select(
-         'id,created_by,visibility,label,payload,archived_at,updated_at')
-         .eq('space_id',id).order('created_at',ascending:false).limit(200),
+       linked.order('created_at',ascending:false).limit(200),
+       standalone.order('created_at',ascending:false).limit(200),
      ]);
      if(!mounted)return;
      setState((){
-       space=id;loading=false;
+       space=id;personalAvailable=scopes.canCreatePrivate;loading=false;
        contacts=[
          for(final row in raw[0])
            WorldContactEntry.fromRow(Map<String,dynamic>.from(row)),
@@ -72,21 +85,21 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  }
  Future<void> edit([WorldContactEntry? entry])async{
    final id=space;
-   if(id==null)return;
+   if(id==null && !personalAvailable)return;
    final saved=await Navigator.of(context).push<bool>(
      MaterialPageRoute<bool>(builder:(_)=>SavedContactEditor(
-       spaceId:id,existing:entry)));
+       spaceId:id??'',existing:entry)));
    if(saved==true&&mounted)await load();
  }
  Future<void> importFromPhone()async{
   final id=space;
-  if(id==null)return;
+  if(id==null && !personalAvailable)return;
   try{
    final contact=await PhoneContactBridge.pickFromPhone();
    if(contact==null||!mounted)return;
    final saved=await Navigator.of(context).push<bool>(
     MaterialPageRoute<bool>(builder:(_)=>SavedContactEditor(
-     spaceId:id,imported:contact)));
+     spaceId:id??'',imported:contact)));
    if(saved==true&&mounted)await load();
   }on PlatformException catch(e){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
@@ -296,7 +309,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      ],bottom:filterShowingBar(_filterGroups(),removed:showDeleted,onClear:()=>setState((){showDeleted=false;sourceFilter='all';}))),
      // R57: one add button; "Import from phone" is one of its choices
      // (it brings a phone contact in — the opposite of Save to phone).
-     floatingActionButton:space==null?null:AddFabMenu(label:tt('Add contact card'),options:[
+     floatingActionButton:!personalAvailable?null:AddFabMenu(label:tt('Add contact card'),options:[
        AddFabOption(tt('New contact card'),Icons.person_add_alt_outlined,()=>edit()),
        AddFabOption(tt('Import from phone'),Icons.contacts_outlined,importFromPhone),
      ]),
@@ -325,7 +338,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
          if(loading)const Center(child:CircularProgressIndicator())
          else if(error!=null)Text(tt(error!),
            style:TextStyle(color:Theme.of(context).colorScheme.error))
-         else if(space==null)Text(tt('Connect your shared space first.'))
+         else if(!personalAvailable)Text(tt('Connect your shared space first.'))
          else if(visible.isEmpty)Text(tt(showDeleted?
            'No recently deleted contacts.':'No contacts match this view.'))
          else for(final item in visible)card(item),
