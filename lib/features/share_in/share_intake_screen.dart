@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../calendar/calendar_event_editor.dart';
 import '../connect/shared_experiences_screen.dart';
 import '../coordinate/activity_detail_screen.dart';
@@ -155,7 +156,9 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
 
   Future<void> saveToDestination() async {
     final d = destination;
-    if (d == null || spaceId == null || saving) return;
+    if (d == null || saving ||
+        (spaceId == null && (OneSpaceEnv.isProduction ||
+          d != ShareDestination.note || !onlyMe))) return;
     final problem = _validate(requireBody: d == ShareDestination.activityOption);
     if (problem != null) { setState(() => error = problem); return; }
     setState(() { saving = true; error = null; });
@@ -226,8 +229,23 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           });
           next = const PlansScreen();
         case ShareDestination.note:
+          final personal = !OneSpaceEnv.isProduction && visibility == 'private';
+          String? pairedSpace = spaceId;
+          if (!OneSpaceEnv.isProduction && !personal) {
+            final scopes = await db.rpc('my_storage_scopes');
+            pairedSpace = scopes is Map ? scopes['shared_space_id']?.toString() : null;
+          }
+          if (!personal && (pairedSpace == null || pairedSpace.isEmpty)) {
+            if (mounted) setState(() {
+              saving = false;
+              error = 'Connect with a partner before saving shared notes.';
+            });
+            return;
+          }
           final created = await db.from('notes').insert({
-            'space_id': spaceId, 'created_by': db.auth.currentUser!.id,
+            if (personal) 'private_space_id': db.auth.currentUser!.id
+            else 'space_id': pairedSpace,
+            'created_by': db.auth.currentUser!.id,
             'title': name, 'body': _bodyWithLink, 'visibility': visibility,
           }).select('id').single();
           next = NotesScreen(initialNoteId: created['id'].toString());

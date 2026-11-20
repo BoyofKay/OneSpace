@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'app_env.dart';
 
 import '../features/calendar/calendar_event_editor.dart';
 import '../features/calendar/calendar_rules.dart';
@@ -107,7 +108,9 @@ class VoiceAssistant {
     String l(String en, String arText) => ar ? arText : en;
     final db = Supabase.instance.client;
     final space = await CurrentSpaceCache.instance.get();
-    if (space == null && c.action != VoiceAction.stop && c.action != VoiceAction.help) {
+    if (space == null && c.action != VoiceAction.stop && c.action != VoiceAction.help &&
+        !(!OneSpaceEnv.isProduction &&
+          (c.action == VoiceAction.note || c.action == VoiceAction.readNotes))) {
       return VoiceReply(l('Connect your shared space first.', 'اربط مساحتكما المشتركة أولًا.'), end: true);
     }
     final s = space ?? '';
@@ -167,7 +170,10 @@ class VoiceAssistant {
         case VoiceAction.readReminders:
           return VoiceReply(await _remindersText(db, s, ar));
         case VoiceAction.readNotes:
-          final note = await db.from('notes').select('title,body').eq('space_id', s)
+          final noteQuery = OneSpaceEnv.isProduction
+            ? db.from('notes').select('title,body').eq('space_id', s)
+            : db.from('notes').select('title,body');
+          final note = await noteQuery
             .isFilter('archived_at', null).order('updated_at', ascending: false).limit(1).maybeSingle();
           return VoiceReply(note == null ? l('There are no notes yet.', 'لا توجد ملاحظات بعد.')
             : l('Your latest note: ${note['title']}. ${note['body'] ?? ''}', 'آخر ملاحظة: ${note['title']}. ${note['body'] ?? ''}'));
