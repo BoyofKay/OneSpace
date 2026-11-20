@@ -84,6 +84,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          if(key.isNotEmpty && seen.add('task:'+key))
            found.add(_Hit('To-do',task['title']?.toString()??'',key));
        }
+       final reminders=await db.from('reminders').select('id,title')
+          .isFilter('archived_at',null).ilike('title',pattern)
+          .limit(GlobalSearchRules.maxPerSection);
+       final reminderBodies=await db.from('reminders').select('id,title')
+          .isFilter('archived_at',null).ilike('details',pattern)
+          .limit(GlobalSearchRules.maxPerSection);
+       for(final reminder in [...reminders,...reminderBodies]){
+         final key=reminder['id']?.toString()??'';
+         if(key.isNotEmpty && seen.add('reminder:'+key))
+           found.add(_Hit('Reminder',reminder['title']?.toString()??'',key));
+       }
        setState((){hits=found;busy=false;error=null;});
        return;
      }
@@ -137,7 +148,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Occasion',db.from('occasion_plans').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Reminder',db.from('reminders').select('id,title').eq('space_id',id)
+       guarded('Reminder',(OneSpaceEnv.isProduction
+          ? db.from('reminders').select('id,title').eq('space_id',id)
+          : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
@@ -160,7 +173,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Reminder',db.from('reminders').select('id,title').eq('space_id',id)
+       guarded('Reminder',(OneSpaceEnv.isProduction
+          ? db.from('reminders').select('id,title').eq('space_id',id)
+          : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // R54: people and the share-in tray are searchable too.
