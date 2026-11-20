@@ -89,10 +89,11 @@ BEGIN
  IF result->>'status'<>'shared_db_removed_storage_purge_pending'
   OR (result->>'media_files_queued')::int<1 THEN
    RAISE EXCEPTION 'Deletion did not capture shared media cleanup queue';END IF;
- SELECT count(*) INTO n FROM public.qa_shared_media_purge_queue
- WHERE space_id=current_setting('qa.space')::uuid
- AND object_path=current_setting('qa.shared_path') AND deleted_at IS NULL;
- IF n<>1 THEN RAISE EXCEPTION 'Shared attachment not queued for physical erase';END IF;
+ BEGIN
+  SELECT count(*) INTO n FROM public.qa_shared_media_purge_queue
+  WHERE space_id=current_setting('qa.space')::uuid;
+  RAISE EXCEPTION 'BUG: client can read privileged physical purge queue';
+ EXCEPTION WHEN OTHERS THEN IF SQLERRM LIKE 'BUG:%' THEN RAISE;END IF;END;
  SELECT count(*) INTO n FROM public.notes WHERE id=current_setting('qa.note_shared')::uuid;
  IF n<>0 THEN RAISE EXCEPTION 'Former couple shared data not erased';END IF;
  SELECT count(*) INTO n FROM public.notes WHERE id=current_setting('qa.owner_private')::uuid;
@@ -108,5 +109,14 @@ BEGIN
  SELECT count(*) INTO n FROM storage.objects WHERE name=current_setting('qa.shared_path');
  IF n<>0 THEN RAISE EXCEPTION 'Old couple media still visible to surviving partner';END IF;
 END $execute$;
+RESET ROLE;
+DO $queue$
+DECLARE n int;
+BEGIN
+ SELECT count(*) INTO n FROM public.qa_shared_media_purge_queue
+ WHERE space_id=current_setting('qa.space')::uuid
+ AND object_path=current_setting('qa.shared_path') AND deleted_at IS NULL;
+ IF n<>1 THEN RAISE EXCEPTION 'Shared file not queued for physical purge';END IF;
+END $queue$;
 ROLLBACK;
 SELECT 'PASS closed gate, outsider/role/confirmation rejection, shared DB erasure, queued media, two personal namespaces and account privacy; all rolled back' result;
