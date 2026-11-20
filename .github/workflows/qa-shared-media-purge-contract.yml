@@ -6,6 +6,9 @@ on:
       - 'supabase/functions/_shared/qa_shared_media_purge_contract.mjs'
       - 'supabase/functions/_shared/qa_shared_media_purge_contract.test.mjs'
       - 'supabase/functions/onespace-qa-shared-media-purge/**'
+      - 'supabase/functions/_shared/qa_account_private_media_purge_contract.mjs'
+      - 'supabase/functions/_shared/qa_account_private_media_purge_contract.test.mjs'
+      - 'supabase/functions/onespace-qa-account-private-media-purge/**'
       - '.github/workflows/qa-shared-media-purge-contract.yml'
   workflow_dispatch:
 permissions:
@@ -24,5 +27,9 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Type-check staged service-only Edge Function without deployment
-        run: deno check supabase/functions/onespace-qa-shared-media-purge/index.ts
+      - name: Verify account-owned files cannot cross into shared Storage deletion
+        run: node --test supabase/functions/_shared/qa_account_private_media_purge_contract.test.mjs
+      - name: Type-check BOTH staged service-only Edge workers without deployment
+        run: |
+          deno check supabase/functions/onespace-qa-shared-media-purge/index.ts
+          deno check supabase/functions/onespace-qa-account-private-media-purge/index.ts
