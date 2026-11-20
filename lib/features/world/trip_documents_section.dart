@@ -1,6 +1,7 @@
 import '../../core/item_menu.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
+import '../../core/app_env.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -51,6 +52,20 @@ class TravelDocumentService {
  }) async{
   final user=db.auth.currentUser?.id;
   if(user==null)throw StateError('Sign in to add a document.');
+  // Do not write into the couple file bucket for an account-owned trip.
+  // Recheck immediately before uploading: the screen can be stale after unpairing.
+  if(!OneSpaceEnv.isProduction){
+    final trip=await db.from('shared_trips')
+      .select('space_id,private_space_id,visibility').eq('id',tripId)
+      .maybeSingle();
+    final scopes=await db.rpc('my_storage_scopes');
+    if(trip==null || trip['private_space_id']!=null ||
+       trip['visibility']!='shared' || scopes is! Map ||
+       scopes['shared_space_id']?.toString()!=trip['space_id']?.toString()){
+      throw StateError('Shared travel documents require a current paired space. '
+        'Private travel document storage is not available yet.');
+    }
+  }
   final objectPath=TripDocumentRules.path(
     tripId:tripId,userId:user,documentId:const Uuid().v4(),mime:file.mime);
   final bucket=db.storage.from(TripDocumentRules.bucket);
