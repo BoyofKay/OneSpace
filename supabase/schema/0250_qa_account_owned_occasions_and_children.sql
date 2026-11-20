@@ -100,7 +100,7 @@ CREATE POLICY "QA occasion_plan_steps updates owner parent" ON public.occasion_p
     AND p.visibility='private' AND p.space_id IS NULL)
    OR(p.private_space_id IS NULL AND p.visibility='shared'
     AND private.is_space_member(p.space_id)
-    AND (select count(*) from public.space_members m where m.space_id=p.space_id)=2)))
+    AND (select count(*) from public.space_members m where m.space_id=p.space_id)=2))))
  WITH CHECK(EXISTS(SELECT 1 FROM public.occasion_plans p WHERE p.id=occasion_plan_steps.plan_id
   AND ((p.private_space_id=(select auth.uid()) AND p.created_by=(select auth.uid())
     AND p.visibility='private' AND p.space_id IS NULL)
@@ -136,7 +136,7 @@ CREATE POLICY "QA occasion_budget_items updates owner parent" ON public.occasion
     AND p.visibility='private' AND p.space_id IS NULL)
    OR(p.private_space_id IS NULL AND p.visibility='shared'
     AND private.is_space_member(p.space_id)
-    AND (select count(*) from public.space_members m where m.space_id=p.space_id)=2)))
+    AND (select count(*) from public.space_members m where m.space_id=p.space_id)=2))))
  WITH CHECK(EXISTS(SELECT 1 FROM public.occasion_plans p WHERE p.id=occasion_budget_items.plan_id
   AND ((p.private_space_id=(select auth.uid()) AND p.created_by=(select auth.uid())
     AND p.visibility='private' AND p.space_id IS NULL)
@@ -172,7 +172,7 @@ CREATE POLICY "QA occasion_proposals updates owner parent" ON public.occasion_pr
     AND p.visibility='private' AND p.space_id IS NULL)
    OR(p.private_space_id IS NULL AND p.visibility='shared'
     AND private.is_space_member(p.space_id)
-    AND (select count(*) from public.space_members m where m.space_id=p.space_id)=2)))
+    AND (select count(*) from public.space_members m where m.space_id=p.space_id)=2))))
  WITH CHECK(EXISTS(SELECT 1 FROM public.occasion_plans p WHERE p.id=occasion_proposals.plan_id
   AND ((p.private_space_id=(select auth.uid()) AND p.created_by=(select auth.uid())
     AND p.visibility='private' AND p.space_id IS NULL)
