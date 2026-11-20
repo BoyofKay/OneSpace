@@ -16,6 +16,19 @@ void main() {
     expect(const NewActivityDraft(title: 'A').toInsert('s').containsKey('due_on'), isFalse);
   });
 
+  test('QA personal Activity has account ownership, never couple space', () {
+    const personal = NewActivityDraft(title: 'Private plan', shared: false);
+    final own = personal.toInsert('relationship-space', ownerId: 'account-id');
+    expect(own['private_space_id'], 'account-id');
+    expect(own.containsKey('space_id'), isFalse);
+    expect(own['visibility'], 'private');
+
+    const together = NewActivityDraft(title: 'Our plan', shared: true);
+    final pair = together.toInsert('relationship-space', ownerId: 'account-id');
+    expect(pair['space_id'], 'relationship-space');
+    expect(pair.containsKey('private_space_id'), isFalse);
+  });
+
   test('purpose outline never overwrites typed details', () {
     expect(NewActivityDraft.detailsFor(ActivityPurpose.buy, ''),
         ActivityPurpose.buy.outline);
