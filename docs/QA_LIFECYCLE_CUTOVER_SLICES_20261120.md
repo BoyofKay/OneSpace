@@ -100,6 +100,12 @@
 - `qa_all_personal_root_child_fk_orphans.sql` **PASS**: checked **49 single-column child foreign-key relationships** into those roots, including relations that may have old NOT VALID constraints. No orphan child references detected on QA.
 - **33/33 QA SQL rollback/read-only audits PASS**. Original 31 lifecycle and media rollback scripts were rerun after the account-deletion FK and serialized-pairing changes; these two additional data-migration audits also passed. Future migrations, cross-module path dependencies and old signed URL behavior need separate tests.
 
+### Completed file-metadata privacy cleanup
+
+- `0283` adds service-only `qa_scrub_completed_account_media_jobs` and restricted DELETE permission on the two QA media-purge queues. The method requires the **full final Auth deletion readiness check** (due seven days, disconnected, no remaining physical files or unfinished jobs). It removes only **completed** records carrying the deleting account's uploader UUID and file paths. Unfinished jobs are retained for retry; no account data is actually deleted by the function.
+- The staged QA Auth Admin finalizer calls this scrub after final readiness and **before** the Auth Admin API request; any failure aborts deletion. `qa_completed_account_file_queue_scrub_rollback.sql` **PASS** with a synthetic account and an unfinished-job denial case.
+- **34 distinct QA SQL rollback/read-only tests have passed** over the full lifecycle effort. The newest completed-job scrub test passed after `0283`. No background file worker, cron, or finalizer deployed.
+
 **Integration gates still open:** latest-head Flutter CI verification and two-phone tests have **not** both completed. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
 
 ## Checks actually executed
