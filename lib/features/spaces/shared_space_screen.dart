@@ -1152,7 +1152,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       child: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(16,16,16,24),
         children: [
-          Text(tt(spaceId == null ? tr(context, 'ourSpace') : _greeting()),
+          Text(tt(spaceId == null ? 'My OneSpace' : _greeting()),
             style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
           if(spaceId!=null && clockMembers.length>1)
             Padding(
@@ -1284,71 +1284,69 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               ]),
             ),
           ] else if (spaceId == null) ...[
+            // One account-owned home, one contextual connection panel.
+            // Do not offer three independent setup cards or create a
+            // second personal store when an invitation has no code.
             _panel(
-              tt('Invite my partner'),
-              tt('Enter your partner’s email and create your shared space automatically.'),
-              Icons.mail_outline,
-              FilledButton.icon(
-                onPressed: working ? null : _openInvitation,
-                icon: const Icon(Icons.person_add_alt_1),
-                label: Text(tt('Invite my partner')),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _panel(
-              tr(context, 'createSpaceTitle'),
-              tr(context, 'createSpaceDescription'),
-              Icons.favorite_border,
-              FilledButton(
-                onPressed: working ? null : _create,
-                child: Text(tr(context, 'createSpaceButton')),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _panel(
-              tr(context, 'joinPartner'),
-              tr(context, 'joinDescription'),
-              Icons.people_outline,
-              Column(
-                children: [
-                  TextField(
-                    controller: invitationController,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: InputDecoration(
-                      labelText: tr(context, 'invitationCode'),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        tooltip: tr(context, 'pasteCode'),
-                        icon: const Icon(Icons.content_paste),
-                        onPressed: () async {
-                          final clip = await Clipboard.getData('text/plain');
-                          if (!mounted) return;
-                          final text = clip?.text;
-                          if (text != null) {
-                            invitationController.text = text.trim();
-                          }
-                        },
-                      ),
+              tt('Your personal OneSpace is ready'),
+              tt('Your private content stays in your account, whether '
+                'you are single, paired, or reconnect with someone else. '
+                'Enter an invitation to connect to a shared space.'),
+              Icons.lock_person_outlined,
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                TextField(
+                  key:const Key('joinSpaceInvitationCode'),
+                  controller: invitationController,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'invitationCode'),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      tooltip: tr(context, 'pasteCode'),
+                      icon: const Icon(Icons.content_paste),
+                      onPressed: working?null:() async {
+                        final clip = await Clipboard.getData('text/plain');
+                        if (!mounted) return;
+                        final code = clip?.text;
+                        if (code != null) invitationController.text = code.trim();
+                      },
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.qr_code_scanner),
-                    label: Text(tt('Scan your partner’s QR code')),
-                    onPressed: working ? null : () async {
-                      final code = await scanInvitation(context);
-                      if (code == null || !mounted) return;
-                      invitationController.text = code;
-                      await _accept();
-                    }),
-                  const SizedBox(height: 6),
-                  FilledButton.tonal(
-                    onPressed: working ? null : _accept,
-                    child: Text(tr(context, 'joinSpace')),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  key:const Key('joinSpaceSingleAction'),
+                  onPressed: working ? null : _accept,
+                  icon: const Icon(Icons.people_outline),
+                  label: Text(tt('Join my partner’s space')),
+                ),
+                const SizedBox(height: 6),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: Text(tt('Scan invitation QR code')),
+                  onPressed: working ? null : () async {
+                    final code = await scanInvitation(context);
+                    if (code == null || !mounted) return;
+                    invitationController.text = code;
+                    await _accept();
+                  },
+                ),
+                const Divider(height: 30),
+                Text(tt('No invitation yet?')),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: working ? null : _openInvitation,
+                  icon: const Icon(Icons.mail_outline),
+                  label: Text(tt('Invite my partner')),
+                ),
+                // The existing direct-create fallback remains available
+                // without competing as a second onboarding card.
+                TextButton(
+                  onPressed: working ? null : _create,
+                  child: Text(tt('Create a shared space manually')),
+                ),
+              ]),
             ),
           ] else ...[
             if (memberCount < 2) ...[
