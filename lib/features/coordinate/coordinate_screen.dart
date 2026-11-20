@@ -85,6 +85,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
                 .stream(primaryKey: ['id']).eq('space_id', space!)
                 .order('updated_at', ascending: false));
       });
+      unawaited(_loadCountdowns());
     } catch (_) {
       if (mounted) {
         setState(() {
