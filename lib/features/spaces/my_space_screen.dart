@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/app_env.dart';
+import 'relationship_exit_confirmation.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Account-owned private storage and relationship-owned shared storage.
@@ -15,12 +16,16 @@ class MySpaceScreen extends StatefulWidget {
 }
 
 class _MySpaceScreenState extends State<MySpaceScreen> {
+  // Release control remains OFF until physical Storage/Auth and device
+  // acceptance. Backend relationship gate independently stays disabled.
+  static const bool _qaRelationshipActionsApproved = false;
   final _db = Supabase.instance.client;
   bool _loading = true;
   bool _busy = false;
   bool _owner = false;
   int _members = 0;
   String? _spaceName;
+  String? _spaceId;
   String? _error;
   String? _message;
   Map<String, dynamic>? _legacyPending;
@@ -39,10 +44,12 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       final membership = await _db.from('space_members')
           .select('space_id').eq('user_id', me).limit(1).maybeSingle();
       String? name;
+      String? sharedId;
       var owner = false;
       var members = 0;
       if (membership != null) {
         final id = membership['space_id'].toString();
+        sharedId = id;
         final space = await _db.from('spaces')
             .select('name,created_by').eq('id', id).maybeSingle();
         final list = await _db.from('space_members')
@@ -61,6 +68,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       if (!mounted) return;
       setState(() {
         _spaceName = name;
+        _spaceId = sharedId;
         _owner = owner;
         _members = members;
         _legacyPending = pending;
@@ -109,12 +117,46 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
     }
   }
 
-  Widget _disabledAction(IconData icon, String title) =>
-    OutlinedButton.icon(
-      onPressed: null,
-      icon: Icon(icon),
-      label: Text(tt(title)),
-    );
+  Future<void> _endRelationship(RelationshipExitAction action) async {
+    final space = _spaceId;
+    if (!_qaRelationshipActionsApproved || OneSpaceEnv.isProduction ||
+        _busy || space == null) return;
+    final confirmed = await RelationshipExitConfirmation.ask(
+      context, action: action);
+    if (!confirmed || !mounted) return;
+    setState(() { _busy = true; _message = null; _error = null; });
+    try {
+      final command = switch (action) {
+        RelationshipExitAction.removePartner => 'remove_partner',
+        RelationshipExitAction.leaveSpace => 'leave_space',
+        RelationshipExitAction.deleteSpace => 'delete_space',
+      };
+      await _db.rpc('qa_end_current_relationship', params: {
+        'p_space': space,
+        'p_action': command,
+        'p_confirmation': RelationshipExitConfirmation.requiredPhrase,
+      });
+      await _load();
+      if (mounted) setState(() =>
+        _message = tt('The shared relationship was removed. '
+          'Your account-owned private information is preserved.'));
+    } catch (_) {
+      if (mounted) setState(() => _error =
+        tt('Shared relationship deletion could not be verified. '
+          'Please contact support; do not retry before checking status.'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _relationshipAction(IconData icon, String title,
+      RelationshipExitAction action) => OutlinedButton.icon(
+    onPressed: !_qaRelationshipActionsApproved ||
+        OneSpaceEnv.isProduction || _busy || _spaceId == null
+      ? null : () => _endRelationship(action),
+    icon: Icon(icon),
+    label: Text(tt(title)),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -196,11 +238,11 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               'connected to a different partner.')),
             const SizedBox(height: 10),
             if (_members == 2 && _owner)
-              _disabledAction(Icons.person_remove_outlined, 'Remove partner'),
+              _relationshipAction(Icons.person_remove_outlined, 'Remove partner', RelationshipExitAction.removePartner),
             if (_members == 2 && !_owner)
-              _disabledAction(Icons.logout, 'Leave this space'),
+              _relationshipAction(Icons.logout, 'Leave this space', RelationshipExitAction.leaveSpace),
             if (_owner)
-              _disabledAction(Icons.delete_outline, 'Delete this space'),
+              _relationshipAction(Icons.delete_outline, 'Delete this space', RelationshipExitAction.deleteSpace),
             const SizedBox(height: 8),
             Text(tt('These actions are temporarily unavailable while '
               'private data ownership, shared deletion and security checks '
