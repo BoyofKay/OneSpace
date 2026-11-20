@@ -278,15 +278,21 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
           onCreated: (newId) => link(LinkKind.trip, newId))));
     case CreateFromAction.todo:
       try {
+        final personal = !OneSpaceEnv.isProduction && !shared;
         final created = await db.from('tasks').insert({
-          'space_id': spaceId, 'created_by': db.auth.currentUser!.id,
+          if (personal) 'private_space_id':db.auth.currentUser!.id
+          else 'space_id':spaceId,
+          'created_by': db.auth.currentUser!.id,
           'title': newTitle, 'status': 'open', 'visibility': shared ? 'shared' : 'private',
           if (date != null) 'target_date': CalendarRules.sqlDate(date),
         }).select('id').single();
-        await link(LinkKind.task, created['id'].toString());
+        // A private task is never attached to a couple-owned link.
+        if (!personal) await link(LinkKind.task, created['id'].toString());
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${tt('To-do')} "$newTitle" ${tt('added and linked.')}'),
+            content: Text(personal
+              ? 'Private checklist created.'
+              : '${tt('To-do')} "$newTitle" ${tt('added and linked.')}'),
             action: SnackBarAction(label: tt('Open'), onPressed: () =>
               openLinkedItem(context, LinkKind.task, created['id'].toString()))));
         }
