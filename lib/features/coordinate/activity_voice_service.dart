@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'activity_voice_rules.dart';
+import 'activity_media_scope.dart';
+import '../../core/app_env.dart';
 
 enum VoiceDestination { component, comment }
 
@@ -32,7 +34,8 @@ class ActivityVoiceService {
       userId: userId,
       fileId: const Uuid().v4(),
     );
-    final storage = client.storage.from(ActivityVoiceRules.bucket);
+    final bucket = await ActivityMediaScope.voiceBucket(client, activityId);
+    final storage = client.storage.from(bucket);
     await storage.uploadBinary(
       path,
       bytes,
@@ -50,6 +53,7 @@ class ActivityVoiceService {
           'label': 'Voice note',
           'payload': {
             'voice_path': path,
+            if (!OneSpaceEnv.isProduction) 'bucket_id': bucket,
             'voice_seconds': seconds,
             'note': '',
           },
@@ -61,6 +65,7 @@ class ActivityVoiceService {
           'reply_to': replyToCommentId,
           'component_id': relatedComponentId,
           'voice_path': path,
+          if (!OneSpaceEnv.isProduction) 'voice_bucket_id': bucket,
           'voice_seconds': seconds,
         });
       }
