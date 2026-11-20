@@ -22,6 +22,22 @@ BEGIN
 END $fixture$;
 -- Deleting a space invalidates its existing membership, but not its queue.
 DELETE FROM public.spaces WHERE id=current_setting('qa.retired_space')::uuid;
+-- Simulate a Storage file being transferred after the pair is retired:
+-- the worker must refuse to claim it even if the old queue was valid.
+UPDATE storage.objects SET owner_id='ffffffff-ffff-4fff-8fff-ffffffffffff'
+WHERE bucket_id='onespace-note-images' AND name=current_setting('qa.object_path');
+SET LOCAL ROLE service_role;
+DO $changed_owner$
+DECLARE leased jsonb;
+BEGIN
+ leased:=public.qa_claim_shared_media_purge(1);
+ IF jsonb_array_length(leased)<>0 THEN
+  RAISE EXCEPTION 'BUG: worker claimed a Storage object with changed uploader';
+ END IF;
+END $changed_owner$;
+RESET ROLE;
+UPDATE storage.objects SET owner_id=current_setting('qa.owner')
+WHERE bucket_id='onespace-note-images' AND name=current_setting('qa.object_path');
 SET LOCAL ROLE authenticated;
 DO $auth$
 BEGIN
