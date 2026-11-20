@@ -7,7 +7,7 @@ void main() {
   test('OneSpace uses the founder-approved tagline in both app languages', () {
     expect(OneSpaceStrings.forLanguage('en', 'tagline'), OneSpaceBrand.tagline);
     expect(OneSpaceStrings.forLanguage('ar', 'tagline'), OneSpaceBrand.tagline);
-    expect(OneSpaceBrand.tagline, 'Two of Us. One Space');
+    expect(OneSpaceBrand.tagline, 'Two of Us. One Space.');
   });
   test('Theme previews reuse one approved brand constant', () {
     const paths = [

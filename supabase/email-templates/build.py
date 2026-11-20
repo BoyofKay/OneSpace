@@ -9,7 +9,7 @@ subject listed in README.md. Do not hand-edit the generated .html files.
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TAGLINE = "Two of Us. One Space"  # must equal OneSpaceBrand.tagline
+TAGLINE = "Two of Us. One Space."  # must equal OneSpaceBrand.tagline
 LOGO = "https://onespace.live/assets/icon-512.png"
 SUPPORT = "support@onespace.live"
 SITE = "https://onespace.live"

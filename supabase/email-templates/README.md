@@ -7,7 +7,7 @@ One brand for every email a user receives from the app.
 | Sender (From) | `OneSpace <support@onespace.live>` for every app email: Supabase Auth SMTP in QA **and** Production, and the partner invitation |
 | Reply-To | `support@onespace.live` (a real Zoho mailbox, so replies are read) |
 | Logo | `https://onespace.live/assets/icon-512.png` |
-| Tagline | `Two of Us. One Space` (same as `OneSpaceBrand.tagline`) |
+| Tagline | `Two of Us. One Space.` (same as `OneSpaceBrand.tagline`) |
 | Colours | Navy `#14213D` text, button and links `#234D82`, page `#F3F6FA` |
 | Footer | OneSpace · tagline · onespace.live · support@onespace.live |
 | Language | English only for app emails (for now) |

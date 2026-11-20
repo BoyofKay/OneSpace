@@ -53,13 +53,13 @@ String invitationMessage(String code, {bool qa = false, bool email = false}) {
         'If the link doesn’t open OneSpace, choose Open in OneSpace on that page, '
         'or enter this code manually:\n$code\n\n'
         'Google Play and App Store availability is shown on the invitation page.\n\n'
-        'OneSpace\nTwo of Us. One Space\nhttps://onespace.live';
+        'OneSpace\nTwo of Us. One Space.\nhttps://onespace.live';
   }
   return 'Join me on OneSpace! 💙\n\n'
       'Open your invitation:\n$link\n\n'
       'If the app is not installed, use the instructions on that page.\n'
       'Manual invitation code (if needed):\n$code\n\n'
-      'OneSpace · Two of Us. One Space';
+      'OneSpace · Two of Us. One Space.';
 }
 
 /// RFC 6068 mailto is NOT HTML form encoding. Gmail may show `+` literally.

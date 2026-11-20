@@ -229,7 +229,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 Text(tt('OneSpace'),style:TextStyle(
                   fontSize:30,fontWeight:FontWeight.w800)),
                 const SizedBox(height:6),
-                const Text('Two of Us. One Space'),
+                const Text('Two of Us. One Space.'),
                 const SizedBox(height:25),
                 if (_busy) ...[
                   const CircularProgressIndicator(),

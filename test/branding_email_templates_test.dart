@@ -27,7 +27,7 @@ void main() {
               .readAsStringSync(),
     };
     sources.forEach((path, source) {
-      expect(source, contains('Two of Us. One Space'), reason: path);
+      expect(source, contains('Two of Us. One Space.'), reason: path);
       expect(source, isNot(contains('One Life. Two Places. One Space.')),
           reason: path);
       expect(source, contains(_logo), reason: path);
