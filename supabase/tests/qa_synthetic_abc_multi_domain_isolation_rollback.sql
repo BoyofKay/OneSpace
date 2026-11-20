@@ -18,38 +18,50 @@ INSERT INTO public.space_members(space_id,user_id)
 VALUES(current_setting('qa.ab')::uuid,current_setting('qa.a')::uuid),
       (current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid);
 
--- Synthetic data entered under service role to exercise lifecycle + RLS,
--- not to bypass any validation in a real authenticated client.
+-- Fixture writes are performed AS the authenticated owner,
+-- matching the ownership guard's true client rules.
+SELECT set_config('request.jwt.claim.sub',current_setting('qa.a'),true);
+SET LOCAL ROLE authenticated;
 INSERT INTO public.activities(private_space_id,created_by,title,visibility)
-VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A protected Activity','private'),
-      (current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B protected Activity','private');
+VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A protected Activity','private');
+INSERT INTO public.memories(private_space_id,created_by,title,memory_date,visibility)
+VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A protected Memory',CURRENT_DATE,'private');
+INSERT INTO public.goals(private_space_id,created_by,title,visibility)
+VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A protected Goal','private');
+INSERT INTO public.saved_contacts(private_space_id,created_by,label,visibility)
+VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A private contact','private');
+INSERT INTO public.shared_trips(private_space_id,created_by,title,visibility)
+VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A private Trip','private');
+INSERT INTO public.places(private_space_id,created_by,name,visibility)
+VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A private Place','private');
+RESET ROLE;
+SELECT set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
+SET LOCAL ROLE authenticated;
+INSERT INTO public.activities(private_space_id,created_by,title,visibility)
+VALUES(current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B protected Activity','private');
+INSERT INTO public.memories(private_space_id,created_by,title,memory_date,visibility)
+VALUES(current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B protected Memory',CURRENT_DATE,'private');
+INSERT INTO public.goals(private_space_id,created_by,title,visibility)
+VALUES(current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B protected Goal','private');
+INSERT INTO public.saved_contacts(private_space_id,created_by,label,visibility)
+VALUES(current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B private contact','private');
+INSERT INTO public.shared_trips(private_space_id,created_by,title,visibility)
+VALUES(current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B private Trip','private');
+INSERT INTO public.places(private_space_id,created_by,name,visibility)
+VALUES(current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B private Place','private');
 INSERT INTO public.activities(space_id,created_by,title,visibility)
 VALUES(current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid,'AB discarded Activity','shared');
-INSERT INTO public.memories(private_space_id,created_by,title,memory_date,visibility)
-VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A protected Memory',CURRENT_DATE,'private'),
-      (current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B protected Memory',CURRENT_DATE,'private');
 INSERT INTO public.memories(space_id,created_by,title,memory_date,visibility)
-VALUES(current_setting('qa.ab')::uuid,current_setting('qa.a')::uuid,'AB discarded Memory',CURRENT_DATE,'shared');
-INSERT INTO public.goals(private_space_id,created_by,title,visibility)
-VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A protected Goal','private'),
-      (current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B protected Goal','private');
+VALUES(current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid,'AB discarded Memory',CURRENT_DATE,'shared');
 INSERT INTO public.goals(space_id,created_by,title,visibility)
-VALUES(current_setting('qa.ab')::uuid,current_setting('qa.a')::uuid,'AB discarded Goal','shared');
-INSERT INTO public.saved_contacts(private_space_id,created_by,label,visibility)
-VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A private contact','private'),
-      (current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B private contact','private');
+VALUES(current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid,'AB discarded Goal','shared');
 INSERT INTO public.saved_contacts(space_id,created_by,label,visibility)
 VALUES(current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid,'AB discarded contact','shared');
-INSERT INTO public.shared_trips(private_space_id,created_by,title,visibility)
-VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A private Trip','private'),
-      (current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B private Trip','private');
 INSERT INTO public.shared_trips(space_id,created_by,title,visibility)
-VALUES(current_setting('qa.ab')::uuid,current_setting('qa.a')::uuid,'AB discarded Trip','shared');
-INSERT INTO public.places(private_space_id,created_by,name,visibility)
-VALUES(current_setting('qa.a')::uuid,current_setting('qa.a')::uuid,'A private Place','private'),
-      (current_setting('qa.b')::uuid,current_setting('qa.b')::uuid,'B private Place','private');
+VALUES(current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid,'AB discarded Trip','shared');
 INSERT INTO public.places(space_id,created_by,name,visibility)
 VALUES(current_setting('qa.ab')::uuid,current_setting('qa.b')::uuid,'AB discarded Place','shared');
+RESET ROLE;
 
 UPDATE private.qa_relationship_v2_gate SET enabled=true WHERE id=1;
 GRANT USAGE ON SCHEMA private TO authenticated;
@@ -76,28 +88,35 @@ INSERT INTO public.activities(space_id,created_by,title,visibility)
 VALUES(current_setting('qa.ac')::uuid,current_setting('qa.c')::uuid,'AC new Activity','shared');
 
 -- Verify scope visibility using actual authenticated/RLS filtering.
-DO $acl$
-DECLARE area text;visible_count int;
+-- Query under partner C's authenticated RLS: C must see none of the
+-- deleted A+B shared records or either person's private rows.
+SELECT set_config('request.jwt.claim.sub',current_setting('qa.c'),true);
+SET LOCAL ROLE authenticated;
+DO $c_privacy$
+DECLARE area text;n int;
 BEGIN
  FOR area IN SELECT unnest(ARRAY['activities','memories','goals',
  'saved_contacts','shared_trips','places']) LOOP
-  PERFORM set_config('request.jwt.claim.sub',current_setting('qa.c'),true);
-  EXECUTE format('SET LOCAL ROLE authenticated');
   EXECUTE format('SELECT count(*) FROM public.%I WHERE private_space_id IN ($1,$2) OR space_id=$3',area)
-  INTO visible_count USING current_setting('qa.a')::uuid,
+   INTO n USING current_setting('qa.a')::uuid,
    current_setting('qa.b')::uuid,current_setting('qa.ab')::uuid;
-  IF visible_count<>0 THEN
-   RAISE EXCEPTION 'C saw old AB/private records in %: %',area,visible_count;END IF;
-  EXECUTE 'RESET ROLE';
-  PERFORM set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
-  EXECUTE 'SET LOCAL ROLE authenticated';
-  EXECUTE format('SELECT count(*) FROM public.%I WHERE private_space_id=$1',area)
-  INTO visible_count USING current_setting('qa.b')::uuid;
-  IF visible_count<>1 THEN
-   RAISE EXCEPTION 'B private % record invisible after separation',area;END IF;
-  EXECUTE 'RESET ROLE';
+  IF n<>0 THEN RAISE EXCEPTION 'C sees old AB/private content in %',area;END IF;
  END LOOP;
-END $acl$;
+END $c_privacy$;
+RESET ROLE;
+SELECT set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
+SET LOCAL ROLE authenticated;
+DO $b_privacy$
+DECLARE area text;n int;
+BEGIN
+ FOR area IN SELECT unnest(ARRAY['activities','memories','goals',
+ 'saved_contacts','shared_trips','places']) LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I WHERE private_space_id=$1',area)
+   INTO n USING current_setting('qa.b')::uuid;
+  IF n<>1 THEN RAISE EXCEPTION 'B cannot see own private data in %',area;END IF;
+ END LOOP;
+END $b_privacy$;
+RESET ROLE;
 -- A new shared Activity is invisible to B and visible to C.
 SELECT set_config('request.jwt.claim.sub',current_setting('qa.b'),true);
 SET LOCAL ROLE authenticated;
