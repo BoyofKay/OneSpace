@@ -14,6 +14,7 @@ import '../world/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../memories/memories_screen.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import 'global_search_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -54,9 +55,30 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      final account=db.auth.currentUser?.id;
      if(account==null)throw StateError('Sign in first');
      final id=await CurrentSpaceCache.instance.get();
-     if(id==null)throw StateError('Connect your shared space first');
+     if(id==null && OneSpaceEnv.isProduction)
+       throw StateError('Connect your shared space first');
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
      final pattern=GlobalSearchRules.pattern(term);
+     // Solo QA accounts still have their private space. Its notes are
+     // searchable even without a current relationship.
+     if(id==null && !OneSpaceEnv.isProduction){
+       final names=await db.from('notes').select('id,title')
+         .isFilter('archived_at',null).ilike('title',pattern)
+         .limit(GlobalSearchRules.maxPerSection);
+       final bodies=await db.from('notes').select('id,title')
+         .isFilter('archived_at',null).ilike('body',pattern)
+         .limit(GlobalSearchRules.maxPerSection);
+       if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
+       final seen=<String>{};
+       final found=<_Hit>[];
+       for(final note in [...names,...bodies]){
+         final key=note['id']?.toString()??'';
+         if(key.isNotEmpty && seen.add(key))
+           found.add(_Hit('Note',note['title']?.toString()??'',key));
+       }
+       setState((){hits=found;busy=false;error=null;});
+       return;
+     }
      var failedCategories=0;
      Future<dynamic> guarded(String kind,dynamic request) async {
        // A category filter avoids starting unrelated network searches.
@@ -71,6 +93,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          return <Map<String,dynamic>>[];
        }
      }
+     final qaNoteTitles = OneSpaceEnv.isProduction
+       ? db.from('notes').select('id,title,updated_at').eq('space_id',id)
+       : db.from('notes').select('id,title,updated_at');
+     final qaNoteBodies = OneSpaceEnv.isProduction
+       ? db.from('notes').select('id,title').eq('space_id',id)
+       : db.from('notes').select('id,title');
      final groups=await Future.wait([
        guarded('Activity',db.from('activities').select('id,title,updated_at').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
@@ -79,7 +107,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('To-do',db.from('tasks').select('id,title,created_at').eq('space_id',id)
          .isFilter('migrated_to_list',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Note',db.from('notes').select('id,title,updated_at').eq('space_id',id)
+       guarded('Note',qaNoteTitles
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Letter',db.from('couple_letters').select('id,title,created_at').eq('space_id',id)
          .eq('status','sent').ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
@@ -114,7 +142,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Experience',db.from('shared_experiences').select('id,title').eq('space_id',id)
          .isFilter('archived_at',null).ilike('description',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Note',db.from('notes').select('id,title').eq('space_id',id)
+       guarded('Note',qaNoteBodies
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
