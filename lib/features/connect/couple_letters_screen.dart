@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import 'couple_letter_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -13,6 +14,7 @@ class CoupleLettersScreen extends StatefulWidget {
 class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   final db=Supabase.instance.client;
   String? spaceId;
+  bool personalReady=false;
   // R55: a plain load, not a realtime stream. couple_letters is not in the
   // realtime publication, so the stream failed a little after opening
   // ("Unable to load letters"). Reloads on return and pull-to-refresh.
@@ -27,18 +29,29 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   void initState(){super.initState();load();}
   Future<void> load() async {
     try{
-      final id=await CurrentSpaceCache.instance.get();
-      final rows=id==null?null:List<Map<String,dynamic>>.from(
-        await db.from('couple_letters').select().eq('space_id',id)
-          .order('updated_at',ascending:false).limit(300));
+      var id=await CurrentSpaceCache.instance.get();
+      var ownScope=false;
+      if(!OneSpaceEnv.isProduction){
+        final scopes=await db.rpc('my_storage_scopes');
+        if(scopes is! Map ||
+           scopes['private_space_id']?.toString()!=db.auth.currentUser?.id){
+          throw StateError('Personal draft space unavailable');
+        }
+        id=scopes['shared_space_id']?.toString();ownScope=true;
+      }
+      final rows=(id==null&&!ownScope)?null:List<Map<String,dynamic>>.from(
+        await (OneSpaceEnv.isProduction
+          ?db.from('couple_letters').select().eq('space_id',id!)
+          :db.from('couple_letters').select())
+            .order('updated_at',ascending:false).limit(300));
       var waiting=const <Map<String,dynamic>>[];
-      try{
+      if(id!=null)try{
         waiting=List<Map<String,dynamic>>.from(await db.rpc('sealed_letters') as List);
       }catch(_){}
       if(!mounted)return;
       setState((){
         sealed=waiting;
-        spaceId=id;
+        spaceId=id;personalReady=ownScope;
         loading=false;
         error=null;
         letters=rows;
@@ -66,10 +79,10 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   }
 
   Future<void> compose({Map<String,dynamic>? draft}) async {
-    if(spaceId==null)return;
+    if(spaceId==null&&!personalReady)return;
     await Navigator.push<void>(context,MaterialPageRoute(
       builder:(_)=>CoupleLetterEditor(
-        spaceId:spaceId!,existing:draft,
+        spaceId:spaceId??'',existing:draft,
       ),
     ));
     if(mounted)await load();
@@ -85,7 +98,8 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
   @override
   Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:Text(tt('Letters'))),
-    floatingActionButton:spaceId==null?null:FloatingActionButton.extended(heroTag:'fab-couple-letters',
+    floatingActionButton:spaceId==null&&!personalReady?null:
+      FloatingActionButton.extended(heroTag:'fab-couple-letters',
       icon:const Icon(Icons.edit_outlined),
       label:Text(tt('Write')),
       onPressed:compose,
@@ -115,7 +129,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
           const SizedBox(height:12),
           if(loading)const Center(child:CircularProgressIndicator())
           else if(error!=null)Text(tt(error!))
-          else if(spaceId==null)Text(tt('Connect your shared space first.'))
+          else if(spaceId==null&&!personalReady)Text(tt('Connect your shared space first.'))
           else Builder(
             builder:(ctx){
               final data=CoupleLetterRules.filter(
@@ -217,18 +231,34 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
         'open_on':openOn==null?null:'${openOn!.year.toString().padLeft(4,'0')}-${openOn!.month.toString().padLeft(2,'0')}-${openOn!.day.toString().padLeft(2,'0')}',
       };
       final old=widget.existing;
-      if(old!=null){
+      if(send&&widget.spaceId.isEmpty&&!OneSpaceEnv.isProduction){
+        throw StateError('Connect with a partner before sending a letter.');
+      }
+      final personal=!OneSpaceEnv.isProduction&&!send;
+      final copyingPersonalDraft=!OneSpaceEnv.isProduction&&send&&
+         old?['private_space_id']!=null;
+      if(old!=null&&!copyingPersonalDraft){
         final updated=await db.from('couple_letters').update(fields)
           .eq('id',old['id'] as String)
           .eq('status','draft').select('id');
         if(updated.isEmpty)throw StateError('Draft changed elsewhere.');
       }else{
         await db.from('couple_letters').insert({
-          ...fields,'space_id':widget.spaceId,
-          'reply_to':widget.parent?['id'],
+          ...fields,
+          if(personal) 'private_space_id':db.auth.currentUser!.id
+          else 'space_id':widget.spaceId,
+          'author_id':db.auth.currentUser!.id,
+          'reply_to':personal?null:widget.parent?['id'],
         });
       }
-      if(mounted)Navigator.pop(context);
+      if(mounted){
+        if(copyingPersonalDraft){
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:Text(tt('A copy was sent to your current partner. '
+               'Your personal draft stays in your account.'))));
+        }
+        Navigator.pop(context);
+      }
     }catch(_){
       if(mounted){setState(()=>error='Unable to save this letter. '
         'Your text is still here. Try again.');}
@@ -286,8 +316,13 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
       const SizedBox(height:12),
       FilledButton.icon(
         icon:Icon(openOn==null?Icons.send_outlined:Icons.schedule_send_outlined),
-        onPressed:saving?null:()=>save(send:true),
-        label:Text(tt(saving?tt('Saving…'):openOn==null?tt('Send to my partner'):tt('Send for that day')))),
+        onPressed:saving||(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+          ?null:()=>save(send:true),
+        label:Text(tt(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty
+          ?'Connect with a partner to send'
+          :widget.existing?['private_space_id']!=null
+            ?'Send a copy (keep my draft)'
+            :saving?'Saving…':openOn==null?'Send to my partner':'Send for that day'))),
       const SizedBox(height:7),
       OutlinedButton.icon(
         icon:const Icon(Icons.save_outlined),
