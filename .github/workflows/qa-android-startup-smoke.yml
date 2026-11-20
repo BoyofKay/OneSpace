@@ -1,0 +1,42 @@
+name: QA Android startup diagnostic regression (no APK)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/main.dart'
+      - 'lib/core/android_startup_gate.dart'
+      - 'android/app/src/main/res/**'
+      - 'test/android_startup_gate_test.dart'
+      - 'test/android_bootstrap_black_screen_test.dart'
+      - '.github/workflows/qa-android-startup-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/main.dart'
+      - 'lib/core/android_startup_gate.dart'
+      - 'android/app/src/main/res/**'
+      - 'test/android_startup_gate_test.dart'
+      - 'test/android_bootstrap_black_screen_test.dart'
+      - '.github/workflows/qa-android-startup-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  startup-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Analyze startup code
+        run: flutter analyze --no-fatal-infos
+      - name: Verify startup renders before Android response and fails closed
+        run: flutter test test/environment_package_isolation_test.dart test/android_startup_gate_test.dart test/android_bootstrap_black_screen_test.dart --reporter expanded
