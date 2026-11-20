@@ -1,4 +1,4 @@
-// QA-ONLY: STAGED UNSCHEDULED Auth finalizer; never deployed or activated.
+// QA-only deployed unscheduled Auth finalizer; explicit activation disabled.
 // Must require BOTH QA DB gate and explicit second server-only activation.
 // Called only by trusted scheduler after 7-day cancellation window, all
 // relationships erased, and every Storage object fully removed via API.
