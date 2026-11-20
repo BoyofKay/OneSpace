@@ -153,7 +153,8 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
    isNew:true,isChanged:()=>changed,isComplete:()=>draft.canSave,saveLabel:'Next',
    listenTo:[title,details],saving:saving,onSave:_save,
    meta:MetaStrip(value:MetaValues(shared:shared,belongsTo:forUserId,date:dueOn),people:people,
-    showBelongs:people!=null,dateLabel:tt('Due date'),
+    showVisibility:widget.scope.canCreateShared,
+    showBelongs:people!=null && widget.scope.canCreateShared,dateLabel:tt('Due date'),
     enabled:!saving,onChanged:(v)=>setState((){shared=v.shared;dueOn=v.date;forUserId=v.belongsTo;})),
    body: SafeArea(child: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 24),
