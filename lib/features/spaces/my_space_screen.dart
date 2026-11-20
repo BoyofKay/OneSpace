@@ -1,14 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:onespace/l10n/phrases.dart';
-import 'my_archives_screen.dart';
 import '../../core/app_env.dart';
+import 'package:onespace/l10n/phrases.dart';
 
-/// Safe lifecycle preparation only; destructive actions remain server-gated until
-/// structured private/shared records can be
-/// preserved (excluding media and uploaded documents) before leaving, removing a partner or deleting a space.
+/// Account-owned private storage and relationship-owned shared storage.
+/// The destructive server-side transition stays disabled until all existing
+/// content modules and RLS policies use the new separation-safe model.
+/// Previous non-destructive archive preparations are never auto-executed.
 class MySpaceScreen extends StatefulWidget {
   const MySpaceScreen({super.key});
+
   @override
   State<MySpaceScreen> createState() => _MySpaceScreenState();
 }
@@ -16,18 +17,13 @@ class MySpaceScreen extends StatefulWidget {
 class _MySpaceScreenState extends State<MySpaceScreen> {
   final _db = Supabase.instance.client;
   bool _loading = true;
-  String? _error;
+  bool _busy = false;
   bool _owner = false;
   int _members = 0;
   String? _spaceName;
-  bool _checking = false;
-  Map<String,dynamic>? _readiness;
-  Map<String,dynamic>? _personalVault;
-  Map<String,dynamic>? _dependentAudit;
-  Map<String,dynamic>? _archiveCatalog;
-  Map<String,dynamic>? _lifecycle;
-  bool _submitting = false;
-  String? _actionMessage;
+  String? _error;
+  String? _message;
+  Map<String, dynamic>? _legacyPending;
 
   @override
   void initState() {
@@ -36,283 +32,189 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() { _loading = true; _error = null; });
     try {
       final me = _db.auth.currentUser?.id;
       if (me == null) throw StateError('Sign in required');
-      final myMembership = await _db.from('space_members')
-        .select('space_id').eq('user_id', me).limit(1).maybeSingle();
-      // Lifecycle staging exists in QA only. Production must still load
-      // Profile without calling functions not deployed to its backend.
-      final lifecycleData = OneSpaceEnv.isProduction
-        ? null : await _db.rpc('my_space_lifecycle_status');
-      if (!mounted) return;
-      setState(() => _lifecycle = lifecycleData is Map
-        ? Map<String,dynamic>.from(lifecycleData) : null);
-      if (myMembership != null) {
-        final id = myMembership['space_id'].toString();
+      final membership = await _db.from('space_members')
+          .select('space_id').eq('user_id', me).limit(1).maybeSingle();
+      String? name;
+      var owner = false;
+      var members = 0;
+      if (membership != null) {
+        final id = membership['space_id'].toString();
         final space = await _db.from('spaces')
-          .select('name,created_by').eq('id', id).maybeSingle();
-        final memberships = await _db.from('space_members')
-          .select('user_id').eq('space_id',id);
-        if (!mounted) return;
-        setState(() {
-          _spaceName = space?['name']?.toString() ?? 'Our Space';
-          _owner = space?['created_by']?.toString() == me;
-          _members = memberships.length;
-        });
+            .select('name,created_by').eq('id', id).maybeSingle();
+        final list = await _db.from('space_members')
+            .select('user_id').eq('space_id', id);
+        name = space?['name']?.toString() ?? 'Our Space';
+        owner = space?['created_by']?.toString() == me;
+        members = list.length;
       }
+      Map<String,dynamic>? pending;
+      if (!OneSpaceEnv.isProduction) {
+        final result = await _db.rpc('my_space_lifecycle_status');
+        if (result is Map && result['active_job'] is Map) {
+          pending = Map<String,dynamic>.from(result['active_job'] as Map);
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _spaceName = name;
+        _owner = owner;
+        _members = members;
+        _legacyPending = pending;
+      });
     } catch (_) {
-      if (mounted) setState(() => _error = tt('Unable to load your space.'));
+      if (mounted) setState(() => _error =
+          tt('Unable to load your space. No changes were made.'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _checkReadiness() async {
-    if (_checking || OneSpaceEnv.isProduction) return;
-    setState(() { _checking = true; _error = null; });
-    try {
-      final result = await _db.rpc('space_separation_preflight');
-      final vault = await _db.rpc('my_personal_vault_status');
-      final dependencies = await _db.rpc('space_archive_dependency_inventory');
-      final catalog = await _db.rpc('qa_archive_catalog_coverage');
-      if (mounted) setState(() {
-        _readiness = result is Map
-          ? Map<String,dynamic>.from(result) : null;
-        _personalVault = vault is Map
-          ? Map<String,dynamic>.from(vault) : null;
-        _dependentAudit = dependencies is Map
-          ? Map<String,dynamic>.from(dependencies) : null;
-        _archiveCatalog = catalog is Map
-          ? Map<String,dynamic>.from(catalog) : null;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _error =
-        tt('Unable to complete the read-only data safety check.'));
-    } finally {
-      if (mounted) setState(() => _checking = false);
-    }
-  }
-
-
-  Future<bool> _confirmAction(String title, String body, String confirm) async {
-    return await showDialog<bool>(
+  Future<void> _cancelOldRequest() async {
+    final job = _legacyPending;
+    if (OneSpaceEnv.isProduction || _busy || job == null ||
+        job['requested_by_me'] != true) return;
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(tt(title)),
-        content: Text(tt(body)),
+      builder: (ctx) => AlertDialog(
+        title: Text(tt('Cancel previous preparation request?')),
+        content: Text(tt('This request was created under the old '
+          'non-destructive archive policy. No partner has been removed '
+          'and no shared content has been deleted.')),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(tt('Cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(tt(confirm)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tt('Keep request'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tt('Cancel old request'))),
         ],
       ),
-    ) == true;
-  }
-
-  Future<void> _stageAction(String action, String title, String warning) async {
-    if (OneSpaceEnv.isProduction || _submitting ||
-        !await _confirmAction(title, warning, 'Prepare securely')) return;
-    if (!mounted) return;
-    setState(() { _submitting = true; _actionMessage = null; _error = null; });
+    );
+    if (confirm != true || !mounted) return;
+    setState(() { _busy = true; _message = null; _error = null; });
     try {
-      final response = await _db.rpc('request_space_lifecycle_action',
-        params: {'p_action': action});
-      if (!mounted) return;
-      setState(() => _actionMessage = response is Map
-        ? (response['message']?.toString() ?? 'Preparation request recorded.')
-        : 'Preparation request recorded.');
+      final result = await _db.rpc('cancel_space_lifecycle_action',
+        params: {'p_job_id': job['id'].toString()});
+      if (mounted) setState(() => _message = result == true
+        ? tt('Old preparation request cancelled. Your space is unchanged.')
+        : tt('This request cannot be cancelled at its current stage.'));
       await _load();
-      await _checkReadiness();
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
+    } on PostgrestException catch (_) {
       if (mounted) setState(() => _error =
-        tt('Preparation failed. No membership was changed.'));
+        tt('Could not cancel the old request. No shared content was deleted.'));
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _cancelStagedAction(String jobId) async {
-    if (OneSpaceEnv.isProduction || _submitting ||
-        !await _confirmAction('Cancel separation preparation?',
-      'Requests can only be cancelled before archive export starts.',
-      'Cancel request')) return;
-    if (!mounted) return;
-    setState(() { _submitting = true; _actionMessage = null; _error = null; });
-    try {
-      final cancelled = await _db.rpc('cancel_space_lifecycle_action',
-        params: {'p_job_id': jobId});
-      if (mounted) setState(() => _actionMessage = cancelled == true
-        ? 'Preparation cancelled. The space is unchanged.'
-        : 'Request cannot be cancelled at this stage.');
-      await _load();
-    } on PostgrestException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = tt('Unable to cancel request.'));
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
+  Widget _disabledAction(IconData icon, String title) =>
+    OutlinedButton.icon(
+      onPressed: null,
+      icon: Icon(icon),
+      label: Text(tt(title)),
+    );
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final pending = _lifecycle?['active_job'] is Map
-      ? Map<String,dynamic>.from(_lifecycle!['active_job'] as Map)
-      : null;
-    final mayAct = !OneSpaceEnv.isProduction && _lifecycle != null &&
-      !_submitting && pending == null;
     return Scaffold(
-      appBar: AppBar(title: Text(tt('My Space'))),
+      appBar: AppBar(title: Text(tt('My Space')), actions: [
+        IconButton(
+          onPressed: _loading || _busy ? null : _load,
+          tooltip: tt('Refresh status'),
+          icon: const Icon(Icons.refresh),
+        ),
+      ]),
       body: SafeArea(child: _loading
         ? const Center(child: CircularProgressIndicator())
         : ListView(padding: const EdgeInsets.all(20), children: [
-          // Keep archive access after leaving or deleting a space. An unpaired
-          // member must still be able to save their own verified archives.
-          if (!OneSpaceEnv.isProduction) ...[
-            ListTile(
-              leading: const Icon(Icons.folder_zip_outlined),
-              title: Text(tt('My Archives')),
-              subtitle: Text(tt('Verified copies, when available, belong to your account')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(builder: (_) => const MyArchivesScreen())),
-            ),
-            const Divider(),
-          ],
-          if (_spaceName == null && _error == null)
-            Card(child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(tt('You are not connected to a shared space.'),
-                    style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(tt('Use Today to invite a partner or join a space.')),
-                ],
-              ),
-            )),
-          if (_spaceName != null) ...[
+          if (_spaceName == null) ...[
+            Text(tt('Your private space belongs to your account.'),
+              style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(tt('You are currently unpaired. Your private records '
+              'will remain yours when you connect with a partner.')),
+          ] else ...[
             Text(_spaceName!, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.shield_outlined),
-              title: Text(tt(_owner ? 'Space owner' : 'Partner')),
-              subtitle: Text(tt(_owner
-                ? 'You can invite or remove a partner once secure archiving is ready.'
-                : 'You can leave your shared space once secure archiving is ready.')),
-            ),
-            ListTile(
               leading: const Icon(Icons.people_outline),
-              title: Text(tt('Members')),
-              trailing: Text('$_members / 2'),
+              title: Text(tt(_members == 2
+                ? (_owner ? 'Space owner and partner' : 'Shared with your partner')
+                : 'Not currently paired')),
+              subtitle: Text(tt('Current members: $_members / 2')),
             ),
-            const Divider(),
-            Text(tt('Space separation'), style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(tt(OneSpaceEnv.isProduction
-              ? 'Space separation is not available in Production until the QA archive and privacy checks are completed.'
-              : 'You may request secure preparation for leaving, removing a partner, '
-                'or closing the space. Actual separation remains blocked until '
-                'structured-data archives, privacy checks and restoration tests pass. Photos, uploaded documents and other media are excluded from archive and restore.')),
+          ],
+          const SizedBox(height: 12),
+          Card(child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.lock_outline),
+                const SizedBox(width: 8),
+                Expanded(child: Text(tt('Your private content stays yours'),
+                  style: theme.textTheme.titleMedium)),
+              ]),
+              const SizedBox(height: 8),
+              Text(tt('OneSpace is moving to separate account-owned private '
+                'storage and relationship-owned shared storage. The app will '
+                'continue to show both together in one interface.')),
+            ]),
+          )),
+          if (_legacyPending != null) ...[
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _checking || OneSpaceEnv.isProduction ? null : _checkReadiness,
-              icon: const Icon(Icons.fact_check_outlined),
-              label: Text(tt('Check separation readiness')),
-            ),
-
-            if (_submitting) const LinearProgressIndicator(),
-            if (pending != null)
-              Card(child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(tt('Separation preparation requested'),
-                    style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 6),
-                  Text(tt('Request status: ') + (pending['status'] ?? '').toString()),
-                  const SizedBox(height: 6),
-                  Text(tt('No memberships or space content have been removed.')),
-                  if (pending['requested_by_me'] == true)
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.close),
-                      onPressed: _submitting ? null
-                        : () => _cancelStagedAction(pending['id'].toString()),
-                      label: Text(tt('Cancel preparation')),
-                    ),
-                ]),
-              )),
-            const SizedBox(height: 10),
-            if (!OneSpaceEnv.isProduction && _owner && _members == 2)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.person_remove_outlined),
-                onPressed: mayAct ? () => _stageAction('owner_removes_partner',
-                  'Remove partner?',
-                  'First prepare verified structured private and shared archives for both people. Photos, documents and other media are excluded. This does not remove the partner now.') : null,
-                label: Text(tt('Prepare partner removal')),
-              ),
-            if (!OneSpaceEnv.isProduction && !_owner && _members == 2)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.logout),
-                onPressed: mayAct ? () => _stageAction('partner_leaves',
-                  'Leave this space?',
-                  'Your structured private records and shared history must be archived first; media and uploaded documents are excluded. This does not leave the space now.') : null,
-                label: Text(tt('Prepare to leave space')),
-              ),
-            if (!OneSpaceEnv.isProduction && _owner)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: mayAct ? () => _stageAction('owner_deletes_space',
-                  'Delete this space?',
-                  'Both users must receive verified structured-data archives first. Media and uploaded documents are excluded. This does not delete the space now.') : null,
-                label: Text(tt('Prepare space deletion')),
-              ),
-            const SizedBox(height: 10),
-            if (_checking) const LinearProgressIndicator(),
-            if (_readiness != null) Card(child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                Text(tt('Safety check: not yet ready'),
+            Card(child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(tt('Earlier preparation request — not executed'),
                   style: theme.textTheme.titleSmall),
-                const SizedBox(height: 8),
-                Text(tt('Record-by-record totals are restricted to preserve each partner’s private data.')),
-                Text('Verified archives: ${_readiness!['archives_verified'] ?? 0} / ${_readiness!['archives_expected'] ?? '—'}'),
-                if (_dependentAudit != null) ...[
-                  const SizedBox(height: 6),
-                  Text('Dependent tables checked: ${_dependentAudit!['dependent_tables_inspected'] ?? 0}'),
-                  Text('Tables with multiple ownership routes: ${_dependentAudit!['multi_root_tables'] ?? 0}'),
-                ],
-                if (_archiveCatalog != null) ...[
-                  const SizedBox(height: 8),
-                  Text('Structured table types reviewed: ${_archiveCatalog!['approved_table_policies'] ?? 0} / ${_archiveCatalog!['total_tables'] ?? '—'}'),
-                  Text('Pending root and related types: ${(_archiveCatalog!['root_types_pending'] as num? ?? 0) + (_archiveCatalog!['dependent_types_pending'] as num? ?? 0)}'),
-                  Text(tt('Uploaded photos, videos, voice notes and documents will not be in the archive.')),
-                ],
-                const SizedBox(height: 8),
-                if (_personalVault != null) ...[
-                  Text(tt('My protected private records') +
-                    ': ${_personalVault!['primary_private_records'] ?? '—'}'),
-                  Text(tt('My protected related records') +
-                    ': ${_personalVault!['owned_related_records'] ?? '—'}'),
-                ],
-                const SizedBox(height: 8),
-                Text(tt('Nothing was deleted or moved by this check.')),
+                const SizedBox(height: 7),
+                Text(tt('This request was made under the previous archive '
+                  'workflow. Nobody has been removed and no shared content '
+                  'has been deleted. Any future permanent deletion requires '
+                  'a new, explicit confirmation.')),
+                if (_legacyPending!['requested_by_me'] == true)
+                  TextButton.icon(
+                    onPressed: _busy ? null : _cancelOldRequest,
+                    icon: const Icon(Icons.close),
+                    label: Text(tt('Cancel old request')),
+                  ),
               ]),
             )),
           ],
-          if (_actionMessage != null) Text(tt(_actionMessage!)),
-          if (_error != null) Text(_error!,
-            style: TextStyle(color: theme.colorScheme.error)),
+          if (_spaceName != null) ...[
+            const SizedBox(height: 16),
+            Text(tt('Relationship actions'),
+              style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(tt('Leaving, removing a partner or deleting a space will '
+              'permanently erase the shared content and its attachments. '
+              'Neither person will be able to restore it. Each person will '
+              'keep their own private content, even when unpaired or '
+              'connected to a different partner.')),
+            const SizedBox(height: 10),
+            if (_members == 2 && _owner)
+              _disabledAction(Icons.person_remove_outlined, 'Remove partner'),
+            if (_members == 2 && !_owner)
+              _disabledAction(Icons.logout, 'Leave this space'),
+            if (_owner)
+              _disabledAction(Icons.delete_outline, 'Delete this space'),
+            const SizedBox(height: 8),
+            Text(tt('These actions are temporarily unavailable while '
+              'private data ownership, shared deletion and security checks '
+              'are migrated. No archival or restoration is required.'),
+              style: theme.textTheme.bodySmall),
+          ],
+          if (_message != null) Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(_message!),
+          ),
+          if (_error != null) Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+          ),
         ])),
     );
   }
