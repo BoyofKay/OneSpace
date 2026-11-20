@@ -37,10 +37,18 @@ void main() {
     )));
     expect(find.text('Confirm your email address'), findsOneWidget);
     expect(find.text('invited@example.com'), findsOneWidget);
-    expect(find.byKey(const Key('confirmationContinueToSignIn')), findsOneWidget);
-    expect(find.byKey(const Key('confirmationResend')), findsOneWidget);
     expect(find.text('Create your account'), findsNothing);
     expect(find.textContaining('invitation is safely kept'), findsOneWidget);
+    expect(find.byKey(const Key('confirmationContinueToSignIn')), findsOneWidget);
+    // ListView children below the viewport are built lazily on smaller
+    // test surfaces. Scroll to the resend action before asserting it.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('confirmationResend')),
+      230,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const Key('confirmationResend')), findsOneWidget);
+
   });
 
   test('Unpaired invited account gets one focused handoff instead of 3 setup cards', () {
