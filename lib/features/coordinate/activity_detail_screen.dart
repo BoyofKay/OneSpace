@@ -1114,6 +1114,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     const SizedBox(height: 4),
                     ActivityVoicePlayer(
                       objectPath: payload['voice_path'].toString(),
+                      bucketId: payload['bucket_id']?.toString(),
                       seconds: (payload['voice_seconds'] as num?)?.toInt() ?? 0,
                     ),
                   ],
@@ -1122,6 +1123,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     const SizedBox(height: 7),
                     ActivityImagePreview(
                       objectPath: payload['object_path'].toString(),
+                      bucketId: payload['bucket_id']?.toString(),
                       label: item['label']?.toString() ?? 'Activity photo',
                     ),
                   ],
@@ -1432,6 +1434,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               if ((msg['voice_path']?.toString() ?? '').isNotEmpty)
                 ActivityVoicePlayer(
                   objectPath: msg['voice_path'].toString(),
+                  bucketId: msg['voice_bucket_id']?.toString(),
                   seconds: (msg['voice_seconds'] as num?)?.toInt() ?? 0,
                 )
               else
