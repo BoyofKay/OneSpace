@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/status_look.dart';
 import 'activity_detail_screen.dart';
@@ -28,6 +29,7 @@ class CoordinateScreen extends StatefulWidget {
 class _CoordinateScreenState extends State<CoordinateScreen> {
   final db = Supabase.instance.client;
   String? space;
+  bool _personalReady=false;
   Stream<List<Map<String, dynamic>>>? items;
   String? error;
   bool loading = true;
@@ -65,16 +67,33 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
 
   Future<void> load() async {
     unawaited(_loadCountdowns());
+    if(!OneSpaceEnv.isProduction && mounted){
+      setState((){loading=true;items=null;});
+    }
     try {
-      final id = await CurrentSpaceCache.instance.get();
-      if (!mounted) return;
-      setState(() {
-        space = id;
-        loading = false;
-        error = null;
-        items = id == null ? null : db.from('activities')
-            .stream(primaryKey: ['id']).eq('space_id', id)
-            .order('updated_at', ascending: false);
+      String? id=await CurrentSpaceCache.instance.get();
+      bool personalReady=false;
+      if(!OneSpaceEnv.isProduction){
+        final scopes=await db.rpc('my_storage_scopes');
+        if(scopes is! Map ||
+          scopes['private_space_id']?.toString()!=db.auth.currentUser?.id){
+          throw StateError('Personal Activities scope is unavailable');
+        }
+        id=scopes['shared_space_id']?.toString();
+        personalReady=true;
+      }
+      if(!mounted)return;
+      setState((){
+        space=id;
+        _personalReady=personalReady;
+        loading=false;
+        error=null;
+        items=OneSpaceEnv.isProduction
+          ?(id==null?null:db.from('activities')
+            .stream(primaryKey:['id']).eq('space_id',id)
+            .order('updated_at',ascending:false))
+          :db.from('activities').stream(primaryKey:['id'])
+            .order('updated_at',ascending:false);
       });
     } catch (_) {
       if (mounted) {
@@ -88,9 +107,9 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
 
   /// R51: a new Activity opens as a full draft page (no dialog).
   Future<void> create() async {
-    if (space == null) return;
+    if(space==null&&!_personalReady)return;
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
-      builder: (_) => NewActivityScreen(spaceId: space!)));
+      builder:(_)=>NewActivityScreen(spaceId:space??'')));
     if (mounted) await load();
   }
 
@@ -224,7 +243,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
-    floatingActionButton: space == null ? null
+    floatingActionButton: space == null && !_personalReady ? null
         : AddFab(label: tt('Start activity'), onPressed: create),
     body: RefreshIndicator(
     onRefresh: load,
@@ -253,7 +272,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         ],
         if (loading)
           const Center(child: CircularProgressIndicator())
-        else if (space == null)
+        else if (space == null && !_personalReady)
           Text(tt('Connect your shared space to start coordinating.'))
         else if (items != null)
           StreamBuilder<List<Map<String,dynamic>>>(
