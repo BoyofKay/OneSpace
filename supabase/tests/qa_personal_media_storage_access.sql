@@ -78,6 +78,14 @@ begin
   -- 8. Revocation: once the owner removes the photo, its bytes stop being readable.
   perform set_config('request.jwt.claims',json_build_object('sub',a,'role','authenticated')::text,true);
   set local role authenticated;
+  -- Ordinary edits work, and the parent / path stay locked (0308).
+  update public.memory_photos set caption='Beach' where id=photo;
+  get diagnostics n=row_count;
+  if n<>1 then raise exception 'FAIL 8a: owner cannot edit personal photo caption'; end if;
+  failed:=false;
+  begin update public.memory_photos set object_path=mem||'/'||a||'/'||gen_random_uuid()||'.jpg' where id=photo;
+  exception when others then failed:=true; end;
+  if not failed then raise exception 'FAIL 8b: photo storage path changed'; end if;
   update public.memory_photos set archived_at=now() where id=photo;
   select count(*) into n from storage.objects where name=mphoto;
   if n<>0 then raise exception 'FAIL 8: removed personal Memory photo still readable'; end if;
