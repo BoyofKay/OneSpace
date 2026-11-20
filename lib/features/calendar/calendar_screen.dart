@@ -245,11 +245,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
           : _client.from('tasks')
             .select('id,title,target_date,status,visibility,created_by'))
             .eq('status','open').limit(500),
-        (id==null
-          ? _client.from('personal_days_off').select('id,off_date,label,user_id')
-             .eq('user_id',_client.auth.currentUser!.id)
-          : _client.from('personal_days_off').select('id,off_date,label,user_id')
-             .eq('space_id',id))
+        (OneSpaceEnv.isProduction
+          ? (id==null
+             ? _client.from('personal_days_off').select('id,off_date,label,user_id')
+                 .eq('user_id',_client.auth.currentUser!.id)
+             : _client.from('personal_days_off').select('id,off_date,label,user_id')
+                 .eq('space_id',id))
+          : _client.from('personal_days_off')
+              .select('id,off_date,label,user_id'))
             .order('off_date').limit(500),
       ]).timeout(const Duration(seconds: 15));
       if (!mounted || version != _loadVersion) return;
