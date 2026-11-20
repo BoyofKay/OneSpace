@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'app_env.dart';
 
 import '../features/calendar/calendar_event_editor.dart';
 import '../features/calendar/calendar_screen.dart';
@@ -296,11 +297,16 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
       }
     case CreateFromAction.note:
       try {
+        final personal = !OneSpaceEnv.isProduction && !shared;
         final created = await db.from('notes').insert({
-          'space_id': spaceId, 'created_by': db.auth.currentUser!.id,
-          'title': 'Notes · $newTitle', 'body': '', 'visibility': shared ? 'shared' : 'private',
+          if (personal) 'private_space_id': db.auth.currentUser!.id
+          else 'space_id': spaceId,
+          'created_by': db.auth.currentUser!.id,
+          'title': 'Notes · $newTitle', 'body': '',
+          'visibility': shared ? 'shared' : 'private',
         }).select('id').single();
-        await link(LinkKind.note, created['id'].toString());
+        // Never write private-note identifiers into a shared activity link.
+        if (!personal) await link(LinkKind.note, created['id'].toString());
         if (context.mounted) await openLinkedItem(context, LinkKind.note, created['id'].toString());
       } catch (_) {
         if (context.mounted) {
