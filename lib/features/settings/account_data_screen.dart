@@ -8,9 +8,10 @@ import 'package:onespace/l10n/phrases.dart';
 
 /// R59 (D47): Download my data · Delete my account.
 ///
-/// Deleting keeps shared items for the partner and removes private items,
-/// photos, devices and personal settings after a 7-day grace period, during
-/// which the person can cancel by signing in again.
+/// After a seven-day grace period the approved future deletion workflow
+/// deletes the requester's account/private records AND the current couple's
+/// shared records; the surviving partner keeps only their own private data.
+/// The backend currently fails closed; never enable deletion until verified.
 class AccountDataRules {
   const AccountDataRules._();
   static const confirmWord = 'DELETE';
@@ -119,8 +120,8 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
               const SizedBox(height: 6),
               Text(tt('This exports available account information as an unencrypted '
                 'JSON file in your phone Downloads. Photos, documents and other '
-                'attachments are NOT included. This is not the verified private/shared structured-data archive. '
-                'That future archive will also exclude uploaded media and documents. Store this JSON file privately.')),
+                'attachments are NOT included. This is an optional manual export unrelated to account or relationship '
+                'deletion. Store this JSON file privately.')),
               const SizedBox(height: 10),
               FilledButton.tonalIcon(onPressed: exporting ? null : _export,
                 icon: exporting ? const SizedBox(width: 18, height: 18,
@@ -138,14 +139,23 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                     style: theme.textTheme.titleMedium)),
                 ]),
                 const SizedBox(height: 8),
-                Text(tt('Temporarily unavailable in QA while OneSpace '
-                  'implements verified private/shared exports and automatic '
-                  'space separation. Your account and records remain unchanged.')),
+                Text(tt('After you request deletion, you will have 7 days '
+                  'to cancel. During that period, nothing is deleted. '
+                  'At the deadline, your account and all your private '
+                  'records will be permanently deleted. Your current '
+                  'relationship’s shared records and attachments will '
+                  'also be permanently deleted. Your partner will keep '
+                  'only their own private content and become unpaired. '
+                  'Deleted content cannot be restored.')),
+                const SizedBox(height: 8),
+                Text(tt('Temporarily disabled while permanent shared deletion '
+                  'and independent private content ownership are verified. '
+                  'No archive is required and no deletion has been scheduled.')),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: null,
                   icon: const Icon(Icons.shield_outlined),
-                  label: Text(tt('Secure deletion under preparation')),
+                  label: Text(tt('Account deletion temporarily unavailable')),
                 ),
               ]))),
           if (message != null) Padding(padding: const EdgeInsets.only(top: 12),
