@@ -145,6 +145,13 @@
 - [x] QA local export adapter extended with `uploadQaPrivateVaultSubset` and `downloadQaPrivateVaultSubset`; verifies complete encrypted file and its source snapshots *locally* before sending/after receiving, never transmits recovery passphrase and rejects Production host. Node 22 `59/59` archive/encryption tests PASS, including actual disk file and mocked private Storage paths.
 - [ ] **Still required P0:** real QA signed-in account app acceptance and Storage upload/download, server-attested 69-family archive origin/completeness, persistent snapshots for the unmirrored source families, actual trusted private restoration with full ID mapping, old shared history separation, and two-phone QA. No lifecycle authorization changed.
 
+## QA 0214 — future-open Love Letter metadata is private until opening
+- [x] Closed an actual privileged metadata leak: legacy `public.sealed_letters()` previously used `SECURITY DEFINER` to disclose future partner Love Letter IDs, author IDs and scheduled dates **before** their opening. This violates the approved author-private future-letter rule.
+- [x] Replaced the legacy RPC with a signed-in, **SECURITY INVOKER** compatibility endpoint returning zero scheduled-letter placeholders, so older APKs can call it safely but learn nothing before opening. Opened letters continue to appear via existing recipient-scoped `couple_letters` RLS.
+- [x] Transactional QA two-member+outsider negative regression PASS; earlier QA 0184 letter-content/privacy regression PASS, all fixtures rolled back.
+- [x] QA advisor's authenticated privileged-function warning count improved from **19 to 18**; intentional anonymous support RPC warning remains **1**, other policy INFO **7**. No Production changes.
+- [ ] This only closes one privacy leak; the broader 69-family signed encrypted archive/restore, two-device acceptance and full privileged API review are still open.
+
 ## Milestone 2 — durable structured archive and restoration (NOT COMPLETE)
 - [x] Migration 0164: 69 root/child table types inventoried and the archive policy is fail-closed for future missing tables. **69 approved, zero pending; 4 known media types excluded.**
 - [x] One synthetic new root plus child correctly made archive coverage incomplete and were rolled back.
