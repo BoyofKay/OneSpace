@@ -28,6 +28,10 @@ BEGIN
  IF n=0 THEN RAISE EXCEPTION 'Owner private Experience audit missing';END IF;
  SELECT count(*) INTO n FROM public.shared_experience_revisions WHERE experience_id=private_ex;
  IF n=0 THEN RAISE EXCEPTION 'Owner private Experience revision missing';END IF;
+ SELECT count(*) INTO n FROM public.record_action_history
+   WHERE record_id=comment_id AND record_kind='experience_comment'
+     AND private_space_id=o;
+ IF n=0 THEN RAISE EXCEPTION 'Owner private Experience comment audit missing';END IF;
  PERFORM set_config('request.jwt.claim.sub',p::text,true);
  SELECT count(*) INTO n FROM public.shared_experiences WHERE id=private_ex;
  IF n<>0 THEN RAISE EXCEPTION 'Partner sees personal Experience';END IF;
