@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:onespace/l10n/phrases.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
@@ -68,6 +69,7 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
     if (!tabs.indexIsChanging && mounted) setState(() => picking.clear());
   });
   String? space;
+  bool personalReady=false;
   List<Map<String, dynamic>> places = [];
   Map<String, List<Map<String, dynamic>>> visits = {};
   String? category;
@@ -87,31 +89,57 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
   }
 
   Future<void> _load({bool openInitial = false}) async {
+    if(mounted)setState((){
+      loading=true;space=null;personalReady=false;
+      places=[];visits={};picking.clear();
+    });
     try {
-      final s = await CurrentSpaceCache.instance.get();
-      if (s == null) { if (mounted) setState(() => loading = false); return; }
-      final rows = await db.from('places').select().eq('space_id', s).isFilter('archived_at', null)
-        .order('updated_at', ascending: false);
-      final v = await db.from('place_visits').select('id,place_id,visited_on,caption,memory_id')
-        .eq('space_id', s).order('visited_on', ascending: false);
-      final byPlace = <String, List<Map<String, dynamic>>>{};
-      for (final x in v) { byPlace.putIfAbsent(x['place_id'].toString(), () => []).add(Map<String, dynamic>.from(x)); }
-      if (!mounted) return;
-      setState(() { space = s; places = List<Map<String, dynamic>>.from(rows); visits = byPlace; loading = false; });
-      if (openInitial && widget.initialId != null) {
-        final hit = places.where((p) => p['id'] == widget.initialId).firstOrNull;
-        if (hit != null) _open(hit);
+      var s = await CurrentSpaceCache.instance.get();
+      var personal=false;
+      if(!OneSpaceEnv.isProduction){
+        final scopes=await db.rpc('my_storage_scopes');
+        if(scopes is! Map ||
+          scopes['private_space_id']?.toString()!=db.auth.currentUser?.id) {
+          throw StateError('Personal Places scope unavailable');
+        }
+        s=scopes['shared_space_id']?.toString();
+        personal=true;
       }
-    } catch (_) {
-      if (mounted) setState(() => loading = false);
-    }
+      if(s==null&&!personal){if(mounted)setState(()=>loading=false);return;}
+      final placeQuery=OneSpaceEnv.isProduction
+        ? db.from('places').select().eq('space_id',s!)
+        : db.from('places').select();
+      final visitsQuery=OneSpaceEnv.isProduction
+        ? db.from('place_visits')
+          .select('id,place_id,visited_on,caption,memory_id').eq('space_id',s!)
+        : db.from('place_visits')
+          .select('id,place_id,visited_on,caption,memory_id');
+      final rows=await placeQuery.isFilter('archived_at',null)
+        .order('updated_at',ascending:false);
+      final v=await visitsQuery.order('visited_on',ascending:false);
+      final byPlace=<String,List<Map<String,dynamic>>>{};
+      for(final x in v){
+        byPlace.putIfAbsent(x['place_id'].toString(),()=>[])
+          .add(Map<String,dynamic>.from(x));
+      }
+      if(!mounted)return;
+      setState((){
+        space=s;personalReady=personal;
+        places=List<Map<String,dynamic>>.from(rows);
+        visits=byPlace;loading=false;
+      });
+      if(openInitial&&widget.initialId!=null){
+        final hit=places.where((p)=>p['id']==widget.initialId).firstOrNull;
+        if(hit!=null)_open(hit);
+      }
+    }catch(_){if(mounted)setState(()=>loading=false);}
   }
 
   Future<void> _edit([Map<String, dynamic>? existing]) async {
     final s = space;
-    if (s == null) return;
+    if (s == null && !personalReady) return;
     final ok = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) =>
-      PlaceEditor(spaceId: s, existing: existing, initialStatus: tabs.index == 1 ? 'wishlist' : 'visited')));
+      PlaceEditor(spaceId: s ?? '', existing: existing, initialStatus: tabs.index == 1 ? 'wishlist' : 'visited')));
     if (ok == true) await _load();
   }
 
@@ -123,7 +151,9 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
 
   Future<void> _planTrip() async {
     final s = space;
-    final chosen = places.where((p) => picking.contains(p['id'])).toList();
+    final chosen = places.where((p) =>
+      picking.contains(p['id']) &&
+      (OneSpaceEnv.isProduction || p['private_space_id']==null)).toList();
     if (s == null || chosen.isEmpty) return;
     await planTripFromPlaces(context, s, chosen);
     if (mounted) setState(() => picking.clear());
@@ -140,9 +170,9 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
     return Scaffold(
       appBar: AppBar(title: Text(tt('Our places')), actions: [
         IconButton(tooltip: tt('Our map'), icon: const Icon(Icons.map_outlined),
-          onPressed: space == null ? null : () async {
+          onPressed: space == null && !personalReady ? null : () async {
             await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) =>
-              PlacesMapScreen(spaceId: space!, places: places, visits: visits)));
+              PlacesMapScreen(spaceId: space ?? '', places: places, visits: visits)));
             await _load();
           }),
       ], bottom: TabBar(controller: tabs, tabs: [
@@ -152,7 +182,7 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
       floatingActionButton: picking.isNotEmpty
         ? FloatingActionButton.extended(onPressed: _planTrip, icon: const Icon(Icons.luggage_outlined),
             label: Text(tt('Plan a trip ({})').replaceFirst('{}', '${picking.length}')))
-        : space == null ? null
+        : space == null && !personalReady ? null
         : AddFab(label: tt(status == 'wishlist' ? 'Add a dream place' : 'Add a place'), onPressed: () => _edit()),
       body: loading ? const Center(child: CircularProgressIndicator()) : RefreshIndicator(
         onRefresh: _load,
@@ -198,10 +228,13 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
       if (status == 'wishlist' && wishBy != null)
         tt('Hoping to go by {}').replaceFirst('{}', loc.formatMediumDate(wishBy)),
       if (p['planned_trip_id'] != null) tt('In a planned trip'),
+      if (!OneSpaceEnv.isProduction && p['private_space_id'] != null) tt('Only me'),
     ];
     return Card(elevation: 0, child: InkWell(borderRadius: BorderRadius.circular(12),
       onTap: () => _open(p),
-      onLongPress: status == 'wishlist' ? () => setState(() => picking.contains(id) ? picking.remove(id) : picking.add(id)) : null,
+      onLongPress: status == 'wishlist' &&
+        (OneSpaceEnv.isProduction || p['private_space_id']==null)
+        ? () => setState(() => picking.contains(id) ? picking.remove(id) : picking.add(id)) : null,
       child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         CircleAvatar(radius: 22, backgroundColor: theme.colorScheme.primary.withValues(alpha: .12),
           child: Icon(PlaceCategories.icon(p['category']), color: theme.colorScheme.primary)),
@@ -219,7 +252,9 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
               size: 14, color: Colors.amber),
           ]),
         ])),
-        if (status == 'wishlist') Checkbox(value: picking.contains(id),
+        if (status == 'wishlist' &&
+            (OneSpaceEnv.isProduction || p['private_space_id']==null))
+          Checkbox(value: picking.contains(id),
           onChanged: (on) => setState(() => on == true ? picking.add(id) : picking.remove(id))),
       ]))));
   }
@@ -252,6 +287,8 @@ class _PlaceDetailState extends State<PlaceDetail> {
   Map<String, dynamic>? place;
   List<Map<String, dynamic>> visits = [];
   Map<String, dynamic>? trip;
+  bool get _isPersonal=>!OneSpaceEnv.isProduction&&
+      place?['private_space_id']!=null;
 
   @override
   void initState() {
@@ -275,6 +312,7 @@ class _PlaceDetailState extends State<PlaceDetail> {
   Future<void> _addVisit({bool withPhotos = false}) async {
     final p = place;
     if (p == null) return;
+    if (withPhotos && _isPersonal) return; // Private photo storage is not ready.
     if (withPhotos) {
       String? visitId;
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MemoryEditorScreen(
@@ -318,8 +356,13 @@ class _PlaceDetailState extends State<PlaceDetail> {
         ]))));
     if (ok == true) {
       try {
-        await db.from('place_visits').insert({'place_id': p['id'], 'space_id': widget.spaceId,
-          'visited_on': CalendarRules.sqlDate(day), 'caption': caption.text.trim()});
+        await db.from('place_visits').insert({
+          'place_id':p['id'],
+          if(_isPersonal) 'private_space_id':db.auth.currentUser!.id
+          else 'space_id':widget.spaceId,
+          'visited_on':CalendarRules.sqlDate(day),
+          'caption':caption.text.trim(),
+        });
         await _markVisited();
       } catch (_) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('Could not save. Check your connection and try again.'))));
@@ -363,7 +406,7 @@ class _PlaceDetailState extends State<PlaceDetail> {
     final wish = p['status'] == 'wishlist';
     final first = visits.isEmpty ? null : DateTime.tryParse(visits.last['visited_on'].toString());
     return Scaffold(
-      appBar: AppBar(title: Text(tt(wish ? 'Bucket list' : 'Our place')), actions: [
+      appBar: AppBar(title: Text(tt(wish ? 'Bucket list' : _isPersonal?'My place':'Our place')), actions: [
         IconButton(tooltip: tt(p['favorite'] == true ? 'Remove from favourites' : 'Add to favourites'),
           icon: Icon(p['favorite'] == true ? Icons.star : Icons.star_outline, color: p['favorite'] == true ? Colors.amber : null),
           onPressed: () async {
@@ -377,7 +420,7 @@ class _PlaceDetailState extends State<PlaceDetail> {
             await _load();
           },
           moreActions: [
-            if (wish) ItemMenuAction('Plan a trip', Icons.luggage_outlined, () async {
+            if (wish && !_isPersonal) ItemMenuAction('Plan a trip', Icons.luggage_outlined, () async {
               await planTripFromPlaces(context, widget.spaceId, [p]);
               await _load();
             }),
@@ -420,14 +463,17 @@ class _PlaceDetailState extends State<PlaceDetail> {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => TripDetail(tripId: trip!['id'].toString()))))),
-        if (wish && trip == null) OutlinedButton.icon(icon: const Icon(Icons.luggage_outlined), label: Text(tt('Plan a trip')),
+        if (wish && trip == null && !_isPersonal) OutlinedButton.icon(icon: const Icon(Icons.luggage_outlined), label: Text(tt('Plan a trip')),
           onPressed: () async { await planTripFromPlaces(context, widget.spaceId, [p]); await _load(); }),
         if ((p['notes'] ?? '').toString().trim().isNotEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 8),
           child: Text(p['notes'].toString(), style: theme.textTheme.bodyLarge)),
         const SizedBox(height: 12),
         Row(children: [
-          Expanded(child: Text(tt('Our visits'), style: theme.textTheme.titleMedium)),
-          TextButton.icon(onPressed: () => _addVisit(withPhotos: true), icon: const Icon(Icons.add_a_photo_outlined),
+          Expanded(child: Text(tt(_isPersonal?'My visits':'Our visits'),
+            style: theme.textTheme.titleMedium)),
+          if(!_isPersonal) TextButton.icon(
+            onPressed: () => _addVisit(withPhotos: true),
+            icon: const Icon(Icons.add_a_photo_outlined),
             label: Text(tt('Add with photos'))),
         ]),
         if (visits.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 12),
@@ -503,7 +549,8 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
     rating = (e['rating'] as num?)?.toInt();
     wishBy = DateTime.tryParse((e['wish_by'] ?? '').toString());
     favorite = e['favorite'] == true;
-    shared = (e['visibility'] ?? 'shared') == 'shared';
+    shared = (e['visibility'] ??
+      (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?'private':'shared')) == 'shared';
     SpacePeople.load().then((p) { if (mounted) setState(() => people = p); });
   }
 
@@ -545,10 +592,23 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
     };
     try {
       if (widget.existing == null) {
-        final row = await db.from('places').insert({...values, 'space_id': widget.spaceId}).select('id').single();
-        if (status == 'visited' && firstVisit != null) {
-          await db.from('place_visits').insert({'place_id': row['id'], 'space_id': widget.spaceId,
-            'visited_on': CalendarRules.sqlDate(firstVisit!), 'caption': ''});
+        if(!OneSpaceEnv.isProduction&&shared&&widget.spaceId.isEmpty){
+          throw StateError('Join a partner before sharing a place.');
+        }
+        final newScope=<String,dynamic>{
+          if(!OneSpaceEnv.isProduction&&!shared)
+            'private_space_id':db.auth.currentUser!.id
+          else 'space_id':widget.spaceId,
+        };
+        final row = await db.from('places').insert({
+          ...values,...newScope,
+          'created_by':db.auth.currentUser!.id,
+        }).select('id').single();
+        if(status=='visited'&&firstVisit!=null){
+          await db.from('place_visits').insert({
+            'place_id':row['id'],...newScope,
+            'visited_on':CalendarRules.sqlDate(firstVisit!),'caption':'',
+          });
         }
       } else {
         await db.from('places').update(values).eq('id', widget.existing!['id']);
@@ -572,8 +632,11 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
       title: isNew ? (status == 'wishlist' ? 'New dream place' : 'New place') : 'Edit place',
       isNew: isNew, saving: saving || locating, listenTo: [name, city, country, address, notes, mapUrl],
       isChanged: () => changed, isComplete: () => name.text.trim().isNotEmpty, onSave: _save,
-      meta: MetaStrip(value: MetaValues(shared: shared), people: people, showBelongs: false, showDate: false,
-        onChanged: (v) => setState(() => shared = v.shared)),
+      meta: MetaStrip(value: MetaValues(shared: shared), people: people,
+        showBelongs: false, showDate: false,
+        enabled:isNew&&!saving,
+        onChanged:(v)=>setState(() => shared=
+          !OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?false:v.shared)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         SegmentedButton<String>(
           segments: [

@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onespace/features/settings/account_data_screen.dart';
 
 void main() {
+  test('account deletion request is offered in QA only', () {
+    expect(AccountDataRules.qaDeletionControlsApproved, isTrue); // test build = QA
+  });
   test('deletion needs the typed word', () {
     expect(AccountDataRules.confirmed('delete'), isTrue);
     expect(AccountDataRules.confirmed(' DELETE '), isTrue);

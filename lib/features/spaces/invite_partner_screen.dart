@@ -49,6 +49,18 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
       e != _db.auth.currentUser?.email?.toLowerCase();
   }
 
+  /// Explains why Invite is unavailable, instead of a silently disabled button.
+  String? get _emailHint {
+    final e = _email.text.trim().toLowerCase();
+    if (e.isEmpty) return null;
+    if (e == _db.auth.currentUser?.email?.toLowerCase()) {
+      return tt('This is your own email. You can’t invite yourself. '
+        'Enter your partner’s email address.');
+    }
+    if (!_validEmail) return tt('Enter a valid email address, like name@example.com.');
+    return null;
+  }
+
   bool get _hasActive => _token != null &&
     _expiry != null && _expiry!.isAfter(DateTime.now());
 
@@ -250,6 +262,8 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
             decoration: InputDecoration(
               labelText: tt('Partner email'),
               border: const OutlineInputBorder(),
+              errorText: _emailHint,
+              errorMaxLines: 3,
             ),
           ),
           const SizedBox(height: 14),
@@ -335,7 +349,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
                   return;
                 }
                 if (!_validEmail) {
-                  setState(() => _error = tt('Enter a valid partner email.'));
+                  setState(() => _error = _emailHint ?? tt('Enter a valid partner email.'));
                   return;
                 }
                 await _invite(replace: true);

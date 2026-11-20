@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/app_env.dart';
 
 /// R59 (D47): Download my data · Delete my account.
 ///
@@ -14,6 +15,9 @@ import 'package:onespace/l10n/phrases.dart';
 /// The backend currently fails closed; never enable deletion until verified.
 class AccountDataRules {
   const AccountDataRules._();
+  // QA only. The server gate (private.qa_account_v2_gate) is the real
+  // control; Production keeps the request button disabled.
+  static bool get qaDeletionControlsApproved => !OneSpaceEnv.isProduction;
   static const confirmWord = 'DELETE';
   static bool confirmed(String typed) => typed.trim().toUpperCase() == confirmWord;
   static String fileName(DateTime now) =>
@@ -86,6 +90,74 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
     }
   }
 
+  Future<void> _requestDeletion() async {
+    if (AccountDataRules.qaDeletionControlsApproved == false || busy) return;
+    final phrase = TextEditingController();
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, refresh) => AlertDialog(
+            title: const Text('Delete your account?'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('You have 7 days to cancel this request. '
+                      'After the deadline, your account and ALL your private '
+                      'data and files will be permanently deleted. '
+                      'Your current couple’s shared space and all shared '
+                      'data and files will also be deleted. Your partner '
+                      'will become unpaired and keep only their own private '
+                      'content. Nothing is transferred to a new partner.'),
+                  const SizedBox(height: 12),
+                  const Text('No automatic archive or recovery is created.'),
+                  const SizedBox(height: 14),
+                  const Text('Type DELETE to confirm:'),
+                  TextField(
+                    key: const Key('qaAccountDeletionTypedConfirmation'),
+                    controller: phrase,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    onChanged: (_) => refresh(() {}),
+                    decoration: const InputDecoration(labelText: 'Confirmation'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel')),
+              FilledButton(
+                key: const Key('qaConfirmAccountDeletionRequest'),
+                onPressed: AccountDataRules.confirmed(phrase.text)
+                  ? () => Navigator.pop(dialogContext, true) : null,
+                child: const Text('Schedule deletion in 7 days'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      setState(() { busy = true; error = null; message = null; });
+      try {
+        await db.rpc('qa_request_account_deletion');
+        await _load();
+        if (mounted) setState(() =>
+          message = 'Deletion requested. You can cancel within 7 days.');
+      } catch (_) {
+        if (mounted) setState(() =>
+          error = 'Account deletion could not be scheduled. No data was deleted.');
+      } finally {
+        if (mounted) setState(() => busy = false);
+      }
+    } finally {
+      phrase.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -153,7 +225,8 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                   'No archive is required and no deletion has been scheduled.')),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: null,
+                  onPressed: AccountDataRules.qaDeletionControlsApproved && !busy
+                    ? _requestDeletion : null,
                   icon: const Icon(Icons.shield_outlined),
                   label: Text(tt('Account deletion temporarily unavailable')),
                 ),

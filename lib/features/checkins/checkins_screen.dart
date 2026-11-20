@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../l10n/onespace_strings.dart';
 import '../sharing/private_share_button.dart';
 import '../sharing/share_grant_watcher.dart';
@@ -32,6 +33,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
   String? _partnerName;
   final _client=Supabase.instance.client;
   String? _space;
+  bool _personalReady=false;
   Stream<List<Map<String,dynamic>>>? _stream;
   Stream<List<Map<String,dynamic>>>? _requests;
   String? _error;
@@ -90,9 +92,13 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       onChanged:() {
         if (!mounted || _space != id) return;
         setState(() {
-          _stream = _client.from('daily_checkins')
-            .stream(primaryKey:['id']).eq('space_id',id)
-            .order('checkin_date',ascending:false);
+          _stream = OneSpaceEnv.isProduction
+            ? _client.from('daily_checkins')
+                .stream(primaryKey:['id']).eq('space_id',id)
+                .order('checkin_date',ascending:false)
+            : _client.from('daily_checkins')
+                .stream(primaryKey:['id'])
+                .order('checkin_date',ascending:false);
           _requests=_client.from('partner_checkin_requests')
             .stream(primaryKey:['id']).eq('space_id',id)
             .order('requested_at',ascending:false);
@@ -123,15 +129,31 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
   }
 
   Future<void> _load() async {
-    if(mounted)setState(() { _loading=_space==null;_error=null;});
+    if(mounted)setState(() {
+      _loading=true;_error=null;_stream=null;_requests=null;
+      _space=null;_personalReady=false;_ackRows=[];
+    });
     try{
-      final id=await CurrentSpaceCache.instance.get();
+      var id=await CurrentSpaceCache.instance.get();
+      var personal=false;
+      if(!OneSpaceEnv.isProduction){
+        final scopes=await _client.rpc('my_storage_scopes');
+        if(scopes is! Map ||
+            scopes['private_space_id']?.toString()!=_client.auth.currentUser?.id){
+          throw StateError('Personal feelings scope unavailable');
+        }
+        id=scopes['shared_space_id']?.toString();
+        personal=true;
+      }
       if(!mounted)return;
       setState(() {
-        _space=id;
-        _stream=id==null?null:_client.from('daily_checkins')
-          .stream(primaryKey:['id']).eq('space_id',id)
-          .order('checkin_date',ascending:false);
+        _space=id;_personalReady=personal;
+        _stream=id==null&&!personal?null:
+          (OneSpaceEnv.isProduction
+            ? _client.from('daily_checkins').stream(primaryKey:['id'])
+                .eq('space_id',id!).order('checkin_date',ascending:false)
+            : _client.from('daily_checkins').stream(primaryKey:['id'])
+                .order('checkin_date',ascending:false));
         _loading=false;
         _requests=id==null?null:_client.from('partner_checkin_requests')
           .stream(primaryKey:['id']).eq('space_id',id)
@@ -143,20 +165,22 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
         _watchAcks(id);
         unawaited(_openInitialRequest());
       }else{
+        _grants?.cancel();_grants=null;
         _ackSubscription?.cancel();
         _ackSubscription=null;_ackWatchedSpace=null;
         if(mounted)setState(()=>_ackRows=[]);
       }
     }catch(_){
-      if(mounted)setState((){_error=tr(context,'loadFailed');_loading=false;});
+      if(mounted)setState(()=>_error=tr(context,'loadFailed'));
+      if(mounted)setState(()=>_loading=false);
     }
   }
 
   Future<void> _edit([Map<String,dynamic>? record]) async {
     final id=_space;
-    if(id==null)return;
+    if(id==null&&!_personalReady)return;
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(
-      builder:(_)=>CheckinEditor(spaceId:id,existing:record)));
+      builder:(_)=>CheckinEditor(spaceId:id??'',existing:record)));
   }
 
     String _dateTime(Object? raw){
@@ -283,6 +307,10 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
   );
 
   Widget _requestHistory(){
+    if(_space==null)return Padding(
+      padding:const EdgeInsets.all(20),
+      child:Text(tt('Connect with a partner to exchange daily check-ins. '
+        'Your personal feelings journal is available anytime.')));
     final me=_client.auth.currentUser?.id;
     return StreamBuilder<List<Map<String,dynamic>>>(
       stream:_requests,builder:(ctx,snapshot){
@@ -461,12 +489,14 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       Tab(text:tt('Daily check-in')),
       Tab(text:tt('Feelings journal')),
     ])),
-    floatingActionButton:_space==null?null:_tabs.index==0
-      ?AddFab(label:'Check on ${_partnerName??'your partner'}',onPressed:_askPartner,heroTag:'fab-checkin')
-      :AddFab(label:tt('Record my feeling'),onPressed:()=>_edit(),heroTag:'fab-feeling'),
+    floatingActionButton:_tabs.index==0
+      ?(_space==null?null:AddFab(
+        label:'Check on ${_partnerName??'your partner'}',onPressed:_askPartner,heroTag:'fab-checkin'))
+      :(_space==null&&!_personalReady?null:
+        AddFab(label:tt('Record my feeling'),onPressed:()=>_edit(),heroTag:'fab-feeling')),
     body:_loading
       ?const Center(child:CircularProgressIndicator())
-      :_space==null?Center(child:Text(tr(context,'noSpace')))
+      :_space==null&&!_personalReady?Center(child:Text(tr(context,'noSpace')))
       :TabBarView(controller:_tabs,children:[
         RefreshIndicator(onRefresh:_load,child:ListView(
           padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,96),children:[
@@ -545,7 +575,8 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
             if(message.isNotEmpty)_detail(tt('What’s on my mind'),message),
             if((entry['gratitude']?.toString()??'').isNotEmpty)
               _detail(tt('Something I’m grateful for'),entry['gratitude'].toString()),
-            if(own&&private)Align(
+            if(own&&private&&(OneSpaceEnv.isProduction||
+              entry['private_space_id']==null))Align(
               alignment:AlignmentDirectional.centerEnd,
               child:PrivateShareButton(
                 objectType:'checkin',objectId:entry['id'] as String)),
@@ -608,7 +639,9 @@ class _CheckinEditorState extends State<CheckinEditor> {
     _gratitude=TextEditingController(text:widget.existing?['gratitude'] as String? ?? '');
     _date=DateTime.tryParse(widget.existing?['checkin_date'] as String? ?? '')??DateTime.now();
     _mood=(widget.existing?['mood'] as num?)?.toInt()??3;
-    _visibility=widget.existing?['visibility'] as String? ?? 'shared';
+    _visibility=widget.existing?['visibility'] as String? ??
+      (!OneSpaceEnv.isProduction && widget.spaceId.isEmpty
+        ? 'private' : 'shared');
   }
   @override
   void dispose(){_message.dispose();_gratitude.dispose();super.dispose();}
@@ -638,7 +671,10 @@ class _CheckinEditorState extends State<CheckinEditor> {
           return;
         }
         await _client.from('daily_checkins').insert({
-          ...fields,'space_id':widget.spaceId,
+          ...fields,
+          if(!OneSpaceEnv.isProduction&&_visibility=='private')
+            'private_space_id':_client.auth.currentUser!.id
+          else 'space_id':widget.spaceId,
           'created_by':_client.auth.currentUser!.id,
           'checkin_date':date,'visibility':_visibility,
         });
@@ -671,7 +707,8 @@ class _CheckinEditorState extends State<CheckinEditor> {
     meta:MetaStrip(value:MetaValues(shared:_visibility=='shared',date:_date),
       showBelongs:false,dateLabel:tt('Day'),enabled:widget.existing==null&&_canEdit&&!_saving,
       onChanged:(v)=>setState((){
-        _visibility=v.shared?'shared':'private';
+        _visibility=(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+          ?'private':(v.shared?'shared':'private');
         final now=DateTime.now();
         final d=v.date??now;
         _date=d.isAfter(now)?now:d;

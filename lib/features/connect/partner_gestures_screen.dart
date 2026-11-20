@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import 'gesture_experience.dart';
 import 'gesture_pool_rules.dart';
 import 'love_prompt_rules.dart';
@@ -255,9 +256,12 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      final names=CurrentSpaceCache.instance.memberNamesFor(space);
      final templates=await db.from('gesture_templates').select('id,title,message,kind')
        .eq('space_id',space).eq('creator_id',me).order('created_at',ascending:false);
-     final updated=await db.from('gesture_message_overrides')
-       .select('kind,message_index,message,disabled')
-       .eq('space_id',space).eq('owner_id',me);
+     final presetQuery=OneSpaceEnv.isProduction
+       ?db.from('gesture_message_overrides')
+         .select('kind,message_index,message,disabled').eq('space_id',space)
+       :db.from('gesture_message_overrides')
+         .select('kind,message_index,message,disabled');
+     final updated=await presetQuery.eq('owner_id',me);
      String? latest;
      try{
        final recent=await db.from('partner_gestures').select('created_at')
@@ -358,7 +362,9 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      if(accepted!=true||spaceId==null)return;
      final me=db.auth.currentUser!.id;
      await db.from('gesture_message_overrides').upsert({
-       'space_id':spaceId,'owner_id':me,'kind':option.id,
+       if(!OneSpaceEnv.isProduction) 'private_space_id':me
+       else 'space_id':spaceId,
+       'owner_id':me,'kind':option.id,
        'message_index':index,'message':message.text.trim(),
        'disabled':disabled,
      },onConflict:'owner_id,kind,message_index');

@@ -2434,6 +2434,8 @@ const Map<String, String> arPhrases = {
   'Scrapbook': 'دفتر الذكريات',
   'Our scrapbook': 'دفتر ذكرياتنا',
   'My scrapbook': 'دفتر ذكرياتي',
+  'This is your own email. You can’t invite yourself. Enter your partner’s email address.': 'هذا بريدك الإلكتروني. لا يمكنك دعوة نفسك. أدخل البريد الإلكتروني لشريكك.',
+  'Enter a valid email address, like name@example.com.': 'أدخل بريدًا إلكترونيًا صحيحًا، مثل name@example.com.',
   'Remove this page?': 'إزالة هذه الصفحة؟',
   'Its words and photo choices are removed. The photos stay in the scrapbook library.': 'تُزال كلماتها واختيارات الصور. تبقى الصور في مكتبة الدفتر.',
   'Remove page': 'إزالة الصفحة',

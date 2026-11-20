@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/app_env.dart';
 import 'occasion_budget_rules.dart';
 import 'package:onespace/l10n/phrases.dart';
 
@@ -18,11 +19,16 @@ class _OccasionOptionLinkerState extends State<OccasionOptionLinker>{
  @override void initState(){super.initState();load();}
  Future<void> load()async{
   try{
-   final activities=await db.from('activities')
-    .select('id,title,visibility').eq('space_id',widget.plan['space_id'])
-    .isFilter('archived_at',null).limit(100);
+   final sameScope=OneSpaceEnv.isProduction
+     ?db.from('activities').select('id,title,visibility').eq('space_id',widget.plan['space_id'])
+     :db.from('activities').select('id,title,visibility,space_id,private_space_id');
+   final activities=await sameScope.isFilter('archived_at',null).limit(100);
    final ids=activities.where((a)=>
-    widget.plan['visibility']=='private'||a['visibility']=='shared')
+     OneSpaceEnv.isProduction
+       ?widget.plan['visibility']=='private'||a['visibility']=='shared'
+       :(a['space_id']==widget.plan['space_id'] &&
+         a['private_space_id']==widget.plan['private_space_id'] &&
+         a['visibility']==widget.plan['visibility']))
     .map((a)=>a['id'].toString()).toList();
    if(ids.isEmpty){if(mounted)setState(()=>loading=false);return;}
    final rows=await db.from('activity_components')
@@ -108,14 +114,20 @@ class _SendOptionToOccasionSheetState extends State<SendOptionToOccasionSheet>{
  @override void initState(){super.initState();load();}
  Future<void> load()async{
   try{
-   final a=await db.from('activities').select('space_id,visibility')
-    .eq('id',widget.activityId).single();
-   final rows=await db.from('occasion_plans')
-    .select('id,title,currency,visibility').eq('space_id',a['space_id'])
-    .isFilter('archived_at',null).limit(100);
+   final a=await db.from('activities')
+    .select(OneSpaceEnv.isProduction?'space_id,visibility':
+      'space_id,private_space_id,visibility').eq('id',widget.activityId).single();
+   final scopeQuery=OneSpaceEnv.isProduction
+    ?db.from('occasion_plans').select('id,title,currency,visibility').eq('space_id',a['space_id'])
+    :db.from('occasion_plans').select('id,title,currency,visibility,space_id,private_space_id');
+   final rows=await scopeQuery.isFilter('archived_at',null).limit(100);
    if(mounted)setState((){
     plans=List<Map<String,dynamic>>.from(rows.where((r)=>
-     a['visibility']=='shared'||r['visibility']=='private'));
+     OneSpaceEnv.isProduction
+       ?a['visibility']=='shared'||r['visibility']=='private'
+       :(r['space_id']==a['space_id'] &&
+         r['private_space_id']==a['private_space_id'] &&
+         r['visibility']==a['visibility'])));
     loading=false;
    });
   }catch(_){if(mounted)setState((){

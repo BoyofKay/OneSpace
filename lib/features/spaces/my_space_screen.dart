@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/app_env.dart';
+import '../../core/current_space_cache.dart';
+import 'relationship_exit_confirmation.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Account-owned private storage and relationship-owned shared storage.
@@ -15,12 +17,17 @@ class MySpaceScreen extends StatefulWidget {
 }
 
 class _MySpaceScreenState extends State<MySpaceScreen> {
+  // QA only. The server gate (private.qa_relationship_v2_gate) is the real
+  // control; Production never shows these actions as enabled.
+  static const bool _qaRelationshipActionsApproved = true;
+  List<String> _memberNames = const [];
   final _db = Supabase.instance.client;
   bool _loading = true;
   bool _busy = false;
   bool _owner = false;
   int _members = 0;
   String? _spaceName;
+  String? _spaceId;
   String? _error;
   String? _message;
   Map<String, dynamic>? _legacyPending;
@@ -39,14 +46,24 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       final membership = await _db.from('space_members')
           .select('space_id').eq('user_id', me).limit(1).maybeSingle();
       String? name;
+      String? sharedId;
+      var names = <String>[];
       var owner = false;
       var members = 0;
       if (membership != null) {
         final id = membership['space_id'].toString();
+        sharedId = id;
         final space = await _db.from('spaces')
             .select('name,created_by').eq('id', id).maybeSingle();
         final list = await _db.from('space_members')
             .select('user_id').eq('space_id', id);
+        final ids = [for (final row in list) row['user_id'].toString()];
+        final people = ids.isEmpty ? const [] : await _db.from('profiles')
+            .select('id,display_name').inFilter('id', ids);
+        names = [
+          for (final id in ids)
+            (id == me ? '${_nameOf(people, id)} (${tt('you')})' : _nameOf(people, id)),
+        ];
         name = space?['name']?.toString() ?? 'Our Space';
         owner = space?['created_by']?.toString() == me;
         members = list.length;
@@ -61,8 +78,10 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
       if (!mounted) return;
       setState(() {
         _spaceName = name;
+        _spaceId = sharedId;
         _owner = owner;
         _members = members;
+        _memberNames = names;
         _legacyPending = pending;
       });
     } catch (_) {
@@ -71,6 +90,16 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  static String _nameOf(List<dynamic> people, String id) {
+    for (final row in people) {
+      if (row['id']?.toString() == id) {
+        final name = row['display_name']?.toString().trim() ?? '';
+        if (name.isNotEmpty) return name;
+      }
+    }
+    return tt('Member');
   }
 
   Future<void> _cancelOldRequest() async {
@@ -109,12 +138,49 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
     }
   }
 
-  Widget _disabledAction(IconData icon, String title) =>
-    OutlinedButton.icon(
-      onPressed: null,
-      icon: Icon(icon),
-      label: Text(tt(title)),
-    );
+  Future<void> _endRelationship(RelationshipExitAction action) async {
+    final space = _spaceId;
+    if (!_qaRelationshipActionsApproved || OneSpaceEnv.isProduction ||
+        _busy || space == null) return;
+    final confirmed = await RelationshipExitConfirmation.ask(
+      context, action: action, spaceName: _spaceName,
+      members: _memberNames);
+    if (!confirmed || !mounted) return;
+    setState(() { _busy = true; _message = null; _error = null; });
+    try {
+      final command = switch (action) {
+        RelationshipExitAction.removePartner => 'remove_partner',
+        RelationshipExitAction.leaveSpace => 'leave_space',
+        RelationshipExitAction.deleteSpace => 'delete_space',
+      };
+      await _db.rpc('qa_end_current_relationship', params: {
+        'p_space': space,
+        'p_action': command,
+        'p_confirmation': RelationshipExitConfirmation.requiredPhrase,
+      });
+      // Every screen reloads from the account's own scope from now on.
+      CurrentSpaceCache.instance.clear();
+      await _load();
+      if (mounted) setState(() =>
+        _message = tt('The shared space was removed. '
+          'Your private content is unchanged.'));
+    } catch (_) {
+      if (mounted) setState(() => _error =
+        tt('Shared relationship deletion could not be verified. '
+          'Please contact support; do not retry before checking status.'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _relationshipAction(IconData icon, String title,
+      RelationshipExitAction action) => OutlinedButton.icon(
+    onPressed: !_qaRelationshipActionsApproved ||
+        OneSpaceEnv.isProduction || _busy || _spaceId == null
+      ? null : () => _endRelationship(action),
+    icon: Icon(icon),
+    label: Text(tt(title)),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -144,25 +210,12 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               title: Text(tt(_members == 2
                 ? (_owner ? 'Space owner and partner' : 'Shared with your partner')
                 : 'Not currently paired')),
-              subtitle: Text(tt('Current members: $_members / 2')),
+              subtitle: Text(_memberNames.isEmpty
+                ? tt('Current members: $_members / 2')
+                : _memberNames.join(' · ')),
             ),
           ],
-          const SizedBox(height: 12),
-          Card(child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                const Icon(Icons.lock_outline),
-                const SizedBox(width: 8),
-                Expanded(child: Text(tt('Your private content stays yours'),
-                  style: theme.textTheme.titleMedium)),
-              ]),
-              const SizedBox(height: 8),
-              Text(tt('OneSpace is moving to separate account-owned private '
-                'storage and relationship-owned shared storage. The app will '
-                'continue to show both together in one interface.')),
-            ]),
-          )),
+
           if (_legacyPending != null) ...[
             const SizedBox(height: 12),
             Card(child: Padding(
@@ -196,16 +249,12 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
               'connected to a different partner.')),
             const SizedBox(height: 10),
             if (_members == 2 && _owner)
-              _disabledAction(Icons.person_remove_outlined, 'Remove partner'),
+              _relationshipAction(Icons.person_remove_outlined, 'Remove partner', RelationshipExitAction.removePartner),
             if (_members == 2 && !_owner)
-              _disabledAction(Icons.logout, 'Leave this space'),
+              _relationshipAction(Icons.logout, 'Leave this space', RelationshipExitAction.leaveSpace),
             if (_owner)
-              _disabledAction(Icons.delete_outline, 'Delete this space'),
-            const SizedBox(height: 8),
-            Text(tt('These actions are temporarily unavailable while '
-              'private data ownership, shared deletion and security checks '
-              'are migrated. No archival or restoration is required.'),
-              style: theme.textTheme.bodySmall),
+              _relationshipAction(Icons.delete_outline, 'Delete this space', RelationshipExitAction.deleteSpace),
+
           ],
           if (_message != null) Padding(
             padding: const EdgeInsets.only(top: 12),
