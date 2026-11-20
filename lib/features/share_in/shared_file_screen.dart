@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/editor_scaffold.dart';
+import '../../core/app_env.dart';
 import '../calendar/calendar_rules.dart';
 import '../memories/memory_photo_service.dart';
 import '../../core/form_kit.dart';
@@ -27,7 +28,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
   final db = Supabase.instance.client;
   late final title = TextEditingController(text: widget.file.title);
   late final note = TextEditingController(text: widget.file.note);
-  bool shared = false, saving = false, toMemory = false;
+  bool shared = !OneSpaceEnv.isProduction, saving = false, toMemory = false;
   String? error;
 
   @override
@@ -40,6 +41,11 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
   Future<void> _save() async {
     final user = db.auth.currentUser?.id;
     if (user == null || title.text.trim().isEmpty) return;
+    if(!OneSpaceEnv.isProduction&&(!shared||widget.spaceId.isEmpty)){
+      setState(()=>error='Private file storage is not enabled yet. '
+        'Connect with a partner to save files in your shared space.');
+      return;
+    }
     setState(() { saving = true; error = null; });
     final bytes = Uint8List.fromList(widget.file.bytes);
     try {
@@ -92,13 +98,21 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
       title: f.isImage ? tt('Save shared photo') : tt('Save shared PDF'),
       isNew: true,
       isChanged: () => true,
-      isComplete: () => title.text.trim().isNotEmpty,
+      isComplete: () => title.text.trim().isNotEmpty &&
+        (OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty),
       listenTo: [title, note],
       saving: saving,
       onSave: _save,
       meta: MetaStrip(value: MetaValues(shared: shared), showBelongs: false, showDate: false,
-        enabled: !saving, onChanged: (v) => setState(() => shared = v.shared)),
+        enabled: !saving&&OneSpaceEnv.isProduction,
+        onChanged: (v) => setState(() => shared = v.shared)),
       body: ListView(padding: const EdgeInsets.all(18), children: [
+        if(!OneSpaceEnv.isProduction) Padding(
+          padding:const EdgeInsets.only(bottom:10),
+          child:Text(tt('Personal file storage is not enabled yet. '
+            'Files can only be saved to your current shared space; '
+            'private links and notes can still be saved to your personal inbox.'),
+            style:Theme.of(context).textTheme.bodySmall)),
         if (f.isImage)
           ClipRRect(borderRadius: BorderRadius.circular(14),
             child: ConstrainedBox(constraints: const BoxConstraints(maxHeight: 260),
