@@ -1,4 +1,4 @@
-// QA-ONLY closed-relationship physical file cleanup, STAGED, NOT DEPLOYED.
+// QA-only deployed unscheduled JWT-protected endpoint; service secret required.
 // Never run for a live space or account-owned bucket. Service-role RPC leases
 // and verifies each retired-couple object; this function uses Storage.remove,
 // never DELETE FROM storage.objects (which would orphan file bytes).
