@@ -37,19 +37,21 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
    _urls.clear();photos=_loadStream();
   }
  }
- Future<String> _sign(String path){
-  final cached=_urls[path];
+ Future<String> _sign(String path,{String? bucketId}){
+  final key='${bucketId??MemoryPhotoService.bucket}:$path';
+  final cached=_urls[key];
   if(cached!=null&&DateTime.now().difference(cached.issued)<const Duration(seconds:65)){
    return cached.value;
   }
-  final value=service.signedUrl(path);
-  _urls[path]=(issued:DateTime.now(),value:value);
+  final value=service.signedUrl(path,bucketId:bucketId);
+  _urls[key]=(issued:DateTime.now(),value:value);
   return value;
  }
- void _refresh(String path)=>setState(()=>_urls.remove(path));
+ void _refresh(String path)=>setState(()=>_urls.clear());
  Future<void> _open(Map<String,dynamic> p)async{
   try{
-   final url=await service.signedUrl(p['object_path'].toString());
+   final url=await service.signedUrl(p['object_path'].toString(),
+    bucketId:p['storage_bucket_id']?.toString());
    if(!mounted)return;
    await showDialog<void>(context:context,builder:(ctx)=>Dialog(
     insetPadding:const EdgeInsets.all(12),child:Stack(children:[
@@ -156,7 +158,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
     'archived_at':p['archived_at']==null?
      DateTime.now().toUtc().toIso8601String():null,
    }).eq('id',p['id']);
-   _urls.remove(p['object_path']);
+   _urls.clear();
   });
  }
  Widget _photo(Map<String,dynamic> p,{double height=165}){
@@ -165,7 +167,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
    height:height,color:Theme.of(context).colorScheme.surfaceContainerHighest,
    child:const Center(child:Icon(Icons.archive_outlined)));
   return InkWell(onTap:()=>_open(p),child:FutureBuilder<String>(
-   future:_sign(path),builder:(ctx,snapshot){
+   future:_sign(path,bucketId:p['storage_bucket_id']?.toString()),builder:(ctx,snapshot){
     if(snapshot.hasError)return SizedBox(height:height,child:Center(
      child:TextButton.icon(onPressed:()=>_refresh(path),
       icon:const Icon(Icons.refresh),label:Text(tt('Retry private photo')))));
