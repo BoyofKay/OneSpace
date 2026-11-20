@@ -1,13 +1,15 @@
 name: Compile OneSpace iOS QA and production (unsigned)
 
-# Manual only: macOS runners are expensive in private repositories.
-# Unsigned QA/production are not installable on iPhones. Signed TestFlight is separate.
-# Re-check native Xcode build phases after Share Extension dependency cycle fix.
+# Unsigned compile-only builds of both QA and Production. macOS runners are
+# expensive in private repositories, so this runs manually, when a release is
+# marked ready, or when the iOS build files change on the iOS working branch.
+# Unsigned builds cannot be installed on iPhones. Signed TestFlight is separate.
 on:
   workflow_dispatch:
   push:
-    branches: [ci/ios-dual-unsigned-20261118]
-    paths: ['.github/workflows/ios-build.yml']
+    branches: [main]
+    paths:
+      - 'release/READY_TO_BUILD.md'
 
 permissions:
   contents: read
@@ -34,7 +36,7 @@ jobs:
           flutter-version: '3.50.0'
           channel: stable
           cache: true
-      - name: Configure QA identity and callback
+      - name: Configure ${{ matrix.environment }} identity and callback
         run: python3 tools/ios/configure_env.py ${{ matrix.environment }}
       - name: Verify bundle isolation rules
         run: python3 -m unittest discover -s tools/ios -p 'test_*.py'
@@ -78,4 +80,5 @@ jobs:
         with:
           name: OneSpace-iOS-${{ matrix.environment }}-unsigned-${{ github.run_number }}
           path: build/ios/iphoneos/OneSpace-${{ matrix.environment }}-unsigned.zip
-          retention-days: 7
+          if-no-files-found: error
+          retention-days: 14

@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/services.dart';
 
 import 'app_env.dart';
@@ -26,7 +26,7 @@ class IosBuildConfiguration {
   }
 
   static Future<void> verify() async {
-    if (!Platform.isIOS) return;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
     final config = await _channel.invokeMapMethod<String, dynamic>('read');
     if (config == null || !matches(
       environment: config['environment'] as String?,
