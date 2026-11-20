@@ -9,6 +9,9 @@ on:
       - 'supabase/functions/_shared/qa_account_private_media_purge_contract.mjs'
       - 'supabase/functions/_shared/qa_account_private_media_purge_contract.test.mjs'
       - 'supabase/functions/onespace-qa-account-private-media-purge/**'
+      - 'supabase/functions/_shared/qa_account_finalizer_contract.mjs'
+      - 'supabase/functions/_shared/qa_account_finalizer_contract.test.mjs'
+      - 'supabase/functions/onespace-qa-account-finalizer/**'
       - '.github/workflows/qa-shared-media-purge-contract.yml'
   workflow_dispatch:
 permissions:
@@ -29,7 +32,10 @@ jobs:
           deno-version: v2.x
       - name: Verify account-owned files cannot cross into shared Storage deletion
         run: node --test supabase/functions/_shared/qa_account_private_media_purge_contract.test.mjs
-      - name: Type-check BOTH staged service-only Edge workers without deployment
+      - name: Verify every Auth deletion dependency must be zero
+        run: node --test supabase/functions/_shared/qa_account_finalizer_contract.test.mjs
+      - name: Type-check all staged service-only Edge workers without deployment
         run: |
           deno check supabase/functions/onespace-qa-shared-media-purge/index.ts
           deno check supabase/functions/onespace-qa-account-private-media-purge/index.ts
+          deno check supabase/functions/onespace-qa-account-finalizer/index.ts
