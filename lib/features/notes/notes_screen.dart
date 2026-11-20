@@ -206,11 +206,13 @@ class _NotesScreenState extends State<NotesScreen> {
                       createdBy: note['created_by'] as String,
                       userId: _client.auth.currentUser!.id,
                     );
-                    final canShare = ObjectPermissions.canManagePrivateShare(
-                      visibility: note['visibility'] as String,
-                      createdBy: note['created_by'] as String,
-                      userId: _client.auth.currentUser!.id,
-                    );
+                    final canShare = (OneSpaceEnv.isProduction ||
+                        note['private_space_id'] == null) &&
+                      ObjectPermissions.canManagePrivateShare(
+                        visibility: note['visibility'] as String,
+                        createdBy: note['created_by'] as String,
+                        userId: _client.auth.currentUser!.id,
+                      );
                     return Card(
                       elevation: 0,
                       child: Column(
