@@ -46,10 +46,9 @@ BEGIN
  END IF;
 END $pair$;
 RESET ROLE;
--- Change only transaction-local QA records. Rollback restores their creator
+-- Change only transaction-local QA records. Rollback restores their space rows
 -- and membership; no actual relationship closure is committed.
-UPDATE public.spaces s SET created_by=current_setting('qa.other')::uuid
- WHERE s.created_by=current_setting('qa.owner')::uuid;
+DELETE FROM public.spaces s WHERE s.created_by=current_setting('qa.owner')::uuid;
 DELETE FROM public.space_members m WHERE m.user_id=current_setting('qa.owner')::uuid;
 SET LOCAL ROLE service_role;
 DO $worker$
