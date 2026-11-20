@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import '../../core/device_time_zone.dart';
+import '../../core/app_env.dart';
 import '../sharing/object_permissions.dart';
 import 'calendar_rules.dart';
 import '../mentions/partner_mention_button.dart';
@@ -86,7 +87,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     _repeat = existing?['repeat_rule'] is Map
       ? ReminderRepeat.fromRule(existing!['repeat_rule'])
       : existing?['recurrence'] == 'yearly' ? const ReminderRepeat(preset: 'yearly') : const ReminderRepeat();
-    _visibility = existing?['visibility'] as String? ?? 'shared';
+    _visibility = existing?['visibility'] as String? ??
+      (!OneSpaceEnv.isProduction && widget.spaceId.isEmpty ? 'private' : 'shared');
     _forUser=existing?['for_user_id']?.toString();
     final initialStart=DateTime.tryParse(existing?['starts_at']?.toString()??'')?.toLocal();
     final initialEnd=DateTime.tryParse(existing?['ends_at']?.toString()??'')?.toLocal();
@@ -113,6 +115,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
   }
 
   Future<void> _loadPeople() async {
+    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty)return;
     try {
       final members=await _client.from('space_members').select('user_id')
         .eq('space_id',widget.spaceId);
@@ -139,6 +142,11 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       setState(() => _error = tr(context, 'eventValidation'));
       return;
     }
+    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty &&
+      _visibility=='shared'){
+      setState(()=>_error='Connect with a partner before sharing an event.');
+      return;
+    }
     setState(() { _saving = true; _error = null; });
     try {
       final fields = <String,dynamic>{
@@ -151,7 +159,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         'recurrence': _repeat.preset == 'yearly' && _repeat.interval == 1 && _repeat.until == null ? 'yearly' : 'none',
         'repeat_rule': _eventRule(),
       };
-      fields['for_user_id']=_forUser;
+      fields['for_user_id']=!OneSpaceEnv.isProduction &&
+          _visibility=='private' ? _client.auth.currentUser!.id : _forUser;
       if(_allDay){
         fields['starts_at']=null;
         fields['ends_at']=null;
@@ -167,18 +176,21 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       if (!_editing) {
         final created = await _client.from('space_events').insert({
           ...fields,
-          'space_id': widget.spaceId,
+          if (!OneSpaceEnv.isProduction && _visibility=='private')
+            'private_space_id':_client.auth.currentUser!.id
+          else 'space_id': widget.spaceId,
           'created_by': _client.auth.currentUser!.id,
           'visibility': _visibility,
         }).select('id').single();
         await _createReminder(created['id'].toString(), title);
-        await widget.onCreated?.call(created['id'].toString());
+        // Do not link account-owned events into shared workspace objects.
+        if(OneSpaceEnv.isProduction || _visibility=='shared')
+          await widget.onCreated?.call(created['id'].toString());
       } else {
-        final rows = await _client.from('space_events')
-          .update(fields)
-          .eq('id', widget.existing!['id'] as String)
-          .eq('space_id', widget.spaceId)
-          .select('id');
+        var query=_client.from('space_events')
+          .update(fields).eq('id',widget.existing!['id'] as String);
+        if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
+        final rows=await query.select('id');
         if (rows.isEmpty) throw StateError('Event is no longer editable');
         await _createReminder(widget.existing!['id'] as String, title);
       }
@@ -217,11 +229,14 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     final me = _client.auth.currentUser!.id;
     final audience = _visibility == 'private' || _forUser == me ? 'me' : _forUser == null ? 'both' : 'partner';
     try {
+      final personal=!OneSpaceEnv.isProduction && _visibility=='private';
       await _client.from('reminders').insert({
-        'space_id': widget.spaceId, 'title': title.length > 160 ? title.substring(0, 160) : title,
-        'details': _location.text.trim(), 'due_at': due.toUtc().toIso8601String(),
-        'visibility': _visibility, 'audience': audience,
-        'source_kind': 'calendar', 'source_id': eventId,
+        if(personal) 'private_space_id':me
+        else 'space_id':widget.spaceId,
+        'title':title.length>160?title.substring(0,160):title,
+        'details':_location.text.trim(),'due_at':due.toUtc().toIso8601String(),
+        'visibility':_visibility,'audience':personal?'me':audience,
+        if(!personal)...{'source_kind':'calendar','source_id':eventId},
       });
     } catch (_) {/* The event is saved; the reminder can be added from Reminders. */}
   }
@@ -237,7 +252,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
      people:_peopleMeta, showDate:false, enabled:_canEdit && !_saving,
      value:MetaValues(shared:_visibility=='shared',belongsTo:_forUser),
      onChanged:(v)=>setState((){
-       if(!_editing)_visibility=v.shared?'shared':'private';
+       if(!_editing)_visibility=(OneSpaceEnv.isProduction ||
+         widget.spaceId.isNotEmpty)&&v.shared?'shared':'private';
        _forUser=v.belongsTo;
        if(_visibility=='private')_forUser=_peopleMeta?.me;
      })),
@@ -283,7 +299,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
           RepeatControl(value: _repeat, start: _date, enabled: _canEdit && !_saving,
             onChanged: (r) => setState(() => _repeat = r)),
           const SizedBox(height: 6),
-          ChoiceRow<String>(label: tt('Remind us before'),
+          ChoiceRow<String>(label: tt(_visibility=='private'?
+            'Remind me before':'Remind us before'),
             options: _allDay
               ? const {'none': 'No reminder', 'morning': 'That morning', '1d': 'A day before', '1w': 'A week before'}
               : const {'none': 'No reminder', '1h': 'An hour before', '1d': 'A day before', '1w': 'A week before'},
@@ -318,7 +335,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               alignLabelWithHint: true,
             ),
           ),
-          if (_visibility == 'shared') Align(alignment: AlignmentDirectional.centerStart,
+          if (_visibility == 'shared' && widget.spaceId.isNotEmpty)
+            Align(alignment: AlignmentDirectional.centerStart,
             child: PartnerMentionButton(spaceId:widget.spaceId,controller:_details,enabled:_canEdit)),
           if (_editing) Text(tt('Who can see it was set when it was created.'),
             style: Theme.of(context).textTheme.bodySmall),
