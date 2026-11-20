@@ -25,6 +25,10 @@
 | Trips, itinerary, flights, messages, revisions | Migration `0249`: account-owned personal root and current-pair shared root; child tables inherit parent RLS; immutable owner/parent/scope; account-private document uploads blocked | Unified personal/shared Trips including solo editor, message notes, trips and itinerary in search; personal Storage, linked items, shared counters and automated preparation features withheld | Rollback SQL verifies owner/partner/outsider, private/shared children, audit, mutation and stale-client guards **PASS** |
 | Occasions, budgets, steps, proposals | Migrations `0250`–`0252`: account/private and current-pair roots and child RLS, cross-scope Activity link rejection, same-plan proposal associations and legacy budget validator updated | Personal occasion editor with solo mode, account-private preparation reminder, safe filtered Activity-option linking, personal search; shared-only links/counters withheld | Rollback root/child/audit **PASS** and privileged proposal association mismatch rejection **PASS** |
 
+| Love letters | Migration `0253`: account-owned private unsent drafts, current-pair sent letters and read receipts, immutable owner/space and no raw send of a private draft | Personal draft list/compose while solo; sending a copy to current partner preserves the account draft | Rollback SQL owner/partner/outsider, send/draft, receipt, mutation guard **PASS** |
+| Gesture messages (partial) | Migration `0254`: account-owned preset overrides, current-pair sent gesture history and recipient checks; partner-addressed templates/schedules remain couple-scoped | QA preset customization now persists under signed-in account even when paired; existing send controls remain pair-only | Rollback SQL owner/partner/outsider, immutable preference ownership, sent delivery **PASS** |
+| Experiences and history | Migrations `0255`–`0256`: new private scope and visibility, current-pair sharing, child comments/interests/reviews/revisions, account-only action and comment audits | Unified private/shared list and solo creation, visibility indicator, personal search/Share-in, partner-link/mention controls withheld on private records | Rollback SQL owner/partner/outsider, root/child/revisions, action and comment history **PASS** |
+
 **Integration gates still open:** the Flutter analyzer and two-phone tests have **not** run. The new per-module database tests are rollback-only, not evidence that delete/leave/account-deletion is safe. Private file handling, all previously stored personal rows, cross-module references and old-client compatibility still require work. Draft PR #127 must not be merged, deployed or used to trigger an interim release. No Production data or schema was changed in these slices.
 
 ## Checks actually executed
@@ -37,11 +41,12 @@
 - No irreversible lifecycle action enabled. No old archive/deletion requests treated as consent.
 
 - `supabase/tests/qa_account_owned_daily_checkins_scope.sql`, `qa_personal_days_off_current_pair_isolation.sql`, `qa_personal_goals_current_pair_isolation.sql`, `qa_personal_places_visits_owner_scope.sql`, `qa_personal_sort_inbox_text_scope.sql`, `qa_personal_trips_and_children_scope.sql`, `qa_personal_occasions_children_scope.sql`, and `qa_occasion_proposal_plan_link_guard.sql` each passed with rollback on QA.
-- Verified the converted QA root/visit tables remained empty after tests, and all five newly protected tables have RLS enabled.
+- `qa_account_owned_letter_drafts_and_sent_pair_scope.sql`, `qa_personal_gesture_overrides_pair_delivery.sql`, and `qa_personal_experiences_children_scope.sql` passed with transaction rollbacks, including account-only Experience comment action history.
+- Verified previously converted QA roots/visit tables remained empty after earlier tests; the newer domain counts must be rechecked before release. RLS is enabled on converted tables.
 
 ## Work still needed before any QA release / irreversible action
 
-1. Finish scope cutovers for **remaining** roots/children: experiences, gesture presets/schedules/sent delivery, private letter drafts/sent letters, related links and attachments, and cross-module histories. Trips and Occasions now have QA DB/app slices but still need whole-product tests and data migration.
+1. Finish **remaining** scope/data cutovers: partner-addressed gesture templates and automated schedules, general Links and linked records, private media/attachments and cross-module dependencies. Trips, Occasions, Letters and Experiences now have QA database/app slices but require full app tests and legacy migration.
 2. Complete account-owned Storage for private photos/voice/files and safe shared access revocation; migration of existing legacy private content with creator mapping, child integrity and checksums.
 3. Finish immutable or explicitly authorized visibility transfer semantics, search/realtime/push/mentions and all direct launch routes; static analysis and full automated test suite.
 4. Transactional delete of old couple's shared data while preserving both personal namespaces; two phone A/B/C and race tests before enabling Leave, Remove or Delete Space.
