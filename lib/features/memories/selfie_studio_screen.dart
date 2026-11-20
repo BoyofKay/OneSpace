@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/app_env.dart';
 
 import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
@@ -190,8 +191,14 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       listenTo: [_caption],
       onSave: _save,
       meta: _joinId != null ? null : MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
-        enabled: !_saving, onChanged: (v) => setState(() => _private = !v.shared)),
+        enabled: !_saving && OneSpaceEnv.isProduction,
+        onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [
+        if (!OneSpaceEnv.isProduction)
+          Padding(padding: const EdgeInsets.only(bottom: 12),
+            child: Text(tt('Daily selfie photos are shared-only in QA '
+              'until personal photo storage is ready.'),
+              style: Theme.of(context).textTheme.bodySmall)),
         if (_joinId != null) Card(elevation: 0, color: scheme.secondaryContainer,
           child: ListTile(leading: const Icon(Icons.favorite_outline),
             title: Text(tt('Add yours to today’s selfie')),
