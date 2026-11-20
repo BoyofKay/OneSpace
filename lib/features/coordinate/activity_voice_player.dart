@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'activity_voice_rules.dart';
+import 'activity_media_scope.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// One compact audio control, reused by chat bubbles and Activity components.
@@ -51,8 +52,10 @@ class _ActivityVoicePlayerState extends State<ActivityVoicePlayer> {
           DateTime.now().difference(signedAt!) >
               const Duration(seconds: 90);
       if (expired) {
-        final url = await Supabase.instance.client.storage
-            .from(ActivityVoiceRules.bucket)
+        final db = Supabase.instance.client;
+        final activityId = ActivityMediaScope.activityIdFromPath(widget.objectPath);
+        final bucket = await ActivityMediaScope.voiceBucket(db, activityId);
+        final url = await db.storage.from(bucket)
             .createSignedUrl(widget.objectPath, 120);
         await player.setUrl(url);
         signedAt = DateTime.now();
