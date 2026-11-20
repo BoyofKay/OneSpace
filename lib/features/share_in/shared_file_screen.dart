@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/editor_scaffold.dart';
+import '../../core/app_env.dart';
 import '../calendar/calendar_rules.dart';
 import '../memories/memory_photo_service.dart';
 import '../../core/form_kit.dart';
@@ -39,8 +40,13 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
 
   Future<void> _save() async {
     final user = db.auth.currentUser?.id;
-    if (user == null || title.text.trim().isEmpty) return;
-    setState(() { saving = true; error = null; });
+    if(user==null||title.text.trim().isEmpty)return;
+    if(!OneSpaceEnv.isProduction && toMemory && widget.file.isImage && !shared){
+      setState(()=>error='Private photo storage is not available yet. '
+        'Save a personal story without photos instead.');
+      return;
+    }
+    setState((){saving=true;error=null;});
     final bytes = Uint8List.fromList(widget.file.bytes);
     try {
       if (toMemory && widget.file.isImage) {
