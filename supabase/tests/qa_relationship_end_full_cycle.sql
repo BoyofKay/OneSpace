@@ -111,6 +111,13 @@ begin
   select count(*) into n from public.activities where space_id=space2;
   if n<>0 then raise exception 'FAIL 13: new space inherited shared content'; end if;
   if exists(select 1 from public.notes where space_id=couple) then raise exception 'FAIL 14: old shared notes visible'; end if;
+  reset role;
+  -- 14b. The owner is told the partner joined (0309).
+  if not exists(select 1 from public.space_notifications
+     where recipient_id=owner_id and kind='joined' and object_id=space2) then
+    raise exception 'FAIL 14b: no partner-joined notification'; end if;
+  perform set_config('request.jwt.claims',json_build_object('sub',guest,'role','authenticated')::text,true);
+  set local role authenticated;
   -- 15. The invited partner can leave the new space.
   res:=public.qa_end_current_relationship(space2,'leave_space','DELETE SHARED CONTENT');
   reset role;
