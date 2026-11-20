@@ -1,3 +1,14 @@
+# OneSpace QA — rebuild from current main (20 Nov 2026)
+Require-Firebase-Config: true
+
+- Rebuild so the phone matches the QA database: R472 was built before the
+  Notes / To-do / Reminders / Calendar personal-shared changes were applied
+  to QA. Source: main after PR #123 and docs (095819f).
+- Remove / leave / delete space and delete account stay disabled in this
+  build (lifecycle not finished yet).
+
+---
+
 # OneSpace QA — invitation and canonical branding closure
 Require-Firebase-Config: true
 
