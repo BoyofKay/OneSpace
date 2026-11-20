@@ -181,6 +181,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
         (spaceId == null && (OneSpaceEnv.isProduction ||
           (d != ShareDestination.note && d != ShareDestination.todo &&
            d != ShareDestination.newActivity && d != ShareDestination.trip &&
+           d != ShareDestination.experience &&
            d != ShareDestination.placeVisited &&
            d != ShareDestination.placeWishlist) ||
           !onlyMe))) return;
@@ -233,9 +234,15 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           });
           next = ActivityScreen(id: selectedActivity!);
         case ShareDestination.experience:
-          final created = await db.from('shared_experiences').insert({
-            'space_id': spaceId, 'category': category, 'title': name,
-            'description': body, 'source_url': link,
+          final personal=!OneSpaceEnv.isProduction&&onlyMe;
+          final created=await db.from('shared_experiences').insert({
+            if(personal) 'private_space_id':db.auth.currentUser!.id
+            else 'space_id':spaceId,
+            'created_by':db.auth.currentUser!.id,
+            if(!OneSpaceEnv.isProduction)
+              'visibility':personal?'private':'shared',
+            'category':category,'title':name,
+            'description':body,'source_url':link,
           }).select('id').single();
           next = SharedExperiencesScreen(initialExperienceId: created['id'].toString());
         case ShareDestination.giftIdea:
@@ -368,7 +375,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       final solo = !OneSpaceEnv.isProduction && spaceId == null;
       final supported = d == ShareDestination.newActivity ||
         d == ShareDestination.todo || d == ShareDestination.note ||
-        d == ShareDestination.trip ||
+        d == ShareDestination.trip || d == ShareDestination.experience ||
         d == ShareDestination.placeVisited || d == ShareDestination.placeWishlist;
       if (solo && !supported) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -451,7 +458,8 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     final d = destination;
     return d == ShareDestination.activityOption || d == ShareDestination.giftIdea
         || d == ShareDestination.flightOption
-        || d == ShareDestination.experience || d == ShareDestination.reminder
+        || (OneSpaceEnv.isProduction&&d==ShareDestination.experience)
+        || d == ShareDestination.reminder
         || d == ShareDestination.event || d == ShareDestination.trip;
   }
 
@@ -470,6 +478,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
         (!OneSpaceEnv.isProduction && onlyMe &&
          (d == null || d == ShareDestination.todo || d == ShareDestination.note ||
           d == ShareDestination.newActivity || d == ShareDestination.trip ||
+          d == ShareDestination.experience ||
           d == ShareDestination.placeVisited ||
           d == ShareDestination.placeWishlist))) &&
         title.text.trim().isNotEmpty && (d != null || !sorting),
