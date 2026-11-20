@@ -52,22 +52,23 @@ ${code}
 This invitation expires in ${left}. The code is the same when resent.
 
 OneSpace
-Two of Us. One Space
-https://onespace.live`;
+Two of Us. One Space.
+https://onespace.live
+support@onespace.live`;
   const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;background:#F5F7FB;font-family:Arial,Helvetica,sans-serif;color:#14213D">
+<body style="margin:0;background:#F3F6FA;font-family:Arial,Helvetica,sans-serif;color:#14213D">
 <span style="display:none;max-height:0;overflow:hidden;opacity:0">A little space for us. Your private OneSpace invitation is inside.</span>
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F5F7FB"><tr><td align="center" style="padding:28px 12px">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F3F6FA"><tr><td align="center" style="padding:28px 12px">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:white;border:1px solid #E3EAF0;border-radius:16px">
 <tr><td style="padding:30px 28px 12px">
-<img alt="OneSpace" src="https://raw.githubusercontent.com/BoyofKay/onespace-app/main/assets/icon-512.png" width="52" height="52" style="display:block;border:0">
+<img alt="OneSpace" src="https://onespace.live/assets/icon-512.png" width="52" height="52" style="display:block;border:0">
 <h1 style="font-size:25px;line-height:1.28;margin:19px 0 12px;color:#14213D">A little space for us.</h1>
 <p style="font-size:16px;line-height:1.65;color:#354B63;margin:0 0 14px"><strong>${sender}</strong> has invited you to share a private space on OneSpace.</p>
 <p style="font-size:15px;line-height:1.65;color:#354B63;margin:0 0 18px">A place to remember little things, make plans, and stay connected.</p>
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#1F6E78;border-radius:10px;padding:15px 24px">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#234D82;border-radius:10px;padding:15px 24px">
 <a href="${safeUrl}" style="color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none;display:inline-block">Accept your invitation</a></td></tr></table>
 <p style="font-size:13px;line-height:1.65;color:#51657A;margin-top:18px">If the button doesn't work, open this secure link:<br>
-<a href="${safeUrl}" style="color:#1F6E78;text-decoration:underline;word-break:break-all">${safeUrl}</a></p>
+<a href="${safeUrl}" style="color:#234D82;text-decoration:underline;word-break:break-all">${safeUrl}</a></p>
 <p style="font-size:13px;color:#51657A;line-height:1.6;margin:18px 0 6px">Need to enter the code manually?</p>
 <p style="padding:12px;background:#F2F6F9;font:12px/1.7 monospace;word-break:break-all;color:#14213D">${escapeHtml(code)}</p>
 <p style="font-size:12px;color:#51657A;line-height:1.6">This invitation expires in ${escapeHtml(left)}. Resending does not extend it.</p>
@@ -77,10 +78,11 @@ https://onespace.live`;
 </td></tr>
 <tr><td style="padding:18px 28px;border-top:1px solid #E3EAF0">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="vertical-align:middle;padding-right:12px"><img src="https://raw.githubusercontent.com/BoyofKay/onespace-app/main/assets/icon-512.png" alt="" width="40" height="40" style="display:block"></td>
+<td style="vertical-align:middle;padding-right:12px"><img src="https://onespace.live/assets/icon-512.png" alt="" width="40" height="40" style="display:block"></td>
 <td><strong style="font-size:20px;color:#14213D">OneSpace</strong><br>
-<span style="font-size:12px;color:#51657A">Two of Us. One Space</span><br>
-<a href="${site}" style="font-size:12px;color:#1F6E78;text-decoration:none">onespace.live</a></td></tr></table>
+<span style="font-size:12px;color:#51657A">Two of Us. One Space.</span><br>
+<a href="${site}" style="font-size:12px;color:#234D82;text-decoration:none">onespace.live</a><br>
+<a href="mailto:support@onespace.live" style="font-size:12px;color:#51657A;text-decoration:none">support@onespace.live</a></td></tr></table>
 </td></tr></table>
 </td></tr></table></body></html>`;
   return {subject:"A little space for us — your OneSpace invitation",text,html};
@@ -166,7 +168,8 @@ Deno.serve(async(req)=>{
     headers:{Authorization:"Bearer "+resend,"content-type":"application/json",
       "Idempotency-Key":"app-invite-"+user.id+"-"+digest.slice(0,16)+"-"+Math.floor(Date.now()/900000)},
     body:JSON.stringify({
-      from:"OneSpace <invitations@onespace.live>",to:[recipient],
+      from:"OneSpace <support@onespace.live>",to:[recipient],
+      reply_to:"support@onespace.live",
       subject:msg.subject,html:msg.html,text:msg.text,
       tags:[{name:"type",value:"app_invitation"}],
     }),

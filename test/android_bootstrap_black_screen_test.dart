@@ -22,7 +22,7 @@ void main() {
     ));
     // First frame must be informative even before any native channel replies.
     expect(find.text('OneSpace'), findsOneWidget);
-    expect(find.text('Two of Us. One Space'), findsOneWidget);
+    expect(find.text('Two of Us. One Space.'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('QA/Production configuration mismatch'),
       findsOneWidget);
