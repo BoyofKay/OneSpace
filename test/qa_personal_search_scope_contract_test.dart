@@ -10,6 +10,7 @@ void main(){
   expect(source,contains("own(db.from('activities')"));
   expect(source,contains("own(db.from('memories')"));
   expect(source,contains("own(db.from('space_events')"));
+  expect(source,contains("own(db.from('saved_contacts')"));
   expect(source,contains("activities!inner(archived_at)"));
   expect(source,isNot(contains("throw StateError('No current shared space')")));
  });

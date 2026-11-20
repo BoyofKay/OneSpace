@@ -149,7 +149,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // R54: people and the share-in tray are searchable too.
-       guarded('Contact',id==null?none:db.from('saved_contacts').select('id,title:label').eq('space_id',couple)
+       guarded('Contact',own(db.from('saved_contacts').select('id,title:label'))
          .isFilter('archived_at',null).ilike('label',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Item to sort',id==null?none:db.from('items_to_sort').select('id,title').eq('space_id',couple)
