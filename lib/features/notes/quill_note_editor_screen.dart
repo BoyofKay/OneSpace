@@ -95,14 +95,14 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    setState(()=>error='This document is too large. Shorten it or split into two notes.');
    return;
   }
-  setState((){busy=true;error=null;});
-  final fields=<String,dynamic>{
-   'title':name,'body':plain,'rich_delta':delta,'pinned':pinned,
-  };
   if (!OneSpaceEnv.isProduction && visibility=='shared' && widget.spaceId.isEmpty) {
     setState(()=>error='Connect with a partner before sharing a note.');
     return;
   }
+  setState((){busy=true;error=null;});
+  final fields=<String,dynamic>{
+   'title':name,'body':plain,'rich_delta':delta,'pinned':pinned,
+  };
   try{
    if(!editing){
     await db.from('notes').insert({
