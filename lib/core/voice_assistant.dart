@@ -112,7 +112,8 @@ class VoiceAssistant {
         !(!OneSpaceEnv.isProduction &&
           (c.action == VoiceAction.note || c.action == VoiceAction.readNotes ||
            c.action == VoiceAction.reminder || c.action == VoiceAction.readReminders ||
-           c.action == VoiceAction.reminderDone || c.action == VoiceAction.snooze))) {
+           c.action == VoiceAction.reminderDone || c.action == VoiceAction.snooze ||
+           c.action == VoiceAction.readActivity))) {
       return VoiceReply(l('Connect your shared space first.', 'اربط مساحتكما المشتركة أولًا.'), end: true);
     }
     final s = space ?? '';
@@ -420,8 +421,11 @@ class VoiceAssistant {
   }
 
   static Future<String> _activityText(SupabaseClient db, String s, String name, bool ar) async {
-    final rows = List<Map<String, dynamic>>.from(await db.from('activities').select('id,title,body')
-      .eq('space_id', s).isFilter('archived_at', null));
+    final query=OneSpaceEnv.isProduction
+      ?db.from('activities').select('id,title,body').eq('space_id',s)
+      :db.from('activities').select('id,title,body');
+    final rows=List<Map<String,dynamic>>.from(await query
+      .isFilter('archived_at',null));
     final a = VoiceCommandRules.best(rows, (x) => x['title'].toString(), name);
     if (a == null) return ar ? 'لم أجد نشاط $name.' : 'I couldn’t find the $name activity.';
     final parts = await db.from('activity_components').select('label,kind,payload').eq('activity_id', a['id'])
