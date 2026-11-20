@@ -4,6 +4,7 @@
 // never DELETE FROM storage.objects (which would orphan file bytes).
 import {createClient} from "npm:@supabase/supabase-js@2.58.0";
 import {validateMediaPurgeJob} from "../_shared/qa_shared_media_purge_contract.mjs";
+import {qaVaultSecretMatches} from "../_shared/qa_worker_secret.ts";
 
 const env=(key:string)=>(Deno.env.get(key)??"").trim();
 const json=(status:number,body:Record<string,unknown>)=>
@@ -15,10 +16,6 @@ type Job={space_id:string;bucket_id:string;object_path:string;
  lease_id:string;expected_uploader_id:string};
 Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return json(405,{error:"POST required"});
- const secret=env("ONESPACE_QA_MEDIA_PURGE_SECRET");
- if(!secret)return json(503,{error:"QA media cleanup is not configured"});
- if(req.headers.get("x-onespace-qa-media-purge-secret")!==secret)
-  return json(401,{error:"Unauthorized"});
  const url=env("SUPABASE_URL");
  const service=env("SUPABASE_SERVICE_ROLE_KEY");
  let projectUrl:URL;
@@ -30,6 +27,9 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(url,service,{
   auth:{persistSession:false,autoRefreshToken:false},
  });
+ if(!await qaVaultSecretMatches(db,"onespace_qa_media_purge_secret",
+   req.headers.get("x-onespace-qa-media-purge-secret")))
+  return json(401,{error:"Unauthorized"});
  let claimed:Job[];
  try{
   const {data,error}=await db.rpc("qa_claim_shared_media_purge",{p_limit:20});

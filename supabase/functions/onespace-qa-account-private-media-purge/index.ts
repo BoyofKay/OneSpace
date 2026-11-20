@@ -4,6 +4,7 @@
 // This worker never touches shared/relationship buckets or Auth users.
 import {createClient} from "npm:@supabase/supabase-js@2.58.0";
 import {validateAccountPurgeJob} from "../_shared/qa_account_private_media_purge_contract.mjs";
+import {qaVaultSecretMatches} from "../_shared/qa_worker_secret.ts";
 
 const env=(key:string)=>(Deno.env.get(key)??"").trim();
 const answer=(code:number,data:Record<string,unknown>)=>
@@ -15,10 +16,6 @@ type Job={owner_id:string;bucket_id:string;object_path:string;lease_id:string};
 
 Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return answer(405,{error:"POST required"});
- const secret=env("ONESPACE_QA_ACCOUNT_PURGE_SECRET");
- if(!secret)return answer(503,{error:"QA account file purge not configured"});
- if(req.headers.get("x-onespace-qa-account-purge-secret")!==secret)
-  return answer(401,{error:"Unauthorized"});
  const url=env("SUPABASE_URL");
  const key=env("SUPABASE_SERVICE_ROLE_KEY");
  let project:URL;
@@ -30,6 +27,9 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(url,key,{auth:{
   persistSession:false,autoRefreshToken:false,
  }});
+ if(!await qaVaultSecretMatches(db,"onespace_qa_account_purge_secret",
+   req.headers.get("x-onespace-qa-account-purge-secret")))
+  return answer(401,{error:"Unauthorized"});
  let jobs:Job[];
  try{
   const {data,error}=await db.rpc("qa_claim_due_account_private_media",{p_limit:20});

@@ -5,6 +5,7 @@
 import {createClient} from "npm:@supabase/supabase-js@2.58.0";
 import {isAccountReadyForAuthDeletion,validAccountId}
   from "../_shared/qa_account_finalizer_contract.mjs";
+import {qaVaultSecretMatches} from "../_shared/qa_worker_secret.ts";
 
 const env=(k:string)=>(Deno.env.get(k)??"").trim();
 const respond=(status:number,body:Record<string,unknown>)=>
@@ -15,17 +16,6 @@ const respond=(status:number,body:Record<string,unknown>)=>
 
 Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return respond(405,{error:"POST required"});
- if(env("ONESPACE_QA_ALLOW_AUTH_FINALIZATION")!=="ENABLED_AFTER_ACCEPTANCE")
-  return respond(503,{error:"QA Auth finalizer remains disabled"});
- const secret=env("ONESPACE_QA_AUTH_FINALIZER_SECRET");
- if(!secret)return respond(503,{error:"QA finalizer is not configured"});
- if(req.headers.get("x-onespace-qa-auth-finalizer-secret")!==secret)
-  return respond(401,{error:"Unauthorized"});
- let raw:unknown;
- try{raw=await req.json();}catch{return respond(400,{error:"Invalid request"});}
- const id=(raw&&typeof raw==="object"&&"user_id" in raw)
-  ? (raw as {user_id:unknown}).user_id:null;
- if(!validAccountId(id))return respond(400,{error:"Valid account UUID required"});
  const url=env("SUPABASE_URL"),key=env("SUPABASE_SERVICE_ROLE_KEY");
  let target:URL;
  try{target=new URL(url);}catch{return respond(503,{error:"QA backend unavailable"});}
@@ -36,6 +26,19 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(url,key,{
   auth:{persistSession:false,autoRefreshToken:false},
  });
+ // Two server-side switches: the Vault activation flag (explicit second
+ // activation) and the worker secret, both checked by the database.
+ if(!await qaVaultSecretMatches(db,"onespace_qa_allow_auth_finalization",
+   "ENABLED_AFTER_ACCEPTANCE_"+"QA_ACCOUNT_FINALIZER"))
+  return respond(503,{error:"QA Auth finalizer remains disabled"});
+ if(!await qaVaultSecretMatches(db,"onespace_qa_auth_finalizer_secret",
+   req.headers.get("x-onespace-qa-auth-finalizer-secret")))
+  return respond(401,{error:"Unauthorized"});
+ let raw:unknown;
+ try{raw=await req.json();}catch{return respond(400,{error:"Invalid request"});}
+ const id=(raw&&typeof raw==="object"&&"user_id" in raw)
+  ? (raw as {user_id:unknown}).user_id:null;
+ if(!validAccountId(id))return respond(400,{error:"Valid account UUID required"});
  // 7-day due-user pipeline is idempotent. Each service RPC has its own
  // explicit QA database gate, due check, owner check and rollback rules:
  // 1. Remove only the current shared relationship; preserve partner private.
