@@ -484,7 +484,9 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
    title:_editing?tt('Edit story'):tt('New story'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body,_place],saving:_busy,onSave:_save,
-   meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),showBelongs:false,showDate:false,
+   meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),
+     showVisibility:widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction,
+     showBelongs:false,showDate:false,
      enabled:!_editing&&!_busy,onChanged:(v)=>setState(()=>_visibility=v.shared?'shared':'private')),
    body: SafeArea(
       child: ListView(
