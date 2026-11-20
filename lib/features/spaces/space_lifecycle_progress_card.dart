@@ -90,7 +90,7 @@ class SpaceLifecycleProgressCard extends StatelessWidget {
           if (date != null) ...[
             const SizedBox(height: 5),
             Text(tt('Requested on ') +
-              MaterialLocalizations.of(context).formatMediumDate(date),
+              '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
               style: theme.textTheme.bodySmall),
           ],
           const SizedBox(height: 9),
