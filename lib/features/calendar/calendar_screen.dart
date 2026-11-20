@@ -727,7 +727,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (event['repeat_rule'] is Map) ReminderRepeat.describe(event['repeat_rule'])
               else if (event['recurrence'] == 'yearly') tr(context, 'yearly'),
               if ((event['location'] ?? '').toString().isNotEmpty) event['location'].toString(),
-              event['for_user_id']==null?'Both':
+              event['private_space_id']!=null?'Only me':
+                event['for_user_id']==null?'Both':
+                event['for_user_id']==id?'Me':
                 (_people[event['for_user_id']]??'Partner'),
               if(event['starts_at']!=null)
                 TimeOfDay.fromDateTime(DateTime.parse(
@@ -740,7 +742,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               title:event['title']?.toString(),
               onOpen:()=>_openEditor(existing:event),openLabel:canEdit?'Edit':'Open',
               moreActions:[
-                if (event['archived_at'] == null && CounterSource.event(event) != null && _spaceId != null)
+                if ((OneSpaceEnv.isProduction || event['private_space_id']==null) &&
+                   event['archived_at'] == null && CounterSource.event(event) != null && _spaceId != null)
                   ItemMenuAction('Add to counters', Icons.hourglass_bottom_outlined,
                     () => CounterSourceActions.open(context, _spaceId!, CounterSource.event(event))),
                 if(event['space_id']!=null)ItemMenuAction(tt('Create from this'),Icons.add_link,
@@ -750,7 +753,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     title:event['title']?.toString()??'Event',
                     date:DateTime.tryParse(event['event_date']?.toString()??''),
                     shared:event['visibility']!='private')),
-                ItemMenuAction(tt('Linked items'),Icons.link,()=>_showLinked(event)),
+                if(OneSpaceEnv.isProduction || event['private_space_id']==null)
+                  ItemMenuAction(tt('Linked items'),Icons.link,()=>_showLinked(event)),
                 ItemMenuAction(tt('Share by email'),Icons.mail_outline,()=>_emailEvent(event)),
                 if(visibility=='shared'&&event['archived_at']==null)
                   ItemMenuAction(tt('Remind partner now'),Icons.notifications_active_outlined,
