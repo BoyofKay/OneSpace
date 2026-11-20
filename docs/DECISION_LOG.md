@@ -8,6 +8,12 @@ Companion documents in this folder (repo README describes the app as built at R8
 - `R46_BASELINE_HYGIENE_QA.md`, `R47_*` — per-iteration notes and two-phone test scripts.
 - The live UX spec is a Claude Doc ("OneSpace UX Redesign Specification v1"); its content is summarised in section C below.
 
+## Current superseding decision — 20 Nov 2026
+
+**FINAL, ACCEPTED: personal/private storage is tied permanently to each account; shared storage belongs to the specific current couple. One UI for both. No automated archiving, export, restore or My Archives is part of leaving, removal, shared-space deletion or account deletion.** When the relationship ends, permanently erase that pair's shared content after an explicit irreversible-loss warning, retain both persons' private records, and leave them unpaired. A new partner never sees an old relationship's shared records or anyone's private records. Account deletion has a **seven-day cancelable grace period**; at expiry delete the requesting account and private data, delete that pair's shared content, preserve the survivor's private content, and unpair the survivor.
+
+**Authoritative decision record:** [ADR_2026-11-20_PERSONAL_SHARED_OWNERSHIP_AND_DELETION.md](ADR_2026-11-20_PERSONAL_SHARED_OWNERSHIP_AND_DELETION.md). This decision supersedes prior archive/restore proposals, old keep-shared-on-account-deletion behavior, and historical “prepare separation” workflows. No destructive QA or Production action may go live until it passes full preservation/privacy/security testing; old pending preparations do not constitute fresh irreversible consent.
+
 ## A. Working agreement
 
 | Rule | Detail |
