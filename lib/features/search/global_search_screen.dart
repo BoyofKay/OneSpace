@@ -69,12 +69,20 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection);
        if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
+       final tasks=await db.from('tasks').select('id,title')
+         .isFilter('migrated_to_list',null).ilike('title',pattern)
+         .limit(GlobalSearchRules.maxPerSection);
        final seen=<String>{};
        final found=<_Hit>[];
        for(final note in [...names,...bodies]){
          final key=note['id']?.toString()??'';
-         if(key.isNotEmpty && seen.add(key))
+         if(key.isNotEmpty && seen.add('note:'+key))
            found.add(_Hit('Note',note['title']?.toString()??'',key));
+       }
+       for(final task in tasks){
+         final key=task['id']?.toString()??'';
+         if(key.isNotEmpty && seen.add('task:'+key))
+           found.add(_Hit('To-do',task['title']?.toString()??'',key));
        }
        setState((){hits=found;busy=false;error=null;});
        return;
@@ -106,7 +114,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
        guarded('Calendar',db.from('space_events').select('id,title,event_date').eq('space_id',id)
          .isFilter('archived_at',null).ilike('title',pattern).order('event_date').limit(GlobalSearchRules.maxPerSection)),
-       guarded('To-do',db.from('tasks').select('id,title,created_at').eq('space_id',id)
+       guarded('To-do',(OneSpaceEnv.isProduction
+          ? db.from('tasks').select('id,title,created_at').eq('space_id',id)
+          : db.from('tasks').select('id,title,created_at'))
          .isFilter('migrated_to_list',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Note',qaNoteTitles

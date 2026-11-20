@@ -25,6 +25,7 @@ class SharedTask {
     required this.createdBy,
     required this.visibility,
     this.assignedTo,
+    this.privateSpaceId,
     this.targetDate,
     this.recurrence='none',
     this.rule=const {},
@@ -35,6 +36,7 @@ class SharedTask {
   final TaskStatus status;
   final TaskVisibility visibility;
   final String createdBy;
+  final String? privateSpaceId;
   final String? assignedTo;
   final String? targetDate;
   final String recurrence;
@@ -63,6 +65,7 @@ class SharedTask {
         (v) => v.name == (row['visibility'] ?? 'shared'),
         orElse: () => TaskVisibility.shared),
       createdBy: (row['created_by'] ?? '').toString(),
+      privateSpaceId: row['private_space_id']?.toString(),
       assignedTo: row['assigned_to']?.toString(),
       targetDate: row['target_date']?.toString(),
       recurrence: (row['recurrence'] ?? 'none').toString(),
@@ -117,6 +120,7 @@ class TaskEditorSheet extends StatefulWidget {
     required this.currentUserId,
     required this.onSave,
     this.spaceId,
+    this.allowShared = true,
     this.existing,
     this.initialTitle = '',
   });
@@ -127,6 +131,8 @@ class TaskEditorSheet extends StatefulWidget {
   final Map<String, String> members;
   final String currentUserId;
   final String? spaceId;
+  /// Unpaired accounts can create private checklists, not shared ones.
+  final bool allowShared;
   final Future<void> Function(TaskDraft draft) onSave;
 
   @override
@@ -162,7 +168,8 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
     _repeat=ListRepeat.fromList(_recurrence,_rule);
     _skipDaysOff=_rule['skip_personal_days_off']==true;
     _skipHolidays=_rule['skip_public_holidays']==true||_rule['skip_us_holidays']==true;
-    _visibility = widget.existing?.visibility ?? TaskVisibility.shared;
+    _visibility = widget.existing?.visibility ??
+      (widget.allowShared ? TaskVisibility.shared : TaskVisibility.private);
     _date = widget.existing?.targetDate == null ? null :
         DateTime.tryParse(widget.existing!.targetDate!);
     final previous = widget.existing?.assignedTo;
@@ -244,7 +251,8 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
         value: MetaValues(shared: shared, belongsTo: _assignedTo, date: _date),
         onChanged: (v) => setState(() {
           if (existing == null) {
-            _visibility = v.shared ? TaskVisibility.shared : TaskVisibility.private;
+            _visibility = widget.allowShared && v.shared
+              ? TaskVisibility.shared : TaskVisibility.private;
           }
           _assignedTo = _visibility == TaskVisibility.private ? null : v.belongsTo;
           _date = v.date;
@@ -252,6 +260,11 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
       body: SafeArea(child: ListView(
         padding: const EdgeInsetsDirectional.fromSTEB(18, 12, 18, 24),
         children: [
+          if (!widget.allowShared) Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(tt('This checklist stays private. You can share '
+              'new checklists when you connect with a partner.')),
+          ),
           TextField(
             key: const Key('taskTitleInput'),
             controller: _title,
