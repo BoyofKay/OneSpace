@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/current_space_cache.dart';
+import '../../core/app_env.dart';
 import '../../core/record_collection_search_rules.dart';
 import '../../core/record_list_top_actions.dart';
 import 'experience_picker_rules.dart';
@@ -34,6 +35,7 @@ class SharedExperiencesScreen extends StatefulWidget {
 class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  final db=Supabase.instance.client;
  String? space,error;
+ bool personalReady=false;
  bool loading=true,showArchived=false,opened=false,busy=false,mutualOnly=false;
  String kind='all',status='open',search='';
  int suggestionOffset=0;
@@ -156,16 +158,27 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    return;
   }
   try{
-   final id=await CurrentSpaceCache.instance.get();
+   var id=await CurrentSpaceCache.instance.get();
+   var privateReady=false;
+   if(!OneSpaceEnv.isProduction){
+    final scopes=await db.rpc('my_storage_scopes');
+    if(scopes is! Map||
+       scopes['private_space_id']?.toString()!=account){
+      throw StateError('Personal Experiences scope unavailable');
+    }
+    id=scopes['shared_space_id']?.toString();privateReady=true;
+   }
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
-   if(id==null){
+   if(id==null&&!privateReady){
     if(_changes!=null)unawaited(db.removeChannel(_changes!));
     _changes=null;_watchedSpace=null;
-    setState((){space=null;rows=[];interests=[];loading=false;error=null;});
+    setState((){space=null;personalReady=false;rows=[];interests=[];loading=false;error=null;});
     return;
    }
-   final result=await db.from('shared_experiences').select().eq('space_id',id)
-      .order('updated_at',ascending:false).limit(250);
+   final rootQuery=OneSpaceEnv.isProduction
+     ?db.from('shared_experiences').select().eq('space_id',id!)
+     :db.from('shared_experiences').select();
+   final result=await rootQuery.order('updated_at',ascending:false).limit(250);
    final currentRows=List<Map<String,dynamic>>.from(result);
    final ids=currentRows.map((x)=>x['id'].toString()).toList();
    final currentInterests=ids.isEmpty?<Map<String,dynamic>>[]:
@@ -181,9 +194,16 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    }
    final pp=await SpacePeople.load();
    if(!mounted||request!=_loadVersion||db.auth.currentUser?.id!=account)return;
-   setState((){space=id;rows=currentRows;interests=currentInterests;ratings=currentRatings;people=pp;
-    loading=false;error=null;});
-   _watch(id);
+   setState((){
+    space=id;personalReady=privateReady;
+    rows=currentRows;interests=currentInterests;ratings=currentRatings;people=pp;
+    loading=false;error=null;
+   });
+   if(id!=null)_watch(id);
+   else {
+     if(_changes!=null)unawaited(db.removeChannel(_changes!));
+     _changes=null;_watchedSpace=null;
+   }
    if(!opened&&widget.initialExperienceId!=null){
     opened=true;
     final found=rows.where((x)=>x['id']==widget.initialExperienceId).firstOrNull;
@@ -311,7 +331,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   }
  }
  Future<void> openHistory()async{
-  if(space==null)return;
+  if(space==null&&!personalReady)return;
   try{
    final ids=rows.map((r)=>r['id'].toString()).take(250).toList();
    if(ids.isEmpty)return;
@@ -354,7 +374,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   return true;
  }
  Future<void> planSuggestion(Map<String,dynamic> row)async{
-  if(busy||space==null)return;
+  if(busy||(space==null&&!personalReady))return;
   final initial=DateTime.tryParse((row['planned_on']??'').toString())??DateTime.now();
   final day=await showDatePicker(context:context,initialDate:initial,
    firstDate:DateTime(2000),lastDate:DateTime(2100));
@@ -371,9 +391,9 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   }finally{if(mounted)setState(()=>busy=false);}
  }
  Future<void> edit([Map<String,dynamic>? row])async{
-  if(space==null)return;
+  if(space==null&&!personalReady)return;
   final result=await Navigator.of(context).push<bool>(MaterialPageRoute(
-   builder:(_)=>ExperienceEditor(spaceId:space!,original:row,initialKind:widget.collection)));
+   builder:(_)=>ExperienceEditor(spaceId:space??'',original:row,initialKind:widget.collection)));
   if(result==true&&mounted)await load();
  }
  Future<void> open(Map<String,dynamic> row)async{
@@ -402,7 +422,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
       onApply:(v)=>setState((){status=v['progress']!;mutualOnly=v['picks']=='mutual';}),
      ),
    ],bottom:filterShowingBar(_filterGroups(),removed:showArchived,onClear:()=>setState((){showArchived=false;status='open';kind=widget.collection??'all';mutualOnly=false;}))),
-   floatingActionButton:space==null?null:FloatingActionButton.extended(
+   floatingActionButton:space==null&&!personalReady?null:FloatingActionButton.extended(
     heroTag:'add-experience',
     onPressed:()=>edit(),icon:const Icon(Icons.add),
     label:Text(tt('Add experience'))),
@@ -451,7 +471,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
       style:Theme.of(context).textTheme.titleMedium),
     if(error!=null)Text(tt(error!),style:TextStyle(color:scheme.error)),
     if(loading)const Center(child:CircularProgressIndicator())
-    else if(space==null)Text(tt('Connect your shared space first.'))
+    else if(space==null&&!personalReady)Text(tt('Connect your shared space first.'))
     else if(widget.collection==null&&search.trim().isEmpty)const SizedBox.shrink()
     else if(filtered.isEmpty)Padding(padding:EdgeInsets.all(22),
       child:Text(tt('Nothing in this collection yet. Add the first title.')))
@@ -465,6 +485,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
        subtitle:Text(tt([
         experienceTypes[r['category']]??'Other',
         experienceStates[r['status']]??'Suggested',
+        if(!OneSpaceEnv.isProduction&&r['private_space_id']!=null)'Only me',
         if((r['platform']??'').toString().trim().isNotEmpty)r['platform'].toString(),
         if(r['status']=='planned'&&r['planned_on']!=null)
          'Planned: '+r['planned_on'].toString(),
@@ -530,11 +551,11 @@ class ExperienceEditor extends StatefulWidget{
 }
 class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTracker<ExperienceEditor>{
  /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[title.text,description.text,platform.text,url.text,kind,status,planned,enjoyed].join('|');
+ @override String get signature=>[title.text,description.text,platform.text,url.text,kind,status,planned,enjoyed,visibility].join('|');
 
  final db=Supabase.instance.client;
  late final TextEditingController title,description,platform,url;
- late String kind,status;
+ late String kind,status,visibility;
  DateTime? planned,enjoyed;
  bool saving=false;
  String? error;
@@ -544,7 +565,10 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
   description=TextEditingController(text:(r['description']??'').toString());
   platform=TextEditingController(text:(r['platform']??'').toString());
   url=TextEditingController(text:(r['source_url']??'').toString());
-  kind=(r['category']??widget.initialKind??'movie').toString();status=(r['status']??'suggested').toString();
+  kind=(r['category']??widget.initialKind??'movie').toString();
+  status=(r['status']??'suggested').toString();
+  visibility=(r['visibility']??(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty
+   ?'private':'shared')).toString();
   planned=DateTime.tryParse((r['planned_on']??'').toString());
   enjoyed=DateTime.tryParse((r['enjoyed_on']??'').toString());
  }
@@ -569,7 +593,17 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     'planned_on':planned==null?null:ExperiencePickerRules.dateOnly(planned!),
     'enjoyed_on':enjoyed==null?null:ExperiencePickerRules.dateOnly(enjoyed!)};
    if(widget.original==null){
-    await db.from('shared_experiences').insert({...values,'space_id':widget.spaceId});
+    final personal=!OneSpaceEnv.isProduction&&visibility=='private';
+    if(!personal&&widget.spaceId.isEmpty){
+      throw StateError('Connect with a partner before sharing an experience.');
+    }
+    await db.from('shared_experiences').insert({
+     ...values,
+     if(personal) 'private_space_id':db.auth.currentUser!.id
+     else 'space_id':widget.spaceId,
+     'created_by':db.auth.currentUser!.id,
+     if(!OneSpaceEnv.isProduction) 'visibility':visibility,
+    });
    }else{
     final changed=await db.from('shared_experiences').update(values)
      .eq('id',widget.original!['id'])
@@ -604,8 +638,14 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
   return EditorScaffold(title:widget.original==null?tt('Add experience'):tt('Edit experience'),
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
-   meta:MetaStrip(value:MetaValues(date:planned),showVisibility:false,showBelongs:false,
-    dateLabel:tt('Plan a date'),onChanged:(v)=>setState(()=>planned=v.date)),
+   meta:MetaStrip(value:MetaValues(date:planned,shared:visibility=='shared'),
+    showVisibility:!OneSpaceEnv.isProduction,showBelongs:false,
+    dateLabel:tt('Plan a date'),onChanged:(v)=>setState((){
+      planned=v.date;
+      if(widget.original==null)visibility=
+        !OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?'private':
+        (v.shared?'shared':'private');
+    })),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    ChoiceRow<String>(label:tt('Kind'),options:experienceKinds,selected:kind,
     icons:{for(final k in experienceTypes.keys)k:switch(k){
@@ -883,7 +923,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
  Future<void> edit()async{
   final r=item;if(r==null)return;
   final ok=await Navigator.push<bool>(context,MaterialPageRoute(
-   builder:(_)=>ExperienceEditor(spaceId:r['space_id'].toString(),original:r)));
+   builder:(_)=>ExperienceEditor(spaceId:r['space_id']?.toString()??'',original:r)));
   if(ok==true&&mounted)await load();
  }
  Future<void> archive()async{
@@ -1005,7 +1045,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    r==null?Center(child:Text(tt(error??'Not found'))):Column(children:[Expanded(child:ListView(
     padding:const EdgeInsets.all(16),children:[
     Text(tt(r['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
-     LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
+     if(OneSpaceEnv.isProduction||r['private_space_id']==null)
+      LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
     Text(tt((experienceTypes[r['category']]??'Other')+' · '+(experienceStates[r['status']]??'Suggested'))),
     if(r['planned_on']!=null)Text(tt('Planned together: ')+r['planned_on'].toString()),
     if(r['enjoyed_on']!=null)Text(
