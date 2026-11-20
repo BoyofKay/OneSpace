@@ -53,10 +53,10 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
       }
       var query=OneSpaceEnv.isProduction
         ? db.from('items_to_sort').select(
-          'id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_name,file_mime')
+          'id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_bucket_id,file_name,file_mime')
           .eq('space_id',id!)
         : db.from('items_to_sort').select(
-          'id,private_space_id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_name,file_mime');
+          'id,private_space_id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_bucket_id,file_name,file_mime');
       query=query.isFilter('sorted_at',null);
       query=showRemoved?query.not('archived_at','is',null)
         :query.isFilter('archived_at',null);
@@ -96,7 +96,10 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
   /// R55: open an attached photo/PDF through a short-lived signed link.
   Future<void> _openFile(Map<String, dynamic> item) async {
     try {
-      final url = await db.storage.from('onespace-share-in')
+      final selectedBucket=OneSpaceEnv.isProduction
+          ? 'onespace-share-in'
+          : (item['file_bucket_id']?.toString()??'onespace-share-in');
+      final url = await db.storage.from(selectedBucket)
           .createSignedUrl(item['file_path'].toString(), 300);
       final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
