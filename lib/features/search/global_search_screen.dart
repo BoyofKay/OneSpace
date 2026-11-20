@@ -95,10 +95,38 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          if(key.isNotEmpty && seen.add('reminder:'+key))
            found.add(_Hit('Reminder',reminder['title']?.toString()??'',key));
        }
+       // Private Activities, journal stories and direct contacts are
+       // searchable while unpaired; PostgreSQL enforces account ownership.
+       final more=await Future.wait([
+         db.from('activities').select('id,title')
+           .isFilter('archived_at',null).ilike('title',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('activities').select('id,title')
+           .isFilter('archived_at',null).ilike('body',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('memories').select('id,title')
+           .isFilter('archived_at',null).ilike('title',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('memories').select('id,title')
+           .isFilter('archived_at',null).ilike('body',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+         db.from('saved_contacts').select('id,title:label')
+           .isFilter('archived_at',null).ilike('label',pattern)
+           .limit(GlobalSearchRules.maxPerSection),
+       ]);
+       if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
+       for(var n=0;n<more.length;n++){
+         final kind=n<2?'Activity':n<4?'Memory':'Contact';
+         for(final row in more[n]){
+           final key=row['id']?.toString()??'';
+           if(key.isNotEmpty&&seen.add('$kind:$key'))
+             found.add(_Hit(kind,row['title']?.toString()??'',key));
+         }
+       }
        setState((){hits=found;busy=false;error=null;});
        return;
      }
-     // Remaining categories belong to a current relationship.
+     // QA also includes owner-only rows of each cut-over module.
      if (id==null) throw StateError('No current shared space');
      var failedCategories=0;
      Future<dynamic> guarded(String kind,dynamic request) async {
@@ -120,10 +148,36 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      final qaNoteBodies = OneSpaceEnv.isProduction
        ? db.from('notes').select('id,title').eq('space_id',id)
        : db.from('notes').select('id,title');
+     final activities=OneSpaceEnv.isProduction
+       ? db.from('activities').select('id,title,updated_at').eq('space_id',id)
+       : db.from('activities').select('id,title,updated_at');
+     final activityBodies=OneSpaceEnv.isProduction
+       ? db.from('activities').select('id,title').eq('space_id',id)
+       : db.from('activities').select('id,title');
+     final memories=OneSpaceEnv.isProduction
+       ? db.from('memories').select('id,title').eq('space_id',id)
+       : db.from('memories').select('id,title');
+     final memoryBodies=OneSpaceEnv.isProduction
+       ? db.from('memories').select('id,title').eq('space_id',id)
+       : db.from('memories').select('id,title');
+     final contactNames=OneSpaceEnv.isProduction
+       ? db.from('saved_contacts').select('id,title:label').eq('space_id',id)
+       : db.from('saved_contacts').select('id,title:label');
+     final calendarTitles=OneSpaceEnv.isProduction
+       ? db.from('space_events').select('id,title,event_date').eq('space_id',id)
+       : db.from('space_events').select('id,title,event_date');
+     final calendarBodies=OneSpaceEnv.isProduction
+       ? db.from('space_events').select('id,title').eq('space_id',id)
+       : db.from('space_events').select('id,title');
+     final activityTags=OneSpaceEnv.isProduction
+       ? db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
+           .eq('kind','tag').eq('activities.space_id',id)
+       : db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
+           .eq('kind','tag');
      final groups=await Future.wait([
-       guarded('Activity',db.from('activities').select('id,title,updated_at').eq('space_id',id)
+       guarded('Activity',activities
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Calendar',db.from('space_events').select('id,title,event_date').eq('space_id',id)
+       guarded('Calendar',calendarTitles
          .isFilter('archived_at',null).ilike('title',pattern).order('event_date').limit(GlobalSearchRules.maxPerSection)),
        guarded('To-do',(OneSpaceEnv.isProduction
           ? db.from('tasks').select('id,title,created_at').eq('space_id',id)
@@ -134,8 +188,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Letter',db.from('couple_letters').select('id,title,created_at').eq('space_id',id)
          .eq('status','sent').ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Tag',db.from('activity_components').select('id,activity_id,label,activities!inner(space_id,archived_at)')
-         .eq('kind','tag').eq('activities.space_id',id)
+       guarded('Tag',activityTags
          .isFilter('archived_at',null).isFilter('activities.archived_at',null)
          .ilike('label',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Trip',db.from('shared_trips').select('id,title').eq('space_id',id)
@@ -153,15 +206,15 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',memories
          .isFilter('archived_at',null).ilike('title',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // Content search uses independent parameterized PostgREST ilike calls,
        // never a string-built .or() filter that could alter query grammar.
-       guarded('Activity',db.from('activities').select('id,title').eq('space_id',id)
+       guarded('Activity',activityBodies
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Calendar',db.from('space_events').select('id,title').eq('space_id',id)
+       guarded('Calendar',calendarBodies
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Experience',db.from('shared_experiences').select('id,title').eq('space_id',id)
@@ -170,7 +223,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Note',qaNoteBodies
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Memory',db.from('memories').select('id,title').eq('space_id',id)
+       guarded('Memory',memoryBodies
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Reminder',(OneSpaceEnv.isProduction
@@ -179,7 +232,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('details',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        // R54: people and the share-in tray are searchable too.
-       guarded('Contact',db.from('saved_contacts').select('id,title:label').eq('space_id',id)
+       guarded('Contact',contactNames
          .isFilter('archived_at',null).ilike('label',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
        guarded('Item to sort',db.from('items_to_sort').select('id,title').eq('space_id',id)
