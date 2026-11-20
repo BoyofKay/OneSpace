@@ -89,3 +89,23 @@ create policy "QA account owner creates private reminders" on public.reminders
    and visibility='private' and audience='me' and space_id is null
    and ((source_kind is null and source_id is null)
         or (source_kind is not null and source_id is not null)));
+
+-- 0234 also required no source in the table check and the edit policy, which
+-- would block saving such a reminder or later editing / completing it.
+-- Scope, ownership and the source stay immutable (qa_lock_personal_root_scope).
+alter table public.reminders drop constraint if exists qa_private_reminder_audience;
+alter table public.reminders add constraint qa_private_reminder_audience
+ check(private_space_id is null or
+  (audience='me' and visibility='private' and urgent=false
+   and ((source_kind is null and source_id is null)
+        or (source_kind is not null and source_id is not null)))) not valid;
+
+drop policy if exists "QA account owner edits private reminders" on public.reminders;
+create policy "QA account owner edits private reminders" on public.reminders
+ for update to authenticated
+ using(private_space_id=(select auth.uid()) and created_by=(select auth.uid())
+  and visibility='private' and audience='me' and space_id is null)
+ with check(private_space_id=(select auth.uid()) and created_by=(select auth.uid())
+  and visibility='private' and audience='me' and space_id is null
+  and ((source_kind is null and source_id is null)
+       or (source_kind is not null and source_id is not null)));
