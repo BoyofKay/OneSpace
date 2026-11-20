@@ -1,3 +1,4 @@
+import '../spaces/my_space_screen.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../coordinate/activity_detail_screen.dart';
@@ -113,6 +114,8 @@ Future<void> openNotificationTarget(BuildContext context,
    screen=CheckinsScreen(initialRequestId:objectId);
  }else if(type=='checkin'){
    screen=const CheckinsScreen();
+ }else if(type=='space'){
+   screen=const MySpaceScreen();
  }else if(type=='gesture'){
    if(objectId==null)return;
    await GestureNotificationDialog.show(context,objectId);
@@ -340,6 +343,7 @@ IconData notificationIcon(Map<String,dynamic> item){
  if(kind=='message'||kind=='trip_message'||kind=='experience_comment'){
    return Icons.chat_bubble_outline;
  }
+ if(kind=='joined')return Icons.people_outline;
  if(kind=='mention')return Icons.alternate_email;
  if(kind=='reply')return Icons.reply;
  if(kind=='letter')return Icons.mail_outline;
