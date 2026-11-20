@@ -92,8 +92,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
     if(mounted)setState((){space=null;reminders=[];loading=false;});
     return;
    }
+   // Production has not received the QA personal-scope migration.
+   final scopeColumn=OneSpaceEnv.isProduction?'':'private_space_id,';
    var query=db.from('reminders').select(
-    'id,title,details,due_at,created_by,private_space_id,visibility,audience,'
+    'id,title,details,due_at,created_by,${scopeColumn}visibility,audience,'
     'source_kind,source_id,reminder_intent,reminder_gesture_kind,archived_at,updated_at,'
     'repeat_rule,urgent,source_closed_at,'
     'reminder_recipients(recipient_id,state,next_alert_at,open_occurrence_at,'
