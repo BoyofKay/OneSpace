@@ -57,6 +57,15 @@
 - Migration `0295` provides `public.qa_end_current_relationship`, an authenticated actor+typed-warning RPC guarded by the existing disabled couple-deletion switch. Owner, guest, outsider and wrong-phrase rollback regression passed. The three app CTAs remain disabled.
 - Targeted rollback regression rerun after `0294`: **10/10 PASS**, plus new authenticated relationship facade regression PASS; all synthetic inserts rolled back.
 
+## Latest implementation and review checkpoint
+
+- New rollback regressions for atomic finalization and surviving-partner isolation **PASS**. After a one-use Auth claim, the target user's regular direct writes to Notes, Activities, Memories and Contacts are denied; the surviving account retains normal personal writes.
+- GitHub workflow checks validated the media worker contract and invitation regression after these changes. Flutter verification is independently tracked in the latest PR checks.
+- **QA-only Edge deployments completed**: `onespace-qa-shared-media-purge`, `onespace-qa-account-private-media-purge`, and `onespace-qa-account-finalizer` all show active deployment with JWT verification, but are **not scheduled or activated for destructive work**. Service secrets and DB gates remain prerequisites. An ACTIVE deployment is **not** deletion acceptance.
+- Public QA `qa_end_current_relationship(uuid,text,text)` actor/warning facade is permission-tested; couples' lifecycle gate remains false, and app buttons remain disabled.
+- Separate website [draft PR #47](https://github.com/BoyofKay/onespace-app/pull/47) corrects the obsolete deletion rule and adds English/Arabic/Spanish/French/German copy; **website main and live onespace.live remain unchanged** pending website CI and founder's publication approval.
+- Remaining: actual Storage API byte removal with disposable QA files, expired signed URL checks, real Auth Admin deletion and stale-token/privileged-RPC tests, scheduled orchestration, full real-device acceptance, then a single consolidated QA APK.
+
 ## HARD RELEASE GATES (all still open)
 
 1. Deploy and verify shared + private Storage API purge on **disposable** QA files, including signed URL lifetime and retries; no SQL-only simulation counts as physical deletion.
