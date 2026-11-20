@@ -25,6 +25,10 @@ VALUES(current_setting('qa.owner')::uuid,current_setting('qa.owner')::uuid,
 INSERT INTO public.notes(space_id,created_by,title,visibility)
 VALUES(current_setting('qa.sp')::uuid,current_setting('qa.owner')::uuid,
  'Shared must disappear','shared');
+RESET ROLE;
+-- Separation is now ON in QA; switch it off inside this rolled-back test only.
+UPDATE private.qa_relationship_v2_gate SET enabled=false WHERE id=1;
+SET LOCAL ROLE authenticated;
 DO $gate$
 BEGIN
  BEGIN
