@@ -180,7 +180,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _load() async {
     final version = ++_loadVersion;
     final stopwatch = Stopwatch()..start();
-    if (mounted) setState(() { _loading = _spaceId == null; _error = null; });
+    if (mounted) setState(() {
+      _loading = !OneSpaceEnv.isProduction || _spaceId == null;
+      _error = null;
+      // Do not keep former-couple data on screen during a scope refresh.
+      if (!OneSpaceEnv.isProduction) {
+        _events=const [];
+        _tasks=const [];
+        _daysOff=const [];
+        _occasions=const [];
+        _holidays=const [];
+      }
+    });
     try {
       String? id=await CurrentSpaceCache.instance.get();
       bool personalReady=false;
