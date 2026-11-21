@@ -51,22 +51,6 @@ class MemoryExport {
       pw.Text('${ctx.pageNumber}/${ctx.pagesCount}', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
     ]);
 
-  /// The closing page of a scrapbook PDF.
-  static pw.Page _brandBackPage(pw.MemoryImage? logo) => pw.Page(
-    pageFormat: PdfPageFormat.a5,
-    build: (_) => pw.Center(child: pw.Column(mainAxisSize: pw.MainAxisSize.min, children: [
-      if (logo != null) pw.Image(logo, width: 72, height: 72),
-      pw.SizedBox(height: 12),
-      pw.Text('OneSpace', style: pw.TextStyle(fontSize: 26, color: _brand, fontWeight: pw.FontWeight.bold)),
-      pw.SizedBox(height: 4),
-      pw.Text(tagline, style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-      pw.SizedBox(height: 16),
-      pw.Text('Made with OneSpace, the app for couples.', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-      pw.SizedBox(height: 6),
-      pw.UrlLink(destination: site, child: pw.Text('onespace.live',
-        style: const pw.TextStyle(fontSize: 12, color: _brand, decoration: pw.TextDecoration.underline))),
-    ])));
-
   /// The email text that goes with a shared memory.
   static String emailText(String name) =>
     '"$name" was shared with you from OneSpace.\n\n'
@@ -145,28 +129,28 @@ class MemoryExport {
     return doc.save();
   }
 
-  /// Scrapbook pages already drawn as pictures: one picture per PDF page.
-  static Future<Uint8List> pagesPdf(List<Uint8List> pages, {required String title}) async {
+  /// Scrapbook pages already drawn as pictures: one picture per PDF page,
+  /// framed exactly like a story or daily selfie PDF (OneSpace header on the
+  /// first page, the same footer on every page).
+  static Future<Uint8List> pagesPdf(List<Uint8List> pages, {required String title,
+      String footer = 'OneSpace · our scrapbook'}) async {
     final doc = pw.Document(theme: await _fonts(), title: title, creator: 'OneSpace · onespace.live', producer: 'OneSpace');
     final logo = await _mark();
-    for (final png in pages) {
-      final image = pw.MemoryImage(png);
-      final w = (image.width ?? 760).toDouble(), h = (image.height ?? 1000).toDouble();
-      doc.addPage(pw.Page(pageFormat: PdfPageFormat(w / 3, h / 3, marginAll: 0),
-        build: (_) => pw.Stack(children: [
-          pw.Positioned.fill(child: pw.Image(image, fit: pw.BoxFit.cover)),
-          // A small OneSpace mark in the corner of every page.
-          pw.Positioned(right: 6, bottom: 6, child: pw.UrlLink(destination: site, child: pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: pw.BoxDecoration(color: PdfColors.white, borderRadius: pw.BorderRadius.circular(4)),
-            child: pw.Row(mainAxisSize: pw.MainAxisSize.min, children: [
-              if (logo != null) pw.Image(logo, width: 9, height: 9),
-              pw.SizedBox(width: 3),
-              pw.Text('OneSpace · onespace.live', style: const pw.TextStyle(fontSize: 6, color: _brand)),
-            ])))),
-        ])));
-    }
-    doc.addPage(_brandBackPage(logo));
+    final images = [for (final png in pages) pw.MemoryImage(png)];
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4.copyWith(marginLeft: 40, marginRight: 40, marginTop: 44, marginBottom: 40),
+      header: (ctx) => ctx.pageNumber == 1 ? _brandHeader(logo) : pw.SizedBox(),
+      footer: (ctx) => _brandFooter(ctx, footer),
+      build: (ctx) => [
+        pw.Text(title, textDirection: _dir(title),
+          style: pw.TextStyle(fontSize: 26, color: const PdfColor.fromInt(0xFF3B2F33))),
+        pw.SizedBox(height: 12),
+        for (final image in images) pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 12),
+          height: 600,
+          alignment: pw.Alignment.center,
+          child: pw.Image(image, fit: pw.BoxFit.contain)),
+      ]));
     return doc.save();
   }
 

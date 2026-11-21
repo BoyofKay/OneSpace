@@ -656,7 +656,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         TextSelection.collapsed(offset: code.length);
     if (mounted) {
       setState(() => issue = null);
-      if (membershipResolved && spaceId == null) {
+      // QA: an invitation is accepted or declined by the person, never
+      // joined automatically.
+      if (membershipResolved && spaceId == null && OneSpaceEnv.isProduction) {
         unawaited(_autoJoinPending());
       }
     }
@@ -682,7 +684,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if (!mounted || OneSpaceEnv.isProduction || spaceId != null ||
         client.auth.currentUser == null) return;
     if (InvitationLinkInbox.instance.pendingCode != null) {
-      await _autoJoinPending();
+      // Shown as Accept / Decline; nothing joins until the person accepts.
+      if (mounted) setState(() {});
     } else if (!dismissedAddressedInvite) {
       await _discoverAddressedInvite();
     }
@@ -722,6 +725,33 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       }
     } finally {
       if (mounted) setState(() => checkingAddressedInvite = false);
+    }
+  }
+
+  /// QA: say no to an invitation. The inviter is told; nothing is joined.
+  Future<void> _declinePending() async {
+    final code = InvitationLinkInbox.instance.pendingCode;
+    setState(() { working = true; issue = null; });
+    try {
+      if (code != null) {
+        await client.rpc('decline_my_invitation', params: {'p_token': code});
+      }
+      await InvitationLinkInbox.instance.clear();
+      if (mounted) {
+        setState(() {
+          invitationController.clear();
+          _lastAutoJoinKey = null;
+          dismissedAddressedInvite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tt('Invitation declined.'))));
+      }
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => issue = e.message);
+    } catch (_) {
+      if (mounted) setState(() => issue = tt('Could not decline right now. Try again.'));
+    } finally {
+      if (mounted) setState(() => working = false);
     }
   }
 
@@ -1211,8 +1241,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               (InvitationLinkInbox.instance.pendingCode != null ||
                joiningAddressedInvite)) ...[
             _panel(
-              tt('Joining your partner’s OneSpace'),
-              tt('Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'),
+              tt(OneSpaceEnv.isProduction ? 'Joining your partner’s OneSpace' : 'You have an invitation'),
+              tt(OneSpaceEnv.isProduction
+                ? 'Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'
+                : 'Someone invited you to share their OneSpace. Accept to join their space, or decline.'),
               Icons.mark_email_read_outlined,
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 if (working) ...[
@@ -1232,9 +1264,18 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   onPressed: working ? null : () => _autoJoinPending(retry: true),
                   icon: Icon(issue == null ? Icons.people_alt_outlined : Icons.refresh),
                   label: Text(tt(issue == null
-                      ? 'Join your partner’s space'
+                      ? (OneSpaceEnv.isProduction ? 'Join your partner’s space' : 'Accept invitation')
                       : 'Retry joining your partner')),
                 ),
+                if (!OneSpaceEnv.isProduction) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const Key('declinePendingInvitation'),
+                    onPressed: working ? null : _declinePending,
+                    icon: const Icon(Icons.close),
+                    label: Text(tt('Decline')),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: working ? null : () async {
