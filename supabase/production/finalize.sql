@@ -61,6 +61,16 @@ begin
 end
 $move$;
 
+-- Archives are not part of OneSpace (ADR 2026-11-20). 0144 schedules an
+-- archive janitor; QA removed it later outside the schema files.
+do $janitor$
+begin
+  if exists(select 1 from cron.job where jobname='onespace-archive-janitor') then
+    perform cron.unschedule('onespace-archive-janitor');
+  end if;
+end
+$janitor$;
+
 -- 2. Lifecycle switches.
 insert into private.qa_relationship_v2_gate(id,enabled) values(1,true)
   on conflict (id) do update set enabled=true;
@@ -103,6 +113,8 @@ begin
   -- The old account purge (keeps shared content) is gone.
   select count(*) into n from cron.job where jobname='onespace-account-purge';
   if n > 0 then raise exception 'finalize: old account purge is still scheduled'; end if;
+  select count(*) into n from cron.job where jobname='onespace-archive-janitor';
+  if n > 0 then raise exception 'finalize: archive janitor is still scheduled'; end if;
 
   -- Key functions the app calls exist.
   if to_regprocedure('public.decline_my_invitation(text)') is null

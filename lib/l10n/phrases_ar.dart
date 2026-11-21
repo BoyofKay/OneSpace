@@ -1695,6 +1695,7 @@ const Map<String, String> arPhrases = {
   'Separate names with commas': 'افصل الأسماء بفواصل',
   'Server-recorded actions since action history was enabled. Older edits may not appear.': 'إجراءات سجلها الخادم منذ تفعيل سجل الإجراءات. قد لا تظهر التعديلات الأقدم.',
   'Session initialization failed': 'فشل بدء الجلسة',
+  'Sign out and use another account': 'تسجيل الخروج واستخدام حساب آخر',
   'Session locked. Use your phone PIN, fingerprint or password.': 'الجلسة مقفلة. استخدم رمز PIN أو البصمة أو كلمة مرور الهاتف.',
   'Set a budget': 'تحديد ميزانية',
   'Set a new password': 'تعيين كلمة مرور جديدة',

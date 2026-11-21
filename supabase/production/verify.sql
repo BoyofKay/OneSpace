@@ -1,5 +1,7 @@
 -- Compares every database function after the upgrade with QA's version
 -- (supabase/production/qa_function_digests.txt, taken from QA on 21 Nov 2026).
+-- Carriage returns are ignored: functions pasted into the QA SQL editor from
+-- Windows keep \r\n line ends, which change nothing.
 -- Prints differences; it never changes anything.
 create temp table qa_digest(line text);
 \copy qa_digest from 'supabase/production/qa_function_digests.txt'
@@ -9,7 +11,7 @@ create temp view qa_d as
     from qa_digest;
 create temp view prod_d as
   select p.oid::regprocedure::text as fn,
-         left(md5(pg_get_functiondef(p.oid)),10) as digest
+         left(md5(replace(pg_get_functiondef(p.oid),E'\r','')),10) as digest
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname in ('public','private') and p.prokind='f';
 \echo '== Functions in QA but missing in Production after upgrade (must be empty):'
