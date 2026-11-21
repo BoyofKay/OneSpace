@@ -94,8 +94,9 @@ a Windows PC cannot run Apple's iPhone Simulator.
   (TestFlight only, never released) and "OneSpace" for com.onespace.onespace. If automated upload is required, create an App Store Connect API
   key for the publisher account.
 - In Supabase Auth redirect allowlists add the QA and production callbacks
-  for their matching backend projects. Test email verification/recovery,
-  Google login and Apple login where enabled.
+  for their matching backend projects. Test email verification and recovery.
+  OneSpace uses email sign-in only: Google and Apple sign-in are not allowed
+  (Amr, 21 November 2026), so do not add Sign in with Apple.
 
 ### GitHub repository secrets (Actions)
 
