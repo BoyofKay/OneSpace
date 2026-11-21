@@ -20,7 +20,7 @@ void main() {
       CoupleDayTimeline(people: const [a, b], day: day, daysOff: const [], myId: 'a', onOpen: (_) {},
         timed: [
           {'title': 'Dinner call', 'visibility': 'shared', 'starts_at': start, 'ends_at': end},
-          {'title': 'Gym', 'visibility': 'private', 'created_by': 'a', 'starts_at': start, 'ends_at': end},
+          {'title': 'Gym', 'visibility': 'private', 'created_by': 'a', 'for_user_id': 'a', 'starts_at': start, 'ends_at': end},
         ]),
     ]))));
     await t.pumpAndSettle();

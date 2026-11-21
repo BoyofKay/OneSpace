@@ -91,7 +91,11 @@ class MetaRules {
 class MetaStrip extends StatelessWidget {
   const MetaStrip({super.key, required this.value, required this.onChanged, this.people,
     this.showVisibility = true, this.showBelongs = true, this.showDate = true,
-    this.dateLabel = 'Date', this.withTime = false, this.enabled = true, this.extras = const []});
+    this.dateLabel = 'Date', this.withTime = false, this.enabled = true, this.extras = const [],
+    this.linked = true});
+  /// false: who can see it and who it is for are chosen independently
+  /// (calendar events: a private event can still be for both of us).
+  final bool linked;
   /// false = shown but not changeable (e.g. who can see a saved reminder).
   final bool enabled;
   /// R66: extra chips that live in the strip too (e.g. Pin on notes).
@@ -129,7 +133,7 @@ class MetaStrip extends StatelessWidget {
           final soloNew = !OneSpaceEnv.isProduction && enabled && paired == false;
           if (soloNew && value.shared) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (value.shared) onChanged(MetaRules.setShared(value, false, me));
+              if (value.shared) onChanged(linked ? MetaRules.setShared(value, false, me) : value.copyWith(shared: false));
             });
           }
           return _MenuChip<bool>(enabled: enabled,
@@ -140,7 +144,7 @@ class MetaStrip extends StatelessWidget {
             icons: const {true: Icons.people_outline, false: Icons.lock_outline},
             disabled: soloNew ? const {true} : const {},
             selected: value.shared,
-            onSelected: (v) => onChanged(MetaRules.setShared(value, v, me)));
+            onSelected: (v) => onChanged(linked ? MetaRules.setShared(value, v, me) : value.copyWith(shared: v)));
         }),
       if (showBelongs) _MenuChip<String>(enabled: enabled,
         icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
@@ -154,7 +158,8 @@ class MetaStrip extends StatelessWidget {
         icons: {'': Icons.group_outlined, if (me.isNotEmpty) me: Icons.person_outline,
           if (people?.partnerId != null) people!.partnerId!: Icons.favorite_border},
         selected: value.belongsTo ?? '',
-        onSelected: (v) => onChanged(MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me))),
+        onSelected: (v) => onChanged(linked ? MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me)
+          : value.copyWith(belongsTo: v.isEmpty ? null : v))),
       if (showDate) InputChip(
         avatar: const Icon(Icons.event_outlined, size: 18),
         label: Text(value.date == null ? (OneSpacePhrases.arabic ? '${tt('Add')} ${tt(dateLabel)}' : 'Add ${dateLabel.toLowerCase()}') : tt(value.date == null ? ''

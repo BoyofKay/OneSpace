@@ -187,8 +187,8 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         'recurrence': _repeat.preset == 'yearly' && _repeat.interval == 1 && _repeat.until == null ? 'yearly' : 'none',
         'repeat_rule': _eventRule(),
       };
-      fields['for_user_id']=!OneSpaceEnv.isProduction &&
-          _visibility=='private' ? _client.auth.currentUser!.id : _forUser;
+      // QA: who it is for (participants) is independent of who can see it.
+      fields['for_user_id']=_forUser;
       if(_allDay){
         fields['starts_at']=null;
         fields['ends_at']=null;
@@ -280,12 +280,13 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
    listenTo:[_title,_details,_location],saving:_saving,onSave:_save,
    meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(
      people:_peopleMeta, showDate:false, enabled:_canEdit && !_saving,
+     linked:OneSpaceEnv.isProduction,
      value:MetaValues(shared:_visibility=='shared',belongsTo:_forUser),
      onChanged:(v)=>setState((){
        if(!_editing)_visibility=(OneSpaceEnv.isProduction ||
          widget.spaceId.isNotEmpty)&&v.shared?'shared':'private';
        _forUser=v.belongsTo;
-       if(_visibility=='private')_forUser=_peopleMeta?.me;
+       if(OneSpaceEnv.isProduction&&_visibility=='private')_forUser=_peopleMeta?.me;
      })),
    body: SafeArea(
       child: ListView(
