@@ -66,7 +66,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   }
 
   Stream<List<Map<String, dynamic>>> _createStream(String? id) =>
-      !OneSpaceEnv.isProduction
+      !OneSpaceEnv.usesLegacyBackend
           ? _client.from('memories').stream(primaryKey: ['id'])
               .order('memory_date', ascending: false)
           : _client.from('memories').stream(primaryKey: ['id'])
@@ -86,11 +86,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         _spaceId = id;
         _privateSpaceId = scopes.privateSpaceId;
         _photoMetadata = const [];
-        _stream = id == null && OneSpaceEnv.isProduction
+        _stream = id == null && OneSpaceEnv.usesLegacyBackend
             ? null : _createStream(id);
         _loading = false;
       });
-      if (id != null || !OneSpaceEnv.isProduction) {
+      if (id != null || !OneSpaceEnv.usesLegacyBackend) {
         try{
           final photoRows=await _client.from('memory_photos')
            .select('memory_id,people_tags,place_tag,other_tags').limit(500);
@@ -105,11 +105,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           },
         );
       }
-      if((id!=null||!OneSpaceEnv.isProduction)&&widget.initialMemoryId!=null&&!_openedDeepLink){
+      if((id!=null||!OneSpaceEnv.usesLegacyBackend)&&widget.initialMemoryId!=null&&!_openedDeepLink){
        _openedDeepLink=true;
        try{
         var query = _client.from('memories').select();
-        if (OneSpaceEnv.isProduction) query=query.eq('space_id',id!);
+        if (OneSpaceEnv.usesLegacyBackend) query=query.eq('space_id',id!);
         final rows=await query.eq('id',widget.initialMemoryId!).limit(1);
         if(mounted&&rows.isNotEmpty){
          WidgetsBinding.instance.addPostFrameCallback((_){
@@ -128,7 +128,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
   Future<void> _edit({Map<String,dynamic>? existing,bool selfie=false}) async {
     final id = _spaceId;
-    if (id == null && OneSpaceEnv.isProduction) return;
+    if (id == null && OneSpaceEnv.usesLegacyBackend) return;
     if(existing?['memory_type']=='scrapbook'){
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(
@@ -148,7 +148,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   /// is a button there or in ⋮.
   Future<void> _view(Map<String,dynamic> memory)async{
     final id=_spaceId;
-    if(id==null&&OneSpaceEnv.isProduction)return;
+    if(id==null&&OneSpaceEnv.usesLegacyBackend)return;
     final type=memory['memory_type']?.toString();
     await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>type=='scrapbook'
       ?ScrapbookViewerScreen(spaceId:id??'',memoryId:memory['id'].toString())
@@ -161,8 +161,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   /// preview, caption, who can see it, this week's strip).
   Future<void> _dailySelfie()async{
     final space=_spaceId;
-    if(space==null&&OneSpaceEnv.isProduction)return;
-    if(!OneSpaceEnv.isProduction&&await _hasOwnSelfieToday()){
+    if(space==null&&OneSpaceEnv.usesLegacyBackend)return;
+    if(!OneSpaceEnv.usesLegacyBackend&&await _hasOwnSelfieToday()){
       if(!mounted)return;
       await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
         icon:const Icon(Icons.photo_camera_front_outlined),
@@ -246,9 +246,9 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     floatingActionButton:_spaceId==null&&_privateSpaceId==null?null:AddFabMenu(label:tt('Add memory'),options:[
       AddFabOption(tt('Story journal'),Icons.menu_book_outlined,()=>_edit()),
       AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
-      if(_spaceId!=null||!OneSpaceEnv.isProduction) AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
+      if(_spaceId!=null||!OneSpaceEnv.usesLegacyBackend) AddFabOption(tt('Scrapbook studio'),Icons.auto_stories_outlined,()async{
         final current=_spaceId;
-        if(current==null&&OneSpaceEnv.isProduction)return;
+        if(current==null&&OneSpaceEnv.usesLegacyBackend)return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute<void>(builder:(_)=>ScrapbookStudioScreen(spaceId:current??'')));
         if(mounted)await _load();
@@ -275,7 +275,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           if (_loading)
             const Padding(padding: EdgeInsets.all(38),
               child: Center(child: CircularProgressIndicator()))
-          else if (_spaceId == null && OneSpaceEnv.isProduction)
+          else if (_spaceId == null && OneSpaceEnv.usesLegacyBackend)
             Text(tr(context, 'noSpace'))
           else ...[
             const SizedBox(height: 14),
@@ -320,7 +320,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                     visibility: visibility, createdBy: creator, userId: userId);
                   // Personal-space memories stay private (as Notes, Feelings
                   // and Calendar): no view-only grant button.
-                  final ownerShare = (OneSpaceEnv.isProduction ||
+                  final ownerShare = (OneSpaceEnv.usesLegacyBackend ||
                       memory['private_space_id'] == null) &&
                     ObjectPermissions.canManagePrivateShare(
                     visibility: visibility, createdBy: creator, userId: userId);
@@ -349,7 +349,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           table: editable ? 'memories' : null,
                           removed: memory['archived_at'] != null, onChanged: _load,
                           moreActions: [
-                            if (!OneSpaceEnv.isProduction && visibility == 'shared' && memory['archived_at'] == null &&
+                            if (!OneSpaceEnv.usesLegacyBackend && visibility == 'shared' && memory['archived_at'] == null &&
                                 memory['space_id'] != null)
                               ItemMenuAction(tt('Nudge partner'), Icons.notifications_active_outlined,
                                 () => _nudge(memory)),
@@ -436,7 +436,7 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
     _date = DateTime.tryParse(widget.existing?['memory_date'] as String? ?? widget.prefill?['memory_date'] ?? '')
         ?? DateTime.now();
     _visibility = widget.existing?['visibility'] as String? ??
-        (widget.spaceId.isEmpty && !OneSpaceEnv.isProduction ? 'private' : 'shared');
+        (widget.spaceId.isEmpty && !OneSpaceEnv.usesLegacyBackend ? 'private' : 'shared');
     _pinned = widget.existing?['pinned'] == true;
     _memoryType=(widget.existing?['memory_type']??widget.initialType??'story').toString();
     _record=widget.existing;

@@ -94,7 +94,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       ? ReminderRepeat.fromRule(existing!['repeat_rule'])
       : existing?['recurrence'] == 'yearly' ? const ReminderRepeat(preset: 'yearly') : const ReminderRepeat();
     _visibility = existing?['visibility'] as String? ??
-      (!OneSpaceEnv.isProduction && widget.spaceId.isEmpty ? 'private' : 'shared');
+      (!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty ? 'private' : 'shared');
     _forUser=existing?['for_user_id']?.toString();
     final initialStart=DateTime.tryParse(existing?['starts_at']?.toString()??'')?.toLocal();
     final initialEnd=DateTime.tryParse(existing?['ends_at']?.toString()??'')?.toLocal();
@@ -121,7 +121,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
   }
 
   Future<void> _loadPeople() async {
-    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty)return;
+    if(!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty)return;
     try {
       final members=await _client.from('space_members').select('user_id')
         .eq('space_id',widget.spaceId);
@@ -144,7 +144,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         // An event saved in the partner's clock opens in that clock.
         final saved=widget.existing?['zone_id']?.toString();
         final start=DateTime.tryParse(widget.existing?['starts_at']?.toString()??'');
-        if(!OneSpaceEnv.isProduction&&_zonesDiffer&&saved!=null&&saved==_partnerZone&&start!=null){
+        if(!OneSpaceEnv.usesLegacyBackend&&_zonesDiffer&&saved!=null&&saved==_partnerZone&&start!=null){
           _zoneChoice='partner';
           final s0=ZoneTime.wall(start,saved);
           _start=TimeOfDay.fromDateTime(s0);
@@ -184,7 +184,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       setState(() => _error = tr(context, 'eventValidation'));
       return;
     }
-    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty &&
+    if(!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty &&
       _visibility=='shared'){
       setState(()=>_error='Connect with a partner before sharing an event.');
       return;
@@ -208,7 +208,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         fields['ends_at']=null;
         fields['zone_id']=null;
       } else {
-        final usePartner=!OneSpaceEnv.isProduction&&_zoneChoice=='partner'&&_zonesDiffer;
+        final usePartner=!OneSpaceEnv.usesLegacyBackend&&_zoneChoice=='partner'&&_zonesDiffer;
         final zone=usePartner?_partnerZone:await DeviceTimeZone.readPhone();
         final start=ZoneTime.instant(_date.year,_date.month,_date.day,_start.hour,_start.minute,zone);
         final end=ZoneTime.instant(_date.year,_date.month,_date.day,_end.hour,_end.minute,zone);
@@ -223,7 +223,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       if (!_editing) {
         final created = await _client.from('space_events').insert({
           ...fields,
-          if (!OneSpaceEnv.isProduction && _visibility=='private')
+          if (!OneSpaceEnv.usesLegacyBackend && _visibility=='private')
             'private_space_id':_client.auth.currentUser!.id
           else 'space_id': widget.spaceId,
           'created_by': _client.auth.currentUser!.id,
@@ -231,12 +231,12 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         }).select('id').single();
         await _createReminder(created['id'].toString(), title);
         // Do not link account-owned events into shared workspace objects.
-        if(OneSpaceEnv.isProduction || _visibility=='shared')
+        if(OneSpaceEnv.usesLegacyBackend || _visibility=='shared')
           await widget.onCreated?.call(created['id'].toString());
       } else {
         var query=_client.from('space_events')
           .update(fields).eq('id',widget.existing!['id'] as String);
-        if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
+        if(OneSpaceEnv.usesLegacyBackend)query=query.eq('space_id',widget.spaceId);
         final rows=await query.select('id');
         if (rows.isEmpty) throw StateError('Event is no longer editable');
         await _createReminder(widget.existing!['id'] as String, title);
@@ -276,7 +276,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     final me = _client.auth.currentUser!.id;
     final audience = _visibility == 'private' || _forUser == me ? 'me' : _forUser == null ? 'both' : 'partner';
     try {
-      final personal=!OneSpaceEnv.isProduction && _visibility=='private';
+      final personal=!OneSpaceEnv.usesLegacyBackend && _visibility=='private';
       await _client.from('reminders').insert({
         if(personal) 'private_space_id':me
         else 'space_id':widget.spaceId,
@@ -297,13 +297,13 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
    listenTo:[_title,_details,_location],saving:_saving,onSave:_save,
    meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(personal:widget.spaceId.isEmpty,
      people:_peopleMeta, showDate:false, enabled:_canEdit && !_saving,
-     linked:OneSpaceEnv.isProduction,
+     linked:OneSpaceEnv.usesLegacyBackend,
      value:MetaValues(shared:_visibility=='shared',belongsTo:_forUser),
      onChanged:(v)=>setState((){
-       if(!_editing)_visibility=(OneSpaceEnv.isProduction ||
+       if(!_editing)_visibility=(OneSpaceEnv.usesLegacyBackend ||
          widget.spaceId.isNotEmpty)&&v.shared?'shared':'private';
        _forUser=v.belongsTo;
-       if(OneSpaceEnv.isProduction&&_visibility=='private')_forUser=_peopleMeta?.me;
+       if(OneSpaceEnv.usesLegacyBackend&&_visibility=='private')_forUser=_peopleMeta?.me;
      })),
    body: SafeArea(
       child: ListView(
@@ -343,7 +343,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
                 label: Text('${tt('Ends')} ${_timeLabel(_end)}'), onPressed: () => _pickTime(false)),
             ],
           ]),
-          if (!OneSpaceEnv.isProduction && !_allDay && _zonesDiffer) ...[
+          if (!OneSpaceEnv.usesLegacyBackend && !_allDay && _zonesDiffer) ...[
             const SizedBox(height: 10),
             ChoiceRow<String>(label: tt('These times are in'),
               options: {
@@ -369,7 +369,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
               : const {'none': 'No reminder', '1h': 'An hour before', '1d': 'A day before', '1w': 'A week before'},
             selected: _remind,
             onSelected: (v) { if (_canEdit && !_saving) setState(() => _remind = v ?? 'none'); }),
-          if (!OneSpaceEnv.isProduction && _visibility=='private' &&
+          if (!OneSpaceEnv.usesLegacyBackend && _visibility=='private' &&
               _remind!='none')
             Text(tt('Your private reminder is saved independently. '
               'Removing this event will not automatically cancel it.'),

@@ -148,7 +148,7 @@ class MetaStrip extends StatelessWidget {
         builder: (context, paired, _) {
           // QA: alone in a space, new content is "Only me" and "Shared" is
           // unavailable until a partner joins. Existing records keep theirs.
-          final privateOnly = !OneSpaceEnv.isProduction && (personal || paired == false);
+          final privateOnly = !OneSpaceEnv.usesLegacyBackend && (personal || paired == false);
           final soloNew = privateOnly && enabled;
           if (soloNew && value.shared) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -172,7 +172,7 @@ class MetaStrip extends StatelessWidget {
           // be chosen for new items, and a former partner is never listed.
           // A private item in my personal space is mine alone (calendar
           // events, which are not linked, may still be for both of us).
-          final solo = !OneSpaceEnv.isProduction && (paired == false || (personal && linked));
+          final solo = !OneSpaceEnv.usesLegacyBackend && (paired == false || (personal && linked));
           final partnerId = solo ? null : people?.partnerId;
           return _MenuChip<String>(enabled: enabled,
             icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,

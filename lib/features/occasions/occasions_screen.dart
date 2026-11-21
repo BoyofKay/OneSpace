@@ -85,7 +85,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
   try{
    var id=await CurrentSpaceCache.instance.get();
    var ownScope=false;
-   if(!OneSpaceEnv.isProduction){
+   if(!OneSpaceEnv.usesLegacyBackend){
     final scopes=await db.rpc('my_storage_scopes');
     if(scopes is! Map||scopes['private_space_id']?.toString()!=user){
       throw StateError('Account-owned Occasions scope unavailable');
@@ -100,7 +100,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
     _channel=null;_watchedSpace=null;
     return;
    }
-   final scopeQuery=OneSpaceEnv.isProduction
+   final scopeQuery=OneSpaceEnv.usesLegacyBackend
      ?db.from('occasion_plans').select().eq('space_id',id!)
      :db.from('occasion_plans').select();
    final rows=await scopeQuery.order('updated_at',ascending:false).limit(200);
@@ -219,7 +219,7 @@ class _OccasionsScreenState extends State<OccasionsScreen>{
      trailing:ItemMenu(kind:'occasion',recordId:p['id'].toString(),title:p['title']?.toString(),
       onOpen:()=>open(p),openLabel:tt('Open'),table:'occasion_plans',
       moreActions:[
-       if((OneSpaceEnv.isProduction||p['private_space_id']==null)&&
+       if((OneSpaceEnv.usesLegacyBackend||p['private_space_id']==null)&&
            space!=null&&p['archived_at']==null)
           ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
         ()=>CounterSourceActions.open(context,space!,CounterSource.occasion(p))),
@@ -289,7 +289,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    setState((){
     people=v;myName=(mine??'').isEmpty?null:mine;
     // Without a current partner the occasion is for me (or someone else).
-    if(widget.existing==null&&!OneSpaceEnv.isProduction&&v!=null&&!v.paired)forWhom='me';
+    if(widget.existing==null&&!OneSpaceEnv.usesLegacyBackend&&v!=null&&!v.paired)forWhom='me';
     final h=honoree.text.trim();
     if(widget.existing!=null){
      if(h.isEmpty||h=='Both of us'){forWhom='us';}
@@ -305,7 +305,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
   super.dispose();
  }
  Future<void> pickSource()async{
-  if(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty){
+  if(!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty){
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
     content:Text(tt('Enter your personal occasion date manually. '
      'Linking special dates will be available after the private calendar integration.'))));
@@ -342,7 +342,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
      .eq('id',existing.first['id']);
    }else{
     await db.from('reminders').insert({
-     if(!OneSpaceEnv.isProduction&&visibility=='private')
+     if(!OneSpaceEnv.usesLegacyBackend&&visibility=='private')
        'private_space_id':db.auth.currentUser!.id
      else 'space_id':widget.spaceId,
      'created_by':db.auth.currentUser!.id,
@@ -377,7 +377,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
     'source_kind':sourceKind,'source_ref':sourceRef,
    };
    if(widget.existing==null){
-    final personal=!OneSpaceEnv.isProduction&&visibility=='private';
+    final personal=!OneSpaceEnv.usesLegacyBackend&&visibility=='private';
     if(!personal&&widget.spaceId.isEmpty){
      throw StateError('Connect with a partner before sharing an occasion');
     }
@@ -414,7 +414,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    saveLabel:editing?'Save':'Next',
    meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=
-     (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+     (!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty)
        ?'private':(v.shared?'shared':'private'))),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    Card(elevation:0,color:theme.colorScheme.secondaryContainer.withValues(alpha:.5),
@@ -437,7 +437,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
      onSelected:(_)=>setState(()=>forWhom='partner')),
     ChoiceChip(label:Text(tt('Me')),selected:forWhom=='me',onSelected:(_)=>setState(()=>forWhom='me')),
     ChoiceChip(label:Text(tt('Both of us')),selected:forWhom=='us',
-     onSelected:!OneSpaceEnv.isProduction&&p!=null&&!p.paired?null:(_)=>setState(()=>forWhom='us')),
+     onSelected:!OneSpaceEnv.usesLegacyBackend&&p!=null&&!p.paired?null:(_)=>setState(()=>forWhom='us')),
     ChoiceChip(label:Text(tt('Someone else')),selected:forWhom=='other',onSelected:(_)=>setState(()=>forWhom='other')),
    ]),
    if(forWhom=='other')Padding(padding:const EdgeInsets.only(top:10),child:TextField(
@@ -626,7 +626,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
      ],
      onOpen:editPlan,
      moreActions:[
-      if((OneSpaceEnv.isProduction||p['private_space_id']==null)&&
+      if((OneSpaceEnv.usesLegacyBackend||p['private_space_id']==null)&&
          p['space_id']!=null&&p['archived_at']==null)
        ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
        ()=>CounterSourceActions.open(context,p['space_id'].toString(),CounterSource.occasion(p))),
@@ -644,7 +644,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
      physics:const AlwaysScrollableScrollPhysics(),
      padding:const EdgeInsetsDirectional.fromSTEB(16,12,16,35),children:[
      Text(tt(p['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
-     if(OneSpaceEnv.isProduction||p['private_space_id']==null)
+     if(OneSpaceEnv.usesLegacyBackend||p['private_space_id']==null)
       LinkedItemsStrip(key:_links,kind:LinkKind.occasion,id:widget.id),
      Text(tt([
       occasionKinds[p['kind']]??'Occasion',

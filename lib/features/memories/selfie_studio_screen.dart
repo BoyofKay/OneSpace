@@ -50,7 +50,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   void initState() {
     super.initState();
     _joinId = widget.addToMemoryId;
-    if(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty)_private=true;
+    if(!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty)_private=true;
     _loadWeek();
     if (_joinId == null) _findTodayToJoin();
     WidgetsBinding.instance.addPostFrameCallback((_) => _take(ImageSource.camera));
@@ -67,7 +67,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       // Every selfie since the account was created, so the strip can go back.
       final from = CalendarRules.sqlDate(_accountStart);
       var query=_db.from('memories').select('created_by,memory_date');
-      if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
+      if(OneSpaceEnv.usesLegacyBackend)query=query.eq('space_id',widget.spaceId);
       final rows=await query.eq('memory_type', 'daily_selfie')
           .isFilter('archived_at', null).gte('memory_date', from);
       if (mounted) setState(() => _week = List<Map<String, dynamic>>.from(rows));
@@ -218,7 +218,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       listenTo: [_caption],
       onSave: _save,
       meta: _joinId != null ? null : MetaStrip(personal:widget.spaceId.isEmpty,value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
-        enabled: !_saving && (widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction),
+        enabled: !_saving && (widget.spaceId.isNotEmpty || OneSpaceEnv.usesLegacyBackend),
         onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [
         if (_joinId != null) Card(elevation: 0, color: scheme.secondaryContainer,

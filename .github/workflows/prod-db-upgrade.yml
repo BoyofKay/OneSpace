@@ -1,0 +1,132 @@
+name: Production database upgrade
+
+# Runs supabase/production/upgrade.sql (QA changes 0142..0317 + finalize.sql)
+# against OneSpace Production. Manual only.
+#
+#   dry_run  - runs the whole upgrade inside one transaction and ROLLS IT BACK.
+#              Production is unchanged. Shows what would differ from QA.
+#   apply    - backs Production up first (encrypted artifact), then runs the
+#              upgrade as ONE transaction: all of it lands, or none of it.
+#              Needs the confirm box to read exactly: UPGRADE PRODUCTION
+#
+# Needs the repository secret PRODUCTION_DB_URL (Supabase > Production >
+# Connect > Session pooler URI, with the database password) and, for apply,
+# BACKUP_PASSPHRASE.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry_run (nothing is saved) or apply'
+        type: choice
+        options: [dry_run, apply]
+        default: dry_run
+      confirm:
+        description: 'For apply only: type UPGRADE PRODUCTION'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-db-upgrade
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check inputs and secrets
+        env:
+          DB: ${{ secrets.PRODUCTION_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+          MODE: ${{ inputs.mode }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ -z "$DB" ]; then echo "::error::Add the PRODUCTION_DB_URL secret first."; exit 1; fi
+          case "$DB" in *letcgxbnblohhfyeuigz*) ;; *) echo "::error::PRODUCTION_DB_URL is not the Production project."; exit 1;; esac
+          if [ "$MODE" = apply ]; then
+            [ "$CONFIRM" = "UPGRADE PRODUCTION" ] || { echo "::error::Type UPGRADE PRODUCTION to apply."; exit 1; }
+            [ -n "$PASS" ] || { echo "::error::BACKUP_PASSPHRASE is needed for the backup before apply."; exit 1; }
+          fi
+
+      - name: Build the upgrade script
+        run: |
+          python3 tools/production/build_upgrade.py
+          git diff --exit-code supabase/production/upgrade.sql || {
+            echo "::error::supabase/production/upgrade.sql is out of date; run tools/production/build_upgrade.py and commit it."; exit 1; }
+
+      - name: Refuse if Production was already upgraded
+        env:
+          DB: ${{ secrets.PRODUCTION_DB_URL }}
+        run: |
+          done=$(docker run --rm -e DB="$DB" postgres:17 psql "$DB" -Atc \
+            "select count(*) from supabase_migrations.schema_migrations where name='production_upgrade_0142_0317'")
+          if [ "$done" != "0" ]; then echo "::error::Production already has this upgrade."; exit 1; fi
+
+      - name: Back up Production (apply only)
+        if: inputs.mode == 'apply'
+        env:
+          DB: ${{ secrets.PRODUCTION_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%dT%H%MZ)
+          mkdir backup
+          docker run --rm -e DB="$DB" postgres:17 \
+            sh -c 'pg_dump "$DB" --no-owner --no-privileges --schema=public --schema=private --schema=auth --schema=storage --schema=cron --quote-all-identifiers' \
+            | gzip -9 > backup/prod.sql.gz
+          test "$(stat -c %s backup/prod.sql.gz)" -gt 10000
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
+            -o "backup/onespace-production-before-upgrade-$stamp.sql.gz.gpg" backup/prod.sql.gz 3<<<"$PASS"
+          rm backup/prod.sql.gz
+
+      - name: Keep the backup for 30 days
+        if: inputs.mode == 'apply'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-backup-before-upgrade
+          path: backup/*.gpg
+          retention-days: 30
+
+      - name: Run the upgrade
+        env:
+          DB: ${{ secrets.PRODUCTION_DB_URL }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          if [ "$MODE" = apply ]; then
+            ending="insert into supabase_migrations.schema_migrations(version,name,statements)
+                    values (to_char(now() at time zone 'utc','YYYYMMDDHH24MISS'),'production_upgrade_0142_0317',array['see supabase/production/upgrade.sql']);
+                    commit;"
+          else
+            ending="rollback;"
+          fi
+          cat > run.sql <<SQL
+          \set ON_ERROR_STOP on
+          begin;
+          \i supabase/production/upgrade.sql
+          \i supabase/production/verify.sql
+          $ending
+          SQL
+          status=0
+          docker run --rm -v "$PWD":/w -w /w -e DB="$DB" postgres:17 \
+            psql "$DB" -X -v ON_ERROR_STOP=1 -f run.sql > upgrade.log 2>&1 || status=$?
+          grep -v -E '^(CREATE|ALTER|DROP|GRANT|REVOKE|COMMENT|DO|INSERT|UPDATE|DELETE|SET|BEGIN|SELECT 1)' upgrade.log | tail -300 || true
+          if [ "$status" != 0 ]; then
+            echo "::error::The upgrade stopped on an error. Production was NOT changed (the transaction rolled back)."
+            exit "$status"
+          fi
+          echo "Mode: $MODE finished. Production was $( [ "$MODE" = apply ] && echo UPGRADED || echo NOT changed )."
+
+      - name: Keep the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-upgrade-log-${{ inputs.mode }}
+          path: upgrade.log
+          retention-days: 30

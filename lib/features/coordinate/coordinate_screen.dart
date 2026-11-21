@@ -264,7 +264,7 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
         ],
         if (loading)
           const Center(child: CircularProgressIndicator())
-        else if (contentScope == null || (OneSpaceEnv.isProduction && space == null))
+        else if (contentScope == null || (OneSpaceEnv.usesLegacyBackend && space == null))
           Text(tt('Connect your shared space to start coordinating.'))
         else if (items != null)
           StreamBuilder<List<Map<String,dynamic>>>(

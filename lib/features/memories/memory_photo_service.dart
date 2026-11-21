@@ -13,7 +13,7 @@ class MemoryPhotoService{
 
  /// Resolve from a visible parent; never infer ownership from a filename.
  Future<String> _bucketForMemory(String memoryId) async {
-  if(OneSpaceEnv.isProduction)return bucket;
+  if(OneSpaceEnv.usesLegacyBackend)return bucket;
   final m=await db.from('memories')
    .select('private_space_id,created_by,space_id,visibility')
    .eq('id',memoryId).single();
@@ -65,7 +65,7 @@ class MemoryPhotoService{
      'memory_id':memoryId,'caption':'','mime_type':mime,
      'byte_size':bytes.length,'object_path':objectPath,
      'display_order':startOrder+saved,
-     if(!OneSpaceEnv.isProduction) 'storage_bucket_id':targetBucket,
+     if(!OneSpaceEnv.usesLegacyBackend) 'storage_bucket_id':targetBucket,
     });
     saved++;
    }catch(_){
@@ -93,7 +93,7 @@ class MemoryPhotoService{
    final row=await db.from('memory_photos').insert({
     'memory_id':memoryId,'caption':'','mime_type':mime,
     'byte_size':bytes.length,'object_path':path,
-    if(!OneSpaceEnv.isProduction) 'storage_bucket_id':targetBucket,
+    if(!OneSpaceEnv.usesLegacyBackend) 'storage_bucket_id':targetBucket,
    }).select('id').single();
    return row['id'].toString();
   }catch(_){
@@ -103,7 +103,7 @@ class MemoryPhotoService{
  }
 
  Future<String> signedUrl(String path) async {
-  if(OneSpaceEnv.isProduction){
+  if(OneSpaceEnv.usesLegacyBackend){
    return db.storage.from(bucket).createSignedUrl(path,120);
   }
   // Read the bucket on its RLS-visible photo row; an owner's former

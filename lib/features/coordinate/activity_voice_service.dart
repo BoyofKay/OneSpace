@@ -53,7 +53,7 @@ class ActivityVoiceService {
           'label': 'Voice note',
           'payload': {
             'voice_path': path,
-            if (!OneSpaceEnv.isProduction) 'bucket_id': bucket,
+            if (!OneSpaceEnv.usesLegacyBackend) 'bucket_id': bucket,
             'voice_seconds': seconds,
             'note': '',
           },
@@ -65,7 +65,7 @@ class ActivityVoiceService {
           'reply_to': replyToCommentId,
           'component_id': relatedComponentId,
           'voice_path': path,
-          if (!OneSpaceEnv.isProduction) 'voice_bucket_id': bucket,
+          if (!OneSpaceEnv.usesLegacyBackend) 'voice_bucket_id': bucket,
           'voice_seconds': seconds,
         });
       }

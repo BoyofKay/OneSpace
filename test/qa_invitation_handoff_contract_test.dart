@@ -115,7 +115,7 @@ void main() {
     expect(source, contains('rememberVerifiedQaAddressedCode(code)'));
     expect(source, contains('checkingAddressedInvite || inviteLookupFailed'));
     expect(source, contains('Continue without an invitation'));
-    expect(source, contains("if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());"));
+    expect(source, contains("if (!OneSpaceEnv.usesLegacyBackend) unawaited(_resumeOrDiscoverAddressedInvite());"));
   });
 
   test('Android QA and Production packages cannot share Supabase environment', () {

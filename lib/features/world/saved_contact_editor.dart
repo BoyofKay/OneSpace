@@ -78,7 +78,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
          : null;
      if(entry==null && (contact.phone.isNotEmpty||contact.email.isNotEmpty)){
        var candidateQuery=db.from('saved_contacts').select('id,label,payload');
-       if(OneSpaceEnv.isProduction){
+       if(OneSpaceEnv.usesLegacyBackend){
          candidateQuery=candidateQuery.eq('space_id',widget.spaceId);
        }
        final existingRows=await candidateQuery.limit(300);
@@ -114,7 +114,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
          'label':label,'payload':contact.toPayload(),
          // QA: immutable account vs couple ownership; scope changes must be
          // an explicit audited server operation, never a simple edit.
-         if(OneSpaceEnv.isProduction) 'visibility':onlyMe?'private':'shared',
+         if(OneSpaceEnv.usesLegacyBackend) 'visibility':onlyMe?'private':'shared',
        }).eq('id',entry.id);
      }else{
        await db.from('activity_components').update({
@@ -136,7 +136,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
    meta:fromActivity?null:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:!onlyMe),
      showVisibility: true,
      showBelongs:false,showDate:false,
-     enabled:!busy && (OneSpaceEnv.isProduction || widget.existing==null),
+     enabled:!busy && (OneSpaceEnv.usesLegacyBackend || widget.existing==null),
      onChanged:(v)=>setState(()=>onlyMe=!v.shared)),
    body:SafeArea(child:ListView(
        padding:const EdgeInsets.all(18),children:[

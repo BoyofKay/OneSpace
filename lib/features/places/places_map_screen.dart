@@ -215,7 +215,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
     if (ok != true || !mounted) return;
     setState(() { pin = null; pinInfo = null; });
     try {
-      final query=OneSpaceEnv.isProduction
+      final query=OneSpaceEnv.usesLegacyBackend
         ? Supabase.instance.client.from('places').select()
           .eq('space_id',widget.spaceId)
         : Supabase.instance.client.from('places').select();

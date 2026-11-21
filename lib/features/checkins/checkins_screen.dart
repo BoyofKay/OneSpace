@@ -92,7 +92,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       onChanged:() {
         if (!mounted || _space != id) return;
         setState(() {
-          _stream = OneSpaceEnv.isProduction
+          _stream = OneSpaceEnv.usesLegacyBackend
             ? _client.from('daily_checkins')
                 .stream(primaryKey:['id']).eq('space_id',id)
                 .order('checkin_date',ascending:false)
@@ -136,7 +136,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
     try{
       var id=await CurrentSpaceCache.instance.get();
       var personal=false;
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         final scopes=await _client.rpc('my_storage_scopes');
         if(scopes is! Map ||
             scopes['private_space_id']?.toString()!=_client.auth.currentUser?.id){
@@ -149,7 +149,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
       setState(() {
         _space=id;_personalReady=personal;
         _stream=id==null&&!personal?null:
-          (OneSpaceEnv.isProduction
+          (OneSpaceEnv.usesLegacyBackend
             ? _client.from('daily_checkins').stream(primaryKey:['id'])
                 .eq('space_id',id!).order('checkin_date',ascending:false)
             : _client.from('daily_checkins').stream(primaryKey:['id'])
@@ -575,7 +575,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
             if(message.isNotEmpty)_detail(tt('What’s on my mind'),message),
             if((entry['gratitude']?.toString()??'').isNotEmpty)
               _detail(tt('Something I’m grateful for'),entry['gratitude'].toString()),
-            if(own&&private&&(OneSpaceEnv.isProduction||
+            if(own&&private&&(OneSpaceEnv.usesLegacyBackend||
               entry['private_space_id']==null))Align(
               alignment:AlignmentDirectional.centerEnd,
               child:PrivateShareButton(
@@ -640,7 +640,7 @@ class _CheckinEditorState extends State<CheckinEditor> {
     _date=DateTime.tryParse(widget.existing?['checkin_date'] as String? ?? '')??DateTime.now();
     _mood=(widget.existing?['mood'] as num?)?.toInt()??3;
     _visibility=widget.existing?['visibility'] as String? ??
-      (!OneSpaceEnv.isProduction && widget.spaceId.isEmpty
+      (!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty
         ? 'private' : 'shared');
   }
   @override
@@ -667,7 +667,7 @@ class _CheckinEditorState extends State<CheckinEditor> {
           .eq('created_by',_client.auth.currentUser!.id)
           .eq('checkin_date',date);
         // QA: one private and one shared feeling per day.
-        if(!OneSpaceEnv.isProduction)query=query.eq('visibility',_visibility);
+        if(!OneSpaceEnv.usesLegacyBackend)query=query.eq('visibility',_visibility);
         final previous=await query.limit(1);
         if(previous.isNotEmpty){
           if(mounted)setState(()=>_error=tr(context,'checkinAlreadyExists'));
@@ -675,7 +675,7 @@ class _CheckinEditorState extends State<CheckinEditor> {
         }
         await _client.from('daily_checkins').insert({
           ...fields,
-          if(!OneSpaceEnv.isProduction&&_visibility=='private')
+          if(!OneSpaceEnv.usesLegacyBackend&&_visibility=='private')
             'private_space_id':_client.auth.currentUser!.id
           else 'space_id':widget.spaceId,
           'created_by':_client.auth.currentUser!.id,
@@ -710,7 +710,7 @@ class _CheckinEditorState extends State<CheckinEditor> {
     meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:_visibility=='shared',date:_date),
       showBelongs:false,dateLabel:tt('Day'),enabled:widget.existing==null&&_canEdit&&!_saving,
       onChanged:(v)=>setState((){
-        _visibility=(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+        _visibility=(!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty)
           ?'private':(v.shared?'shared':'private');
         final now=DateTime.now();
         final d=v.date??now;

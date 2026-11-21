@@ -123,11 +123,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _watchChanges(String? id) {
-    final watchKey=OneSpaceEnv.isProduction?id :'account-${_client.auth.currentUser?.id}-$id';
+    final watchKey=OneSpaceEnv.usesLegacyBackend?id :'account-${_client.auth.currentUser?.id}-$id';
     if (!widget.active || _watchedSpace == watchKey) return;
     _stopWatching();
     _watchedSpace = watchKey;
-    if (!OneSpaceEnv.isProduction) {
+    if (!OneSpaceEnv.usesLegacyBackend) {
       _changes=_client.channel('qa-calendar-personal-${_client.auth.currentUser?.id}')
        .onPostgresChanges(event:PostgresChangeEvent.all,
         schema:'public',table:'space_events',callback:(_)=>_scheduleRefresh())
@@ -185,10 +185,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final version = ++_loadVersion;
     final stopwatch = Stopwatch()..start();
     if (mounted) setState(() {
-      _loading = !OneSpaceEnv.isProduction || _spaceId == null;
+      _loading = !OneSpaceEnv.usesLegacyBackend || _spaceId == null;
       _error = null;
       // Do not keep former-couple data on screen during a scope refresh.
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         _events=const [];
         _tasks=const [];
         _daysOff=const [];
@@ -199,7 +199,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       String? id=await CurrentSpaceCache.instance.get();
       bool personalReady=false;
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         final scopes=await _client.rpc('my_storage_scopes');
         if(scopes is! Map ||
           scopes['private_space_id']?.toString()!=_client.auth.currentUser?.id) {
@@ -209,7 +209,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         personalReady=true;
       }
       if (!mounted || version != _loadVersion) return;
-      if (id == null && OneSpaceEnv.isProduction) {
+      if (id == null && OneSpaceEnv.usesLegacyBackend) {
         _stopWatching();
         setState(() {
           _spaceId = null;
@@ -233,23 +233,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }else{
         _people={};
       }
-      final eventScope=OneSpaceEnv.isProduction?'':'private_space_id,';
+      final eventScope=OneSpaceEnv.usesLegacyBackend?'':'private_space_id,';
       final results = await Future.wait<List<Map<String, dynamic>>>([
-        (OneSpaceEnv.isProduction
+        (OneSpaceEnv.usesLegacyBackend
           ? _client.from('space_events')
             .select('id,space_id,created_by,title,details,event_date,kind,recurrence,repeat_rule,location,visibility,archived_at,for_user_id,starts_at,ends_at,zone_id')
             .eq('space_id',id!)
           : _client.from('space_events')
             .select('id,space_id,${eventScope}created_by,title,details,event_date,kind,recurrence,repeat_rule,location,visibility,archived_at,for_user_id,starts_at,ends_at,zone_id'))
             .order('event_date').limit(500),
-        (OneSpaceEnv.isProduction
+        (OneSpaceEnv.usesLegacyBackend
           ? _client.from('tasks')
             .select('id,title,target_date,status,visibility,created_by')
             .eq('space_id',id!)
           : _client.from('tasks')
             .select('id,title,target_date,status,visibility,created_by'))
             .eq('status','open').limit(500),
-        (OneSpaceEnv.isProduction
+        (OneSpaceEnv.usesLegacyBackend
           ? (id==null
              ? _client.from('personal_days_off').select('id,off_date,label,user_id')
                  .eq('user_id',_client.auth.currentUser!.id)
@@ -259,7 +259,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               .select('id,off_date,label,user_id'))
             .order('off_date').limit(500),
       ]).timeout(const Duration(seconds: 15));
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         try{_couple=await CouplePerson.load(id);}catch(_){_couple=const [];}
       }
       if (!mounted || version != _loadVersion) return;
@@ -318,7 +318,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }catch(_){ /* Main calendar remains usable. */ }
     try{
       final Set<String> active;
-      if(OneSpaceEnv.isProduction){
+      if(OneSpaceEnv.usesLegacyBackend){
         await HolidayDefaults.ensure(space);
         final sources=await _client.from('space_holiday_sources')
          .select('country_code,enabled').eq('space_id',space);
@@ -342,7 +342,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final missing=data.expand((x)=>x.unavailableCountries).toSet();
       setState((){
        _holidays=data.expand((x)=>x.days).toList();
-       _holidayError=missing.isEmpty?null:OneSpaceEnv.isProduction?
+       _holidayError=missing.isEmpty?null:OneSpaceEnv.usesLegacyBackend?
         'Some holiday sources could not load: '+missing.map(HolidayCatalog.label).join(', ')
         :HolidayMessages.unavailable(missing);
       });
@@ -527,7 +527,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final space=_spaceId;
     final me=_client.auth.currentUser?.id;
     if(space==null||me==null ||
-      (!OneSpaceEnv.isProduction&&event['private_space_id']!=null))return;
+      (!OneSpaceEnv.usesLegacyBackend&&event['private_space_id']!=null))return;
     try{
       final members=await _client.from('space_members')
         .select('user_id').eq('space_id',space);
@@ -721,7 +721,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final creator = event['created_by'] as String? ?? '';
     final canEdit = ObjectPermissions.canEdit(
       visibility: visibility, createdBy: creator, userId: id);
-    final canShare = (OneSpaceEnv.isProduction ||
+    final canShare = (OneSpaceEnv.usesLegacyBackend ||
       event['private_space_id']==null) && ObjectPermissions.canManagePrivateShare(
       visibility: visibility, createdBy: creator, userId: id);
     final sourceDate = _eventDate(event);
@@ -773,7 +773,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               title:event['title']?.toString(),
               onOpen:()=>_openEditor(existing:event),openLabel:canEdit?'Edit':'Open',
               moreActions:[
-                if ((OneSpaceEnv.isProduction || event['private_space_id']==null) &&
+                if ((OneSpaceEnv.usesLegacyBackend || event['private_space_id']==null) &&
                    event['archived_at'] == null && CounterSource.event(event) != null && _spaceId != null)
                   ItemMenuAction('Add to counters', Icons.hourglass_bottom_outlined,
                     () => CounterSourceActions.open(context, _spaceId!, CounterSource.event(event))),
@@ -784,7 +784,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     title:event['title']?.toString()??'Event',
                     date:DateTime.tryParse(event['event_date']?.toString()??''),
                     shared:event['visibility']!='private')),
-                if(OneSpaceEnv.isProduction || event['private_space_id']==null)
+                if(OneSpaceEnv.usesLegacyBackend || event['private_space_id']==null)
                   ItemMenuAction(tt('Linked items'),Icons.link,()=>_showLinked(event)),
                 ItemMenuAction(tt('Share by email'),Icons.mail_outline,()=>_emailEvent(event)),
                 if(visibility=='shared'&&event['archived_at']==null)

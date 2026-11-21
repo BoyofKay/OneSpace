@@ -54,7 +54,7 @@ class TravelDocumentService {
   if(user==null)throw StateError('Sign in to add a document.');
   // Revalidate immediately before each upload, not just when the screen opens.
   var selectedBucket=TripDocumentRules.bucket;
-  if(!OneSpaceEnv.isProduction){
+  if(!OneSpaceEnv.usesLegacyBackend){
     final trip=await db.from('shared_trips')
       .select('space_id,private_space_id,created_by,visibility')
       .eq('id',tripId).maybeSingle();
@@ -86,7 +86,7 @@ class TravelDocumentService {
     'kind':kind,'file_name':file.filename,
     'mime_type':file.mime,'file_size':file.bytes.length,
     'object_path':objectPath,
-    if(!OneSpaceEnv.isProduction)'storage_bucket_id':selectedBucket,
+    if(!OneSpaceEnv.usesLegacyBackend)'storage_bucket_id':selectedBucket,
    });
   }catch(_){
    // The RLS delete policy only allows removing own unreferenced uploads;

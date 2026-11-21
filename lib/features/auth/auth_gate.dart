@@ -479,9 +479,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       const Icon(Icons.mark_email_read_outlined),
                       const SizedBox(width: 10),
                       Expanded(child: Text(tt(registering
-                        ? (OneSpaceEnv.isProduction ? 'Your partner’s invitation is saved. Create your account, confirm your email, then sign in to join automatically.'
+                        ? (OneSpaceEnv.usesLegacyBackend ? 'Your partner’s invitation is saved. Create your account, confirm your email, then sign in to join automatically.'
                           : 'Your partner’s invitation is saved. Create your account, confirm your email, then sign in to accept or decline it.')
-                        : (OneSpaceEnv.isProduction ? 'Your partner’s invitation is saved. Sign in with the invited email to join automatically.'
+                        : (OneSpaceEnv.usesLegacyBackend ? 'Your partner’s invitation is saved. Sign in with the invited email to join automatically.'
                           : 'Your partner’s invitation is saved for your next sign-in. Sign in with the invited email to accept or decline it.')))),
                     ]),
                   )),

@@ -36,7 +36,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
     try {
       var id=await CurrentSpaceCache.instance.get();
       var personal=false;
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         final scopes=await db.rpc('my_storage_scopes');
         if(scopes is! Map ||
           scopes['private_space_id']?.toString()!=db.auth.currentUser?.id) {
@@ -51,7 +51,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
         });
         return;
       }
-      var query=OneSpaceEnv.isProduction
+      var query=OneSpaceEnv.usesLegacyBackend
         ? db.from('items_to_sort').select(
           'id,created_by,title,link,note,visibility,archived_at,created_at,file_path,file_bucket_id,file_name,file_mime')
           .eq('space_id',id!)
@@ -96,7 +96,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
   /// R55: open an attached photo/PDF through a short-lived signed link.
   Future<void> _openFile(Map<String, dynamic> item) async {
     try {
-      final selectedBucket=OneSpaceEnv.isProduction
+      final selectedBucket=OneSpaceEnv.usesLegacyBackend
           ? 'onespace-share-in'
           : (item['file_bucket_id']?.toString()??'onespace-share-in');
       final url = await db.storage.from(selectedBucket)
@@ -190,7 +190,7 @@ class _ItemsToSortScreenState extends State<ItemsToSortScreen> {
                       }
                     },
                     itemBuilder: (_) => [
-                      if (OneSpaceEnv.isProduction && item['created_by'] == me)
+                      if (OneSpaceEnv.usesLegacyBackend && item['created_by'] == me)
                         item['visibility'] == 'shared'
                           ? iconMenuItem('private', MenuIcons.private, 'Make it only mine')
                           : iconMenuItem('share', MenuIcons.share, 'Share with my partner'),

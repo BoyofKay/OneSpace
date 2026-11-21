@@ -18,7 +18,7 @@ class _NotePhotosPanelState extends State<NotePhotosPanel>{
  static const bucket='onespace-note-images';
  static const personalBucket='onespace-private-note-images';
  Future<String> bucketForNote()async{
-  if(OneSpaceEnv.isProduction)return bucket;
+  if(OneSpaceEnv.usesLegacyBackend)return bucket;
   final me=db.auth.currentUser?.id;
   if(me==null)throw StateError('Sign in to save personal photos.');
   final note=await db.from('notes')
@@ -69,7 +69,7 @@ class _NotePhotosPanelState extends State<NotePhotosPanel>{
    try{
     await db.from('note_images').insert({
      'note_id':widget.noteId,'object_path':path,'caption':'',
-     if(!OneSpaceEnv.isProduction)'storage_bucket_id':selectedBucket});
+     if(!OneSpaceEnv.usesLegacyBackend)'storage_bucket_id':selectedBucket});
    }catch(_){
     try{await storage.remove([path]);}catch(_){}
     rethrow;

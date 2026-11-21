@@ -21,7 +21,7 @@ class _AccountNoticeBannerState extends State<AccountNoticeBanner> with WidgetsB
   @override
   void initState() {
     super.initState();
-    if (OneSpaceEnv.isProduction) return;
+    if (OneSpaceEnv.usesLegacyBackend) return;
     WidgetsBinding.instance.addObserver(this);
     CurrentSpaceCache.paired.addListener(_load);
     _load();
@@ -29,7 +29,7 @@ class _AccountNoticeBannerState extends State<AccountNoticeBanner> with WidgetsB
 
   @override
   void dispose() {
-    if (!OneSpaceEnv.isProduction) {
+    if (!OneSpaceEnv.usesLegacyBackend) {
       WidgetsBinding.instance.removeObserver(this);
       CurrentSpaceCache.paired.removeListener(_load);
     }
@@ -63,7 +63,7 @@ class _AccountNoticeBannerState extends State<AccountNoticeBanner> with WidgetsB
 
   @override
   Widget build(BuildContext context) {
-    if (OneSpaceEnv.isProduction || notices.isEmpty) return const SizedBox.shrink();
+    if (OneSpaceEnv.usesLegacyBackend || notices.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     return Column(children: [
       for (final n in notices)
