@@ -1,6 +1,7 @@
 import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import 'selfie_studio_screen.dart';
+import 'selfie_calendar_screen.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
@@ -167,7 +168,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         icon:const Icon(Icons.photo_camera_front_outlined),
         title:Text(tt('You already took today’s selfie')),
         content:Text(tt('One daily selfie a day keeps the story honest. '
-          'You can take the next one tomorrow, or open today’s selfie to add a caption.')),
+          'You can take the next one tomorrow. Open today’s selfie to see it or share it.')),
         actions:[FilledButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('OK')))]));
       return;
     }
@@ -230,6 +231,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
  @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
+      IconButton(key:const Key('selfieCalendar'),tooltip:tt('Daily selfies'),
+        icon:const Icon(Icons.photo_camera_front_outlined),
+        onPressed:()=>Navigator.of(context).push<void>(MaterialPageRoute<void>(
+          builder:(_)=>SelfieCalendarScreen(spaceId:_spaceId??'')))),
       RecordListTopActions(
         historyKinds:const ['memory'],historyTitle:tt('Memories'),
      showHistory:_archived,

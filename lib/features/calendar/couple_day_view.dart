@@ -206,26 +206,44 @@ class _CoupleDayTimelineState extends State<CoupleDayTimeline> {
     return LayoutBuilder(builder: (context, box) {
       final colW = (box.maxWidth - gutter) / n;
       final eventBoxes = <Widget>[];
+      // Overlapping events sit side by side instead of on top of each other.
+      final placed = <({Map<String, dynamic> e, DateTime st, DateTime end, double top, double height, int col})>[];
       for (final e in widget.timed) {
         final st = DateTime.tryParse(e['starts_at'].toString())?.toLocal();
         if (st == null) continue;
         final end = DateTime.tryParse(e['ends_at']?.toString() ?? '')?.toLocal() ?? st.add(const Duration(hours: 1));
-        final top = _y(st).clamp(0.0, 24 * hh - 24);
-        final height = (_y(end) - _y(st)).clamp(24.0, 24 * hh - top);
-        final col = _column(e);
-        final left = gutter + (col < 0 ? 0 : col * colW) + 3;
-        final width = (col < 0 ? colW * n : colW) - 6;
-        final shared = col < 0;
-        eventBoxes.add(Positioned(top: top, height: height, left: left, width: width,
+        final top = _y(st).clamp(0.0, 24 * hh - 24).toDouble();
+        final height = (_y(end) - _y(st)).clamp(28.0, 24 * hh - top).toDouble();
+        placed.add((e: e, st: st, end: end, top: top, height: height, col: _column(e)));
+      }
+      final lanes = CoupleDayLanes.assign([
+        for (final p in placed) (top: p.top, bottom: p.top + p.height, col: p.col),
+      ]);
+      for (var i = 0; i < placed.length; i++) {
+        final p = placed[i];
+        final lane = lanes[i];
+        final spanAll = lane.full || p.col < 0;
+        final regionLeft = gutter + (spanAll ? 0 : p.col * colW);
+        final regionWidth = spanAll ? colW * n : colW;
+        final w = regionWidth / lane.count;
+        final shared = p.col < 0;
+        final e = p.e;
+        eventBoxes.add(Positioned(top: p.top, height: p.height, left: regionLeft + lane.index * w + 2, width: w - 4,
           child: Material(
             color: shared ? scheme.primaryContainer : scheme.secondaryContainer,
-            borderRadius: BorderRadius.circular(8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: scheme.surface, width: 1.5)),
             child: InkWell(borderRadius: BorderRadius.circular(8), onTap: () => widget.onOpen(e),
               child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                child: Text('${e['visibility'] == 'private' ? '🔒 ' : ''}${hm(st)} ${tt(e['title']?.toString() ?? '')}',
-                  maxLines: height > 40 ? 2 : 1, overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: shared ? scheme.onPrimaryContainer : scheme.onSecondaryContainer)))))));
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${e['visibility'] == 'private' ? '🔒 ' : ''}${tt(e['title']?.toString() ?? '')}',
+                    maxLines: p.height > 56 ? 2 : 1, overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600,
+                      color: shared ? scheme.onPrimaryContainer : scheme.onSecondaryContainer)),
+                  if (p.height > 40) Text('${hm(p.st)} – ${hm(p.end)}', maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: shared ? scheme.onPrimaryContainer : scheme.onSecondaryContainer)),
+                ]))))));
       }
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Pinned header: first names and, if different, each local time now.
@@ -309,4 +327,46 @@ class _Band extends StatelessWidget {
       const SizedBox(width: 2),
       Text(tt(label), style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.outline)),
     ]));
+}
+
+
+/// Side-by-side lanes for overlapping timeline events. Events conflict when
+/// their boxes overlap in time and share a column (an event for both of us,
+/// col < 0, shares every column). A group that holds an event for both of us
+/// is laid out across the full width.
+class CoupleDayLanes {
+  static List<({int index, int count, bool full})> assign(
+      List<({double top, double bottom, int col})> boxes) {
+    final n = boxes.length;
+    bool clash(int a, int b) => boxes[a].top < boxes[b].bottom && boxes[b].top < boxes[a].bottom &&
+      (boxes[a].col < 0 || boxes[b].col < 0 || boxes[a].col == boxes[b].col);
+    final group = List<int>.generate(n, (i) => i);
+    int find(int i) => group[i] == i ? i : group[i] = find(group[i]);
+    for (var a = 0; a < n; a++) {
+      for (var b = a + 1; b < n; b++) {
+        if (clash(a, b)) group[find(a)] = find(b);
+      }
+    }
+    final out = List<({int index, int count, bool full})>.filled(n, (index: 0, count: 1, full: false));
+    final members = <int, List<int>>{};
+    for (var i = 0; i < n; i++) {
+      (members[find(i)] ??= []).add(i);
+    }
+    for (final list in members.values) {
+      list.sort((a, b) => boxes[a].top.compareTo(boxes[b].top));
+      final full = list.any((i) => boxes[i].col < 0) && list.length > 1;
+      final laneEnds = <double>[];
+      final laneOf = <int, int>{};
+      for (final i in list) {
+        var lane = laneEnds.indexWhere((end) => end <= boxes[i].top);
+        if (lane < 0) { laneEnds.add(boxes[i].bottom); lane = laneEnds.length - 1; }
+        else { laneEnds[lane] = boxes[i].bottom; }
+        laneOf[i] = lane;
+      }
+      for (final i in list) {
+        out[i] = (index: laneOf[i]!, count: laneEnds.length, full: full);
+      }
+    }
+    return out;
+  }
 }

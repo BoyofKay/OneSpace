@@ -39,6 +39,7 @@ import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
+import 'features/spaces/no_space_gate.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
 import 'core/error_reporter.dart';
@@ -469,11 +470,14 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
           onOpenWorld:(){navigate(2);WidgetsBinding.instance.addPostFrameCallback((_)=>_coordinate.currentState?.show(1));},
           onOpenProfile:()=>navigate(4),
         ),
-        if(visited.contains(1)) RememberScreen(refreshToken:refreshToken)
+        if(visited.contains(1)) NoSpaceGate(onGetSpace:()=>navigate(0),
+            child:RememberScreen(refreshToken:refreshToken))
           else const SizedBox.shrink(),
-        if(visited.contains(2))CoordinateHub(key:_coordinate)
+        if(visited.contains(2))NoSpaceGate(onGetSpace:()=>navigate(0),
+            child:CoordinateHub(key:_coordinate))
           else const SizedBox.shrink(),
-        if(visited.contains(3))const SectionHub(section:'connect')
+        if(visited.contains(3))NoSpaceGate(onGetSpace:()=>navigate(0),
+            child:const SectionHub(section:'connect'))
           else const SizedBox.shrink(),
         if(visited.contains(4))const MeScreen()
           else const SizedBox.shrink(),

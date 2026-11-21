@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_env.dart';
 import 'invitation_code.dart';
@@ -16,8 +17,27 @@ class InvitationLinkInbox extends ChangeNotifier {
   static const _pendingKey = 'onespace_pending_incoming_invite_v1';
 
   StreamSubscription<Uri>? _subscription;
+  StreamSubscription<AuthState>? _auth;
   String? _pending;
   String? get pendingCode => _pending;
+  bool _keepThroughSignOut = false;
+
+  /// QA: an invitation lasts for one sign-in. Signing out forgets it, unless
+  /// the person signs out on purpose to sign in with the invited email.
+  void keepThroughNextSignOut() => _keepThroughSignOut = true;
+
+  /// Call once Supabase is ready (the signed-in shell does).
+  void watchSignOut() {
+    if (OneSpaceEnv.isProduction || _auth != null) return;
+    try {
+      _auth = Supabase.instance.client.auth.onAuthStateChange.listen((s) {
+        if (s.event == AuthChangeEvent.signedOut) {
+          if (_keepThroughSignOut) { _keepThroughSignOut = false; }
+          else if (_pending != null) { unawaited(clear()); }
+        }
+      });
+    } catch (_) {/* Supabase not ready (tests): nothing to forget. */}
+  }
 
   Future<void> start() async {
     if (_subscription != null) return;

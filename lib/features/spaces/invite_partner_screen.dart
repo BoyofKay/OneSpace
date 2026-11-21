@@ -96,8 +96,15 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
 
   Future<void> _sendEmail() async {
     if (_space == null || _recipient == null) return;
-    final result = await _db.functions.invoke('onespace-send-invitation',
-      body: {'space_id': _space, 'recipient_email': _recipient});
+    final FunctionResponse result;
+    try {
+      result = await _db.functions.invoke('onespace-send-invitation',
+        body: {'space_id': _space, 'recipient_email': _recipient});
+    } on FunctionException catch (e) {
+      // Show the server's reason (e.g. "wait a minute") instead of a guess.
+      final reason = e.details is Map ? (e.details as Map)['error']?.toString() : null;
+      throw StateError(reason ?? 'Email not accepted by provider');
+    }
     if (result.status != 200 || result.data is! Map ||
         (result.data as Map)['ok'] != true) {
       throw StateError('Email not accepted by provider');
@@ -136,10 +143,11 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
       await _load();
       try {
         await _sendEmail();
-      } catch (_) {
+      } catch (e) {
         if (mounted) setState(() => _error =
-          tt('The invitation is saved, but the email could not be sent. '
-             'Use Resend email without generating a new code.'));
+          tt('The invitation is saved, but the email could not be sent. ') +
+          (e is StateError && !e.message.startsWith('Email not accepted') ? tt(e.message)
+            : tt('Use Resend email without generating a new code.')));
       }
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -175,9 +183,10 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
     setState(() { _busy = true; _error = null; });
     try {
       await _sendEmail();
-    } catch (_) {
+    } catch (e) {
       if (mounted) setState(() => _error =
-        tt('Unable to resend now. The same code is still valid.'));
+        e is StateError && !e.message.startsWith('Email not accepted') ? tt(e.message)
+          : tt('Unable to resend now. The same code is still valid.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
