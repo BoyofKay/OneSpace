@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:onespace/l10n/phrases.dart';
+import '../../core/account_content_scope.dart';
+import '../../core/app_env.dart';
 import '../../core/current_space_cache.dart';
 import '../../core/editor_scaffold.dart';
 import '../../core/form_kit.dart';
@@ -134,6 +136,7 @@ class CountersScreen extends StatefulWidget {
 class _CountersScreenState extends State<CountersScreen> {
   final db = Supabase.instance.client;
   String? space;
+  AccountContentScope? scope;
   SpacePeople? people;
   List<CounterPoint> points = [];
   bool loading = true, timeline = false;
@@ -148,11 +151,22 @@ class _CountersScreenState extends State<CountersScreen> {
 
   Future<void> _load({bool openInitial = false}) async {
     try {
-      final s = await CurrentSpaceCache.instance.get();
+      var s = await CurrentSpaceCache.instance.get();
+      AccountContentScope? sc;
+      if (!OneSpaceEnv.isProduction) {
+        // QA: own private counters plus the current couple's shared ones.
+        sc = await AccountContentScope.load(db, legacySpaceId: s);
+        s = sc.sharedSpaceId ?? '';
+      }
       if (s == null) { if (mounted) setState(() => loading = false); return; }
       final p = await SpacePeople.load();
-      final rows = await db.from('space_counters').select().eq('space_id', s)
-        .isFilter('archived_at', null).order('on_date');
+      final me = db.auth.currentUser?.id;
+      var query = db.from('space_counters').select();
+      query = sc == null ? query.eq('space_id', s)
+        : query.or(sc.sharedSpaceId == null ? 'private_space_id.eq.$me'
+            : 'private_space_id.eq.$me,space_id.eq.${sc.sharedSpaceId}');
+      final rows = await query.isFilter('archived_at', null).order('on_date');
+      scope = sc;
       final out = <CounterPoint>[
         for (final r in rows) ...CountersRules.fromRow(Map<String, dynamic>.from(r)),
       ];
@@ -171,7 +185,7 @@ class _CountersScreenState extends State<CountersScreen> {
     final s = space;
     if (s == null) return;
     final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
-      builder: (_) => CounterEditor(spaceId: s, existing: row, initialDate: date,
+      builder: (_) => CounterEditor(spaceId: s, scope: scope, existing: row, initialDate: date,
         others: [for (final p in points) if (p.saved && !p.yearly && p.row?['id'] != row?['id']) p])));
     if (changed == true) await _load();
   }
@@ -647,8 +661,10 @@ Widget _dayCard(ThemeData theme, MaterialLocalizations loc, String title, DateTi
   ])));
 
 class CounterEditor extends StatefulWidget {
-  const CounterEditor({super.key, required this.spaceId, this.existing, this.initialDate, this.source, this.others = const []});
+  const CounterEditor({super.key, required this.spaceId, this.scope, this.existing, this.initialDate, this.source, this.others = const []});
   final String spaceId;
+  /// QA account-owned scope; null on Production.
+  final AccountContentScope? scope;
   final Map<String, dynamic>? existing;
   final DateTime? initialDate;
   final CounterSource? source;
@@ -695,7 +711,13 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
     shared = (e['visibility'] ?? 'shared') == 'shared';
     people = List<String>.from(e['people'] as List? ?? const []);
     SpacePeople.load().then((p) { if (mounted) setState(() => who = p); });
-    db.from('places').select('id,name').eq('space_id', widget.spaceId).isFilter('archived_at', null).order('name')
+    final sc = widget.scope;
+    final me = db.auth.currentUser?.id;
+    var placeQuery = db.from('places').select('id,name,visibility');
+    placeQuery = sc == null ? placeQuery.eq('space_id', widget.spaceId)
+      : placeQuery.or(sc.sharedSpaceId == null ? 'private_space_id.eq.$me'
+          : 'private_space_id.eq.$me,space_id.eq.${sc.sharedSpaceId}');
+    placeQuery.isFilter('archived_at', null).order('name')
       .then((rows) { if (mounted) setState(() => places = List<Map<String, dynamic>>.from(rows)); },
         onError: (_) {});
   }
@@ -705,6 +727,10 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
     title.dispose(); description.dispose(); placeText.dispose(); personName.dispose();
     super.dispose();
   }
+
+  /// QA: a private counter links only private places, a shared one shared places.
+  List<Map<String, dynamic>> get _places => widget.scope == null ? places
+    : [for (final p in places) if ((p['visibility'] == 'shared') == shared) p];
 
   Future<void> _chooseSource() async {
     final source = await pickCounterSource(context, widget.spaceId);
@@ -739,10 +765,15 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
       'people': people, 'linked_counter_id': linkedId, 'yearly': yearly, 'pinned': pinned,
       'visibility': shared ? 'shared' : 'private',
     };
+    final sc = widget.scope;
     try {
       if (widget.existing == null) {
-        await db.from('space_counters').insert({...values, 'space_id': widget.spaceId});
+        await db.from('space_counters').insert(sc == null
+          ? {...values, 'space_id': widget.spaceId}
+          : {...values, ...sc.fieldsForNew(shared: shared)});
       } else {
+        // QA: an existing counter keeps its owner and scope.
+        if (sc != null) values.remove('visibility');
         await db.from('space_counters').update(values).eq('id', widget.existing!['id']);
       }
       markClean();
@@ -770,7 +801,10 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
       isComplete: () => title.text.trim().isNotEmpty && date != null,
       onSave: _save,
       meta: MetaStrip(value: MetaValues(shared: shared), people: who, showBelongs: false, showDate: false,
-        onChanged: (v) => setState(() => shared = v.shared)),
+        onChanged: (v) => setState(() {
+          if (widget.scope != null && v.shared != shared) placeId = null;
+          shared = v.shared;
+        })),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         if (widget.existing == null) Padding(padding: const EdgeInsets.only(bottom: 12),
           child: OutlinedButton.icon(onPressed: _chooseSource,
@@ -817,12 +851,13 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
         TextField(controller: description, minLines: 2, maxLines: 6, maxLength: 4000,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(labelText: tt('Description'), border: const OutlineInputBorder())),
-        if (places.isNotEmpty) DropdownButtonFormField<String?>(
-          initialValue: places.any((p) => p['id'] == placeId) ? placeId : null,
+        if (_places.isNotEmpty) DropdownButtonFormField<String?>(
+          key: ValueKey('counter-places-$shared'),
+          initialValue: _places.any((p) => p['id'] == placeId) ? placeId : null,
           decoration: InputDecoration(labelText: tt('One of our places'), border: const OutlineInputBorder()),
           items: [
             DropdownMenuItem<String?>(value: null, child: Text(tt('None'))),
-            for (final p in places) DropdownMenuItem<String?>(value: p['id'].toString(), child: Text(p['name'].toString())),
+            for (final p in _places) DropdownMenuItem<String?>(value: p['id'].toString(), child: Text(p['name'].toString())),
           ],
           onChanged: (v) => setState(() => placeId = v)),
         if (placeId == null) Padding(padding: const EdgeInsets.only(top: 12), child: TextField(controller: placeText,

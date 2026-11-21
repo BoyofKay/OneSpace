@@ -663,9 +663,12 @@ class _CheckinEditorState extends State<CheckinEditor> {
       };
       if(widget.existing==null) {
         // Check uniqueness explicitly for a friendly message.
-        final previous=await _client.from('daily_checkins').select('id')
+        var query=_client.from('daily_checkins').select('id')
           .eq('created_by',_client.auth.currentUser!.id)
-          .eq('checkin_date',date).limit(1);
+          .eq('checkin_date',date);
+        // QA: one private and one shared feeling per day.
+        if(!OneSpaceEnv.isProduction)query=query.eq('visibility',_visibility);
+        final previous=await query.limit(1);
         if(previous.isNotEmpty){
           if(mounted)setState(()=>_error=tr(context,'checkinAlreadyExists'));
           return;

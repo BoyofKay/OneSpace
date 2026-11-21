@@ -49,7 +49,7 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
     try {
       final me = db.auth.currentUser?.id;
       if (me == null) return;
-      final row = await db.from('account_deletion_requests').select().eq('user_id', me).maybeSingle();
+      final row = await db.from('account_deletion_requests').select('user_id,requested_at,purge_after,cancelled_at,completed_at,processing_at').eq('user_id', me).maybeSingle();
       if (mounted) setState(() { request = row; loading = false; });
     } catch (_) {
       if (mounted) setState(() => loading = false);
@@ -219,16 +219,13 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
                   'also be permanently deleted. Your partner will keep '
                   'only their own private content and become unpaired. '
                   'Deleted content cannot be restored.')),
-                const SizedBox(height: 8),
-                Text(tt('Temporarily disabled while permanent shared deletion '
-                  'and independent private content ownership are verified. '
-                  'No archive is required and no deletion has been scheduled.')),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: AccountDataRules.qaDeletionControlsApproved && !busy
                     ? _requestDeletion : null,
-                  icon: const Icon(Icons.shield_outlined),
-                  label: Text(tt('Account deletion temporarily unavailable')),
+                  icon: const Icon(Icons.person_remove_outlined),
+                  label: Text(tt(AccountDataRules.qaDeletionControlsApproved
+                    ? 'Delete my account' : 'Account deletion temporarily unavailable')),
                 ),
               ]))),
           if (message != null) Padding(padding: const EdgeInsets.only(top: 12),
