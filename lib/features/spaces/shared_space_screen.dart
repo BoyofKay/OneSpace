@@ -137,6 +137,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     WidgetsBinding.instance.addObserver(this);
     _load();
     InvitationLinkInbox.instance.addListener(_useIncomingInvite);
+    InvitationLinkInbox.instance.watchSignOut();
     _useIncomingInvite();
     unawaited(PhoneCalendarSync.syncNow());
     unawaited(_loadPartnerLabel());
@@ -412,6 +413,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         summaryLoading = false;
         loading = false;
       });
+      unawaited(_checkPendingInvite());
       return;
     }
     final memberLabel = tr(context, 'member');
@@ -481,6 +483,41 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       summaryLoading = false;
       loading = false;
     });
+    unawaited(_checkPendingInvite());
+  }
+
+  /// QA: a saved invitation that can't be used by this account is explained
+  /// once and then forgotten, so it never sticks around.
+  Future<void> _checkPendingInvite() async {
+    final code = InvitationLinkInbox.instance.pendingCode;
+    if (OneSpaceEnv.isProduction || code == null || !mounted || working) return;
+    String? reason;
+    if (spaceId != null) {
+      reason = 'You already belong to a space, so this invitation can’t be used. '
+        'To join someone else, leave or delete your current space first.';
+    } else {
+      try {
+        final value = await client.rpc('resolve_my_addressed_invitation', params: {'p_token': code});
+        final status = value is Map ? value['status']?.toString() : null;
+        reason = switch (status) {
+          'ready' || 'updated' => null,
+          'wrong_account' => 'That invitation was for another email address, so it was removed from this phone.',
+          'expired' => 'That invitation has expired. Ask your partner to send a new one.',
+          'replaced' => 'That invitation was replaced by a newer one. Ask your partner for the latest link.',
+          'already_used' => 'That invitation was already used.',
+          'already_paired' => 'You already belong to a space, so this invitation can’t be used.',
+          'full' => 'That space already has two people.',
+          'confirm_email' => null, // keep it until the email is confirmed
+          _ => 'That invitation can’t be used any more.',
+        };
+      } catch (_) { return; } // offline: keep it and try again later
+    }
+    if (reason == null || !mounted) return;
+    await InvitationLinkInbox.instance.clear();
+    if (!mounted) return;
+    setState(() { invitationController.clear(); issue = null; _lastAutoJoinKey = null; });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      duration: const Duration(seconds: 8), content: Text(tt(reason))));
   }
 
   List<TodayCalendarEntry> _parseComingUp(Object? raw){
@@ -1280,6 +1317,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                 OutlinedButton.icon(
                   onPressed: working ? null : () async {
                     // Preserve the invite securely for the right account.
+                    InvitationLinkInbox.instance.keepThroughNextSignOut();
                     await client.auth.signOut();
                   },
                   icon: const Icon(Icons.logout),

@@ -210,11 +210,18 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
     final me = db.auth.currentUser?.id;
     if (me == null) return;
     await run(() async {
-      await db.from('account_birthdays').update({
+      final saved = await db.from('account_birthdays').update({
         if (share != null) 'share_with_partner': share,
         if (share == false) 'share_year': false,
         if (year != null) 'share_year': year,
-      }).eq('user_id', me);
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('user_id', me).select('share_with_partner,share_year').maybeSingle();
+      // Show what the server really holds, so the switch never lies.
+      if (saved == null) throw StateError('Your birthday sharing could not be saved. Try again.');
+      if (mounted) setState(() {
+        shareBirthday = saved['share_with_partner'] == true;
+        shareYear = saved['share_year'] == true;
+      });
     });
   }
 
@@ -378,17 +385,21 @@ extension on _SpecialDatesScreenState {
     slot(icon: Icons.cake_outlined, title: 'Your birthday', value: mine,
       onTap: setMyBirthday, onRemove: mine == null ? null : () => remove(mine)),
     if (hasBirthday) ...[
+      // Sharing only means something while a partner is here.
       SwitchListTile(contentPadding: EdgeInsets.zero,
         key: const Key('qaShareBirthday'),
         title: Text(tt('Show my birthday to my partner')),
-        value: shareBirthday,
-        onChanged: busy ? null : (v) => setBirthdaySharing(share: v)),
+        value: p.paired && shareBirthday,
+        onChanged: busy || !p.paired ? null : (v) => setBirthdaySharing(share: v)),
       SwitchListTile(contentPadding: EdgeInsets.zero,
         key: const Key('qaShareBirthYear'),
         title: Text(tt('Also show my birth year')),
-        value: shareYear,
-        onChanged: busy || !shareBirthday ? null : (v) => setBirthdaySharing(year: v)),
-      Text(tt('Both are off by default, and switch off again whenever a partner joins or your space changes.'),
+        subtitle: Text(tt('Without the year, your partner sees the day only, not your age.')),
+        value: p.paired && shareYear,
+        onChanged: busy || !p.paired || !shareBirthday ? null : (v) => setBirthdaySharing(year: v)),
+      Text(tt(p.paired
+          ? 'Both are off by default, and switch off again whenever a partner joins or your space changes.'
+          : 'You can choose these once a partner joins your space.'),
         style: theme.textTheme.bodySmall),
     ],
     if (p.partnerId != null) slot(icon: Icons.cake_outlined,

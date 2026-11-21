@@ -14,6 +14,10 @@ class CurrentSpaceCache {
   /// Null while unknown.
   static final ValueNotifier<bool?> paired = ValueNotifier<bool?>(null);
 
+  /// True when I belong to a (couple) space at all, even alone in it.
+  /// Null while unknown.
+  static final ValueNotifier<bool?> hasSpace = ValueNotifier<bool?>(null);
+
   String? _userId;
   String? _spaceId;
   Map<String, String>? _memberNames;
@@ -26,6 +30,7 @@ class CurrentSpaceCache {
     _generation++;
     _userId = userId;
     _spaceId = spaceId;
+    hasSpace.value = spaceId != null;
     // Only cache names returned by an authenticated, RLS-checked snapshot.
     // They never touch local disk and expire with the membership lookup.
     _memberNames = memberNames == null
@@ -57,6 +62,7 @@ class CurrentSpaceCache {
     _loadedAt = null;
     _pending = null;
     paired.value = null;
+    hasSpace.value = null;
   }
 
   Future<String?> get({bool refresh = false}) {
@@ -94,6 +100,7 @@ class CurrentSpaceCache {
           if (_userId == id && _generation == generation) {
             if (_spaceId != spaceId) _memberNames = null;
             _spaceId = spaceId;
+            hasSpace.value = spaceId != null;
             _loadedAt = DateTime.now();
             _pending = null;
           }

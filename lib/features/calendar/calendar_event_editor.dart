@@ -1,3 +1,4 @@
+import 'event_time_rules.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
@@ -100,7 +101,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     if(existing==null&&widget.initialTime!=null){
       _allDay=false;
       _start=widget.initialTime!;
-      _end=TimeOfDay(hour:(widget.initialTime!.hour+1)%24,minute:widget.initialTime!.minute);
+      _end=EventTimeRules.endFor(widget.initialTime!);
     }
     if(initialStart!=null){
       _allDay=false;
@@ -157,8 +158,21 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
   Future<void> _pickTime(bool starting) async {
     final result=await showTimePicker(context:context,
       initialTime:starting?_start:_end);
-    if(result!=null&&mounted)setState((){
-      if(starting){_start=result;}else{_end=result;}
+    if(result==null||!mounted)return;
+    setState((){
+      _error=null;
+      if(starting){
+        if(!EventTimeRules.validStart(result)){
+          _error='Choose a start before 23:59 so the event can end after it.';
+          return;
+        }
+        // The end follows the start by one hour; it can be changed after.
+        _start=result;_end=EventTimeRules.endFor(result);
+      }else if(EventTimeRules.validEnd(_start,result)){
+        _end=result;
+      }else{
+        _error='The end time must be after the start time.';
+      }
     });
   }
 
@@ -198,7 +212,10 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         final zone=usePartner?_partnerZone:await DeviceTimeZone.readPhone();
         final start=ZoneTime.instant(_date.year,_date.month,_date.day,_start.hour,_start.minute,zone);
         final end=ZoneTime.instant(_date.year,_date.month,_date.day,_end.hour,_end.minute,zone);
-        if(!end.isAfter(start))throw StateError('End time must be after start time');
+        if(!end.isAfter(start)){
+          if(mounted)setState((){_saving=false;_error='The end time must be after the start time.';});
+          return;
+        }
         fields['starts_at']=start.toIso8601String();
         fields['ends_at']=end.toIso8601String();
         fields['zone_id']=zone;
