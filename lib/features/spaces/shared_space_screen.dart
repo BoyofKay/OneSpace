@@ -1443,7 +1443,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               _invitePanel(),
               const SizedBox(height:12),
             ],
-            _hero(),
+            // How we live only makes sense with two people in the space.
+            if (memberCount >= 2) _hero(),
             _sinceAwaySection(),
             TodayAttentionSection(
               items:focusItems,
