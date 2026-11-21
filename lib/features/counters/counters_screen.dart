@@ -153,7 +153,7 @@ class _CountersScreenState extends State<CountersScreen> {
     try {
       var s = await CurrentSpaceCache.instance.get();
       AccountContentScope? sc;
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         // QA: own private counters plus the current couple's shared ones.
         sc = await AccountContentScope.load(db, legacySpaceId: s);
         s = sc.sharedSpaceId ?? '';

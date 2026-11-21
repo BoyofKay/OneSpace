@@ -65,7 +65,7 @@ Future<void> showInvitationEmailDialog(BuildContext context, {
             onPressed: working ? null : () async {
               try {
                 final uri = invitationEmailDraftUri(token,
-                  qa: !OneSpaceEnv.isProduction);
+                  qa: !OneSpaceEnv.usesLegacyBackend);
                 final opened = await launchUrl(uri,
                   mode: LaunchMode.externalApplication);
                 if (!opened && ctx.mounted) {

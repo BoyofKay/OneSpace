@@ -27,7 +27,7 @@ class AccountContentScope {
     SupabaseClient client, {
     String? legacySpaceId,
   }) async {
-    if (OneSpaceEnv.isProduction) {
+    if (OneSpaceEnv.usesLegacyBackend) {
       return AccountContentScope(
         accountOwned: false,
         sharedSpaceId: legacySpaceId,

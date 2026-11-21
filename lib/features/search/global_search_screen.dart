@@ -55,7 +55,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      final account=db.auth.currentUser?.id;
      if(account==null)throw StateError('Sign in first');
      final id=await CurrentSpaceCache.instance.get();
-     if(id==null && OneSpaceEnv.isProduction)
+     if(id==null && OneSpaceEnv.usesLegacyBackend)
        throw StateError('Connect your shared space first');
      if(!mounted||request!=version||db.auth.currentUser?.id!=account)return;
      final pattern=GlobalSearchRules.pattern(term);
@@ -63,7 +63,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      // the current couple's shared ones, so personal-capable sections are not
      // filtered by space. A solo QA account still searches its personal space.
      // Couple-only sections are skipped when there is no current relationship.
-     final personal=!OneSpaceEnv.isProduction;
+     final personal=!OneSpaceEnv.usesLegacyBackend;
      final couple=id??'';
      dynamic own(dynamic request)=>personal?request:request.eq('space_id',couple);
      const none=<Map<String,dynamic>>[];
@@ -81,10 +81,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          return <Map<String,dynamic>>[];
        }
      }
-     final qaNoteTitles = OneSpaceEnv.isProduction
+     final qaNoteTitles = OneSpaceEnv.usesLegacyBackend
        ? db.from('notes').select('id,title,updated_at').eq('space_id',couple)
        : db.from('notes').select('id,title,updated_at');
-     final qaNoteBodies = OneSpaceEnv.isProduction
+     final qaNoteBodies = OneSpaceEnv.usesLegacyBackend
        ? db.from('notes').select('id,title').eq('space_id',couple)
        : db.from('notes').select('id,title');
      final groups=await Future.wait([
@@ -92,7 +92,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('title',pattern).order('updated_at',ascending:false).limit(GlobalSearchRules.maxPerSection)),
        guarded('Calendar',own(db.from('space_events').select('id,title,event_date'))
          .isFilter('archived_at',null).ilike('title',pattern).order('event_date').limit(GlobalSearchRules.maxPerSection)),
-       guarded('To-do',(OneSpaceEnv.isProduction
+       guarded('To-do',(OneSpaceEnv.usesLegacyBackend
           ? db.from('tasks').select('id,title,created_at').eq('space_id',couple)
           : db.from('tasks').select('id,title,created_at'))
          .isFilter('migrated_to_list',null).ilike('title',pattern)
@@ -118,7 +118,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
        guarded('Occasion',id==null?none:db.from('occasion_plans').select('id,title').eq('space_id',couple)
          .isFilter('archived_at',null).ilike('title',pattern).limit(GlobalSearchRules.maxPerSection)),
-       guarded('Reminder',(OneSpaceEnv.isProduction
+       guarded('Reminder',(OneSpaceEnv.usesLegacyBackend
           ? db.from('reminders').select('id,title').eq('space_id',couple)
           : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('title',pattern)
@@ -143,7 +143,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
        guarded('Memory',own(db.from('memories').select('id,title'))
          .isFilter('archived_at',null).ilike('body',pattern)
          .limit(GlobalSearchRules.maxPerSection)),
-       guarded('Reminder',(OneSpaceEnv.isProduction
+       guarded('Reminder',(OneSpaceEnv.usesLegacyBackend
           ? db.from('reminders').select('id,title').eq('space_id',couple)
           : db.from('reminders').select('id,title'))
          .isFilter('archived_at',null).ilike('details',pattern)

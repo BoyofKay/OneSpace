@@ -229,7 +229,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
   Future<void> _share(String via) async {
     final code = _token;
     if (code == null) return;
-    final message = invitationMessage(code, qa: !OneSpaceEnv.isProduction);
+    final message = invitationMessage(code, qa: !OneSpaceEnv.usesLegacyBackend);
     final uri = via == 'sms'
       ? Uri.parse('sms:?body=${Uri.encodeComponent(message)}')
       : Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');

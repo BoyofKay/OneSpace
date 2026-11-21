@@ -187,7 +187,7 @@ class _HolidayPreferencesScreenState extends State<_HolidayPreferencesScreen>{
  @override Widget build(BuildContext context)=>Scaffold(
   appBar:AppBar(title:Text(tt('Regional holidays'))),
   body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
-   if(!OneSpaceEnv.isProduction)const AccountHolidayCountriesPanel()
+   if(!OneSpaceEnv.usesLegacyBackend)const AccountHolidayCountriesPanel()
    else ...[
    Text(tt('Choose the countries in our shared calendar.')),
    const SizedBox(height:12),

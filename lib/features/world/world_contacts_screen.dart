@@ -45,7 +45,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      final legacy=await CurrentSpaceCache.instance.get();
      final scopes=await AccountContentScope.load(db,legacySpaceId:legacy);
      final id=scopes.sharedSpaceId;
-     if(id==null && OneSpaceEnv.isProduction){
+     if(id==null && OneSpaceEnv.usesLegacyBackend){
        if(mounted)setState((){
          space=null;personalAvailable=false;loading=false;contacts=[];
        });
@@ -57,7 +57,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
        .eq('kind','contact');
      var standalone=db.from('saved_contacts').select(
        'id,created_by,visibility,label,payload,archived_at,updated_at');
-     if(OneSpaceEnv.isProduction){
+     if(OneSpaceEnv.usesLegacyBackend){
        linked=linked.eq('activities.space_id',id!);
        standalone=standalone.eq('space_id',id);
      }

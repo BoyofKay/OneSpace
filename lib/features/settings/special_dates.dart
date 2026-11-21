@@ -71,7 +71,7 @@ Future<List<SpecialDate>> loadSpecialDates(String spaceId) async {
   final rows = await db.from('space_special_dates').select()
     .eq('space_id', spaceId).isFilter('archived_at', null).order('month').order('day');
   final list = [for (final r in rows) SpecialDate.fromRow(r)];
-  if (OneSpaceEnv.isProduction) return list;
+  if (OneSpaceEnv.usesLegacyBackend) return list;
   list.removeWhere((d) => d.kind == 'birthday');
   list.addAll(await loadPersonBirthdays());
   return list;
@@ -136,9 +136,9 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
         mine = (row?['display_name'] ?? '').toString().trim().split(RegExp(r'\s+')).first;
       }
       final list = id == null
-        ? (OneSpaceEnv.isProduction ? <SpecialDate>[] : await loadPersonBirthdays())
+        ? (OneSpaceEnv.usesLegacyBackend ? <SpecialDate>[] : await loadPersonBirthdays())
         : await loadSpecialDates(id);
-      if (!OneSpaceEnv.isProduction && me != null) {
+      if (!OneSpaceEnv.usesLegacyBackend && me != null) {
         final row = await db.from('account_birthdays').select('share_with_partner,share_year')
           .eq('user_id', me).maybeSingle();
         hasBirthday = row != null;
@@ -243,7 +243,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
   }
 
   Future<void> remove(SpecialDate d) async {
-    if (!OneSpaceEnv.isProduction && d.kind == 'birthday') {
+    if (!OneSpaceEnv.usesLegacyBackend && d.kind == 'birthday') {
       await run(() async {
         await db.from('account_birthdays').delete().eq('user_id', db.auth.currentUser!.id);
       });
@@ -341,11 +341,11 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
           Text(tt('Fill these once. They show in the calendar every year, and you can start planning an occasion from any of them.'),
             style: theme.textTheme.bodyMedium),
           const SizedBox(height: 14),
-          if (!OneSpaceEnv.isProduction && p != null) ..._qaBirthdays(theme, p, mine, theirs),
-          if (space == null) Text(tt(OneSpaceEnv.isProduction ? 'Connect your shared space first.'
+          if (!OneSpaceEnv.usesLegacyBackend && p != null) ..._qaBirthdays(theme, p, mine, theirs),
+          if (space == null) Text(tt(OneSpaceEnv.usesLegacyBackend ? 'Connect your shared space first.'
             : 'Your anniversary and shared special dates can be added once your partner joins.'))
           else ...[
-            if (OneSpaceEnv.isProduction) ...[
+            if (OneSpaceEnv.usesLegacyBackend) ...[
             Text(tt('Birthdays'), style: theme.textTheme.titleMedium),
             if (p != null) slot(icon: Icons.cake_outlined, title: 'Your birthday', value: mine,
               onTap: () => setSlot('birthday', 'Your birthday', person: p.me),

@@ -21,7 +21,7 @@ Deno.serve(async(req:Request)=>{
  let projectUrl:URL;
  try{projectUrl=new URL(url);}catch{return json(503,{error:"QA backend not configured"});}
  if(projectUrl.protocol!=="https:"||
-   projectUrl.hostname!=="ugwrpeduzyzrujkizqfo.supabase.co"||
+   !["ugwrpeduzyzrujkizqfo.supabase.co","letcgxbnblohhfyeuigz.supabase.co"].includes(projectUrl.hostname)||
    !service)return json(503,{error:"QA-only backend verification failed"});
 
  const db=createClient(url,service,{

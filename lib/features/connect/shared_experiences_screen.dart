@@ -160,7 +160,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
   try{
    var id=await CurrentSpaceCache.instance.get();
    var privateReady=false;
-   if(!OneSpaceEnv.isProduction){
+   if(!OneSpaceEnv.usesLegacyBackend){
     final scopes=await db.rpc('my_storage_scopes');
     if(scopes is! Map||
        scopes['private_space_id']?.toString()!=account){
@@ -175,7 +175,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     setState((){space=null;personalReady=false;rows=[];interests=[];loading=false;error=null;});
     return;
    }
-   final rootQuery=OneSpaceEnv.isProduction
+   final rootQuery=OneSpaceEnv.usesLegacyBackend
      ?db.from('shared_experiences').select().eq('space_id',id!)
      :db.from('shared_experiences').select();
    final result=await rootQuery.order('updated_at',ascending:false).limit(250);
@@ -485,7 +485,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
        subtitle:Text(tt([
         experienceTypes[r['category']]??'Other',
         experienceStates[r['status']]??'Suggested',
-        if(!OneSpaceEnv.isProduction&&r['private_space_id']!=null)'Only me',
+        if(!OneSpaceEnv.usesLegacyBackend&&r['private_space_id']!=null)'Only me',
         if((r['platform']??'').toString().trim().isNotEmpty)r['platform'].toString(),
         if(r['status']=='planned'&&r['planned_on']!=null)
          'Planned: '+r['planned_on'].toString(),
@@ -567,7 +567,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
   url=TextEditingController(text:(r['source_url']??'').toString());
   kind=(r['category']??widget.initialKind??'movie').toString();
   status=(r['status']??'suggested').toString();
-  visibility=(r['visibility']??(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty
+  visibility=(r['visibility']??(!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty
    ?'private':'shared')).toString();
   planned=DateTime.tryParse((r['planned_on']??'').toString());
   enjoyed=DateTime.tryParse((r['enjoyed_on']??'').toString());
@@ -593,7 +593,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     'planned_on':planned==null?null:ExperiencePickerRules.dateOnly(planned!),
     'enjoyed_on':enjoyed==null?null:ExperiencePickerRules.dateOnly(enjoyed!)};
    if(widget.original==null){
-    final personal=!OneSpaceEnv.isProduction&&visibility=='private';
+    final personal=!OneSpaceEnv.usesLegacyBackend&&visibility=='private';
     if(!personal&&widget.spaceId.isEmpty){
       throw StateError('Connect with a partner before sharing an experience.');
     }
@@ -602,7 +602,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
      if(personal) 'private_space_id':db.auth.currentUser!.id
      else 'space_id':widget.spaceId,
      'created_by':db.auth.currentUser!.id,
-     if(!OneSpaceEnv.isProduction) 'visibility':visibility,
+     if(!OneSpaceEnv.usesLegacyBackend) 'visibility':visibility,
     });
    }else{
     final changed=await db.from('shared_experiences').update(values)
@@ -639,11 +639,11 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
    meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(date:planned,shared:visibility=='shared'),
-    showVisibility:!OneSpaceEnv.isProduction&&widget.original==null,showBelongs:false,
+    showVisibility:!OneSpaceEnv.usesLegacyBackend&&widget.original==null,showBelongs:false,
     dateLabel:tt('Plan a date'),onChanged:(v)=>setState((){
       planned=v.date;
       if(widget.original==null)visibility=
-        !OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?'private':
+        !OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty?'private':
         (v.shared?'shared':'private');
     })),
    body:ListView(padding:const EdgeInsets.all(18),children:[
@@ -686,7 +686,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     decoration:InputDecoration(labelText:tt('Why this one?'),alignLabelWithHint:true,
      border:OutlineInputBorder())),
    if(widget.spaceId.isNotEmpty&&
-      (OneSpaceEnv.isProduction||visibility=='shared'))
+      (OneSpaceEnv.usesLegacyBackend||visibility=='shared'))
     Align(alignment:AlignmentDirectional.centerStart,
      child:PartnerMentionButton(spaceId:widget.spaceId,controller:description)),
    if(error!=null)Padding(padding:const EdgeInsets.only(top:10),
@@ -1038,7 +1038,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    if(r!=null)ItemMenu(kind:'experience',recordId:widget.id,title:r['title']?.toString(),
     onOpen:edit,
     moreActions:[
-     if((OneSpaceEnv.isProduction||r['private_space_id']==null)&&r['space_id']!=null)
+     if((OneSpaceEnv.usesLegacyBackend||r['private_space_id']==null)&&r['space_id']!=null)
        ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
       ()=>createFromThis(context,kind:LinkKind.experience,id:widget.id,spaceId:r['space_id'].toString(),
        title:r['title'].toString(),date:DateTime.tryParse(r['planned_on']?.toString()??''),
@@ -1049,11 +1049,11 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
    r==null?Center(child:Text(tt(error??'Not found'))):Column(children:[Expanded(child:ListView(
     padding:const EdgeInsets.all(16),children:[
     Text(tt(r['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
-     if(OneSpaceEnv.isProduction||r['private_space_id']==null)
+     if(OneSpaceEnv.usesLegacyBackend||r['private_space_id']==null)
       LinkedItemsStrip(key:_links,kind:LinkKind.experience,id:widget.id),
     Text(tt((experienceTypes[r['category']]??'Other')+' · '+
       (experienceStates[r['status']]??'Suggested')+
-      (!OneSpaceEnv.isProduction&&r['private_space_id']!=null?' · Only me':''))),
+      (!OneSpaceEnv.usesLegacyBackend&&r['private_space_id']!=null?' · Only me':''))),
     if(r['planned_on']!=null)Text(tt('Planned together: ')+r['planned_on'].toString()),
     if(r['enjoyed_on']!=null)Text(
      tt(ExperiencePickerRules.completionState(r['category'].toString())+

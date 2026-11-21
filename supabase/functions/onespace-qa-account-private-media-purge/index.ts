@@ -21,7 +21,7 @@ Deno.serve(async(req:Request)=>{
  let project:URL;
  try{project=new URL(url);}catch{return answer(503,{error:"QA backend unavailable"});}
  if(project.protocol!=="https:"||
-   project.hostname!=="ugwrpeduzyzrujkizqfo.supabase.co"||!key)
+   !["ugwrpeduzyzrujkizqfo.supabase.co","letcgxbnblohhfyeuigz.supabase.co"].includes(project.hostname)||!key)
   return answer(503,{error:"QA-only project guard failed"});
 
  const db=createClient(url,key,{auth:{

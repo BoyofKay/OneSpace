@@ -29,7 +29,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
   final db = Supabase.instance.client;
   late final title = TextEditingController(text: widget.file.title);
   late final note = TextEditingController(text: widget.file.note);
-  bool shared = OneSpaceEnv.isProduction, saving = false, toMemory = false;
+  bool shared = OneSpaceEnv.usesLegacyBackend, saving = false, toMemory = false;
   String? error;
 
   @override
@@ -42,7 +42,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
   Future<void> _save() async {
     final user = db.auth.currentUser?.id;
     if (user == null || title.text.trim().isEmpty) return;
-    if(!OneSpaceEnv.isProduction&&shared&&widget.spaceId.isEmpty){
+    if(!OneSpaceEnv.usesLegacyBackend&&shared&&widget.spaceId.isEmpty){
       setState(()=>error='To share a file, connect with a partner first. '
         'You can always save it privately.');
       return;
@@ -52,7 +52,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
     try {
       // An old cached solo or former-couple ID is not proof of a live pair.
       // Verify the current QA pairing *before* writing any Storage object.
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         final scopes=await db.rpc('my_storage_scopes');
         if(scopes is! Map ||
           scopes['private_space_id']?.toString()!=user){
@@ -64,8 +64,8 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
       }
       if (toMemory && widget.file.isImage) {
         final memory = await db.from('memories').insert({
-          if(OneSpaceEnv.isProduction||shared)'space_id':widget.spaceId,
-          if(!OneSpaceEnv.isProduction&&!shared)'private_space_id':user,
+          if(OneSpaceEnv.usesLegacyBackend||shared)'space_id':widget.spaceId,
+          if(!OneSpaceEnv.usesLegacyBackend&&!shared)'private_space_id':user,
           'created_by': user,
           'title': title.text.trim(), 'body': note.text.trim(),
           'memory_date': CalendarRules.sqlDate(DateTime.now()),
@@ -74,7 +74,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
         await MemoryPhotoService(db).addFiles(memory['id'].toString(),
             [XFile.fromData(bytes, name: widget.file.name, mimeType: widget.file.mime)]);
       } else {
-        final selectedBucket=OneSpaceEnv.isProduction||shared
+        final selectedBucket=OneSpaceEnv.usesLegacyBackend||shared
           ? bucket : privateBucket;
         final path = '$user/${const Uuid().v4()}.${widget.file.extension}';
         final storage = db.storage.from(selectedBucket);
@@ -82,13 +82,13 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
             fileOptions: FileOptions(contentType: widget.file.mime, upsert: false));
         try {
           await db.from('items_to_sort').insert({
-            if(OneSpaceEnv.isProduction||shared)'space_id':widget.spaceId,
-            if(!OneSpaceEnv.isProduction&&!shared)'private_space_id':user,
+            if(OneSpaceEnv.usesLegacyBackend||shared)'space_id':widget.spaceId,
+            if(!OneSpaceEnv.usesLegacyBackend&&!shared)'private_space_id':user,
             'created_by': user,
             'title': title.text.trim(), 'note': note.text.trim(),
             'visibility': shared ? 'shared' : 'private',
             'file_path': path,
-            if(!OneSpaceEnv.isProduction)'file_bucket_id':selectedBucket,
+            if(!OneSpaceEnv.usesLegacyBackend)'file_bucket_id':selectedBucket,
             'file_name': widget.file.name.isEmpty ? null : widget.file.name,
             'file_mime': widget.file.mime, 'file_size': bytes.length,
           });
@@ -120,7 +120,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
       isNew: true,
       isChanged: () => true,
       isComplete: () => title.text.trim().isNotEmpty &&
-        (OneSpaceEnv.isProduction || !shared || widget.spaceId.isNotEmpty),
+        (OneSpaceEnv.usesLegacyBackend || !shared || widget.spaceId.isNotEmpty),
       listenTo: [title, note],
       saving: saving,
       onSave: _save,
@@ -128,7 +128,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
         enabled: !saving,
         onChanged: (v) => setState(() => shared = v.shared)),
       body: ListView(padding: const EdgeInsets.all(18), children: [
-        if(!OneSpaceEnv.isProduction) Padding(
+        if(!OneSpaceEnv.usesLegacyBackend) Padding(
           padding:const EdgeInsets.only(bottom:10),
           child:Text(tt(shared
             ? 'Shared files go into your current couple space. They are erased when that relationship ends.'

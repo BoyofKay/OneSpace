@@ -63,7 +63,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   editor=quill.QuillController(document:document,
    selection:const TextSelection.collapsed(offset:0));
   editor.readOnly=!canEdit||archived;
-  visibility=(old?['visibility']??(!OneSpaceEnv.isProduction && widget.spaceId.isEmpty ? 'private' : 'shared')).toString();
+  visibility=(old?['visibility']??(!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty ? 'private' : 'shared')).toString();
   pinned=old?['pinned']==true;
   if(editing&&!canEdit){
    revocationWatcher=watchObjectShares(client:db,spaceId:widget.spaceId,
@@ -95,7 +95,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    setState(()=>error='This document is too large. Shorten it or split into two notes.');
    return;
   }
-  if (!OneSpaceEnv.isProduction && visibility=='shared' && widget.spaceId.isEmpty) {
+  if (!OneSpaceEnv.usesLegacyBackend && visibility=='shared' && widget.spaceId.isEmpty) {
     setState(()=>error='Connect with a partner before sharing a note.');
     return;
   }
@@ -107,7 +107,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    if(!editing){
     await db.from('notes').insert({
      ...fields,
-     if (!OneSpaceEnv.isProduction && visibility=='private')
+     if (!OneSpaceEnv.usesLegacyBackend && visibility=='private')
        'private_space_id':db.auth.currentUser!.id
      else 'space_id':widget.spaceId,
      'visibility':visibility,'created_by':db.auth.currentUser!.id,
@@ -116,7 +116,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
     final old=record!;
     var query=db.from('notes').update(fields)
      .eq('id',old['id']);
-    if (OneSpaceEnv.isProduction) query=query.eq('space_id',widget.spaceId);
+    if (OneSpaceEnv.usesLegacyBackend) query=query.eq('space_id',widget.spaceId);
     // Created a moment ago in this editor: photos may have touched it since.
     if(!createdHere)query=query.eq('updated_at',old['updated_at']);
     final result=await query.select('id');
@@ -139,14 +139,14 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   if(name.isEmpty){setState(()=>error='Add a title first, then photos and links.');return;}
   setState((){busy=true;error=null;});
   try{
-   if (!OneSpaceEnv.isProduction && visibility=='shared' && widget.spaceId.isEmpty) {
+   if (!OneSpaceEnv.usesLegacyBackend && visibility=='shared' && widget.spaceId.isEmpty) {
      if(mounted)setState(()=>error='Connect with a partner before sharing a note.');
      return;
    }
    final row=await db.from('notes').insert({
     'title':name,'body':editor.document.toPlainText().trim(),
     'rich_delta':editor.document.toDelta().toJson(),'pinned':pinned,
-    if (!OneSpaceEnv.isProduction && visibility=='private')
+    if (!OneSpaceEnv.usesLegacyBackend && visibility=='private')
       'private_space_id':db.auth.currentUser!.id
     else 'space_id':widget.spaceId,
     'visibility':visibility,'created_by':db.auth.currentUser!.id,
@@ -179,7 +179,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    listenTo:[title,editor],saving:busy,onSave:save,
    meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
      enabled:!editing&&!busy &&
-       (OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty),
+       (OneSpaceEnv.usesLegacyBackend || widget.spaceId.isNotEmpty),
      onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private'),
      extras:[FilterChip(avatar:Icon(pinned?Icons.push_pin:Icons.push_pin_outlined,size:18),
       showCheckmark:false,label:Text(tt(pinned?'Pinned':'Pin')),selected:pinned,
@@ -215,7 +215,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
      const SizedBox(height:12),
      // QA: personal notes keep photos in the account's private bucket.
      // Links to other items stay shared-only.
-     if (!OneSpaceEnv.isProduction && visibility!='shared') ...[
+     if (!OneSpaceEnv.usesLegacyBackend && visibility!='shared') ...[
        if(editing)...[
         NotePhotosPanel(
          noteId:record!['id'].toString(),canEdit:isEditingAllowed),
@@ -225,7 +225,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
          label:Text(tt('Add photos')),onPressed:busy?null:ensureSaved),
        ]),
      ],
-     if (OneSpaceEnv.isProduction || visibility=='shared') ...[
+     if (OneSpaceEnv.usesLegacyBackend || visibility=='shared') ...[
        if(editing)...[
         NotePhotosPanel(
          noteId:record!['id'].toString(),canEdit:isEditingAllowed),

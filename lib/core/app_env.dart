@@ -13,6 +13,14 @@ class OneSpaceEnv {
 
   static const name = String.fromEnvironment('ONESPACE_ENV', defaultValue: 'qa');
   static const isProduction = name == 'production';
+  /// Before the November 2026 upgrade, the Production database lacked the
+  /// personal/shared space model (schema 0142+), so Production builds took
+  /// older code paths. Production now runs the same schema as QA
+  /// (supabase/production/upgrade.sql), so both builds use the same paths.
+  /// Use [isProduction] only for real environment settings (URL, key,
+  /// package, labels), never to change how a feature behaves.
+  static const usesLegacyBackend = false;
+
   static const expectedAndroidPackage =
       isProduction ? 'live.onespace.app' : 'onespace.qa';
 

@@ -31,7 +31,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
     try{
       var id=await CurrentSpaceCache.instance.get();
       var ownScope=false;
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         final scopes=await db.rpc('my_storage_scopes');
         if(scopes is! Map ||
            scopes['private_space_id']?.toString()!=db.auth.currentUser?.id){
@@ -40,7 +40,7 @@ class _CoupleLettersScreenState extends State<CoupleLettersScreen> {
         id=scopes['shared_space_id']?.toString();ownScope=true;
       }
       final rows=(id==null&&!ownScope)?null:List<Map<String,dynamic>>.from(
-        await (OneSpaceEnv.isProduction
+        await (OneSpaceEnv.usesLegacyBackend
           ?db.from('couple_letters').select().eq('space_id',id!)
           :db.from('couple_letters').select())
             .order('updated_at',ascending:false).limit(300));
@@ -231,11 +231,11 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
         'open_on':openOn==null?null:'${openOn!.year.toString().padLeft(4,'0')}-${openOn!.month.toString().padLeft(2,'0')}-${openOn!.day.toString().padLeft(2,'0')}',
       };
       final old=widget.existing;
-      if(send&&widget.spaceId.isEmpty&&!OneSpaceEnv.isProduction){
+      if(send&&widget.spaceId.isEmpty&&!OneSpaceEnv.usesLegacyBackend){
         throw StateError('Connect with a partner before sending a letter.');
       }
-      final personal=!OneSpaceEnv.isProduction&&!send;
-      final copyingPersonalDraft=!OneSpaceEnv.isProduction&&send&&
+      final personal=!OneSpaceEnv.usesLegacyBackend&&!send;
+      final copyingPersonalDraft=!OneSpaceEnv.usesLegacyBackend&&send&&
          (old?['private_space_id']!=null);
       if(old!=null&&!copyingPersonalDraft){
         final updated=await db.from('couple_letters').update(fields)
@@ -316,9 +316,9 @@ class _CoupleLetterEditorState extends State<CoupleLetterEditor> {
       const SizedBox(height:12),
       FilledButton.icon(
         icon:Icon(openOn==null?Icons.send_outlined:Icons.schedule_send_outlined),
-        onPressed:saving||(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+        onPressed:saving||(!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty)
           ?null:()=>save(send:true),
-        label:Text(tt(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty
+        label:Text(tt(!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty
           ?'Connect with a partner to send'
           :(widget.existing?['private_space_id']!=null)
             ?'Send a copy (keep my draft)'

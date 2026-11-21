@@ -62,7 +62,7 @@ class _NotesScreenState extends State<NotesScreen> {
       objectType: 'note',
       onChanged: () {
         if (!mounted || _spaceId != id) return;
-        setState(() => _stream = OneSpaceEnv.isProduction
+        setState(() => _stream = OneSpaceEnv.usesLegacyBackend
           ? _client.from('notes').stream(primaryKey: ['id'])
               .eq('space_id', id)
               .order('updated_at', ascending: false)
@@ -77,7 +77,7 @@ class _NotesScreenState extends State<NotesScreen> {
     try {
       final legacy = await CurrentSpaceCache.instance.get();
       String? id = legacy;
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         final scopes = await _client.rpc('my_storage_scopes');
         if (scopes is! Map || scopes['private_space_id'] == null) {
           throw StateError('Personal scope unavailable');
@@ -89,7 +89,7 @@ class _NotesScreenState extends State<NotesScreen> {
         _spaceId = id;
         // In QA, row-level security combines account-owned and current
         // relationship-owned notes into one feed.
-        _stream = OneSpaceEnv.isProduction
+        _stream = OneSpaceEnv.usesLegacyBackend
           ? (id == null ? null : _client.from('notes')
               .stream(primaryKey: ['id'])
               .eq('space_id', id)
@@ -98,11 +98,11 @@ class _NotesScreenState extends State<NotesScreen> {
               .order('updated_at', ascending: false);
       });
       if (id != null) _watchGrants(id);
-      if((id!=null||!OneSpaceEnv.isProduction)&&widget.initialNoteId!=null&&!_deepLinkOpened){
+      if((id!=null||!OneSpaceEnv.usesLegacyBackend)&&widget.initialNoteId!=null&&!_deepLinkOpened){
         _deepLinkOpened=true;
         try{
           var lookup=_client.from('notes').select();
-          if (OneSpaceEnv.isProduction) lookup=lookup.eq('space_id',id!);
+          if (OneSpaceEnv.usesLegacyBackend) lookup=lookup.eq('space_id',id!);
           final found=await lookup.eq('id',widget.initialNoteId!).limit(1);
           if(mounted&&found.isNotEmpty){
             WidgetsBinding.instance.addPostFrameCallback((_){
@@ -122,7 +122,7 @@ class _NotesScreenState extends State<NotesScreen> {
 
   Future<void> _openEditor({Map<String, dynamic>? note}) async {
     final id = _spaceId;
-    if (id == null && OneSpaceEnv.isProduction) return;
+    if (id == null && OneSpaceEnv.usesLegacyBackend) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => QuillNoteEditorScreen(spaceId: id ?? '', existing: note),
@@ -145,7 +145,7 @@ class _NotesScreenState extends State<NotesScreen> {
       onApply:(v)=>setState((){_scope=v['who']!;}),
      ),
       ],bottom:filterShowingBar(_filterGroups(),removed:_showArchived,onClear:()=>setState((){_showArchived=false;_scope='all';}))),
-      floatingActionButton:_spaceId==null&&OneSpaceEnv.isProduction
+      floatingActionButton:_spaceId==null&&OneSpaceEnv.usesLegacyBackend
         ?null:AddFab(label:tt('Add note'),onPressed:()=>_openEditor()),
       body:RefreshIndicator(
       onRefresh: _load,
@@ -161,7 +161,7 @@ class _NotesScreenState extends State<NotesScreen> {
           if (_loading)
             const Padding(padding: EdgeInsets.all(36),
               child: Center(child: CircularProgressIndicator()))
-          else if (_spaceId == null && OneSpaceEnv.isProduction)
+          else if (_spaceId == null && OneSpaceEnv.usesLegacyBackend)
             Text(tr(context, 'noSpace'))
           else ...[
             TextField(
@@ -206,7 +206,7 @@ class _NotesScreenState extends State<NotesScreen> {
                       createdBy: note['created_by'] as String,
                       userId: _client.auth.currentUser!.id,
                     );
-                    final canShare = (OneSpaceEnv.isProduction ||
+                    final canShare = (OneSpaceEnv.usesLegacyBackend ||
                         note['private_space_id'] == null) &&
                       ObjectPermissions.canManagePrivateShare(
                         visibility: note['visibility'] as String,

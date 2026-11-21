@@ -19,12 +19,12 @@ class _OccasionOptionLinkerState extends State<OccasionOptionLinker>{
  @override void initState(){super.initState();load();}
  Future<void> load()async{
   try{
-   final sameScope=OneSpaceEnv.isProduction
+   final sameScope=OneSpaceEnv.usesLegacyBackend
      ?db.from('activities').select('id,title,visibility').eq('space_id',widget.plan['space_id'])
      :db.from('activities').select('id,title,visibility,space_id,private_space_id');
    final activities=await sameScope.isFilter('archived_at',null).limit(100);
    final ids=activities.where((a)=>
-     OneSpaceEnv.isProduction
+     OneSpaceEnv.usesLegacyBackend
        ?widget.plan['visibility']=='private'||a['visibility']=='shared'
        :(a['space_id']==widget.plan['space_id'] &&
          a['private_space_id']==widget.plan['private_space_id'] &&
@@ -115,15 +115,15 @@ class _SendOptionToOccasionSheetState extends State<SendOptionToOccasionSheet>{
  Future<void> load()async{
   try{
    final a=await db.from('activities')
-    .select(OneSpaceEnv.isProduction?'space_id,visibility':
+    .select(OneSpaceEnv.usesLegacyBackend?'space_id,visibility':
       'space_id,private_space_id,visibility').eq('id',widget.activityId).single();
-   final scopeQuery=OneSpaceEnv.isProduction
+   final scopeQuery=OneSpaceEnv.usesLegacyBackend
     ?db.from('occasion_plans').select('id,title,currency,visibility').eq('space_id',a['space_id'])
     :db.from('occasion_plans').select('id,title,currency,visibility,space_id,private_space_id');
    final rows=await scopeQuery.isFilter('archived_at',null).limit(100);
    if(mounted)setState((){
     plans=List<Map<String,dynamic>>.from(rows.where((r)=>
-     OneSpaceEnv.isProduction
+     OneSpaceEnv.usesLegacyBackend
        ?a['visibility']=='shared'||r['visibility']=='private'
        :(r['space_id']==a['space_id'] &&
          r['private_space_id']==a['private_space_id'] &&
