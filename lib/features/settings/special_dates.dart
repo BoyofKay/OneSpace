@@ -6,6 +6,7 @@ import '../../core/current_space_cache.dart';
 import '../counters/counter_sources.dart';
 import '../counters/counter_source_actions.dart';
 import '../../core/form_kit.dart';
+import '../../core/app_env.dart';
 
 /// R69: one saved date in Settings › Birthdays, anniversary & special dates.
 class SpecialDate {
@@ -61,10 +62,39 @@ class SpecialDateRules {
 }
 
 /// Loads the space's saved special dates.
+///
+/// QA: birthdays belong to each person (account_birthdays). Mine always
+/// shows to me; my partner's shows only when they chose to share it, and its
+/// year only when they chose that too.
 Future<List<SpecialDate>> loadSpecialDates(String spaceId) async {
-  final rows = await Supabase.instance.client.from('space_special_dates').select()
+  final db = Supabase.instance.client;
+  final rows = await db.from('space_special_dates').select()
     .eq('space_id', spaceId).isFilter('archived_at', null).order('month').order('day');
-  return [for (final r in rows) SpecialDate.fromRow(r)];
+  final list = [for (final r in rows) SpecialDate.fromRow(r)];
+  if (OneSpaceEnv.isProduction) return list;
+  list.removeWhere((d) => d.kind == 'birthday');
+  list.addAll(await loadPersonBirthdays());
+  return list;
+}
+
+/// QA: my own birthday and, when shared, my partner's.
+Future<List<SpecialDate>> loadPersonBirthdays() async {
+  final db = Supabase.instance.client;
+  final me = db.auth.currentUser?.id;
+  if (me == null) return const [];
+  final out = <SpecialDate>[];
+  try {
+    final mine = await db.from('account_birthdays').select('month,day,year').eq('user_id', me).maybeSingle();
+    if (mine != null) {
+      out.add(SpecialDate.fromRow({...mine, 'id': 'birthday-$me', 'kind': 'birthday', 'person_id': me}));
+    }
+    final theirs = await db.rpc('partner_birthday');
+    for (final r in (theirs as List? ?? const [])) {
+      final row = Map<String, dynamic>.from(r as Map);
+      out.add(SpecialDate.fromRow({...row, 'id': 'birthday-${row['person_id']}', 'kind': 'birthday'}));
+    }
+  } catch (_) {/* birthdays are optional */}
+  return out;
 }
 
 /// R69 (Ahmed): a configuration, not another way into Occasions. Built-in
@@ -83,6 +113,8 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
   SpacePeople? people;
   List<SpecialDate> dates = [];
   bool loading = true, busy = false;
+  // QA: my birthday's sharing choices (both default to off).
+  bool shareBirthday = false, shareYear = false, hasBirthday = false;
 
   @override
   void initState() {
@@ -100,7 +132,16 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
         final row = await db.from('profiles').select('display_name').eq('id', me).maybeSingle();
         mine = (row?['display_name'] ?? '').toString().trim().split(RegExp(r'\s+')).first;
       }
-      final list = id == null ? <SpecialDate>[] : await loadSpecialDates(id);
+      final list = id == null
+        ? (OneSpaceEnv.isProduction ? <SpecialDate>[] : await loadPersonBirthdays())
+        : await loadSpecialDates(id);
+      if (!OneSpaceEnv.isProduction && me != null) {
+        final row = await db.from('account_birthdays').select('share_with_partner,share_year')
+          .eq('user_id', me).maybeSingle();
+        hasBirthday = row != null;
+        shareBirthday = row?['share_with_partner'] == true;
+        shareYear = row?['share_year'] == true;
+      }
       if (!mounted) return;
       setState(() {
         space = id; people = p; myName = (mine ?? '').isEmpty ? null : mine;
@@ -149,6 +190,31 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
     }
   }
 
+  /// QA: my birthday is mine, saved on my account.
+  Future<void> setMyBirthday() async {
+    final me = db.auth.currentUser?.id;
+    if (me == null) return;
+    final current = find('birthday', me);
+    final picked = await askDate(current: current, title: 'Your birthday');
+    if (picked == null) return;
+    await run(() async {
+      await db.from('account_birthdays').upsert({'user_id': me, 'month': picked.$1,
+        'day': picked.$2, 'year': picked.$3});
+    });
+  }
+
+  Future<void> setBirthdaySharing({bool? share, bool? year}) async {
+    final me = db.auth.currentUser?.id;
+    if (me == null) return;
+    await run(() async {
+      await db.from('account_birthdays').update({
+        if (share != null) 'share_with_partner': share,
+        if (share == false) 'share_year': false,
+        if (year != null) 'share_year': year,
+      }).eq('user_id', me);
+    });
+  }
+
   Future<void> setSlot(String kind, String title, {String? person}) async {
     final s = space;
     if (s == null) return;
@@ -167,6 +233,12 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
   }
 
   Future<void> remove(SpecialDate d) async {
+    if (!OneSpaceEnv.isProduction && d.kind == 'birthday') {
+      await run(() async {
+        await db.from('account_birthdays').delete().eq('user_id', db.auth.currentUser!.id);
+      });
+      return;
+    }
     await run(() async {
       await db.from('space_special_dates').update({'archived_at': DateTime.now().toUtc().toIso8601String()})
         .eq('id', d.id);
@@ -209,7 +281,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
   }
 
   Widget slot({required IconData icon, required String title, required SpecialDate? value,
-      required VoidCallback onTap, VoidCallback? onRemove, String? empty}) {
+      required VoidCallback onTap, VoidCallback? onRemove, String? empty, bool readOnly = false}) {
     final theme = Theme.of(context);
     final loc = MaterialLocalizations.of(context);
     String text = tt(empty ?? 'Tap to add');
@@ -225,7 +297,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
         : theme.colorScheme.primaryContainer, child: Icon(icon)),
       title: Text(tt(title)),
       subtitle: Text(text, style: value == null ? TextStyle(color: theme.hintColor) : null),
-      trailing: value == null ? const Icon(Icons.add_circle_outline)
+      trailing: readOnly ? null : value == null ? const Icon(Icons.add_circle_outline)
         : onRemove == null ? const Icon(Icons.edit_outlined)
         : PopupMenuButton<String>(tooltip: tt('More'),
             onSelected: (v) {
@@ -241,7 +313,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
                 Text(tt('Add to counters'))])),
               PopupMenuItem(value: 'remove', child: Text(tt('Remove'))),
             ]),
-      onTap: busy ? null : onTap));
+      onTap: busy || readOnly ? null : onTap));
   }
 
   @override
@@ -259,7 +331,11 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
           Text(tt('Fill these once. They show in the calendar every year, and you can start planning an occasion from any of them.'),
             style: theme.textTheme.bodyMedium),
           const SizedBox(height: 14),
-          if (space == null) Text(tt('Connect your shared space first.')) else ...[
+          if (!OneSpaceEnv.isProduction && p != null) ..._qaBirthdays(theme, p, mine, theirs),
+          if (space == null) Text(tt(OneSpaceEnv.isProduction ? 'Connect your shared space first.'
+            : 'Your anniversary and shared special dates can be added once your partner joins.'))
+          else ...[
+            if (OneSpaceEnv.isProduction) ...[
             Text(tt('Birthdays'), style: theme.textTheme.titleMedium),
             if (p != null) slot(icon: Icons.cake_outlined, title: 'Your birthday', value: mine,
               onTap: () => setSlot('birthday', 'Your birthday', person: p.me),
@@ -268,6 +344,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
               title: "${p!.partnerName}'s birthday", value: theirs,
               onTap: () => setSlot('birthday', "${p.partnerName}'s birthday", person: p.partnerId),
               onRemove: theirs == null ? null : () => remove(theirs)),
+            ],
             const SizedBox(height: 12),
             Text(tt('Us'), style: theme.textTheme.titleMedium),
             slot(icon: Icons.favorite_border, title: 'Our anniversary', value: anniversary,
@@ -289,6 +366,34 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
             child: Text(tt(error!), style: TextStyle(color: theme.colorScheme.error))),
         ])));
   }
+}
+
+extension on _SpecialDatesScreenState {
+  /// QA: each person keeps their own birthday and decides what the partner sees.
+  List<Widget> _qaBirthdays(ThemeData theme, SpacePeople p, SpecialDate? mine, SpecialDate? theirs) => [
+    Text(tt('Birthdays'), style: theme.textTheme.titleMedium),
+    slot(icon: Icons.cake_outlined, title: 'Your birthday', value: mine,
+      onTap: setMyBirthday, onRemove: mine == null ? null : () => remove(mine)),
+    if (hasBirthday) ...[
+      SwitchListTile(contentPadding: EdgeInsets.zero,
+        key: const Key('qaShareBirthday'),
+        title: Text(tt('Show my birthday to my partner')),
+        value: shareBirthday,
+        onChanged: busy ? null : (v) => setBirthdaySharing(share: v)),
+      SwitchListTile(contentPadding: EdgeInsets.zero,
+        key: const Key('qaShareBirthYear'),
+        title: Text(tt('Also show my birth year')),
+        value: shareYear,
+        onChanged: busy || !shareBirthday ? null : (v) => setBirthdaySharing(year: v)),
+      Text(tt('Both are off by default, and switch off again whenever a partner joins or your space changes.'),
+        style: theme.textTheme.bodySmall),
+    ],
+    if (p.partnerId != null) slot(icon: Icons.cake_outlined,
+      title: "${p.partnerName}'s birthday", value: theirs,
+      empty: '${p.partnerName} has not shared their birthday',
+      readOnly: true, onTap: () {}),
+    const SizedBox(height: 12),
+  ];
 }
 
 /// Month names for "14 March" when the year is not kept.

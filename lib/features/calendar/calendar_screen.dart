@@ -2,6 +2,7 @@ import '../settings/special_dates.dart';
 import '../counters/counter_sources.dart';
 import '../counters/counter_source_actions.dart';
 import 'holiday_sources_panel.dart';
+import 'account_holiday_countries.dart';
 import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/editor_scaffold.dart';
@@ -310,12 +311,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
       setState(()=>_occasions=[...List<Map<String,dynamic>>.from(rows),...special]);
     }catch(_){ /* Main calendar remains usable. */ }
     try{
-      await HolidayDefaults.ensure(space);
-      final sources=await _client.from('space_holiday_sources')
-       .select('country_code,enabled').eq('space_id',space);
+      final Set<String> active;
+      if(OneSpaceEnv.isProduction){
+        await HolidayDefaults.ensure(space);
+        final sources=await _client.from('space_holiday_sources')
+         .select('country_code,enabled').eq('space_id',space);
+        active=sources.where((x)=>x['enabled']==true)
+          .map((x)=>x['country_code'].toString()).toSet();
+      }else{
+        // QA: my countries plus, while paired, my partner's.
+        active=await AccountHolidayCountries.active();
+      }
       if(!mounted||request!=_extrasVersion||_spaceId!=space)return;
-      final active=sources.where((x)=>x['enabled']==true)
-        .map((x)=>x['country_code'].toString()).toSet();
       if(active.isEmpty){
         setState((){_holidays=[];_holidayError=null;});
         return;
@@ -329,8 +336,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final missing=data.expand((x)=>x.unavailableCountries).toSet();
       setState((){
        _holidays=data.expand((x)=>x.days).toList();
-       _holidayError=missing.isEmpty?null:
-        'Some holiday sources could not load: '+missing.map(HolidayCatalog.label).join(', ');
+       _holidayError=missing.isEmpty?null:OneSpaceEnv.isProduction?
+        'Some holiday sources could not load: '+missing.map(HolidayCatalog.label).join(', ')
+        :HolidayMessages.unavailable(missing);
       });
     }catch(_){
       if(mounted&&request==_extrasVersion)setState(

@@ -12,6 +12,7 @@ class HolidayDay{
 
 class HolidayCatalog{
  const HolidayCatalog._();
+ /// The original six (Production keeps this list).
  static const countryNames={
   'SA':'Saudi Arabia',
   'EG':'Egypt',
@@ -20,9 +21,41 @@ class HolidayCatalog{
   'GB':'United Kingdom',
   'CA':'Canada',
  };
+ /// QA: every country a person can search for. Holidays come built in
+ /// (SA, EG, AE) or from the public Nager.Date calendar; a country it does
+ /// not cover shows a clear message instead.
+ static const allCountries={
+  'AD':'Andorra','AE':'United Arab Emirates','AL':'Albania','AM':'Armenia','AR':'Argentina',
+  'AT':'Austria','AU':'Australia','AX':'Åland Islands','AZ':'Azerbaijan','BA':'Bosnia and Herzegovina',
+  'BB':'Barbados','BD':'Bangladesh','BE':'Belgium','BG':'Bulgaria','BH':'Bahrain','BJ':'Benin',
+  'BO':'Bolivia','BR':'Brazil','BS':'Bahamas','BW':'Botswana','BY':'Belarus','BZ':'Belize',
+  'CA':'Canada','CH':'Switzerland','CL':'Chile','CN':'China','CO':'Colombia','CR':'Costa Rica',
+  'CU':'Cuba','CY':'Cyprus','CZ':'Czechia','DE':'Germany','DK':'Denmark','DO':'Dominican Republic',
+  'DZ':'Algeria','EC':'Ecuador','EE':'Estonia','EG':'Egypt','ES':'Spain','ET':'Ethiopia',
+  'FI':'Finland','FO':'Faroe Islands','FR':'France','GA':'Gabon','GB':'United Kingdom',
+  'GD':'Grenada','GE':'Georgia','GG':'Guernsey','GH':'Ghana','GI':'Gibraltar','GL':'Greenland',
+  'GM':'Gambia','GR':'Greece','GT':'Guatemala','GY':'Guyana','HK':'Hong Kong','HN':'Honduras',
+  'HR':'Croatia','HT':'Haiti','HU':'Hungary','ID':'Indonesia','IE':'Ireland','IL':'Israel',
+  'IM':'Isle of Man','IN':'India','IQ':'Iraq','IR':'Iran','IS':'Iceland','IT':'Italy',
+  'JE':'Jersey','JM':'Jamaica','JO':'Jordan','JP':'Japan','KE':'Kenya','KR':'South Korea',
+  'KW':'Kuwait','KZ':'Kazakhstan','LB':'Lebanon','LI':'Liechtenstein','LK':'Sri Lanka',
+  'LS':'Lesotho','LT':'Lithuania','LU':'Luxembourg','LV':'Latvia','LY':'Libya','MA':'Morocco',
+  'MC':'Monaco','MD':'Moldova','ME':'Montenegro','MG':'Madagascar','MK':'North Macedonia',
+  'MN':'Mongolia','MS':'Montserrat','MT':'Malta','MX':'Mexico','MY':'Malaysia','MZ':'Mozambique',
+  'NA':'Namibia','NE':'Niger','NG':'Nigeria','NI':'Nicaragua','NL':'Netherlands','NO':'Norway',
+  'NP':'Nepal','NZ':'New Zealand','OM':'Oman','PA':'Panama','PE':'Peru','PG':'Papua New Guinea',
+  'PH':'Philippines','PK':'Pakistan','PL':'Poland','PR':'Puerto Rico','PS':'Palestine',
+  'PT':'Portugal','PY':'Paraguay','QA':'Qatar','RO':'Romania','RS':'Serbia','RU':'Russia',
+  'SA':'Saudi Arabia','SC':'Seychelles','SD':'Sudan','SE':'Sweden','SG':'Singapore',
+  'SI':'Slovenia','SJ':'Svalbard and Jan Mayen','SK':'Slovakia','SM':'San Marino','SN':'Senegal',
+  'SR':'Suriname','SV':'El Salvador','SY':'Syria','TH':'Thailand','TN':'Tunisia','TR':'Türkiye',
+  'TW':'Taiwan','TZ':'Tanzania','UA':'Ukraine','UG':'Uganda','US':'United States','UY':'Uruguay',
+  'VA':'Vatican City','VE':'Venezuela','VN':'Vietnam','YE':'Yemen','ZA':'South Africa',
+  'ZM':'Zambia','ZW':'Zimbabwe',
+ };
  /// R69: countries whose holidays are built into the app (no network).
  static const builtIn={'SA','EG','AE'};
- static String label(String code)=>countryNames[code]??code;
+ static String label(String code)=>allCountries[code]??countryNames[code]??code;
 
  /// R69: expected Islamic dates (Umm al-Qura), 2025–2030. They depend on
  /// the moon sighting and can move by a day; the name says "(expected)".
@@ -101,7 +134,13 @@ class HolidayCatalog{
   if(zone==null||zone.isEmpty)return null;
   const map={'Asia/Riyadh':'SA','Africa/Cairo':'EG','Asia/Dubai':'AE','Europe/London':'GB',
    'America/Toronto':'CA','America/Vancouver':'CA','America/Montreal':'CA','America/Edmonton':'CA',
-   'America/Winnipeg':'CA','America/Halifax':'CA'};
+   'America/Winnipeg':'CA','America/Halifax':'CA','Asia/Kuwait':'KW','Asia/Qatar':'QA',
+   'Asia/Bahrain':'BH','Asia/Muscat':'OM','Asia/Amman':'JO','Asia/Beirut':'LB','Asia/Baghdad':'IQ',
+   'Africa/Casablanca':'MA','Africa/Tunis':'TN','Africa/Algiers':'DZ','Europe/Istanbul':'TR',
+   'Europe/Berlin':'DE','Europe/Paris':'FR','Europe/Madrid':'ES','Europe/Rome':'IT',
+   'Europe/Amsterdam':'NL','Europe/Dublin':'IE','Asia/Karachi':'PK','Asia/Kolkata':'IN',
+   'Asia/Jakarta':'ID','Asia/Kuala_Lumpur':'MY','Asia/Singapore':'SG','Asia/Tokyo':'JP',
+   'Australia/Sydney':'AU','Australia/Melbourne':'AU','Pacific/Auckland':'NZ'};
   final hit=map[zone];
   if(hit!=null)return hit;
   if(zone.startsWith('America/')||zone.startsWith('US/')||zone=='Pacific/Honolulu')return 'US';
@@ -141,7 +180,7 @@ class HolidayCalendarService{
 
  Future<HolidayLoadResult> forYearDetailed(int year,Set<String> countryCodes)async{
   if(year<2000||year>2100)return const HolidayLoadResult([],[]);
-  final codes=countryCodes.where(HolidayCatalog.countryNames.containsKey).toList();
+  final codes=countryCodes.where((c)=>RegExp(r'^[A-Z]{2}$').hasMatch(c)).toList();
   final results=await Future.wait(codes.map((code)async{
    try{
     final items=await _countryYear(year,code);

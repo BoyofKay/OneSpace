@@ -297,7 +297,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   final visibility = memory['visibility'] as String? ?? 'shared';
                   final editable = ObjectPermissions.canEdit(
                     visibility: visibility, createdBy: creator, userId: userId);
-                  final ownerShare = ObjectPermissions.canManagePrivateShare(
+                  // Personal-space memories stay private (as Notes, Feelings
+                  // and Calendar): no view-only grant button.
+                  final ownerShare = (OneSpaceEnv.isProduction ||
+                      memory['private_space_id'] == null) &&
+                    ObjectPermissions.canManagePrivateShare(
                     visibility: visibility, createdBy: creator, userId: userId);
                   final date = memory['memory_date'] as String? ?? '';
                   final body = memory['body'] as String? ?? '';
