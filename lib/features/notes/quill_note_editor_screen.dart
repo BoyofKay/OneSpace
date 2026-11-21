@@ -213,7 +213,18 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
         controller:editor,config:const quill.QuillEditorConfig())),
      ),
      const SizedBox(height:12),
-     // Personal attachments and links need independent Storage/child guards.
+     // QA: personal notes keep photos in the account's private bucket.
+     // Links to other items stay shared-only.
+     if (!OneSpaceEnv.isProduction && visibility!='shared') ...[
+       if(editing)...[
+        NotePhotosPanel(
+         noteId:record!['id'].toString(),canEdit:isEditingAllowed),
+        const SizedBox(height:12),
+       ]else Wrap(spacing:8,runSpacing:6,children:[
+        ActionChip(avatar:const Icon(Icons.add_photo_alternate_outlined,size:18),
+         label:Text(tt('Add photos')),onPressed:busy?null:ensureSaved),
+       ]),
+     ],
      if (OneSpaceEnv.isProduction || visibility=='shared') ...[
        if(editing)...[
         NotePhotosPanel(

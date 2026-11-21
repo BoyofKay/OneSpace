@@ -51,6 +51,8 @@
 	<string>Show your OneSpace events, trips and special dates in a separate OneSpace calendar. Your other calendars are not read.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Show your OneSpace events, trips and special dates in a separate OneSpace calendar. Your other calendars are not read.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Show where you are on your places map. Your location is never saved or shared.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos and daily selfies to share privately with your partner.</string>
 	<key>NSContactsUsageDescription</key>

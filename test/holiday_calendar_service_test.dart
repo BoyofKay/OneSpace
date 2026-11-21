@@ -23,7 +23,8 @@ void main(){
   expect(HolidayCatalog.countryForTimeZone('Asia/Riyadh'),'SA');
   expect(HolidayCatalog.countryForTimeZone('America/New_York'),'US');
   expect(HolidayCatalog.countryForTimeZone('America/Toronto'),'CA');
-  expect(HolidayCatalog.countryForTimeZone('Asia/Tokyo'),isNull);
+  expect(HolidayCatalog.countryForTimeZone('Asia/Tokyo'),'JP');
+  expect(HolidayCatalog.countryForTimeZone('Antarctica/Casey'),isNull);
  });
  test('Holiday feed ignores subdivision-only dates and optional observances',(){
   final result=HolidayCatalog.parseNager(

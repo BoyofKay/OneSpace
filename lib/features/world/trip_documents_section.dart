@@ -111,7 +111,7 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
  final db=Supabase.instance.client;
  late final TravelDocumentService service;
  late Stream<List<Map<String,dynamic>>> changes;
- bool showArchived=false,busy=false;
+ bool showArchived=false,collapsed=false,busy=false;
  String? error;
 
  @override void initState(){
@@ -278,17 +278,17 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18),
     side:BorderSide(color:scheme.secondary.withValues(alpha:.35))),
    child:Padding(padding:const EdgeInsets.fromLTRB(14,12,14,12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   Row(children:[
-    Icon(Icons.folder_special_outlined,color:scheme.secondary),
-    const SizedBox(width:8),
-    Expanded(child:Text(tt('Travel documents'),style:Theme.of(context).textTheme.titleLarge)),
-    IconButton(tooltip:tt(showArchived?'Hide removed':'Show removed'),
-     isSelected:showArchived,
-     icon:const Icon(Icons.delete_outline),selectedIcon:const Icon(Icons.delete),
-     onPressed:()=>setState(()=>showArchived=!showArchived)),
-    FilledButton.tonalIcon(onPressed:busy?null:add,icon:const Icon(Icons.attach_file),
-     label:Text(tt('Attach'))),
-   ]),
+   // Header on one line; tapping it folds the card.
+   InkWell(borderRadius:BorderRadius.circular(12),
+    onTap:()=>setState(()=>collapsed=!collapsed),
+    child:Padding(padding:const EdgeInsets.symmetric(vertical:4),child:Row(children:[
+     Icon(Icons.folder_special_outlined,color:scheme.secondary),
+     const SizedBox(width:8),
+     Expanded(child:Text(tt('Travel documents'),style:Theme.of(context).textTheme.titleLarge)),
+     Icon(collapsed?Icons.expand_more:Icons.expand_less,
+      semanticLabel:tt(collapsed?'Show travel documents':'Hide travel documents')),
+    ]))),
+   if(!collapsed)...[
    Text(tt('Boarding passes, tickets, visas and bookings. Only people who can see this trip can open them.'),
     style:Theme.of(context).textTheme.bodySmall),
    const SizedBox(height:8),
@@ -329,6 +329,18 @@ class _TripDocumentsSectionState extends State<TripDocumentsSection>{
      )),
     ]);
    }),
+   const SizedBox(height:4),
+   // Actions sit at the end of the card.
+   Row(children:[
+    TextButton.icon(
+     onPressed:()=>setState(()=>showArchived=!showArchived),
+     icon:Icon(showArchived?Icons.delete:Icons.delete_outline),
+     label:Text(tt(showArchived?'Hide removed':'Show removed'))),
+    const Spacer(),
+    FilledButton.tonalIcon(onPressed:busy?null:add,icon:const Icon(Icons.attach_file),
+     label:Text(tt('Attach'))),
+   ]),
+   ],
   ])));
  }
 }

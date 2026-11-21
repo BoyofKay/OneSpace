@@ -345,7 +345,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       final db=Supabase.instance.client;
       final me=db.auth.currentUser?.id;
       if(me==null)return;
-      final row=await db.from('account_deletion_requests').select().eq('user_id',me).maybeSingle();
+      final row=await db.from('account_deletion_requests').select('user_id,requested_at,purge_after,cancelled_at,completed_at,processing_at').eq('user_id',me).maybeSingle();
       if(!mounted||!AccountDataRules.pending(row))return;
       final due=DateTime.tryParse(row!['purge_after']?.toString()??'')?.toLocal();
       final keep=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(

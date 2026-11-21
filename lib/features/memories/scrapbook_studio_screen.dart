@@ -152,6 +152,29 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
   finally{if(mounted)setState(()=>busy=false);}
  }
+ /// The owner withdraws a pending invitation or ends co-editing. The
+ /// partner keeps the shared view (the scrapbook stays Shared) but can no
+ /// longer edit pages.
+ Future<void> _revoke()async{
+  if(id==null||busy||!isOwner)return;
+  final accepted=inviteState=='accepted';
+  final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
+   title:Text(tt(accepted?'Stop editing together?':'Withdraw the invitation?')),
+   content:Text(tt(accepted
+    ?'Your partner will still see this shared scrapbook but can no longer edit its pages. You can invite them again later.'
+    :'Your partner will no longer be able to accept this invitation. You can invite them again later.')),
+   actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text(tt('Cancel'))),
+    FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text(tt(accepted?'Stop':'Withdraw')))]));
+  if(ok!=true||!mounted)return;
+  setState(()=>busy=true);
+  try{
+   await db.rpc('revoke_scrapbook_invite',params:{'p_memory_id':id});
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(tt(
+    accepted?'Your partner can now only view this scrapbook.':'Invitation withdrawn.'))));
+   await _load();
+  }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
+  finally{if(mounted)setState(()=>busy=false);}
+ }
  Map<String,dynamic> _merged(Map<String,dynamic> page)=>{...page,...?drafts[page['id'].toString()]};
  void _draft(Map<String,dynamic> page,String field,Object? value){
   final key=page['id'].toString();
@@ -406,8 +429,13 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
    subtitle:Text(tt(inviteState=='accepted'?'Both of you can edit every page.':
     inviteState=='pending'?'Your partner can accept or decline.':
     'Ask your partner to add photos and words.')),
-   trailing:inviteState=='accepted'?const Icon(Icons.check_circle_outline):
-    TextButton(onPressed:busy?null:_invite,child:Text(tt(inviteState=='pending'?'Resend':'Invite'))),
+   trailing:Wrap(spacing:4,crossAxisAlignment:WrapCrossAlignment.center,children:[
+    if(inviteState!='accepted')TextButton(onPressed:busy?null:_invite,
+     child:Text(tt(inviteState=='pending'?'Resend':'Invite'))),
+    if(inviteState=='accepted'||inviteState=='pending')TextButton(
+     key:const Key('revokeScrapbookInvite'),onPressed:busy?null:_revoke,
+     child:Text(tt(inviteState=='pending'?'Withdraw':'Stop editing together'))),
+   ]),
   );
   if(awaiting)return Card(child:Padding(padding:const EdgeInsets.all(12),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[

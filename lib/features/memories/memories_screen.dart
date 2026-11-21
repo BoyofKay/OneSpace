@@ -44,6 +44,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   bool _archived = false;
   bool _openedDeepLink=false;
   String _scope = 'all';
+  String _type = 'all';
   String? _error;
 
   @override
@@ -160,9 +161,33 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   Future<void> _dailySelfie()async{
     final space=_spaceId;
     if(space==null&&OneSpaceEnv.isProduction)return;
+    if(!OneSpaceEnv.isProduction&&await _hasOwnSelfieToday()){
+      if(!mounted)return;
+      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+        icon:const Icon(Icons.photo_camera_front_outlined),
+        title:Text(tt('You already took today’s selfie')),
+        content:Text(tt('One daily selfie a day keeps the story honest. '
+          'You can take the next one tomorrow, or open today’s selfie to add a caption.')),
+        actions:[FilledButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('OK')))]));
+      return;
+    }
     final saved=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
       builder:(_)=>SelfieStudioScreen(spaceId:space??'')));
     if(saved==true&&mounted)await _load();
+  }
+
+  /// QA: one daily selfie per person per day, private or shared. Joining the
+  /// partner's shared selfie of the day happens from that memory.
+  Future<bool> _hasOwnSelfieToday()async{
+    final me=Supabase.instance.client.auth.currentUser?.id;
+    if(me==null)return false;
+    try{
+      final rows=await Supabase.instance.client.from('memories').select('id')
+        .eq('created_by',me).eq('memory_type','daily_selfie')
+        .eq('memory_date',CalendarRules.sqlDate(DateTime.now()))
+        .isFilter('archived_at',null).limit(1);
+      return rows.isNotEmpty;
+    }catch(_){return false;}
   }
 
   bool _matchesSearch(Map<String,dynamic> memory){
@@ -181,7 +206,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   }
 
   /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[
+   FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all'),
+   FilterGroupSpec(id:'type',label:tt('Type'),options:const {'all':'All','story':'Story journal','scrapbook':'Scrapbook','daily_selfie':'Daily selfie'},selected:_type,defaultValue:'all'),
+ ];
 
  @override
   Widget build(BuildContext context) => Scaffold(
@@ -191,9 +219,9 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
      showHistory:_archived,
         onToggleHistory:()=>setState(()=>_archived=!_archived),
         groups:_filterGroups(),
-      onApply:(v)=>setState((){_scope=v['who']!;}),
+      onApply:(v)=>setState((){_scope=v['who']!;_type=v['type']??'all';}),
      ),
-    ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
+    ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';_type='all';}))),
     floatingActionButton:_spaceId==null&&_privateSpaceId==null?null:AddFabMenu(label:tt('Add memory'),options:[
       AddFabOption(tt('Story journal'),Icons.menu_book_outlined,()=>_edit()),
       AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
@@ -248,6 +276,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                 final shown = snapshot.data!.where((m) =>
                   (_archived || m['archived_at'] == null) &&
                   (_scope == 'all' || m['visibility'] == _scope) &&
+                  (_type == 'all' || (m['memory_type'] ?? 'story') == _type) &&
                   _matchesSearch(m))
                   .toList()
                     ..sort((a,b) {
@@ -268,7 +297,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   final visibility = memory['visibility'] as String? ?? 'shared';
                   final editable = ObjectPermissions.canEdit(
                     visibility: visibility, createdBy: creator, userId: userId);
-                  final ownerShare = ObjectPermissions.canManagePrivateShare(
+                  // Personal-space memories stay private (as Notes, Feelings
+                  // and Calendar): no view-only grant button.
+                  final ownerShare = (OneSpaceEnv.isProduction ||
+                      memory['private_space_id'] == null) &&
+                    ObjectPermissions.canManagePrivateShare(
                     visibility: visibility, createdBy: creator, userId: userId);
                   final date = memory['memory_date'] as String? ?? '';
                   final body = memory['body'] as String? ?? '';
