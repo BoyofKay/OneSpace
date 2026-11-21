@@ -3,6 +3,7 @@ import '../counters/counter_sources.dart';
 import '../counters/counter_source_actions.dart';
 import 'holiday_sources_panel.dart';
 import 'account_holiday_countries.dart';
+import 'couple_day_view.dart';
 import '../../core/item_menu.dart';
 import '../../core/record_list_top_actions.dart';
 import '../../core/editor_scaffold.dart';
@@ -60,6 +61,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<Map<String, dynamic>> _events = const [];
   List<Map<String, dynamic>> _tasks = const [];
   List<Map<String, dynamic>> _daysOff=const [];
+  /// QA: both partners' working week, hours and sleep.
+  List<CouplePerson> _couple=const [];
   List<Map<String,dynamic>> _occasions=const [];
   List<HolidayDay> _holidays=const [];
   final HolidayCalendarService _holidayService=HolidayCalendarService();
@@ -256,6 +259,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               .select('id,off_date,label,user_id'))
             .order('off_date').limit(500),
       ]).timeout(const Duration(seconds: 15));
+      if(!OneSpaceEnv.isProduction){
+        try{_couple=await CouplePerson.load(id);}catch(_){_couple=const [];}
+      }
       if (!mounted || version != _loadVersion) return;
       setState(() {
         _events = results[0];
@@ -638,8 +644,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: 42,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7, childAspectRatio: 0.96,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7, childAspectRatio: _couple.isEmpty ? 0.96 : 0.8,
           ),
           itemBuilder: (context, index) {
             final date = DateTime(_month.year, _month.month, index + 1 - offset);
@@ -677,7 +683,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             : currentMonth ? null : Theme.of(context).colorScheme.outline,
                       ),
                     ),
-                    if (hasEvent || hasTask || hasOff || hasHoliday || hasOccasion)
+                    if(_couple.isNotEmpty)
+                      CoupleDayMarkers(people:_couple,day:date,daysOff:_daysOff),
+                    if (hasEvent || hasTask || (hasOff&&_couple.isEmpty) || hasHoliday || hasOccasion)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -702,6 +710,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             );
           },
         ),
+        if(_couple.isNotEmpty)CoupleMarkersLegend(people:_couple),
       ],
     );
   }
@@ -872,6 +881,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           onTap:widget.onOpenPlans)),
         const SizedBox(height:12),
       ],
+      if(_couple.isNotEmpty)
+        CoupleDayTimeline(key:ValueKey('couple-${CalendarRules.sqlDate(_selected)}'),
+          people:_couple,day:_selected,timed:timed,daysOff:_daysOff,
+          myId:_client.auth.currentUser?.id??'',
+          onOpen:(e)=>_openEditor(existing:e))
+      else
       for(var hour=0;hour<24;hour++)
         Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
           SizedBox(width:54,child:Padding(

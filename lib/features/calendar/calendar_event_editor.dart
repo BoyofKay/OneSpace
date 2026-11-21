@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import '../../core/device_time_zone.dart';
+import '../../core/zone_time.dart';
 import '../../core/app_env.dart';
 import '../sharing/object_permissions.dart';
 import 'calendar_rules.dart';
@@ -44,7 +45,7 @@ class CalendarEventEditor extends StatefulWidget {
 
 class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChangeTracker<CalendarEventEditor> {
  /// R55: current form values; Save turns on only when they change.
- @override String get signature=>[_title.text,_details.text,_location.text,_date.toIso8601String(),_repeat.preset,_repeat.interval,(_repeat.weekdays.toList()..sort()).join(','),_repeat.until,_remind,_visibility,_forUser,_allDay,_start.hour,_start.minute,_end.hour,_end.minute].join('|');
+ @override String get signature=>[_title.text,_details.text,_location.text,_date.toIso8601String(),_repeat.preset,_repeat.interval,(_repeat.weekdays.toList()..sort()).join(','),_repeat.until,_remind,_visibility,_forUser,_allDay,_start.hour,_start.minute,_end.hour,_end.minute,_zoneChoice].join('|');
 
   final _client = Supabase.instance.client;
   late final TextEditingController _title;
@@ -63,6 +64,10 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
   TimeOfDay _start=const TimeOfDay(hour:9,minute:0);
   TimeOfDay _end=const TimeOfDay(hour:10,minute:0);
   List<Map<String,dynamic>> _people=const [];
+  /// QA: whose clock the start and end times are typed in.
+  String _zoneChoice='mine';
+  String? _myZone,_partnerZone,_partnerFirst;
+  bool get _zonesDiffer=>ZoneTime.differs(_myZone,_partnerZone,_date);
   SpacePeople? _peopleMeta;
   String? _error;
 
@@ -121,9 +126,32 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         .eq('space_id',widget.spaceId);
       final ids=members.map((m)=>m['user_id'].toString()).toList();
       if(ids.isEmpty)return;
-      final people=await _client.from('profiles').select('id,display_name')
+      final people=await _client.from('profiles').select('id,display_name,time_zone')
         .inFilter('id',ids);
-      if(mounted)setState(()=>_people=people);
+      final me=_client.auth.currentUser?.id;
+      final phone=await DeviceTimeZone.readPhone();
+      if(mounted)setState((){
+        _people=people;
+        for(final p in people){
+          if(p['id']==me){_myZone=phone??p['time_zone']?.toString();}
+          else{
+            _partnerZone=p['time_zone']?.toString();
+            _partnerFirst=(p['display_name']??'').toString().trim().split(RegExp(r'\s+')).first;
+          }
+        }
+        _myZone??=phone;
+        // An event saved in the partner's clock opens in that clock.
+        final saved=widget.existing?['zone_id']?.toString();
+        final start=DateTime.tryParse(widget.existing?['starts_at']?.toString()??'');
+        if(!OneSpaceEnv.isProduction&&_zonesDiffer&&saved!=null&&saved==_partnerZone&&start!=null){
+          _zoneChoice='partner';
+          final s0=ZoneTime.wall(start,saved);
+          _start=TimeOfDay.fromDateTime(s0);
+          final end=DateTime.tryParse(widget.existing?['ends_at']?.toString()??'');
+          if(end!=null)_end=TimeOfDay.fromDateTime(ZoneTime.wall(end,saved));
+          markClean();
+        }
+      });
     } catch (_) {}
   }
   Future<void> _pickTime(bool starting) async {
@@ -166,12 +194,14 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         fields['ends_at']=null;
         fields['zone_id']=null;
       } else {
-        final start=DateTime(_date.year,_date.month,_date.day,_start.hour,_start.minute);
-        final end=DateTime(_date.year,_date.month,_date.day,_end.hour,_end.minute);
+        final usePartner=!OneSpaceEnv.isProduction&&_zoneChoice=='partner'&&_zonesDiffer;
+        final zone=usePartner?_partnerZone:await DeviceTimeZone.readPhone();
+        final start=ZoneTime.instant(_date.year,_date.month,_date.day,_start.hour,_start.minute,zone);
+        final end=ZoneTime.instant(_date.year,_date.month,_date.day,_end.hour,_end.minute,zone);
         if(!end.isAfter(start))throw StateError('End time must be after start time');
-        fields['starts_at']=start.toUtc().toIso8601String();
-        fields['ends_at']=end.toUtc().toIso8601String();
-        fields['zone_id']=await DeviceTimeZone.readPhone();
+        fields['starts_at']=start.toIso8601String();
+        fields['ends_at']=end.toIso8601String();
+        fields['zone_id']=zone;
       }
       if (!_editing) {
         final created = await _client.from('space_events').insert({
@@ -295,6 +325,21 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
                 label: Text('${tt('Ends')} ${_timeLabel(_end)}'), onPressed: () => _pickTime(false)),
             ],
           ]),
+          if (!OneSpaceEnv.isProduction && !_allDay && _zonesDiffer) ...[
+            const SizedBox(height: 10),
+            ChoiceRow<String>(label: tt('These times are in'),
+              options: {
+                'mine': '${tt('My time')} · ${ZoneTime.city(_myZone)}',
+                'partner': '${tt(_partnerFirst?.isNotEmpty == true ? "${_partnerFirst!}'s time" : "Partner's time")} · ${ZoneTime.city(_partnerZone)}',
+              },
+              icons: const {'mine': Icons.person_outline, 'partner': Icons.favorite_border},
+              selected: _zoneChoice,
+              onSelected: (v) { if (v != null && _canEdit && !_saving) setState(() => _zoneChoice = v); }),
+            Text(tt(_zoneChoice == 'partner'
+              ? 'Saved in ${ZoneTime.city(_partnerZone)} time. Each of you sees it in your own local time.'
+              : 'Saved in your time. Your partner sees it in their local time.'),
+              style: Theme.of(context).textTheme.bodySmall),
+          ],
           const SizedBox(height: 14),
           RepeatControl(value: _repeat, start: _date, enabled: _canEdit && !_saving,
             onChanged: (r) => setState(() => _repeat = r)),

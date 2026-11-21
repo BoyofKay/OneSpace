@@ -580,6 +580,8 @@ class MainActivity : FlutterFragmentActivity() {
                     val name = call.argument<String>("name") ?: "OneSpace-Memory"
                     val email = call.argument<Boolean>("email") ?: false
                     val subject = call.argument<String>("subject") ?: name
+                    val bodyText = call.argument<String>("text")
+                    val bodyHtml = call.argument<String>("html")
                     if (pdf == null || pdf.isEmpty() || pdf.size > 40 * 1024 * 1024 ||
                         Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                         result.error("EXPORT_UNAVAILABLE",
@@ -606,6 +608,9 @@ class MainActivity : FlutterFragmentActivity() {
                             type = "application/pdf"
                             putExtra(Intent.EXTRA_STREAM, savedUri)
                             putExtra(Intent.EXTRA_SUBJECT, subject)
+                            // OneSpace identity and website link in the message.
+                            if (bodyText != null) putExtra(Intent.EXTRA_TEXT, bodyText)
+                            if (bodyHtml != null) putExtra(Intent.EXTRA_HTML_TEXT, bodyHtml)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             if (email) selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
                         }
