@@ -48,6 +48,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
   late final Stream<List<Map<String, dynamic>>> activity;
   late final Stream<List<Map<String, dynamic>>> components;
   late final Stream<List<Map<String, dynamic>>> comments;
+  /// Set from the loaded activity: personal activities have no conversation.
+  bool _personalActivity = false;
   final GlobalKey _conversationKey = GlobalKey();
   final _links = GlobalKey<LinkedItemsStripState>();
   bool _conversationFocused = false;
@@ -802,7 +804,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   title: Text(tt('Attach contact information')),
                   onTap: () => Navigator.pop(ctx, 'add-contact')),
               ],
-              ListTile(
+              if (!_personalActivity) ListTile(
                 leading: const Icon(Icons.chat_bubble_outline),
                 title: Text(tt('Discuss this item')),
                 onTap: () => Navigator.pop(ctx, 'comment')),
@@ -1646,6 +1648,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           body: Center(child: Text(tt('Activity not available.'))));
       }
       final item = s.data!.first;
+      _personalActivity = item['private_space_id'] != null;
       conversationSpaceId=item['space_id']?.toString();
       return Scaffold(
         resizeToAvoidBottomInset: true,
@@ -1704,7 +1707,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ),
             componentSection(),
             decisionSection(item['space_id']?.toString()),
-            conversation(item['space_id']?.toString()),
+            // A personal activity has no one to talk to: no chat, no voice notes.
+            if (item['private_space_id'] == null)
+              conversation(item['space_id']?.toString()),
             const SizedBox(height: 12),
             Text(tt('Created by ${author(item['created_by']?.toString(),item['space_id']?.toString())}'
                 ' · ${when(item['created_at'])}'),
