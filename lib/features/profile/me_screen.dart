@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_strings.dart';
 import '../notifications/push_registration_gate.dart';
+import '../../core/usage_events.dart';
 import '../settings/account_data_screen.dart';
 import '../settings/onespace_settings_screen.dart';
 import '../support/support_screens.dart';
@@ -101,6 +102,7 @@ class _MeScreenState extends State<MeScreen> {
       const SizedBox(height: 8),
       OutlinedButton.icon(
         onPressed: () async {
+          await UsageEvents.instance.flushBeforeSignOut();
           await disableCurrentPushDevice();
           await Supabase.instance.client.auth.signOut();
         },

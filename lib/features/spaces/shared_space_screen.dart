@@ -11,6 +11,8 @@ import 'invitation_code.dart';
 import 'invite_partner_screen.dart';
 import 'invitation_link_inbox.dart';
 import '../../core/app_env.dart';
+import '../../core/usage_events.dart';
+import '../notifications/push_registration_gate.dart';
 import 'account_notice_banner.dart';
 import 'invitation_qr.dart';
 import '../places/places_screen.dart';
@@ -1318,6 +1320,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   onPressed: working ? null : () async {
                     // Preserve the invite securely for the right account.
                     InvitationLinkInbox.instance.keepThroughNextSignOut();
+                    await UsageEvents.instance.flushBeforeSignOut();
+                    await disableCurrentPushDevice();
                     await client.auth.signOut();
                   },
                   icon: const Icon(Icons.logout),
