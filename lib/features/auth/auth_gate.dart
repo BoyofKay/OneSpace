@@ -25,6 +25,7 @@ import '../support/support_screens.dart';
 import 'social_sign_in.dart';
 import 'terms.dart';
 import '../spaces/invitation_link_inbox.dart';
+import '../../core/usage_events.dart';
 
 /// Exactly one Supabase session is persisted. A restored session gets an
 /// OS-level unlock gate, while other remembered accounts require their own
@@ -54,6 +55,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _locked = auth.currentSession != null;
     if (!_locked) _startIdleTimer();
     if (_locked) unawaited(_loadAccountLocale());
+    if (_locked) unawaited(_dropSessionIfAccountGone());
     _subscription = auth.onAuthStateChange.listen(
       (state) {
         if (!mounted) return;
@@ -96,6 +98,26 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         debugPrint('Temporary OneSpace auth event error.');
       },
     );
+  }
+
+  /// A phone can keep a saved session for an account that no longer exists
+  /// (deleted, or removed by support). Ask the server once; if it says the
+  /// account or session is gone, sign out on this phone so the normal sign-in
+  /// screen appears. Network errors keep the session (offline is not proof).
+  Future<void> _dropSessionIfAccountGone() async {
+    final auth = Supabase.instance.client.auth;
+    if (auth.currentSession == null) return;
+    try {
+      await auth.getUser();
+    } on AuthException catch (e) {
+      final status = int.tryParse(e.statusCode ?? '');
+      final gone = status == 401 || status == 403 || status == 404 ||
+          e.code == 'user_not_found' || e.code == 'session_not_found' ||
+          e.code == 'refresh_token_not_found' || e.code == 'bad_jwt';
+      if (gone) await signOutThisPhone();
+    } catch (_) {
+      // Offline or server busy: keep the saved session.
+    }
   }
 
   Future<void> _loadAccountLocale() async {
@@ -196,6 +218,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         _startIdleTimer();
         unawaited(_refreshPersonalMoment());
         unawaited(PhoneCalendarSync.syncNow());
+      } else {
+        unawaited(_dropSessionIfAccountGone());
       }
     }
   }
@@ -246,6 +270,15 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       ],
     );
   }
+}
+
+/// Signs out on this phone only, the same way as Me > Sign out.
+Future<void> signOutThisPhone() async {
+  try { await UsageEvents.instance.flushBeforeSignOut(); } catch (_) {}
+  try { await disableCurrentPushDevice(); } catch (_) {}
+  try {
+    await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
+  } catch (_) {}
 }
 
 class SignInScreen extends StatefulWidget {
@@ -623,6 +656,15 @@ class _SignInScreenState extends State<SignInScreen> {
                     child: Text(tr(context, 'forgotPassword')),
                   ),
                 ],
+                if(widget.onSessionUnlocked!=null)TextButton(
+                  key: const Key('lockedUseAnotherAccount'),
+                  onPressed: loading ? null : () async {
+                    setState(() => loading = true);
+                    await signOutThisPhone();
+                    if (mounted) setState(() => loading = false);
+                  },
+                  child: Text(tt('Sign out and use another account')),
+                ),
                 if(widget.onSessionUnlocked==null)TextButton(
                   onPressed: loading ? null : () => setState(() {
                     registering = !registering;
