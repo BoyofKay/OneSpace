@@ -22,7 +22,10 @@ class SpacePeople {
   final String partnerName;
 
   static SpacePeople? _cached;
+  static bool _watching = false;
   static Future<SpacePeople?> load() async {
+    // A partner joining or leaving changes who "partner" is: forget the cache.
+    if (!_watching) { _watching = true; CurrentSpaceCache.paired.addListener(reset); }
     if (_cached != null) return _cached;
     final SupabaseClient db;
     try { db = Supabase.instance.client; } catch (_) { return null; }
@@ -146,20 +149,29 @@ class MetaStrip extends StatelessWidget {
             selected: value.shared,
             onSelected: (v) => onChanged(linked ? MetaRules.setShared(value, v, me) : value.copyWith(shared: v)));
         }),
-      if (showBelongs) _MenuChip<String>(enabled: enabled,
-        icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
-        label: MetaRules.belongsLabel(value.belongsTo, people),
-        tooltip: tt('Belongs to'),
-        options: {
-          '': 'Both of us',
-          if (me.isNotEmpty) me: 'Me',
-          if (people?.partnerId != null) people!.partnerId!: people!.partnerName,
-        },
-        icons: {'': Icons.group_outlined, if (me.isNotEmpty) me: Icons.person_outline,
-          if (people?.partnerId != null) people!.partnerId!: Icons.favorite_border},
-        selected: value.belongsTo ?? '',
-        onSelected: (v) => onChanged(linked ? MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me)
-          : value.copyWith(belongsTo: v.isEmpty ? null : v))),
+      if (showBelongs) ValueListenableBuilder<bool?>(
+        valueListenable: CurrentSpaceCache.paired,
+        builder: (context, paired, _) {
+          // QA: with no partner (alone, or after a separation) only "Me" can
+          // be chosen for new items, and a former partner is never listed.
+          final solo = !OneSpaceEnv.isProduction && paired == false;
+          final partnerId = solo ? null : people?.partnerId;
+          return _MenuChip<String>(enabled: enabled,
+            icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
+            label: MetaRules.belongsLabel(value.belongsTo, people),
+            tooltip: tt('Belongs to'),
+            options: {
+              '': 'Both of us',
+              if (me.isNotEmpty) me: 'Me',
+              if (partnerId != null) partnerId: people!.partnerName,
+            },
+            icons: {'': Icons.group_outlined, if (me.isNotEmpty) me: Icons.person_outline,
+              if (partnerId != null) partnerId: Icons.favorite_border},
+            disabled: solo && enabled ? const {''} : const {},
+            selected: value.belongsTo ?? '',
+            onSelected: (v) => onChanged(linked ? MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me)
+              : value.copyWith(belongsTo: v.isEmpty ? null : v)));
+        }),
       if (showDate) InputChip(
         avatar: const Icon(Icons.event_outlined, size: 18),
         label: Text(value.date == null ? (OneSpacePhrases.arabic ? '${tt('Add')} ${tt(dateLabel)}' : 'Add ${dateLabel.toLowerCase()}') : tt(value.date == null ? ''
