@@ -791,7 +791,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
   Widget build(BuildContext context) {
     final loc = MaterialLocalizations.of(context);
     final me = who?.me;
-    final partnerName = who?.partnerName;
+    final partnerName = who?.paired == true ? who!.partnerName : null;
     final span = date == null ? null : SmartSpan.between(DateTime.now(), date!);
     return EditorScaffold(
       title: widget.existing == null ? 'New counter' : 'Edit counter',
@@ -800,7 +800,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
       isChanged: () => widget.existing == null && widget.source != null ? true : changed,
       isComplete: () => title.text.trim().isNotEmpty && date != null,
       onSave: _save,
-      meta: MetaStrip(value: MetaValues(shared: shared), people: who, showBelongs: false, showDate: false,
+      meta: MetaStrip(personal:widget.spaceId.isEmpty,value: MetaValues(shared: shared), people: who, showBelongs: false, showDate: false,
         onChanged: (v) => setState(() {
           if (widget.scope != null && v.shared != shared) placeId = null;
           shared = v.shared;

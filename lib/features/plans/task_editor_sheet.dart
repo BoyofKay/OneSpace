@@ -1,3 +1,4 @@
+import '../../core/current_space_cache.dart';
 import '../../core/form_kit.dart';
 import '../../core/editor_scaffold.dart';
 import 'package:material_ui/material_ui.dart';
@@ -161,6 +162,8 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
   @override
   void initState() {
     super.initState();
+    // Re-check whether a partner is still here (they may have left).
+    try { CurrentSpaceCache.instance.get(refresh: true).ignore(); } catch (_) {}
     _title = TextEditingController(text: widget.existing?.title ?? widget.initialTitle);
     _priority = widget.existing?.priority ?? TaskPriority.normal;
     _recurrence=widget.existing?.recurrence??'none';
@@ -229,7 +232,8 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
 
 
   SpacePeople get _people {
-    final partner = widget.members.entries.where((e) => e.key != widget.currentUserId).firstOrNull;
+    final partner = CurrentSpaceCache.paired.value == false ? null
+      : widget.members.entries.where((e) => e.key != widget.currentUserId).firstOrNull;
     return SpacePeople(me: widget.currentUserId, partnerId: partner?.key,
       partnerName: (partner?.value ?? 'Partner').split(' ').first);
   }
@@ -246,7 +250,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> with FormChangeTracke
       listenTo: [_title, _items],
       saving: _saving,
       onSave: _save,
-      meta: MetaStrip(
+      meta: MetaStrip(personal: !widget.allowShared,
         people: _people, dateLabel: tt('Due date'), enabled: !_saving,
         value: MetaValues(shared: shared, belongsTo: _assignedTo, date: _date),
         onChanged: (v) => setState(() {

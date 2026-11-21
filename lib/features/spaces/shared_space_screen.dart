@@ -11,6 +11,7 @@ import 'invitation_code.dart';
 import 'invite_partner_screen.dart';
 import 'invitation_link_inbox.dart';
 import '../../core/app_env.dart';
+import 'account_notice_banner.dart';
 import 'invitation_qr.dart';
 import '../places/places_screen.dart';
 import '../counters/counters_screen.dart';
@@ -154,6 +155,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // QA: the partner may have left, removed us or deleted the space while
+    // the app was in the background; show the current state on return.
+    if (state == AppLifecycleState.resumed && !OneSpaceEnv.isProduction) {
+      unawaited(_load());
+    }
     if (state == AppLifecycleState.resumed && spaceId != null) {
       unawaited(_syncDeviceContext(force: true));
     }
@@ -1172,6 +1178,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   style:theme.textTheme.bodySmall)),
                 if(offline)TextButton(onPressed:_load,child:Text(tt('Retry'))),
               ])),
+          const AccountNoticeBanner(),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:8),
           if (issue != null &&

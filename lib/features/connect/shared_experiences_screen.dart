@@ -638,7 +638,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
   return EditorScaffold(title:widget.original==null?tt('Add experience'):tt('Edit experience'),
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
-   meta:MetaStrip(value:MetaValues(date:planned,shared:visibility=='shared'),
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(date:planned,shared:visibility=='shared'),
     showVisibility:!OneSpaceEnv.isProduction&&widget.original==null,showBelongs:false,
     dateLabel:tt('Plan a date'),onChanged:(v)=>setState((){
       planned=v.date;

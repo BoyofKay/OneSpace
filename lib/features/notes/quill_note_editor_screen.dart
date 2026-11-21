@@ -177,7 +177,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   return EditorScaffold(title:editing?tt('Edit note'):tt('Add note'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>isEditingAllowed&&title.text.trim().isNotEmpty,
    listenTo:[title,editor],saving:busy,onSave:save,
-   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
      enabled:!editing&&!busy &&
        (OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty),
      onChanged:(v)=>setState(()=>visibility=v.shared?'shared':'private'),

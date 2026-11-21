@@ -288,6 +288,8 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    if(!mounted)return;
    setState((){
     people=v;myName=(mine??'').isEmpty?null:mine;
+    // Without a current partner the occasion is for me (or someone else).
+    if(widget.existing==null&&!OneSpaceEnv.isProduction&&v!=null&&!v.paired)forWhom='me';
     final h=honoree.text.trim();
     if(widget.existing!=null){
      if(h.isEmpty||h=='Both of us'){forWhom='us';}
@@ -410,7 +412,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty&&date!=null,
    listenTo:[title,notes,budget,currency,honoree],saving:busy,onSave:save,
    saveLabel:editing?'Save':'Next',
-   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=
      (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
        ?'private':(v.shared?'shared':'private'))),
@@ -434,7 +436,8 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
     if(p?.partnerId!=null)ChoiceChip(label:Text(tt(p!.partnerName)),selected:forWhom=='partner',
      onSelected:(_)=>setState(()=>forWhom='partner')),
     ChoiceChip(label:Text(tt('Me')),selected:forWhom=='me',onSelected:(_)=>setState(()=>forWhom='me')),
-    ChoiceChip(label:Text(tt('Both of us')),selected:forWhom=='us',onSelected:(_)=>setState(()=>forWhom='us')),
+    ChoiceChip(label:Text(tt('Both of us')),selected:forWhom=='us',
+     onSelected:!OneSpaceEnv.isProduction&&p!=null&&!p.paired?null:(_)=>setState(()=>forWhom='us')),
     ChoiceChip(label:Text(tt('Someone else')),selected:forWhom=='other',onSelected:(_)=>setState(()=>forWhom='other')),
    ]),
    if(forWhom=='other')Padding(padding:const EdgeInsets.only(top:10),child:TextField(

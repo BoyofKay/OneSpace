@@ -176,6 +176,22 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if(saved==true&&mounted)await _load();
   }
 
+  /// Sends my partner a notification asking for their part of a shared
+  /// memory or scrapbook (both of us can always edit shared ones).
+  Future<void> _nudge(Map<String,dynamic> memory)async{
+    try{
+      await Supabase.instance.client.rpc('nudge_partner_about_memory',
+        params:{'p_memory_id':memory['id']});
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text(tt('Your partner got a nudge.'))));
+    }on PostgrestException catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(tt(e.message))));
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text(tt('Could not send the nudge. Please try again.'))));
+    }
+  }
+
   /// QA: one daily selfie per person per day, private or shared. Joining the
   /// partner's shared selfie of the day happens from that memory.
   Future<bool> _hasOwnSelfieToday()async{
@@ -326,7 +342,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                             ? _view(memory) : _edit(existing: memory),
                           openLabel: memory['memory_type']=='daily_selfie'||!editable ? 'Open' : 'Edit',
                           table: editable ? 'memories' : null,
-                          removed: memory['archived_at'] != null, onChanged: _load),
+                          removed: memory['archived_at'] != null, onChanged: _load,
+                          moreActions: [
+                            if (!OneSpaceEnv.isProduction && visibility == 'shared' && memory['archived_at'] == null &&
+                                memory['space_id'] != null)
+                              ItemMenuAction(tt('Nudge partner'), Icons.notifications_active_outlined,
+                                () => _nudge(memory)),
+                          ]),
                         onTap: () => _view(memory),
                       ),
                       if (ownerShare) Align(
@@ -517,8 +539,8 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
    title:_editing?tt('Edit story'):tt('New story'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body,_place],saving:_busy,onSave:_save,
-   meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),
-     showVisibility:widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:_visibility=='shared'),
+     showVisibility:true,
      showBelongs:false,showDate:false,
      enabled:!_editing&&!_busy,onChanged:(v)=>setState(()=>_visibility=v.shared?'shared':'private')),
    body: SafeArea(

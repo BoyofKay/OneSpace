@@ -522,7 +522,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   visibility=prior?['visibility']?.toString()??
     ((OneSpaceEnv.isProduction || widget.spaceId.isNotEmpty) &&
       widget.initialShared ?'shared':'private');
-  audience=prior?['audience']?.toString()??(widget.initialShared?'both':'me');
+  audience=prior?['audience']?.toString()??(visibility=='shared'?'both':'me');
   sourceKind=prior?['source_kind']?.toString()??widget.initialSourceKind;
   linkType=sourceKind;
   sourceId=prior?['source_id']?.toString()??widget.initialSourceId;
@@ -540,10 +540,13 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
    final zone=await DeviceTimeZone.readPhone();
    final rows=await db.from('profiles').select('id,display_name,time_zone');
    final meId=db.auth.currentUser?.id;
+   // Only my current partner: a former partner's profile may still be
+   // readable, but their name and zone must not show up here.
+   final partnerId=(await SpacePeople.load())?.partnerId;
    String? pz,pn,mz;
    for(final row in rows){
     if(row['id']==meId){mz=row['time_zone']?.toString();}
-    else{pz=row['time_zone']?.toString();pn=row['display_name']?.toString();}
+    else if(partnerId!=null&&row['id']==partnerId){pz=row['time_zone']?.toString();pn=row['display_name']?.toString();}
    }
    if(!mounted)return;
    setState((){
@@ -699,7 +702,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   return EditorScaffold(title:editing?tt('Edit reminder'):tt('Add reminder'),
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,details],saving:saving,onSave:save,
-   meta:MetaStrip(value:meta,people:people,showDate:false,enabled:!editing,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:meta,people:people,showDate:false,enabled:!editing,
     onChanged:(v){
      setMeta(v);
      final key=sourceKind==null?null:sourceKind!+':'+sourceId!;

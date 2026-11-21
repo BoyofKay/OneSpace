@@ -370,7 +370,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,notes,originText,destinationText],saving:saving,onSave:save,
    saveLabel:editing?'Save':'Next',
-   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=
       (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
         ?'private':(v.shared?'shared':'private'))),

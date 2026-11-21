@@ -124,7 +124,7 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
       listenTo: [title, note],
       saving: saving,
       onSave: _save,
-      meta: MetaStrip(value: MetaValues(shared: shared), showBelongs: false, showDate: false,
+      meta: MetaStrip(personal:widget.spaceId.isEmpty,value: MetaValues(shared: shared), showBelongs: false, showDate: false,
         enabled: !saving,
         onChanged: (v) => setState(() => shared = v.shared)),
       body: ListView(padding: const EdgeInsets.all(18), children: [
