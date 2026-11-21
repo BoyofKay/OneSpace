@@ -137,21 +137,22 @@ class CoupleDayTimeline extends StatefulWidget {
 
 class _CoupleDayTimelineState extends State<CoupleDayTimeline> {
   static const hh = 46.0, gutter = 46.0;
-  late final ScrollController scroll;
+  /// The day scrolls with the page (no inner scroll area to get stuck in);
+  /// it opens near the current hour (or 7:00 on other days).
+  final GlobalKey _startHour = GlobalKey();
+  late final int _start;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     final today = CalendarRules.day(now) == CalendarRules.day(widget.day);
-    final hour = today ? (now.hour - 2).clamp(0, 16) : 7;
-    scroll = ScrollController(initialScrollOffset: hour * hh);
-  }
-
-  @override
-  void dispose() {
-    scroll.dispose();
-    super.dispose();
+    _start = today ? (now.hour - 2).clamp(0, 16) : 7;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _startHour.currentContext;
+      if (ctx != null && mounted) Scrollable.ensureVisible(ctx, alignment: .05,
+        duration: const Duration(milliseconds: 250));
+    });
   }
 
   /// [from, to) in the phone's local time for a band given in the person's zone.
@@ -242,12 +243,12 @@ class _CoupleDayTimelineState extends State<CoupleDayTimeline> {
             ])),
           ]),
         ),
-        SizedBox(height: 520, child: SingleChildScrollView(controller: scroll, child: SizedBox(
+        SizedBox(
           height: 24 * hh,
           child: Stack(children: [
             // Hour lines and labels (my local time).
             for (var h = 0; h < 24; h++) Positioned(top: h * hh, left: 0, right: 0, child: Row(children: [
-              SizedBox(width: gutter, child: Text(hm(DateTime(2000, 1, 1, h)),
+              SizedBox(key: h == _start ? _startHour : null, width: gutter, child: Text(hm(DateTime(2000, 1, 1, h)),
                 style: theme.textTheme.labelSmall)),
               Expanded(child: Container(height: 1, color: scheme.outlineVariant)),
             ])),
@@ -260,6 +261,11 @@ class _CoupleDayTimelineState extends State<CoupleDayTimeline> {
                 Positioned(top: _y(s), height: _y(e) - _y(s), left: gutter + i * colW + 2, width: colW - 4,
                   child: _Band(color: CoupleColors.workBand, label: 'Work', icon: Icons.work_outline)),
             ],
+            if (people.length > 1)
+              for (final h in const [6, 12, 18])
+                for (var i = 0; i < people.length; i++) Positioned(top: h * hh + 2, left: gutter + i * colW, width: colW,
+                  child: Center(child: Text(people[i].first, style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.outline, fontWeight: FontWeight.w600)))),
             if (people.length > 1) Positioned(top: 0, bottom: 0, left: gutter + colW, width: 1,
               child: Container(color: scheme.outlineVariant)),
             // Events: shared ones span both timelines.
@@ -271,7 +277,7 @@ class _CoupleDayTimelineState extends State<CoupleDayTimeline> {
                 Expanded(child: Container(height: 2, color: Colors.red)),
               ])),
           ]),
-        ))),
+        ),
         Padding(padding: const EdgeInsets.only(top: 6), child: Wrap(spacing: 12, runSpacing: 4, children: [
           _legend(CoupleColors.sleep, 'Sleep'),
           _legend(CoupleColors.workBand, 'Working hours'),

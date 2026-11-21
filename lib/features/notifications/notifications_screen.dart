@@ -18,16 +18,34 @@ import 'package:onespace/l10n/phrases.dart';
 import 'notification_context.dart';
 import '../places/places_screen.dart';
 import '../counters/counters_screen.dart';
+import '../../core/current_space_cache.dart';
 
 /// One stable realtime subscription per signed-in account, not per frame.
 class NotificationBell extends StatefulWidget {
  const NotificationBell({super.key});
  @override State<NotificationBell> createState()=>_NotificationBellState();
 }
-class _NotificationBellState extends State<NotificationBell> {
+class _NotificationBellState extends State<NotificationBell> with WidgetsBindingObserver {
  final db=Supabase.instance.client;
  Stream<List<Map<String,dynamic>>>? _stream;
  String? _streamUser;
+ // Notifications removed with a shared space (separation) arrive as deletes
+ // the filtered live stream cannot see, so the count would stay stuck.
+ // Re-read them whenever the pairing changes or the app comes back.
+ void _refresh(){if(mounted)setState((){_stream=null;});}
+ @override void initState(){
+  super.initState();
+  CurrentSpaceCache.paired.addListener(_refresh);
+  WidgetsBinding.instance.addObserver(this);
+ }
+ @override void dispose(){
+  CurrentSpaceCache.paired.removeListener(_refresh);
+  WidgetsBinding.instance.removeObserver(this);
+  super.dispose();
+ }
+ @override void didChangeAppLifecycleState(AppLifecycleState state){
+  if(state==AppLifecycleState.resumed)_refresh();
+ }
  Stream<List<Map<String,dynamic>>> _forUser(String user) {
   if(_streamUser!=user||_stream==null){
    _streamUser=user;
