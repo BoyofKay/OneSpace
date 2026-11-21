@@ -9332,19 +9332,6 @@ create trigger qa_lock_personal_scope before update on public.space_events
 grant insert,update on public.space_events to authenticated;
 ;
 
--- >>>>> 0242_qa_gate_unverified_destructive_lifecycle_rpcs.sql
--- QA emergency safety gate: old app buttons being disabled does not
--- protect callable SECURITY DEFINER endpoints from direct REST invocations.
--- Do not re-grant until 69-family private-preservation/media-erase tests,
--- legacy private migration and the 7-day account finalizer all pass.
-revoke all on function public.end_shared_space(text,text)
- from public,anon,authenticated;
-revoke all on function public.request_account_deletion()
- from public,anon,authenticated;
--- public.cancel_account_deletion() remains callable to let any pre-existing
--- pending request be cancelled safely. Service/admin use is unaffected.
-;
-
 -- >>>>> 0243_qa_personal_space_rows.sql
 -- Reconciled 2026-11-20: applied to QA (ugwrpeduzyzrujkizqfo) on 2026-11-20 from
 -- feat/personal-space-lifecycle:supabase/schema/0238_qa_personal_space_rows.sql (original number 0238). Kept verbatim so the
@@ -10056,6 +10043,19 @@ $b$FROM (SELECT (SELECT m.space_id FROM public.space_members m
              (SELECT auth.uid()) AS me) own
 WHERE own.me IS NOT NULL$b$
 ]);
+;
+
+-- >>>>> 0242_qa_gate_unverified_destructive_lifecycle_rpcs.sql
+-- QA emergency safety gate: old app buttons being disabled does not
+-- protect callable SECURITY DEFINER endpoints from direct REST invocations.
+-- Do not re-grant until 69-family private-preservation/media-erase tests,
+-- legacy private migration and the 7-day account finalizer all pass.
+revoke all on function public.end_shared_space(text,text)
+ from public,anon,authenticated;
+revoke all on function public.request_account_deletion()
+ from public,anon,authenticated;
+-- public.cancel_account_deletion() remains callable to let any pre-existing
+-- pending request be cancelled safely. Service/admin use is unaffected.
 ;
 
 -- >>>>> 0246_qa_account_owned_activities_memories.sql
