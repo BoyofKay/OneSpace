@@ -21,15 +21,27 @@ class SpacePeople {
   final String? partnerId;
   final String partnerName;
 
+  /// True when a current partner shares the space with me.
+  bool get paired => partnerId != null;
+
   static SpacePeople? _cached;
+  static DateTime? _cachedAt;
+  static bool _watching = false;
   static Future<SpacePeople?> load() async {
-    if (_cached != null) return _cached;
+    // A partner joining or leaving changes who "partner" is: forget the cache.
+    if (!_watching) { _watching = true; CurrentSpaceCache.paired.addListener(reset); }
     final SupabaseClient db;
     try { db = Supabase.instance.client; } catch (_) { return null; }
     final me = db.auth.currentUser?.id;
     if (me == null) return null;
+    // The partner may leave from their own phone, so never trust an old
+    // answer for long: re-check membership after 20 seconds.
+    if (_cached != null && _cached!.me == me && _cachedAt != null &&
+        DateTime.now().difference(_cachedAt!) < const Duration(seconds: 20)) {
+      return _cached;
+    }
     try {
-      final space = await CurrentSpaceCache.instance.get();
+      final space = await CurrentSpaceCache.instance.get(refresh: _cached != null);
       if (space == null) return SpacePeople(me: me);
       final rows = await db.from('space_members').select('user_id').eq('space_id', space);
       final partner = rows.map((r) => r['user_id']?.toString()).where((id) => id != null && id != me).firstOrNull;
@@ -45,6 +57,8 @@ class SpacePeople {
           if (first.isNotEmpty) name = first;
         }
       }
+      CurrentSpaceCache.paired.value = partner != null;
+      _cachedAt = DateTime.now();
       return _cached = SpacePeople(me: me, partnerId: partner, partnerName: name);
     } catch (_) {
       return SpacePeople(me: me);
@@ -52,7 +66,7 @@ class SpacePeople {
   }
 
   /// Forget the cache (sign-out, partner change).
-  static void reset() => _cached = null;
+  static void reset() { _cached = null; _cachedAt = null; }
 }
 
 /// The values the [MetaStrip] edits.
@@ -91,7 +105,15 @@ class MetaRules {
 class MetaStrip extends StatelessWidget {
   const MetaStrip({super.key, required this.value, required this.onChanged, this.people,
     this.showVisibility = true, this.showBelongs = true, this.showDate = true,
-    this.dateLabel = 'Date', this.withTime = false, this.enabled = true, this.extras = const []});
+    this.dateLabel = 'Date', this.withTime = false, this.enabled = true, this.extras = const [],
+    this.linked = true, this.personal = false});
+  /// QA: the item lives in my personal space, so it can only be "Only me".
+  /// The visibility chip still shows "Shared" (disabled) so people learn it
+  /// exists in the shared space.
+  final bool personal;
+  /// false: who can see it and who it is for are chosen independently
+  /// (calendar events: a private event can still be for both of us).
+  final bool linked;
   /// false = shown but not changeable (e.g. who can see a saved reminder).
   final bool enabled;
   /// R66: extra chips that live in the strip too (e.g. Pin on notes).
@@ -126,10 +148,11 @@ class MetaStrip extends StatelessWidget {
         builder: (context, paired, _) {
           // QA: alone in a space, new content is "Only me" and "Shared" is
           // unavailable until a partner joins. Existing records keep theirs.
-          final soloNew = !OneSpaceEnv.isProduction && enabled && paired == false;
+          final privateOnly = !OneSpaceEnv.isProduction && (personal || paired == false);
+          final soloNew = privateOnly && enabled;
           if (soloNew && value.shared) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (value.shared) onChanged(MetaRules.setShared(value, false, me));
+              if (value.shared) onChanged(linked ? MetaRules.setShared(value, false, me) : value.copyWith(shared: false));
             });
           }
           return _MenuChip<bool>(enabled: enabled,
@@ -138,23 +161,35 @@ class MetaStrip extends StatelessWidget {
             tooltip: tt('Who can see it'),
             options: const {true: 'Shared', false: 'Only me'},
             icons: const {true: Icons.people_outline, false: Icons.lock_outline},
-            disabled: soloNew ? const {true} : const {},
+            disabled: privateOnly ? const {true} : const {},
             selected: value.shared,
-            onSelected: (v) => onChanged(MetaRules.setShared(value, v, me)));
+            onSelected: (v) => onChanged(linked ? MetaRules.setShared(value, v, me) : value.copyWith(shared: v)));
         }),
-      if (showBelongs) _MenuChip<String>(enabled: enabled,
-        icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
-        label: MetaRules.belongsLabel(value.belongsTo, people),
-        tooltip: tt('Belongs to'),
-        options: {
-          '': 'Both of us',
-          if (me.isNotEmpty) me: 'Me',
-          if (people?.partnerId != null) people!.partnerId!: people!.partnerName,
-        },
-        icons: {'': Icons.group_outlined, if (me.isNotEmpty) me: Icons.person_outline,
-          if (people?.partnerId != null) people!.partnerId!: Icons.favorite_border},
-        selected: value.belongsTo ?? '',
-        onSelected: (v) => onChanged(MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me))),
+      if (showBelongs) ValueListenableBuilder<bool?>(
+        valueListenable: CurrentSpaceCache.paired,
+        builder: (context, paired, _) {
+          // QA: with no partner (alone, or after a separation) only "Me" can
+          // be chosen for new items, and a former partner is never listed.
+          // A private item in my personal space is mine alone (calendar
+          // events, which are not linked, may still be for both of us).
+          final solo = !OneSpaceEnv.isProduction && (paired == false || (personal && linked));
+          final partnerId = solo ? null : people?.partnerId;
+          return _MenuChip<String>(enabled: enabled,
+            icon: value.belongsTo == null ? Icons.group_outlined : Icons.person_outline,
+            label: MetaRules.belongsLabel(value.belongsTo, people),
+            tooltip: tt('Belongs to'),
+            options: {
+              '': 'Both of us',
+              if (me.isNotEmpty) me: 'Me',
+              if (partnerId != null) partnerId: people!.partnerName,
+            },
+            icons: {'': Icons.group_outlined, if (me.isNotEmpty) me: Icons.person_outline,
+              if (partnerId != null) partnerId: Icons.favorite_border},
+            disabled: solo && enabled ? const {''} : const {},
+            selected: value.belongsTo ?? '',
+            onSelected: (v) => onChanged(linked ? MetaRules.setBelongsTo(value, v.isEmpty ? null : v, me)
+              : value.copyWith(belongsTo: v.isEmpty ? null : v)));
+        }),
       if (showDate) InputChip(
         avatar: const Icon(Icons.event_outlined, size: 18),
         label: Text(value.date == null ? (OneSpacePhrases.arabic ? '${tt('Add')} ${tt(dateLabel)}' : 'Add ${dateLabel.toLowerCase()}') : tt(value.date == null ? ''

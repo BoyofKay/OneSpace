@@ -160,6 +160,11 @@ import EventKit
             let mail = MFMailComposeViewController()
             mail.mailComposeDelegate = self
             mail.setSubject((args["subject"] as? String) ?? raw)
+            if let html = args["html"] as? String {
+              mail.setMessageBody(html, isHTML: true)
+            } else if let text = args["text"] as? String {
+              mail.setMessageBody(text, isHTML: false)
+            }
             mail.addAttachmentData(bytes.data, mimeType: "application/pdf", fileName: file)
             top.present(mail, animated: true)
             result(true)

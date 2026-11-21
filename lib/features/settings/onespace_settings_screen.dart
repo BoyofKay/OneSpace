@@ -8,6 +8,8 @@ import '../../l10n/onespace_strings.dart';
 import '../../theme/appearance_settings_screen.dart';
 import '../../core/weather_unit_preference.dart';
 import '../calendar/holiday_sources_panel.dart';
+import '../../core/app_env.dart';
+import '../calendar/account_holiday_countries.dart';
 import 'special_dates.dart';
 import '../../core/phone_calendar_sync.dart';
 import 'package:onespace/l10n/phrases.dart';
@@ -83,7 +85,7 @@ class OneSpaceSettingsScreen extends StatelessWidget {
          ListTile(
           leading:const Icon(Icons.public_outlined),
           title:Text(tt('Regional holidays')),
-          subtitle:Text(tt('Choose which national calendars we see')),
+          subtitle:Text(tt('Choose the countries whose holidays you see')),
           trailing:const Icon(Icons.chevron_right),
           onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
            builder:(_)=>const _HolidayPreferencesScreen())),
@@ -185,10 +187,13 @@ class _HolidayPreferencesScreenState extends State<_HolidayPreferencesScreen>{
  @override Widget build(BuildContext context)=>Scaffold(
   appBar:AppBar(title:Text(tt('Regional holidays'))),
   body:SafeArea(child:ListView(padding:const EdgeInsets.all(18),children:[
+   if(!OneSpaceEnv.isProduction)const AccountHolidayCountriesPanel()
+   else ...[
    Text(tt('Choose the countries in our shared calendar.')),
    const SizedBox(height:12),
    if(loading)const LinearProgressIndicator()
    else if(space==null)Text(tt('Connect your shared space first.'))
    else HolidaySourcesPanel(spaceId:space!,onChanged:(){}),
+   ],
   ])));
 }

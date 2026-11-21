@@ -329,11 +329,10 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
     if(!personal&&widget.spaceId.isEmpty){
       throw StateError('Connect with a partner before sharing Trips');
     }
-    if(personal&&traveler!=null&&traveler!=db.auth.currentUser?.id){
-      throw StateError('A personal trip cannot name another account as traveler');
-    }
     final created=await db.from('shared_trips').insert({
      ...values,
+     // A private trip is always the account owner's own trip.
+     if(personal)'traveler_id':db.auth.currentUser!.id,
      if(personal) 'private_space_id':db.auth.currentUser!.id
      else 'space_id':widget.spaceId,
      'created_by':db.auth.currentUser!.id,
@@ -371,7 +370,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    isNew:!editing,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,notes,originText,destinationText],saving:saving,onSave:save,
    saveLabel:editing?'Save':'Next',
-   meta:MetaStrip(value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=
       (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
         ?'private':(v.shared?'shared':'private'))),
@@ -411,6 +410,11 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    Padding(padding:const EdgeInsets.only(top:4),child:Text(
     tt('Dates can wait while you plan. Booking a flight fills them in.'),
     style:Theme.of(context).textTheme.bodySmall)),
+   if(!OneSpaceEnv.isProduction&&visibility=='private')...[
+    FormSection(tt("Who's traveling")),
+    Text(tt('Only you can see this trip, so it is planned for you. Choose Both of us to plan a trip for your partner.'),
+     style:Theme.of(context).textTheme.bodySmall),
+   ]else...[
    FormSection(tt("Who's traveling")),
    if(p!=null&&p.partnerId!=null)Wrap(spacing:8,runSpacing:6,children:[
     ChoiceChip(label:Text(tt('Both of us')),selected:traveler==null,onSelected:(_)=>setTraveler(null)),
@@ -418,6 +422,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
     ChoiceChip(label:Text(tt(p.partnerName)),selected:traveler==p.partnerId,
      onSelected:(_)=>setTraveler(p.partnerId)),
    ]),
+   ],
    const SizedBox(height:10),
    CountStepper(label:tt('Adults'),help:tt('12 and over'),value:adults,icon:Icons.person_outline,
     onChanged:(v)=>setState((){adults=v;adultsTouched=true;})),

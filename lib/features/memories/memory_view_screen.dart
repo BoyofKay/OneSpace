@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 import '../../core/form_kit.dart';
+import '../../core/app_env.dart';
 import '../sharing/object_permissions.dart';
 import 'memory_export.dart';
 import 'memory_photo_layouts.dart';
@@ -143,6 +144,23 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
     if (saved == true && mounted) await load();
   }
 
+  bool nudging = false;
+  /// Asks my partner (by notification) to add their selfie to this day.
+  Future<void> nudge() async {
+    setState(() => nudging = true);
+    try {
+      await Supabase.instance.client.rpc('nudge_partner_about_memory', params: {'p_memory_id': widget.memoryId});
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('Your partner got a nudge.'))));
+    } on PostgrestException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt(e.message))));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tt('Could not send the nudge. Please try again.'))));
+    } finally {
+      if (mounted) setState(() => nudging = false);
+    }
+  }
+
   Widget selfieBody(ThemeData theme) {
     final mine = photos.where((p) => p['created_by'] == me).toList();
     final theirs = photos.where((p) => p['created_by'] != me).toList();
@@ -174,6 +192,12 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
         polaroid(mine.firstOrNull, 'You', onAdd: shared || memory?['created_by'] == me ? addMySelfie : null),
         if (shared) polaroid(theirs.firstOrNull, people?.partnerName ?? 'Partner'),
       ]),
+      if (shared && theirs.isEmpty && !OneSpaceEnv.isProduction && memory?['archived_at'] == null)
+        Center(child: TextButton.icon(
+          key: const Key('nudgePartnerSelfie'),
+          onPressed: nudging ? null : nudge,
+          icon: const Icon(Icons.notifications_active_outlined),
+          label: Text(tt('Nudge ${people?.partnerName ?? 'partner'}')))),
       if (shared) Padding(padding: const EdgeInsets.only(top: 10), child: Text(
         tt('A daily selfie is made together: each of you adds your own photo to the same day.'),
         textAlign: TextAlign.center, style: theme.textTheme.bodySmall)),

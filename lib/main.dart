@@ -40,6 +40,7 @@ import 'features/connect/couple_letters_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/hubs/section_hubs.dart';
 import 'features/remember/remember_screen.dart';
+import 'features/spaces/no_space_gate.dart';
 import 'core/secure_auth_storage.dart';
 import 'core/performance_timings.dart';
 import 'core/error_reporter.dart';
@@ -366,7 +367,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
       final db=Supabase.instance.client;
       final me=db.auth.currentUser?.id;
       if(me==null)return;
-      final row=await db.from('account_deletion_requests').select().eq('user_id',me).maybeSingle();
+      final row=await db.from('account_deletion_requests').select('user_id,requested_at,purge_after,cancelled_at,completed_at,processing_at').eq('user_id',me).maybeSingle();
       if(!mounted||!AccountDataRules.pending(row))return;
       final due=DateTime.tryParse(row!['purge_after']?.toString()??'')?.toLocal();
       final keep=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
@@ -494,11 +495,14 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
           onOpenWorld:(){navigate(2);WidgetsBinding.instance.addPostFrameCallback((_)=>_coordinate.currentState?.show(1));},
           onOpenProfile:()=>navigate(4),
         ),
-        if(visited.contains(1)) RememberScreen(refreshToken:refreshToken)
+        if(visited.contains(1)) NoSpaceGate(onGetSpace:()=>navigate(0),
+            child:RememberScreen(refreshToken:refreshToken))
           else const SizedBox.shrink(),
-        if(visited.contains(2))CoordinateHub(key:_coordinate)
+        if(visited.contains(2))NoSpaceGate(onGetSpace:()=>navigate(0),
+            child:CoordinateHub(key:_coordinate))
           else const SizedBox.shrink(),
-        if(visited.contains(3))const SectionHub(section:'connect')
+        if(visited.contains(3))NoSpaceGate(onGetSpace:()=>navigate(0),
+            child:const SectionHub(section:'connect'))
           else const SizedBox.shrink(),
         if(visited.contains(4))const MeScreen()
           else const SizedBox.shrink(),

@@ -40,7 +40,8 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
  String get me=>db.auth.currentUser?.id??'';
  bool get isOwner=>memory?['created_by']==me;
  bool get isShared=>memory?['visibility']=='shared';
- bool get canEdit=>isOwner||invites.any((i)=>i['invited_user_id']==me&&i['status']=='accepted');
+ // Shared scrapbooks are edited by both partners, like every shared item.
+ bool get canEdit=>isOwner||isShared;
  bool get awaiting=>invites.any((i)=>i['invited_user_id']==me&&i['status']=='pending');
  bool get dirty=>drafts.values.any((d)=>d.isNotEmpty);
  String get inviteState{
@@ -130,26 +131,6 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
    if(mounted)setState((){});
   }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
   catch(_){if(mounted)setState(()=>error='Could not create your scrapbook.');}
-  finally{if(mounted)setState(()=>busy=false);}
- }
- Future<void> _respond(bool accept)async{
-  if(id==null||busy)return;
-  setState(()=>busy=true);
-  try{
-   await db.rpc('respond_scrapbook_invite',params:{'p_memory_id':id,'p_accept':accept});
-   await _load();
-  }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
-  finally{if(mounted)setState(()=>busy=false);}
- }
- Future<void> _invite()async{
-  if(id==null||busy||!isOwner||!isShared)return;
-  setState(()=>busy=true);
-  try{
-   await db.rpc('invite_scrapbook_partner',params:{'p_memory_id':id});
-   if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content:Text(tt('Invitation sent to your partner.'))));
-   await _load();
-  }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
   finally{if(mounted)setState(()=>busy=false);}
  }
  Map<String,dynamic> _merged(Map<String,dynamic> page)=>{...page,...?drafts[page['id'].toString()]};
@@ -399,29 +380,9 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
  Widget _collaboration(){
   if(!isShared)return ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.lock_outline),
    title:Text(tt('Private scrapbook')),subtitle:Text(tt('Only you can view and edit it.')));
-  if(isOwner)return ListTile(
-   contentPadding:EdgeInsets.zero,leading:const Icon(Icons.people_outline),
-   title:Text(tt(inviteState=='accepted'?'Creating together':
-    inviteState=='pending'?'Invitation sent':'Invite your partner')),
-   subtitle:Text(tt(inviteState=='accepted'?'Both of you can edit every page.':
-    inviteState=='pending'?'Your partner can accept or decline.':
-    'Ask your partner to add photos and words.')),
-   trailing:inviteState=='accepted'?const Icon(Icons.check_circle_outline):
-    TextButton(onPressed:busy?null:_invite,child:Text(tt(inviteState=='pending'?'Resend':'Invite'))),
-  );
-  if(awaiting)return Card(child:Padding(padding:const EdgeInsets.all(12),
-   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text(tt('Your partner invited you to this scrapbook!'),style:const TextStyle(fontWeight:FontWeight.bold)),
-    Text(tt('Accept to add your own photos and words to any page.')),
-    Wrap(spacing:8,children:[
-     OutlinedButton(onPressed:busy?null:()=>_respond(false),child:Text(tt('Decline'))),
-     FilledButton(onPressed:busy?null:()=>_respond(true),child:Text(tt('Accept invitation'))),
-    ]),
-   ])));
-  return ListTile(contentPadding:EdgeInsets.zero,leading:Icon(canEdit?Icons.edit_note:Icons.visibility_outlined),
-   title:Text(tt(canEdit?'You can contribute':'Shared view')),
-   subtitle:Text(tt(canEdit?'Your changes are visible to both of you.':
-    'Only invited collaborators can edit scrapbook pages.')));
+  return ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.people_outline),
+   title:Text(tt('Shared scrapbook')),
+   subtitle:Text(tt('Both of you can edit every page. Use Nudge partner in the memory menu to ask for their part.')));
  }
  Widget _studio(){
   final myId=id;

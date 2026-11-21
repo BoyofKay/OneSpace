@@ -37,6 +37,17 @@ class UsageEvents with WidgetsBindingObserver {
     } catch (_) {}
     WidgetsBinding.instance.addObserver(this);
     _beginSession();
+    try {
+      // The next person who signs in on this phone starts their own session.
+      Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+        if (state.event == AuthChangeEvent.signedIn && _sessionStart == null) {
+          _beginSession();
+        } else if (state.event == AuthChangeEvent.signedOut) {
+          _sessionStart = null;
+          _queue.clear();
+        }
+      });
+    } catch (_) {}
     Timer.periodic(const Duration(seconds: 60), (_) => flush());
   }
 
@@ -50,7 +61,10 @@ class UsageEvents with WidgetsBindingObserver {
   void log(String name, {int? seconds}) {
     if (!enabled.value || !_valid.hasMatch(name) || name.length > 80) return;
     if (_queue.length >= 300) return;
+    final uid = _uid();
+    if (uid == null) return;
     _queue.add({
+      'u': uid,
       'n': name,
       if (seconds != null) 'v': seconds.clamp(0, 86400),
       't': DateTime.now().toUtc().toIso8601String(),
@@ -82,11 +96,33 @@ class UsageEvents with WidgetsBindingObserver {
     }
   }
 
+  static String? _uid() {
+    try { return Supabase.instance.client.auth.currentUser?.id; } catch (_) { return null; }
+  }
+
+  /// Call before an intentional sign-out, while the session is still valid,
+  /// so this person's last events are sent as theirs.
+  Future<void> flushBeforeSignOut() async {
+    final began = _sessionStart;
+    _sessionStart = null;
+    if (began != null) {
+      log('session_end', seconds: DateTime.now().difference(began).inSeconds);
+    }
+    try { await flush().timeout(const Duration(seconds: 3)); } catch (_) {}
+    _queue.clear();
+  }
+
   Future<void> flush() async {
     if (_queue.isEmpty || !enabled.value) return;
     final db = Supabase.instance.client;
-    if (db.auth.currentUser == null) { _queue.clear(); return; }
-    final batch = List<Map<String, Object?>>.of(_queue.take(200));
+    final uid = db.auth.currentUser?.id;
+    if (uid == null) { _queue.clear(); return; }
+    // Events recorded while someone else was signed in on this phone are
+    // never sent under the current account.
+    _queue.removeWhere((e) => e['u'] != uid);
+    if (_queue.isEmpty) return;
+    final batch = _queue.take(200)
+        .map((e) => Map<String, Object?>.of(e)..remove('u')).toList();
     _queue.removeRange(0, batch.length);
     try {
       await db.rpc('log_app_events', params: {

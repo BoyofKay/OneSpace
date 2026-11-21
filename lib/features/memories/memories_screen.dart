@@ -1,6 +1,7 @@
 import '../../core/form_kit.dart';
 import '../../core/item_menu.dart';
 import 'selfie_studio_screen.dart';
+import 'selfie_calendar_screen.dart';
 import '../../core/editor_scaffold.dart';
 import 'dart:async';
 
@@ -44,6 +45,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   bool _archived = false;
   bool _openedDeepLink=false;
   String _scope = 'all';
+  String _type = 'all';
   String? _error;
 
   @override
@@ -160,9 +162,49 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   Future<void> _dailySelfie()async{
     final space=_spaceId;
     if(space==null&&OneSpaceEnv.isProduction)return;
+    if(!OneSpaceEnv.isProduction&&await _hasOwnSelfieToday()){
+      if(!mounted)return;
+      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+        icon:const Icon(Icons.photo_camera_front_outlined),
+        title:Text(tt('You already took today’s selfie')),
+        content:Text(tt('One daily selfie a day keeps the story honest. '
+          'You can take the next one tomorrow. Open today’s selfie to see it or share it.')),
+        actions:[FilledButton(onPressed:()=>Navigator.pop(ctx),child:Text(tt('OK')))]));
+      return;
+    }
     final saved=await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(
       builder:(_)=>SelfieStudioScreen(spaceId:space??'')));
     if(saved==true&&mounted)await _load();
+  }
+
+  /// Sends my partner a notification asking for their part of a shared
+  /// memory or scrapbook (both of us can always edit shared ones).
+  Future<void> _nudge(Map<String,dynamic> memory)async{
+    try{
+      await Supabase.instance.client.rpc('nudge_partner_about_memory',
+        params:{'p_memory_id':memory['id']});
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text(tt('Your partner got a nudge.'))));
+    }on PostgrestException catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(tt(e.message))));
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text(tt('Could not send the nudge. Please try again.'))));
+    }
+  }
+
+  /// QA: one daily selfie per person per day, private or shared. Joining the
+  /// partner's shared selfie of the day happens from that memory.
+  Future<bool> _hasOwnSelfieToday()async{
+    final me=Supabase.instance.client.auth.currentUser?.id;
+    if(me==null)return false;
+    try{
+      final rows=await Supabase.instance.client.from('memories').select('id')
+        .eq('created_by',me).eq('memory_type','daily_selfie')
+        .eq('memory_date',CalendarRules.sqlDate(DateTime.now()))
+        .isFilter('archived_at',null).limit(1);
+      return rows.isNotEmpty;
+    }catch(_){return false;}
   }
 
   bool _matchesSearch(Map<String,dynamic> memory){
@@ -181,19 +223,26 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   }
 
   /// R55: this screen's filter groups (drawn by the shared panel).
- List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all')];
+ List<FilterGroupSpec> _filterGroups()=>[
+   FilterGroupSpec(id:'who',label:tt('Who can see'),options:const {'all':'All','shared':'Shared','private':'Only me'},selected:_scope,defaultValue:'all'),
+   FilterGroupSpec(id:'type',label:tt('Type'),options:const {'all':'All','story':'Story journal','scrapbook':'Scrapbook','daily_selfie':'Daily selfie'},selected:_type,defaultValue:'all'),
+ ];
 
  @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(tr(context, 'memories')),actions:[
+      IconButton(key:const Key('selfieCalendar'),tooltip:tt('Daily selfies'),
+        icon:const Icon(Icons.photo_camera_front_outlined),
+        onPressed:()=>Navigator.of(context).push<void>(MaterialPageRoute<void>(
+          builder:(_)=>SelfieCalendarScreen(spaceId:_spaceId??'')))),
       RecordListTopActions(
         historyKinds:const ['memory'],historyTitle:tt('Memories'),
      showHistory:_archived,
         onToggleHistory:()=>setState(()=>_archived=!_archived),
         groups:_filterGroups(),
-      onApply:(v)=>setState((){_scope=v['who']!;}),
+      onApply:(v)=>setState((){_scope=v['who']!;_type=v['type']??'all';}),
      ),
-    ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';}))),
+    ],bottom:filterShowingBar(_filterGroups(),removed:_archived,onClear:()=>setState((){_archived=false;_scope='all';_type='all';}))),
     floatingActionButton:_spaceId==null&&_privateSpaceId==null?null:AddFabMenu(label:tt('Add memory'),options:[
       AddFabOption(tt('Story journal'),Icons.menu_book_outlined,()=>_edit()),
       AddFabOption(tt('Daily selfie'),Icons.photo_camera_outlined,_dailySelfie),
@@ -248,6 +297,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                 final shown = snapshot.data!.where((m) =>
                   (_archived || m['archived_at'] == null) &&
                   (_scope == 'all' || m['visibility'] == _scope) &&
+                  (_type == 'all' || (m['memory_type'] ?? 'story') == _type) &&
                   _matchesSearch(m))
                   .toList()
                     ..sort((a,b) {
@@ -268,7 +318,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   final visibility = memory['visibility'] as String? ?? 'shared';
                   final editable = ObjectPermissions.canEdit(
                     visibility: visibility, createdBy: creator, userId: userId);
-                  final ownerShare = ObjectPermissions.canManagePrivateShare(
+                  // Personal-space memories stay private (as Notes, Feelings
+                  // and Calendar): no view-only grant button.
+                  final ownerShare = (OneSpaceEnv.isProduction ||
+                      memory['private_space_id'] == null) &&
+                    ObjectPermissions.canManagePrivateShare(
                     visibility: visibility, createdBy: creator, userId: userId);
                   final date = memory['memory_date'] as String? ?? '';
                   final body = memory['body'] as String? ?? '';
@@ -293,7 +347,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                             ? _view(memory) : _edit(existing: memory),
                           openLabel: memory['memory_type']=='daily_selfie'||!editable ? 'Open' : 'Edit',
                           table: editable ? 'memories' : null,
-                          removed: memory['archived_at'] != null, onChanged: _load),
+                          removed: memory['archived_at'] != null, onChanged: _load,
+                          moreActions: [
+                            if (!OneSpaceEnv.isProduction && visibility == 'shared' && memory['archived_at'] == null &&
+                                memory['space_id'] != null)
+                              ItemMenuAction(tt('Nudge partner'), Icons.notifications_active_outlined,
+                                () => _nudge(memory)),
+                          ]),
                         onTap: () => _view(memory),
                       ),
                       if (ownerShare) Align(
@@ -484,8 +544,8 @@ class _MemoryEditorScreenState extends State<MemoryEditorScreen> with FormChange
    title:_editing?tt('Edit story'):tt('New story'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_editable && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_body,_place],saving:_busy,onSave:_save,
-   meta:MetaStrip(value:MetaValues(shared:_visibility=='shared'),
-     showVisibility:widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction,
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:_visibility=='shared'),
+     showVisibility:true,
      showBelongs:false,showDate:false,
      enabled:!_editing&&!_busy,onChanged:(v)=>setState(()=>_visibility=v.shared?'shared':'private')),
    body: SafeArea(

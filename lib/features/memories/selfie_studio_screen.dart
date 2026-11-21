@@ -35,6 +35,14 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   bool _private = false, _saving = false;
   String? _error;
   List<Map<String, dynamic>> _week = const [];
+  /// Weeks back from this week shown in the strip (0 = this week).
+  int _weeksBack = 0;
+  DateTime get _accountStart {
+    final raw = _db.auth.currentUser?.createdAt;
+    final d = raw == null ? null : DateTime.tryParse(raw)?.toLocal();
+    final day = d ?? DateTime.now();
+    return DateTime(day.year, day.month, day.day);
+  }
   /// R70: today's shared selfie from my partner that still waits for mine.
   String? _joinId;
 
@@ -56,7 +64,8 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
 
   Future<void> _loadWeek() async {
     try {
-      final from = CalendarRules.sqlDate(DateTime.now().subtract(const Duration(days: 6)));
+      // Every selfie since the account was created, so the strip can go back.
+      final from = CalendarRules.sqlDate(_accountStart);
       var query=_db.from('memories').select('created_by,memory_date');
       if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
       final rows=await query.eq('memory_type', 'daily_selfie')
@@ -149,7 +158,11 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
   Widget _weekStrip(BuildContext context) {
     final me = _db.auth.currentUser?.id;
     final scheme = Theme.of(context).colorScheme;
-    final days = List.generate(7, (i) => DateTime.now().subtract(Duration(days: 6 - i)));
+    final now = DateTime.now();
+    final end = DateTime(now.year, now.month, now.day).subtract(Duration(days: 7 * _weeksBack));
+    final days = List.generate(7, (i) => end.subtract(Duration(days: 6 - i)));
+    final canGoBack = days.first.isAfter(_accountStart);
+    final loc = MaterialLocalizations.of(context);
     bool posted(DateTime d, bool mine) => _week.any((r) =>
         r['memory_date']?.toString() == CalendarRules.sqlDate(d) &&
         (r['created_by'] == me) == mine);
@@ -158,7 +171,17 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
         decoration: BoxDecoration(shape: BoxShape.circle,
             color: on ? c : scheme.outlineVariant));
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(tt('This week'), style: Theme.of(context).textTheme.labelLarge),
+      Row(children: [
+        Expanded(child: Text(_weeksBack == 0 ? tt('This week')
+            : '${loc.formatShortMonthDay(days.first)} – ${loc.formatShortMonthDay(days.last)}',
+          style: Theme.of(context).textTheme.labelLarge)),
+        IconButton(tooltip: tt('Previous week'), visualDensity: VisualDensity.compact,
+          onPressed: canGoBack ? () => setState(() => _weeksBack++) : null,
+          icon: const Icon(Icons.chevron_left)),
+        IconButton(tooltip: tt('Next week'), visualDensity: VisualDensity.compact,
+          onPressed: _weeksBack > 0 ? () => setState(() => _weeksBack--) : null,
+          icon: const Icon(Icons.chevron_right)),
+      ]),
       const SizedBox(height: 6),
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         for (final d in days)
@@ -167,6 +190,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
                 style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(height: 4),
             Row(children: [dot(posted(d, true), scheme.primary), dot(posted(d, false), scheme.tertiary)]),
+            Text('${d.day}', style: Theme.of(context).textTheme.labelSmall),
           ]),
       ]),
       const SizedBox(height: 6),
@@ -193,7 +217,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       saveLabel: tt('Save selfie'),
       listenTo: [_caption],
       onSave: _save,
-      meta: _joinId != null ? null : MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
+      meta: _joinId != null ? null : MetaStrip(personal:widget.spaceId.isEmpty,value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
         enabled: !_saving && (widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction),
         onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [

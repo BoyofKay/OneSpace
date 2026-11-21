@@ -51,7 +51,6 @@ class _ScrapbookViewerScreenState extends State<ScrapbookViewerScreen> {
       final p = await db.from('scrapbook_pages').select().eq('memory_id', widget.memoryId).order('page_order');
       final ph = await db.from('memory_photos').select('id,object_path').eq('memory_id', widget.memoryId)
         .isFilter('archived_at', null).limit(200);
-      final inv = await db.from('scrapbook_invites').select('invited_user_id,status').eq('memory_id', widget.memoryId);
       final service = MemoryPhotoService(db);
       final urls = <String, String>{};
       final used = {for (final page in p) for (var n = 1; n <= 4; n++) if (page['photo_${n}_id'] != null) page['photo_${n}_id'].toString()};
@@ -66,7 +65,8 @@ class _ScrapbookViewerScreenState extends State<ScrapbookViewerScreen> {
           ..sort((a, b) => ((a['page_order'] as num?) ?? 0).compareTo((b['page_order'] as num?) ?? 0));
         photos = List<Map<String, dynamic>>.from(ph);
         signed..clear()..addAll(urls);
-        canEdit = m['created_by'] == me || inv.any((i) => i['invited_user_id'] == me && i['status'] == 'accepted');
+        // Shared scrapbooks are edited by both partners.
+        canEdit = m['created_by'] == me || m['visibility'] == 'shared';
         index = index.clamp(0, pages.isEmpty ? 0 : pages.length - 1);
         loading = false;
       });

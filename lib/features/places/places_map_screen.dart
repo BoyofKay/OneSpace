@@ -1,4 +1,5 @@
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -103,6 +104,72 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
   int _lookup = 0;
   String _meInitial = 'M', _partnerInitial = 'P';
   bool _hasPartner = false;
+  /// A new controller whenever the map is rebuilt for another filter.
+  MapController _map = MapController();
+  LatLng? _me;
+  bool _locating = false;
+  double _rotation = 0;
+
+  Future<void> _locateMe() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    String? problem;
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        problem = 'Turn on location on your phone to see where you are.';
+      } else {
+        var permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+          problem = 'Allow location for OneSpace in your phone settings to see where you are.';
+        } else {
+          final at = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 15)));
+          if (!mounted) return;
+          final here = LatLng(at.latitude, at.longitude);
+          setState(() => _me = here);
+          _map.move(here, 15);
+        }
+      }
+    } catch (_) {
+      problem = 'Your location could not be found. Try again outside or near a window.';
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+    if (problem != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt(problem))));
+    }
+  }
+
+  Future<void> _search() async {
+    final text = TextEditingController();
+    final query = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+      title: Text(tt('Search the map')),
+      content: TextField(controller: text, autofocus: true, textInputAction: TextInputAction.search,
+        decoration: InputDecoration(hintText: tt('A place, street or city'),
+          prefixIcon: const Icon(Icons.search)),
+        onSubmitted: (v) => Navigator.pop(ctx, v)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tt('Cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, text.text), child: Text(tt('Search'))),
+      ]));
+    text.dispose();
+    final q = (query ?? '').trim();
+    if (q.isEmpty || !mounted) return;
+    final hit = await PlaceLocator.search(q);
+    if (!mounted) return;
+    if (hit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(tt('Nothing found. Try adding the city or country.'))));
+      return;
+    }
+    final at = LatLng(hit.latitude, hit.longitude);
+    _map.move(at, 15);
+    await _drop(at);
+  }
 
   @override
   void initState() {
@@ -173,9 +240,14 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
         : null,
       onTap: (_, p) { if (pinMode) { _drop(p); } else { setState(() { selected = null; pin = null; }); } },
       onLongPress: (_, p) => _drop(p),
+      onPositionChanged: (camera, _) {
+        if ((camera.rotation - _rotation).abs() > 1) setState(() => _rotation = camera.rotation);
+      },
     );
     return Scaffold(
-      appBar: AppBar(title: Text(tt('Our map'))),
+      appBar: AppBar(title: Text(tt('Our map')), actions: [
+        IconButton(tooltip: tt('Search the map'), icon: const Icon(Icons.search), onPressed: _search),
+      ]),
       floatingActionButton: pin != null || selected != null ? null : FloatingActionButton.extended(
         onPressed: () => setState(() => pinMode = !pinMode),
         icon: Icon(pinMode ? Icons.close : Icons.add_location_alt_outlined),
@@ -183,6 +255,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
       body: Stack(children: [
         FlutterMap(
           key: ValueKey(filter),
+          mapController: _map,
           options: options,
           children: [
             OsmTiles.layer(),
@@ -194,6 +267,10 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
                   child: PlaceMapPin(place: shown[i], selected: selected == shown[i],
                     meInitial: _meInitial, partnerInitial: _partnerInitial,
                     hasPartner: _hasPartner))),
+              if (_me != null) Marker(point: _me!, width: 22, height: 22,
+                child: DecoratedBox(decoration: BoxDecoration(shape: BoxShape.circle,
+                  color: Colors.blue, border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black38)]))),
               if (pin != null) Marker(point: pin!, width: 48, height: 48, alignment: Alignment.topCenter,
                 child: Icon(Icons.location_on, size: 46, color: theme.colorScheme.primary,
                   shadows: const [Shadow(blurRadius: 4, color: Colors.black38)])),
@@ -206,7 +283,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
         Positioned(top: 8, left: 8, right: 8, child: Wrap(spacing: 6, children: [
           for (final e in const {'all': 'All', 'visited': 'Been there', 'wishlist': 'Bucket list'}.entries)
             ChoiceChip(label: Text(tt(e.value)), selected: filter == e.key,
-              onSelected: (_) => setState(() { filter = e.key; selected = null; })),
+              onSelected: (_) => setState(() { filter = e.key; selected = null; _map = MapController(); _rotation = 0; })),
         ])),
         Positioned(top: 53, left: 8, right: 8,
           child: IgnorePointer(child: Center(child: DecoratedBox(
@@ -261,8 +338,20 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
           : Positioned(top: 102, left: 12, right: 12, child: Card(color: theme.colorScheme.errorContainer, child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(tt('The map pictures could not load. Check your internet connection and try again.')))))),
-        if (points.isEmpty && missing == 0) Center(child: Card(child: Padding(padding: const EdgeInsets.all(16),
-          child: Text(tt('Add places to see them here.'))))),
+        // Map controls: north up and my location.
+        Positioned(right: 12, bottom: pin != null || selected != null ? 170 : 96,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            FloatingActionButton.small(heroTag: 'map-north', tooltip: tt('Point north'),
+              onPressed: () { _map.rotate(0); setState(() => _rotation = 0); },
+              child: Transform.rotate(angle: -_rotation * 3.1415926535 / 180,
+                child: const Icon(Icons.navigation_outlined))),
+            const SizedBox(height: 8),
+            FloatingActionButton.small(heroTag: 'map-me', tooltip: tt('Show my location'),
+              onPressed: _locating ? null : _locateMe,
+              child: _locating ? const SizedBox(width: 18, height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.my_location)),
+          ])),
         if (selected != null) Positioned(bottom: 16, left: 12, right: 12, child: Card(child: ListTile(
           leading: Icon(PlaceCategories.icon(selected!['category'])),
           title: Text(selected!['name'].toString()),

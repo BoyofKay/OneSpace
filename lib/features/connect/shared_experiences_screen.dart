@@ -638,7 +638,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
   return EditorScaffold(title:widget.original==null?tt('Add experience'):tt('Edit experience'),
    isNew:widget.original==null,isChanged:()=>changed,isComplete:()=>title.text.trim().isNotEmpty,
    listenTo:[title,description,platform,url],saving:saving,onSave:save,
-   meta:MetaStrip(value:MetaValues(date:planned,shared:visibility=='shared'),
+   meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(date:planned,shared:visibility=='shared'),
     showVisibility:!OneSpaceEnv.isProduction&&widget.original==null,showBelongs:false,
     dateLabel:tt('Plan a date'),onChanged:(v)=>setState((){
       planned=v.date;
@@ -1032,6 +1032,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   final myPick=ExperienceInterestRules.choiceForUser(interests,widget.id,myId);
   final partnerPick=interests.where((x)=>x['user_id']!=myId)
    .map((x)=>x['choice']?.toString()??'undecided').firstOrNull??'undecided';
+  final privateOnly=r!=null&&(r['private_space_id']!=null||r['visibility']=='private');
   // R73 (Ahmed): one ⋮ in the top bar, like every other page.
   return Scaffold(appBar:AppBar(title:Text(tt('Our experience')),actions:[
    if(r!=null)ItemMenu(kind:'experience',recordId:widget.id,title:r['title']?.toString(),
@@ -1098,6 +1099,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
      decoration:InputDecoration(labelText:tt('My review'))),
     Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton(
      onPressed:busy?null:saveReview,child:Text(tt('Save my review')))),
+    // Only me (personal, or private in our space): no one to talk to.
+    if(!privateOnly)...[
     const Divider(height:28),
     Row(children:[
      Expanded(child:Text(tt('Conversation'),style:Theme.of(context).textTheme.titleMedium)),
@@ -1112,7 +1115,8 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
       child:Text(tt('Start talking here. Every message stays with this experience.'))),
     for(final x in ExperienceCommentRules.visible(comments,myId,showMyRetracted:showMyRetracted,query:''))
      bubble(x,myId),
+    ],
     if(error!=null)Text(tt(error!),style:TextStyle(color:Theme.of(context).colorScheme.error)),
-  ])),composer(r['space_id']?.toString())]));
+  ])),if(!privateOnly)composer(r['space_id']?.toString())]));
  }
 }

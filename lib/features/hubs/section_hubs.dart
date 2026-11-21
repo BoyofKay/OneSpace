@@ -86,7 +86,7 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
  String? spaceId;
  String mode='not_set';
  DateTime? last,next;
- bool loading=true,saving=false;
+ bool loading=true,saving=false,paired=true;
  String? error;
  @override void initState(){super.initState();load();}
  Future<void> load() async {
@@ -95,8 +95,10 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
      if(id==null){if(mounted)setState(()=>loading=false);return;}
      final row=await db.from('spaces').select(
        'relationship_mode,last_met_on,next_meet_on').eq('id',id).single();
+     final members=await db.from('space_members').select('user_id').eq('space_id',id);
      if(mounted) { setState((){
        spaceId=id;
+       paired=members.length==2;
        mode=row['relationship_mode'] as String? ?? 'not_set';
        last=DateTime.tryParse(row['last_met_on'] as String? ?? '');
        next=DateTime.tryParse(row['next_meet_on'] as String? ?? '');
@@ -140,6 +142,14 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
      child:LinearProgressIndicator());
    if(spaceId==null)return Card(child:Padding(
      padding:EdgeInsets.all(16),child:Text(tt('Connect your shared space first.'))));
+   // A space with one person has no relationship to describe yet.
+   if(!paired)return Card(elevation:0,child:Padding(
+     padding:const EdgeInsets.all(16),child:Column(
+       crossAxisAlignment:CrossAxisAlignment.start,children:[
+       Text(tt('Our relationship'),style:Theme.of(context).textTheme.titleLarge),
+       const SizedBox(height:8),
+       Text(tt('Living arrangement and meeting dates can be set once your partner joins.')),
+     ])));
    final together=mode=='living_together';
    final since=daysSince(last),until=daysSince(next);
    return Card(elevation:0,child:Padding(

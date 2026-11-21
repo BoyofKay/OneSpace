@@ -11,6 +11,9 @@ import 'invitation_code.dart';
 import 'invite_partner_screen.dart';
 import 'invitation_link_inbox.dart';
 import '../../core/app_env.dart';
+import '../../core/usage_events.dart';
+import '../notifications/push_registration_gate.dart';
+import 'account_notice_banner.dart';
 import 'invitation_qr.dart';
 import '../places/places_screen.dart';
 import '../counters/counters_screen.dart';
@@ -136,6 +139,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     WidgetsBinding.instance.addObserver(this);
     _load();
     InvitationLinkInbox.instance.addListener(_useIncomingInvite);
+    InvitationLinkInbox.instance.watchSignOut();
     _useIncomingInvite();
     unawaited(PhoneCalendarSync.syncNow());
     unawaited(_loadPartnerLabel());
@@ -154,6 +158,11 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // QA: the partner may have left, removed us or deleted the space while
+    // the app was in the background; show the current state on return.
+    if (state == AppLifecycleState.resumed && !OneSpaceEnv.isProduction) {
+      unawaited(_load());
+    }
     if (state == AppLifecycleState.resumed && spaceId != null) {
       unawaited(_syncDeviceContext(force: true));
     }
@@ -406,6 +415,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         summaryLoading = false;
         loading = false;
       });
+      unawaited(_checkPendingInvite());
       return;
     }
     final memberLabel = tr(context, 'member');
@@ -475,6 +485,41 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       summaryLoading = false;
       loading = false;
     });
+    unawaited(_checkPendingInvite());
+  }
+
+  /// QA: a saved invitation that can't be used by this account is explained
+  /// once and then forgotten, so it never sticks around.
+  Future<void> _checkPendingInvite() async {
+    final code = InvitationLinkInbox.instance.pendingCode;
+    if (OneSpaceEnv.isProduction || code == null || !mounted || working) return;
+    String? reason;
+    if (spaceId != null) {
+      reason = 'You already belong to a space, so this invitation can’t be used. '
+        'To join someone else, leave or delete your current space first.';
+    } else {
+      try {
+        final value = await client.rpc('resolve_my_addressed_invitation', params: {'p_token': code});
+        final status = value is Map ? value['status']?.toString() : null;
+        reason = switch (status) {
+          'ready' || 'updated' => null,
+          'wrong_account' => 'That invitation was for another email address, so it was removed from this phone.',
+          'expired' => 'That invitation has expired. Ask your partner to send a new one.',
+          'replaced' => 'That invitation was replaced by a newer one. Ask your partner for the latest link.',
+          'already_used' => 'That invitation was already used.',
+          'already_paired' => 'You already belong to a space, so this invitation can’t be used.',
+          'full' => 'That space already has two people.',
+          'confirm_email' => null, // keep it until the email is confirmed
+          _ => 'That invitation can’t be used any more.',
+        };
+      } catch (_) { return; } // offline: keep it and try again later
+    }
+    if (reason == null || !mounted) return;
+    await InvitationLinkInbox.instance.clear();
+    if (!mounted) return;
+    setState(() { invitationController.clear(); issue = null; _lastAutoJoinKey = null; });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      duration: const Duration(seconds: 8), content: Text(tt(reason))));
   }
 
   List<TodayCalendarEntry> _parseComingUp(Object? raw){
@@ -650,7 +695,9 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         TextSelection.collapsed(offset: code.length);
     if (mounted) {
       setState(() => issue = null);
-      if (membershipResolved && spaceId == null) {
+      // QA: an invitation is accepted or declined by the person, never
+      // joined automatically.
+      if (membershipResolved && spaceId == null && OneSpaceEnv.isProduction) {
         unawaited(_autoJoinPending());
       }
     }
@@ -676,7 +723,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     if (!mounted || OneSpaceEnv.isProduction || spaceId != null ||
         client.auth.currentUser == null) return;
     if (InvitationLinkInbox.instance.pendingCode != null) {
-      await _autoJoinPending();
+      // Shown as Accept / Decline; nothing joins until the person accepts.
+      if (mounted) setState(() {});
     } else if (!dismissedAddressedInvite) {
       await _discoverAddressedInvite();
     }
@@ -716,6 +764,33 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       }
     } finally {
       if (mounted) setState(() => checkingAddressedInvite = false);
+    }
+  }
+
+  /// QA: say no to an invitation. The inviter is told; nothing is joined.
+  Future<void> _declinePending() async {
+    final code = InvitationLinkInbox.instance.pendingCode;
+    setState(() { working = true; issue = null; });
+    try {
+      if (code != null) {
+        await client.rpc('decline_my_invitation', params: {'p_token': code});
+      }
+      await InvitationLinkInbox.instance.clear();
+      if (mounted) {
+        setState(() {
+          invitationController.clear();
+          _lastAutoJoinKey = null;
+          dismissedAddressedInvite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tt('Invitation declined.'))));
+      }
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => issue = e.message);
+    } catch (_) {
+      if (mounted) setState(() => issue = tt('Could not decline right now. Try again.'));
+    } finally {
+      if (mounted) setState(() => working = false);
     }
   }
 
@@ -1172,6 +1247,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   style:theme.textTheme.bodySmall)),
                 if(offline)TextButton(onPressed:_load,child:Text(tt('Retry'))),
               ])),
+          const AccountNoticeBanner(),
           const SeasonalThemePreview(compact:true),
           const SizedBox(height:8),
           if (issue != null &&
@@ -1204,8 +1280,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               (InvitationLinkInbox.instance.pendingCode != null ||
                joiningAddressedInvite)) ...[
             _panel(
-              tt('Joining your partner’s OneSpace'),
-              tt('Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'),
+              tt(OneSpaceEnv.isProduction ? 'Joining your partner’s OneSpace' : 'You have an invitation'),
+              tt(OneSpaceEnv.isProduction
+                ? 'Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'
+                : 'Someone invited you to share their OneSpace. Accept to join their space, or decline.'),
               Icons.mark_email_read_outlined,
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 if (working) ...[
@@ -1225,13 +1303,25 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   onPressed: working ? null : () => _autoJoinPending(retry: true),
                   icon: Icon(issue == null ? Icons.people_alt_outlined : Icons.refresh),
                   label: Text(tt(issue == null
-                      ? 'Join your partner’s space'
+                      ? (OneSpaceEnv.isProduction ? 'Join your partner’s space' : 'Accept invitation')
                       : 'Retry joining your partner')),
                 ),
+                if (!OneSpaceEnv.isProduction) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const Key('declinePendingInvitation'),
+                    onPressed: working ? null : _declinePending,
+                    icon: const Icon(Icons.close),
+                    label: Text(tt('Decline')),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: working ? null : () async {
                     // Preserve the invite securely for the right account.
+                    InvitationLinkInbox.instance.keepThroughNextSignOut();
+                    await UsageEvents.instance.flushBeforeSignOut();
+                    await disableCurrentPushDevice();
                     await client.auth.signOut();
                   },
                   icon: const Icon(Icons.logout),
@@ -1353,7 +1443,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               _invitePanel(),
               const SizedBox(height:12),
             ],
-            _hero(),
+            // How we live only makes sense with two people in the space.
+            if (memberCount >= 2) _hero(),
             _sinceAwaySection(),
             TodayAttentionSection(
               items:focusItems,

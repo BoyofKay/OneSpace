@@ -61,7 +61,10 @@ support@onespace.live`;
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F3F6FA"><tr><td align="center" style="padding:28px 12px">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:white;border:1px solid #E3EAF0;border-radius:16px">
 <tr><td style="padding:30px 28px 12px">
-<img alt="OneSpace" src="https://onespace.live/assets/icon-512.png" width="52" height="52" style="display:block;border:0">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:middle;padding-right:12px"><img alt="" src="https://onespace.live/assets/icon-512.png" width="52" height="52" style="display:block;border:0"></td>
+<td style="vertical-align:middle"><div style="font-size:24px;font-weight:bold;letter-spacing:-0.3px;color:#14213D;line-height:1.1">OneSpace</div>
+<div style="font-size:13px;color:#51657A;line-height:1.4;margin-top:3px">Two of Us. One Space.</div></td></tr></table>
 <h1 style="font-size:25px;line-height:1.28;margin:19px 0 12px;color:#14213D">A little space for us.</h1>
 <p style="font-size:16px;line-height:1.65;color:#354B63;margin:0 0 14px"><strong>${sender}</strong> has invited you to share a private space on OneSpace.</p>
 <p style="font-size:15px;line-height:1.65;color:#354B63;margin:0 0 18px">A place to remember little things, make plans, and stay connected.</p>
@@ -150,7 +153,7 @@ Deno.serve(async(req)=>{
   try{permitted=await serviceRpc<boolean>("claim_app_invitation_email_send",{
     p_sender_id:user.id,p_space_id:space,p_recipient_digest:digest,
   });}catch{return json(503,{error:"Invitation rate limiter unavailable"});}
-  if(!permitted)return json(429,{error:"Too many invitations. Try again later."});
+  if(!permitted)return json(429,{error:"You just sent this invitation. Wait a minute and try again."});
   const profUrl=new URL(root+"/rest/v1/profiles");
   profUrl.searchParams.set("select","display_name");
   profUrl.searchParams.set("id","eq."+user.id);
@@ -166,7 +169,9 @@ Deno.serve(async(req)=>{
   try{response=await fetch("https://api.resend.com/emails",{
     method:"POST",
     headers:{Authorization:"Bearer "+resend,"content-type":"application/json",
-      "Idempotency-Key":"app-invite-"+user.id+"-"+digest.slice(0,16)+"-"+Math.floor(Date.now()/900000)},
+      // One key per code per minute: a resend or a replacement code always
+      // sends again, while a double tap does not send twice.
+      "Idempotency-Key":"app-invite-"+user.id+"-"+String(invite.token).slice(0,16)+"-"+Math.floor(Date.now()/60000)},
     body:JSON.stringify({
       from:"OneSpace <support@onespace.live>",to:[recipient],
       reply_to:"support@onespace.live",
