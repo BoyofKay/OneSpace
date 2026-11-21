@@ -87,6 +87,8 @@ class CurrentSpaceCache {
             members = list.length;
           }
           if (_userId == id && _generation == generation) {
+            // Names cached before a partner left would show them again.
+            if (_memberNames != null && _memberNames!.length != members) _memberNames = null;
             paired.value = members >= 2;
           }
           if (_userId == id && _generation == generation) {

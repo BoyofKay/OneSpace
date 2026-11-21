@@ -632,7 +632,7 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
       title: isNew ? (status == 'wishlist' ? 'New dream place' : 'New place') : 'Edit place',
       isNew: isNew, saving: saving || locating, listenTo: [name, city, country, address, notes, mapUrl],
       isChanged: () => changed, isComplete: () => name.text.trim().isNotEmpty, onSave: _save,
-      meta: MetaStrip(value: MetaValues(shared: shared), people: people,
+      meta: MetaStrip(personal:widget.spaceId.isEmpty,value: MetaValues(shared: shared), people: people,
         showBelongs: false, showDate: false,
         enabled:isNew&&!saving,
         onChanged:(v)=>setState(() => shared=

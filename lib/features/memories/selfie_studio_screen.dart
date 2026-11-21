@@ -217,7 +217,7 @@ class _SelfieStudioScreenState extends State<SelfieStudioScreen> {
       saveLabel: tt('Save selfie'),
       listenTo: [_caption],
       onSave: _save,
-      meta: _joinId != null ? null : MetaStrip(value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
+      meta: _joinId != null ? null : MetaStrip(personal:widget.spaceId.isEmpty,value: MetaValues(shared: !_private), showBelongs: false, showDate: false,
         enabled: !_saving && (widget.spaceId.isNotEmpty || OneSpaceEnv.isProduction),
         onChanged: (v) => setState(() => _private = !v.shared)),
       body: ListView(padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 24), children: [

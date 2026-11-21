@@ -124,7 +124,10 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
 
   Future<void> load() async {
     try {
-      final id = await CurrentSpaceCache.instance.get();
+      // Always re-check the partner here: a former partner's birthday slot
+      // must disappear as soon as the pairing ends.
+      SpacePeople.reset();
+      final id = await CurrentSpaceCache.instance.get(refresh: true);
       final p = await SpacePeople.load();
       String? mine;
       final me = db.auth.currentUser?.id;

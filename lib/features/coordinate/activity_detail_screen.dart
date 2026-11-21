@@ -1648,7 +1648,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           body: Center(child: Text(tt('Activity not available.'))));
       }
       final item = s.data!.first;
-      _personalActivity = item['private_space_id'] != null;
+      // Only me (personal, or private in our space): no one to chat with.
+      _personalActivity = item['private_space_id'] != null || item['visibility'] == 'private';
       conversationSpaceId=item['space_id']?.toString();
       return Scaffold(
         resizeToAvoidBottomInset: true,
@@ -1708,7 +1709,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             componentSection(),
             decisionSection(item['space_id']?.toString()),
             // A personal activity has no one to talk to: no chat, no voice notes.
-            if (item['private_space_id'] == null)
+            if (!_personalActivity)
               conversation(item['space_id']?.toString()),
             const SizedBox(height: 12),
             Text(tt('Created by ${author(item['created_by']?.toString(),item['space_id']?.toString())}'
@@ -1716,7 +1717,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 style: Theme.of(context).textTheme.labelSmall),
           ],
           )),
-          bottomComposer(),
+          if (!_personalActivity) bottomComposer(),
         ]),
       );
     },

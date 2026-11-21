@@ -707,7 +707,7 @@ class _CheckinEditorState extends State<CheckinEditor> {
     isComplete:()=>_canEdit,
     listenTo:[_message,_gratitude],saving:_saving,onSave:_save,
     missingHint:null,
-    meta:MetaStrip(value:MetaValues(shared:_visibility=='shared',date:_date),
+    meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:_visibility=='shared',date:_date),
       showBelongs:false,dateLabel:tt('Day'),enabled:widget.existing==null&&_canEdit&&!_saving,
       onChanged:(v)=>setState((){
         _visibility=(!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)

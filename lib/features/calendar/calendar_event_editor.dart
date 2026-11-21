@@ -278,7 +278,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
    title: _editing ? tt('Edit event') : tt('Add event'),
    isNew:!_editing,isChanged:()=>changed,isComplete:()=>_canEdit && !_archived && _title.text.trim().isNotEmpty,
    listenTo:[_title,_details,_location],saving:_saving,onSave:_save,
-   meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(
+   meta: _people.isEmpty && _peopleMeta == null ? null : MetaStrip(personal:widget.spaceId.isEmpty,
      people:_peopleMeta, showDate:false, enabled:_canEdit && !_saving,
      linked:OneSpaceEnv.isProduction,
      value:MetaValues(shared:_visibility=='shared',belongsTo:_forUser),
