@@ -218,17 +218,15 @@ class _CoupleDayTimelineState extends State<CoupleDayTimeline> {
       }
       final lanes = CoupleDayLanes.assign([
         for (final p in placed) (top: p.top, bottom: p.top + p.height, col: p.col),
-      ]);
+      ], columns: n);
+      final area = colW * n;
       for (var i = 0; i < placed.length; i++) {
         final p = placed[i];
         final lane = lanes[i];
-        final spanAll = lane.full || p.col < 0;
-        final regionLeft = gutter + (spanAll ? 0 : p.col * colW);
-        final regionWidth = spanAll ? colW * n : colW;
-        final w = regionWidth / lane.count;
         final shared = p.col < 0;
         final e = p.e;
-        eventBoxes.add(Positioned(top: p.top, height: p.height, left: regionLeft + lane.index * w + 2, width: w - 4,
+        eventBoxes.add(Positioned(top: p.top, height: p.height,
+          left: gutter + lane.left * area + 2, width: lane.width * area - 4,
           child: Material(
             color: shared ? scheme.primaryContainer : scheme.secondaryContainer,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8),
@@ -330,16 +328,20 @@ class _Band extends StatelessWidget {
 }
 
 
-/// Side-by-side lanes for overlapping timeline events. Events conflict when
-/// their boxes overlap in time and share a column (an event for both of us,
-/// col < 0, shares every column). A group that holds an event for both of us
-/// is laid out across the full width.
+/// Where each timeline event goes across the whole day area (0 = left
+/// edge, 1 = right edge). With two people, "only me" events (col 0) sit on
+/// the left, "only my partner" (col 1) on the right, and "both of us"
+/// (col < 0) in the middle. When a both-of-us event overlaps one-person
+/// events, the group is split into thirds: mine, both of us (straddling the
+/// two lanes), my partner's. Events of the same kind that overlap sit side
+/// by side inside their part.
 class CoupleDayLanes {
-  static List<({int index, int count, bool full})> assign(
-      List<({double top, double bottom, int col})> boxes) {
+  static List<({double left, double width})> assign(
+      List<({double top, double bottom, int col})> boxes, {int columns = 2}) {
     final n = boxes.length;
+    int kind(int i) => columns < 2 ? 0 : (boxes[i].col < 0 ? -1 : boxes[i].col.clamp(0, 1));
     bool clash(int a, int b) => boxes[a].top < boxes[b].bottom && boxes[b].top < boxes[a].bottom &&
-      (boxes[a].col < 0 || boxes[b].col < 0 || boxes[a].col == boxes[b].col);
+      (kind(a) < 0 || kind(b) < 0 || kind(a) == kind(b));
     final group = List<int>.generate(n, (i) => i);
     int find(int i) => group[i] == i ? i : group[i] = find(group[i]);
     for (var a = 0; a < n; a++) {
@@ -347,24 +349,43 @@ class CoupleDayLanes {
         if (clash(a, b)) group[find(a)] = find(b);
       }
     }
-    final out = List<({int index, int count, bool full})>.filled(n, (index: 0, count: 1, full: false));
+    final out = List<({double left, double width})>.filled(n, (left: 0, width: 1));
     final members = <int, List<int>>{};
     for (var i = 0; i < n; i++) {
       (members[find(i)] ??= []).add(i);
     }
     for (final list in members.values) {
-      list.sort((a, b) => boxes[a].top.compareTo(boxes[b].top));
-      final full = list.any((i) => boxes[i].col < 0) && list.length > 1;
-      final laneEnds = <double>[];
-      final laneOf = <int, int>{};
-      for (final i in list) {
-        var lane = laneEnds.indexWhere((end) => end <= boxes[i].top);
-        if (lane < 0) { laneEnds.add(boxes[i].bottom); lane = laneEnds.length - 1; }
-        else { laneEnds[lane] = boxes[i].bottom; }
-        laneOf[i] = lane;
+      // The part of the width each kind of event may use in this group.
+      final kinds = {for (final i in list) kind(i)};
+      final part = <int, ({double left, double width})>{};
+      if (columns < 2) {
+        part[0] = (left: 0, width: 1);
+      } else if (!kinds.contains(-1)) {
+        part[0] = (left: 0, width: .5);
+        part[1] = (left: .5, width: .5);
+      } else {
+        final l = kinds.contains(0) ? 1 / 3 : 0.0;
+        final r = kinds.contains(1) ? 2 / 3 : 1.0;
+        part[0] = (left: 0, width: 1 / 3);
+        part[-1] = (left: l, width: r - l);
+        part[1] = (left: 2 / 3, width: 1 / 3);
       }
-      for (final i in list) {
-        out[i] = (index: laneOf[i]!, count: laneEnds.length, full: full);
+      for (final k in kinds) {
+        final mine = list.where((i) => kind(i) == k).toList()
+          ..sort((a, b) => boxes[a].top.compareTo(boxes[b].top));
+        final laneEnds = <double>[];
+        final laneOf = <int, int>{};
+        for (final i in mine) {
+          var lane = laneEnds.indexWhere((end) => end <= boxes[i].top);
+          if (lane < 0) { laneEnds.add(boxes[i].bottom); lane = laneEnds.length - 1; }
+          else { laneEnds[lane] = boxes[i].bottom; }
+          laneOf[i] = lane;
+        }
+        final region = part[k]!;
+        final w = region.width / laneEnds.length;
+        for (final i in mine) {
+          out[i] = (left: region.left + laneOf[i]! * w, width: w);
+        }
       }
     }
     return out;
