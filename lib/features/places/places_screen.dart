@@ -96,7 +96,7 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
     try {
       var s = await CurrentSpaceCache.instance.get();
       var personal=false;
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         final scopes=await db.rpc('my_storage_scopes');
         if(scopes is! Map ||
           scopes['private_space_id']?.toString()!=db.auth.currentUser?.id) {
@@ -106,10 +106,10 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
         personal=true;
       }
       if(s==null&&!personal){if(mounted)setState(()=>loading=false);return;}
-      final placeQuery=OneSpaceEnv.isProduction
+      final placeQuery=OneSpaceEnv.usesLegacyBackend
         ? db.from('places').select().eq('space_id',s!)
         : db.from('places').select();
-      final visitsQuery=OneSpaceEnv.isProduction
+      final visitsQuery=OneSpaceEnv.usesLegacyBackend
         ? db.from('place_visits')
           .select('id,place_id,visited_on,caption,memory_id').eq('space_id',s!)
         : db.from('place_visits')
@@ -153,7 +153,7 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
     final s = space;
     final chosen = places.where((p) =>
       picking.contains(p['id']) &&
-      (OneSpaceEnv.isProduction || p['private_space_id']==null)).toList();
+      (OneSpaceEnv.usesLegacyBackend || p['private_space_id']==null)).toList();
     if (s == null || chosen.isEmpty) return;
     await planTripFromPlaces(context, s, chosen);
     if (mounted) setState(() => picking.clear());
@@ -228,12 +228,12 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
       if (status == 'wishlist' && wishBy != null)
         tt('Hoping to go by {}').replaceFirst('{}', loc.formatMediumDate(wishBy)),
       if (p['planned_trip_id'] != null) tt('In a planned trip'),
-      if (!OneSpaceEnv.isProduction && p['private_space_id'] != null) tt('Only me'),
+      if (!OneSpaceEnv.usesLegacyBackend && p['private_space_id'] != null) tt('Only me'),
     ];
     return Card(elevation: 0, child: InkWell(borderRadius: BorderRadius.circular(12),
       onTap: () => _open(p),
       onLongPress: status == 'wishlist' &&
-        (OneSpaceEnv.isProduction || p['private_space_id']==null)
+        (OneSpaceEnv.usesLegacyBackend || p['private_space_id']==null)
         ? () => setState(() => picking.contains(id) ? picking.remove(id) : picking.add(id)) : null,
       child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
         CircleAvatar(radius: 22, backgroundColor: theme.colorScheme.primary.withValues(alpha: .12),
@@ -253,7 +253,7 @@ class _PlacesScreenState extends State<PlacesScreen> with SingleTickerProviderSt
           ]),
         ])),
         if (status == 'wishlist' &&
-            (OneSpaceEnv.isProduction || p['private_space_id']==null))
+            (OneSpaceEnv.usesLegacyBackend || p['private_space_id']==null))
           Checkbox(value: picking.contains(id),
           onChanged: (on) => setState(() => on == true ? picking.add(id) : picking.remove(id))),
       ]))));
@@ -287,7 +287,7 @@ class _PlaceDetailState extends State<PlaceDetail> {
   Map<String, dynamic>? place;
   List<Map<String, dynamic>> visits = [];
   Map<String, dynamic>? trip;
-  bool get _isPersonal=>!OneSpaceEnv.isProduction&&
+  bool get _isPersonal=>!OneSpaceEnv.usesLegacyBackend&&
       place?['private_space_id']!=null;
 
   @override
@@ -550,7 +550,7 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
     wishBy = DateTime.tryParse((e['wish_by'] ?? '').toString());
     favorite = e['favorite'] == true;
     shared = (e['visibility'] ??
-      (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?'private':'shared')) == 'shared';
+      (!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty?'private':'shared')) == 'shared';
     SpacePeople.load().then((p) { if (mounted) setState(() => people = p); });
   }
 
@@ -592,11 +592,11 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
     };
     try {
       if (widget.existing == null) {
-        if(!OneSpaceEnv.isProduction&&shared&&widget.spaceId.isEmpty){
+        if(!OneSpaceEnv.usesLegacyBackend&&shared&&widget.spaceId.isEmpty){
           throw StateError('Join a partner before sharing a place.');
         }
         final newScope=<String,dynamic>{
-          if(!OneSpaceEnv.isProduction&&!shared)
+          if(!OneSpaceEnv.usesLegacyBackend&&!shared)
             'private_space_id':db.auth.currentUser!.id
           else 'space_id':widget.spaceId,
         };
@@ -636,7 +636,7 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
         showBelongs: false, showDate: false,
         enabled:isNew&&!saving,
         onChanged:(v)=>setState(() => shared=
-          !OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?false:v.shared)),
+          !OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty?false:v.shared)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         SegmentedButton<String>(
           segments: [

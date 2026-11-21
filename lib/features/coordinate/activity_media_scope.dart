@@ -14,7 +14,7 @@ class ActivityMediaScope {
 
   static Future<bool> isAccountPrivate(
       SupabaseClient db, String activityId) async {
-    if (OneSpaceEnv.isProduction) return false;
+    if (OneSpaceEnv.usesLegacyBackend) return false;
     final a = await db.from('activities')
         .select('private_space_id,created_by,space_id,visibility')
         .eq('id', activityId).single();

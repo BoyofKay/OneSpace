@@ -27,7 +27,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
    try{
      var id=await CurrentSpaceCache.instance.get();
      var hasPersonalScope=false;
-     if(!OneSpaceEnv.isProduction){
+     if(!OneSpaceEnv.usesLegacyBackend){
        final scopes=await db.rpc('my_storage_scopes');
        if(scopes is! Map ||
          scopes['private_space_id']?.toString()!=db.auth.currentUser?.id){
@@ -38,7 +38,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      }
      if(id==null&&!hasPersonalScope)
        throw StateError('Please connect your shared space.');
-     final dayQuery=OneSpaceEnv.isProduction
+     final dayQuery=OneSpaceEnv.usesLegacyBackend
        ? db.from('personal_days_off')
            .select('id,off_date,label,night_before_sleep_at,off_day_wake_at')
            .eq('space_id',id!)
@@ -64,7 +64,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      DateTime.now();
    final shared = existing==null
      ? space!=null
-     : (OneSpaceEnv.isProduction || existing['private_space_id']==null);
+     : (OneSpaceEnv.usesLegacyBackend || existing['private_space_id']==null);
    final result=await Navigator.of(context).push<(DateTime,String,DateTime?,bool)>(MaterialPageRoute(
      builder:(_)=>DayOffEditorPage(date:date,label:existing?['label']?.toString()??'',
        isNew:existing==null,initialShared:shared,allowShared:space!=null)));
@@ -74,7 +74,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
      final label=result.$2;
      setState(()=>busy=true);
      final values=<String,dynamic>{
-       if(!OneSpaceEnv.isProduction&&!result.$4)
+       if(!OneSpaceEnv.usesLegacyBackend&&!result.$4)
          'private_space_id':db.auth.currentUser!.id
        else 'space_id':space,
        'user_id':db.auth.currentUser!.id,
@@ -153,7 +153,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
        title:Text(tt(day['label']?.toString()??'Day off')),
        subtitle:Text(tt([
          day['off_date'].toString(),
-         if(!OneSpaceEnv.isProduction)
+         if(!OneSpaceEnv.usesLegacyBackend)
            day['private_space_id']!=null?'Only me':'Both of us',
        ].join(' · '))),
        onTap:()=>_edit(day),
@@ -215,7 +215,7 @@ class _DayOffEditorPageState extends State<DayOffEditorPage>{
      TextField(controller:label,maxLength:120,
        decoration:InputDecoration(labelText:tt('Name or reason (optional)'),
          border:OutlineInputBorder())),
-     if(widget.isNew&&!OneSpaceEnv.isProduction)
+     if(widget.isNew&&!OneSpaceEnv.usesLegacyBackend)
        SwitchListTile.adaptive(
          title:Text(tt('Share this day off with my partner')),
          subtitle:Text(tt(widget.allowShared

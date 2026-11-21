@@ -28,7 +28,7 @@ class InvitationLinkInbox extends ChangeNotifier {
 
   /// Call once Supabase is ready (the signed-in shell does).
   void watchSignOut() {
-    if (OneSpaceEnv.isProduction || _auth != null) return;
+    if (OneSpaceEnv.usesLegacyBackend || _auth != null) return;
     try {
       _auth = Supabase.instance.client.auth.onAuthStateChange.listen((s) {
         if (s.event == AuthChangeEvent.signedOut) {
@@ -68,7 +68,7 @@ class InvitationLinkInbox extends ChangeNotifier {
   }
 
   Future<void> _receive(Uri uri) async {
-    final code = invitationCodeFromUri(uri, qa: !OneSpaceEnv.isProduction);
+    final code = invitationCodeFromUri(uri, qa: !OneSpaceEnv.usesLegacyBackend);
     if (code == null || code == _pending) return;
     _pending = code;
     try {
@@ -84,7 +84,7 @@ class InvitationLinkInbox extends ChangeNotifier {
   /// QA-only recovery if the browser invitation link was lost during sign in.
   /// Server verifies the signed-in email before exposing its own invitation.
   Future<void> rememberVerifiedQaAddressedCode(String code) async {
-    if (OneSpaceEnv.isProduction ||
+    if (OneSpaceEnv.usesLegacyBackend ||
         !RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(code)) return;
     await _receive(invitationAppLink(code.toLowerCase(), qa: true));
   }

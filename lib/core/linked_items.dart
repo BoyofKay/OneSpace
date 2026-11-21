@@ -278,7 +278,7 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
           onCreated: (newId) => link(LinkKind.trip, newId))));
     case CreateFromAction.todo:
       try {
-        final personal = !OneSpaceEnv.isProduction && !shared;
+        final personal = !OneSpaceEnv.usesLegacyBackend && !shared;
         final created = await db.from('tasks').insert({
           if (personal) 'private_space_id':db.auth.currentUser!.id
           else 'space_id':spaceId,
@@ -303,7 +303,7 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
       }
     case CreateFromAction.note:
       try {
-        final personal = !OneSpaceEnv.isProduction && !shared;
+        final personal = !OneSpaceEnv.usesLegacyBackend && !shared;
         final created = await db.from('notes').insert({
           if (personal) 'private_space_id': db.auth.currentUser!.id
           else 'space_id': spaceId,

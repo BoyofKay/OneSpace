@@ -14,7 +14,7 @@ class NoSpaceGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (OneSpaceEnv.isProduction) return child;
+    if (OneSpaceEnv.usesLegacyBackend) return child;
     return ValueListenableBuilder<bool?>(
       valueListenable: CurrentSpaceCache.hasSpace,
       builder: (context, has, _) {

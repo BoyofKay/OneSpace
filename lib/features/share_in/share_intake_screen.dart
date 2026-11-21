@@ -74,7 +74,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
   Future<void> load() async {
     try {
       var id=await CurrentSpaceCache.instance.get();
-      if(!OneSpaceEnv.isProduction){
+      if(!OneSpaceEnv.usesLegacyBackend){
         final scopes=await db.rpc('my_storage_scopes');
         if(scopes is! Map ||
             scopes['private_space_id']?.toString()!=db.auth.currentUser?.id){
@@ -85,24 +85,24 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       if(id==null){
         if(mounted)setState((){
           spaceId=null;loading=false;
-          if(!OneSpaceEnv.isProduction)onlyMe=true;
+          if(!OneSpaceEnv.usesLegacyBackend)onlyMe=true;
           else error='Connect a shared space first.';
         });
         return;
       }
       if(mounted)setState(()=>spaceId=id);
-      final activityQuery=OneSpaceEnv.isProduction
+      final activityQuery=OneSpaceEnv.usesLegacyBackend
         ? db.from('activities').select('id,title,visibility,archived_at').eq('space_id',id)
         : db.from('activities').select('id,title,visibility,archived_at');
       final rows=await activityQuery.isFilter('archived_at', null)
           .order('updated_at', ascending: false).limit(100);
-      final planQuery=OneSpaceEnv.isProduction
+      final planQuery=OneSpaceEnv.usesLegacyBackend
           ?db.from('occasion_plans').select('id,title,occasion_on,status').eq('space_id',id)
           :db.from('occasion_plans').select('id,title,occasion_on,status,space_id,private_space_id');
       final plans=await planQuery.isFilter('archived_at',null)
           .not('status','in','(celebrated,cancelled)')
           .order('occasion_on',ascending:true).limit(60);
-      final tripQuery=OneSpaceEnv.isProduction
+      final tripQuery=OneSpaceEnv.usesLegacyBackend
           ?db.from('shared_trips').select().eq('space_id',id)
           :db.from('shared_trips').select();
       final tripRows=await tripQuery.isFilter('archived_at',null)
@@ -142,11 +142,11 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
   Future<void> saveToTray() async {
     final problem = _validate();
     if (problem != null) { setState(() => error = problem); return; }
-    if ((spaceId == null && OneSpaceEnv.isProduction) || saving) return;
+    if ((spaceId == null && OneSpaceEnv.usesLegacyBackend) || saving) return;
     setState(() { saving = true; error = null; });
     try {
       await db.from('items_to_sort').insert({
-        if(!OneSpaceEnv.isProduction)
+        if(!OneSpaceEnv.usesLegacyBackend)
           'private_space_id':db.auth.currentUser!.id
         else 'space_id':spaceId,
         'created_by':db.auth.currentUser!.id,
@@ -178,7 +178,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
   Future<void> saveToDestination() async {
     final d = destination;
     if (d == null || saving ||
-        (spaceId == null && (OneSpaceEnv.isProduction ||
+        (spaceId == null && (OneSpaceEnv.usesLegacyBackend ||
           (d != ShareDestination.note && d != ShareDestination.todo &&
            d != ShareDestination.newActivity && d != ShareDestination.trip &&
            d != ShareDestination.experience &&
@@ -195,7 +195,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       bool done = true;
       switch (d) {
         case ShareDestination.newActivity:
-          final personal=!OneSpaceEnv.isProduction&&onlyMe;
+          final personal=!OneSpaceEnv.usesLegacyBackend&&onlyMe;
           final created=await db.from('activities').insert({
             if(personal) 'private_space_id':db.auth.currentUser!.id
             else 'space_id':spaceId,
@@ -234,12 +234,12 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           });
           next = ActivityScreen(id: selectedActivity!);
         case ShareDestination.experience:
-          final personal=!OneSpaceEnv.isProduction&&onlyMe;
+          final personal=!OneSpaceEnv.usesLegacyBackend&&onlyMe;
           final created=await db.from('shared_experiences').insert({
             if(personal) 'private_space_id':db.auth.currentUser!.id
             else 'space_id':spaceId,
             'created_by':db.auth.currentUser!.id,
-            if(!OneSpaceEnv.isProduction)
+            if(!OneSpaceEnv.usesLegacyBackend)
               'visibility':personal?'private':'shared',
             'category':category,'title':name,
             'description':body,'source_url':link,
@@ -258,9 +258,9 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           });
           next = OccasionsScreen(initialPlanId: selectedOccasion);
         case ShareDestination.todo:
-          final personal = !OneSpaceEnv.isProduction && visibility=='private';
+          final personal = !OneSpaceEnv.usesLegacyBackend && visibility=='private';
           String? pair = spaceId;
-          if (!OneSpaceEnv.isProduction && !personal) {
+          if (!OneSpaceEnv.usesLegacyBackend && !personal) {
             final scopes=await db.rpc('my_storage_scopes');
             pair=scopes is Map ? scopes['shared_space_id']?.toString() : null;
           }
@@ -279,9 +279,9 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           });
           next = const PlansScreen();
         case ShareDestination.note:
-          final personal = !OneSpaceEnv.isProduction && visibility == 'private';
+          final personal = !OneSpaceEnv.usesLegacyBackend && visibility == 'private';
           String? pairedSpace = spaceId;
-          if (!OneSpaceEnv.isProduction && !personal) {
+          if (!OneSpaceEnv.usesLegacyBackend && !personal) {
             final scopes = await db.rpc('my_storage_scopes');
             pairedSpace = scopes is Map ? scopes['shared_space_id']?.toString() : null;
           }
@@ -372,7 +372,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     label: Text(tt(d.label)),
     selected: destination == d,
     onSelected: (_) {
-      final solo = !OneSpaceEnv.isProduction && spaceId == null;
+      final solo = !OneSpaceEnv.usesLegacyBackend && spaceId == null;
       final supported = d == ShareDestination.newActivity ||
         d == ShareDestination.todo || d == ShareDestination.note ||
         d == ShareDestination.trip || d == ShareDestination.experience ||
@@ -458,7 +458,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
     final d = destination;
     return d == ShareDestination.activityOption || d == ShareDestination.giftIdea
         || d == ShareDestination.flightOption
-        || (OneSpaceEnv.isProduction&&d==ShareDestination.experience)
+        || (OneSpaceEnv.usesLegacyBackend&&d==ShareDestination.experience)
         || d == ShareDestination.reminder
         || d == ShareDestination.event || d == ShareDestination.trip;
   }
@@ -475,7 +475,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
       isNew: true,
       isChanged: () => title.text.isNotEmpty || url.text.isNotEmpty || notes.text.isNotEmpty,
       isComplete: () => (spaceId != null ||
-        (!OneSpaceEnv.isProduction && onlyMe &&
+        (!OneSpaceEnv.usesLegacyBackend && onlyMe &&
          (d == null || d == ShareDestination.todo || d == ShareDestination.note ||
           d == ShareDestination.newActivity || d == ShareDestination.trip ||
           d == ShareDestination.experience ||

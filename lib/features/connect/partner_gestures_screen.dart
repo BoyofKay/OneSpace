@@ -256,7 +256,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      final names=CurrentSpaceCache.instance.memberNamesFor(space);
      final templates=await db.from('gesture_templates').select('id,title,message,kind')
        .eq('space_id',space).eq('creator_id',me).order('created_at',ascending:false);
-     final presetQuery=OneSpaceEnv.isProduction
+     final presetQuery=OneSpaceEnv.usesLegacyBackend
        ?db.from('gesture_message_overrides')
          .select('kind,message_index,message,disabled').eq('space_id',space)
        :db.from('gesture_message_overrides')
@@ -362,7 +362,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
      if(accepted!=true||spaceId==null)return;
      final me=db.auth.currentUser!.id;
      await db.from('gesture_message_overrides').upsert({
-       if(!OneSpaceEnv.isProduction) 'private_space_id':me
+       if(!OneSpaceEnv.usesLegacyBackend) 'private_space_id':me
        else 'space_id':spaceId,
        'owner_id':me,'kind':option.id,
        'message_index':index,'message':message.text.trim(),

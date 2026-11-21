@@ -160,7 +160,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // QA: the partner may have left, removed us or deleted the space while
     // the app was in the background; show the current state on return.
-    if (state == AppLifecycleState.resumed && !OneSpaceEnv.isProduction) {
+    if (state == AppLifecycleState.resumed && !OneSpaceEnv.usesLegacyBackend) {
       unawaited(_load());
     }
     if (state == AppLifecycleState.resumed && spaceId != null) {
@@ -340,7 +340,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         await prefs.remove(_cacheKey);
         if(!mounted)return;
         _apply(null,seenBefore:null);
-        if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());
+        if (!OneSpaceEnv.usesLegacyBackend) unawaited(_resumeOrDiscoverAddressedInvite());
       } else {
         final data = Map<String, dynamic>.from(result as Map);
         // Some older server versions returned an empty/unpaired object
@@ -351,7 +351,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           await prefs.remove(_cacheKey);
           if (!mounted || request != _requestVersion) return;
           _apply(null,seenBefore:null);
-          if (!OneSpaceEnv.isProduction) unawaited(_resumeOrDiscoverAddressedInvite());
+          if (!OneSpaceEnv.usesLegacyBackend) unawaited(_resumeOrDiscoverAddressedInvite());
           return;
         }
         final seen=DateTime.tryParse(await prefs.getString(_seenKey)??'');
@@ -492,7 +492,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   /// once and then forgotten, so it never sticks around.
   Future<void> _checkPendingInvite() async {
     final code = InvitationLinkInbox.instance.pendingCode;
-    if (OneSpaceEnv.isProduction || code == null || !mounted || working) return;
+    if (OneSpaceEnv.usesLegacyBackend || code == null || !mounted || working) return;
     String? reason;
     if (spaceId != null) {
       reason = 'You already belong to a space, so this invitation can’t be used. '
@@ -631,7 +631,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     setState(() { working = true; issue = null; });
     try {
       var resolved = code;
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         final value = await client.rpc('resolve_my_addressed_invitation',
             params: {'p_token': code});
         final invitation = value is Map
@@ -697,7 +697,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
       setState(() => issue = null);
       // QA: an invitation is accepted or declined by the person, never
       // joined automatically.
-      if (membershipResolved && spaceId == null && OneSpaceEnv.isProduction) {
+      if (membershipResolved && spaceId == null && OneSpaceEnv.usesLegacyBackend) {
         unawaited(_autoJoinPending());
       }
     }
@@ -720,7 +720,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   /// Recover an original-pair invitation addressed to the authenticated,
   /// email-confirmed recipient even if the web link was lost during sign in.
   Future<void> _resumeOrDiscoverAddressedInvite() async {
-    if (!mounted || OneSpaceEnv.isProduction || spaceId != null ||
+    if (!mounted || OneSpaceEnv.usesLegacyBackend || spaceId != null ||
         client.auth.currentUser == null) return;
     if (InvitationLinkInbox.instance.pendingCode != null) {
       // Shown as Accept / Decline; nothing joins until the person accepts.
@@ -731,7 +731,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   }
 
   Future<void> _discoverAddressedInvite() async {
-    if (!mounted || OneSpaceEnv.isProduction || working ||
+    if (!mounted || OneSpaceEnv.usesLegacyBackend || working ||
         checkingAddressedInvite || spaceId != null ||
         client.auth.currentUser == null) return;
     final originalUser = client.auth.currentUser!.id;
@@ -1280,8 +1280,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
               (InvitationLinkInbox.instance.pendingCode != null ||
                joiningAddressedInvite)) ...[
             _panel(
-              tt(OneSpaceEnv.isProduction ? 'Joining your partner’s OneSpace' : 'You have an invitation'),
-              tt(OneSpaceEnv.isProduction
+              tt(OneSpaceEnv.usesLegacyBackend ? 'Joining your partner’s OneSpace' : 'You have an invitation'),
+              tt(OneSpaceEnv.usesLegacyBackend
                 ? 'Your invitation is saved. OneSpace checks your confirmed email and connects you to the existing space. You do not need to create a new one.'
                 : 'Someone invited you to share their OneSpace. Accept to join their space, or decline.'),
               Icons.mark_email_read_outlined,
@@ -1303,10 +1303,10 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
                   onPressed: working ? null : () => _autoJoinPending(retry: true),
                   icon: Icon(issue == null ? Icons.people_alt_outlined : Icons.refresh),
                   label: Text(tt(issue == null
-                      ? (OneSpaceEnv.isProduction ? 'Join your partner’s space' : 'Accept invitation')
+                      ? (OneSpaceEnv.usesLegacyBackend ? 'Join your partner’s space' : 'Accept invitation')
                       : 'Retry joining your partner')),
                 ),
-                if (!OneSpaceEnv.isProduction) ...[
+                if (!OneSpaceEnv.usesLegacyBackend) ...[
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     key: const Key('declinePendingInvitation'),

@@ -17,7 +17,7 @@ class AccountDataRules {
   const AccountDataRules._();
   // QA only. The server gate (private.qa_account_v2_gate) is the real
   // control; Production keeps the request button disabled.
-  static bool get qaDeletionControlsApproved => !OneSpaceEnv.isProduction;
+  static bool get qaDeletionControlsApproved => !OneSpaceEnv.usesLegacyBackend;
   static const confirmWord = 'DELETE';
   static bool confirmed(String typed) => typed.trim().toUpperCase() == confirmWord;
   static String fileName(DateTime now) =>

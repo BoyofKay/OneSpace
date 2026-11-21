@@ -109,7 +109,7 @@ class VoiceAssistant {
     final db = Supabase.instance.client;
     final space = await CurrentSpaceCache.instance.get();
     if (space == null && c.action != VoiceAction.stop && c.action != VoiceAction.help &&
-        !(!OneSpaceEnv.isProduction &&
+        !(!OneSpaceEnv.usesLegacyBackend &&
           (c.action == VoiceAction.note || c.action == VoiceAction.readNotes ||
            c.action == VoiceAction.reminder || c.action == VoiceAction.readReminders ||
            c.action == VoiceAction.reminderDone || c.action == VoiceAction.snooze))) {
@@ -172,7 +172,7 @@ class VoiceAssistant {
         case VoiceAction.readReminders:
           return VoiceReply(await _remindersText(db, s, ar));
         case VoiceAction.readNotes:
-          final noteQuery = OneSpaceEnv.isProduction
+          final noteQuery = OneSpaceEnv.usesLegacyBackend
             ? db.from('notes').select('title,body').eq('space_id', s)
             : db.from('notes').select('title,body');
           final note = await noteQuery
@@ -296,7 +296,7 @@ class VoiceAssistant {
   }
 
   static Future<VoiceReply> _reminderAction(SupabaseClient db, String s, VoiceCommand c, bool ar) async {
-    final query=OneSpaceEnv.isProduction
+    final query=OneSpaceEnv.usesLegacyBackend
       ? db.from('reminders').select('id,title').eq('space_id',s)
       : db.from('reminders').select('id,title');
     final rows=List<Map<String,dynamic>>.from(await query
@@ -393,7 +393,7 @@ class VoiceAssistant {
   }
 
   static Future<String> _remindersText(SupabaseClient db, String s, bool ar) async {
-    final query=OneSpaceEnv.isProduction
+    final query=OneSpaceEnv.usesLegacyBackend
       ? db.from('reminders').select('title,due_at').eq('space_id',s)
       : db.from('reminders').select('title,due_at');
     final rows=await query

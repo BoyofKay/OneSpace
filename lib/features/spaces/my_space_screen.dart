@@ -69,7 +69,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
         members = list.length;
       }
       Map<String,dynamic>? pending;
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         final result = await _db.rpc('my_space_lifecycle_status');
         if (result is Map && result['active_job'] is Map) {
           pending = Map<String,dynamic>.from(result['active_job'] as Map);
@@ -104,7 +104,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
 
   Future<void> _cancelOldRequest() async {
     final job = _legacyPending;
-    if (OneSpaceEnv.isProduction || _busy || job == null ||
+    if (OneSpaceEnv.usesLegacyBackend || _busy || job == null ||
         job['requested_by_me'] != true) return;
     final confirm = await showDialog<bool>(
       context: context,
@@ -140,7 +140,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
 
   Future<void> _endRelationship(RelationshipExitAction action) async {
     final space = _spaceId;
-    if (!_qaRelationshipActionsApproved || OneSpaceEnv.isProduction ||
+    if (!_qaRelationshipActionsApproved || OneSpaceEnv.usesLegacyBackend ||
         _busy || space == null) return;
     final confirmed = await RelationshipExitConfirmation.ask(
       context, action: action, spaceName: _spaceName,
@@ -176,7 +176,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
   Widget _relationshipAction(IconData icon, String title,
       RelationshipExitAction action) => OutlinedButton.icon(
     onPressed: !_qaRelationshipActionsApproved ||
-        OneSpaceEnv.isProduction || _busy || _spaceId == null
+        OneSpaceEnv.usesLegacyBackend || _busy || _spaceId == null
       ? null : () => _endRelationship(action),
     icon: Icon(icon),
     label: Text(tt(title)),

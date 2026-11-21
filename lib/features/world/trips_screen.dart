@@ -86,7 +86,7 @@ class _TripsScreenState extends State<TripsScreen> {
   try{
    var id=await CurrentSpaceCache.instance.get();
    var ownScope=false;
-   if(!OneSpaceEnv.isProduction){
+   if(!OneSpaceEnv.usesLegacyBackend){
      final scopes=await db.rpc('my_storage_scopes');
      if(scopes is! Map || scopes['private_space_id']?.toString()!=user){
        throw StateError('Account-owned Trips scope unavailable');
@@ -102,7 +102,7 @@ class _TripsScreenState extends State<TripsScreen> {
     _changes=null;_watchedSpace=null;
     return;
    }
-   final tripQuery=OneSpaceEnv.isProduction
+   final tripQuery=OneSpaceEnv.usesLegacyBackend
      ? db.from('shared_trips').select().eq('space_id',id!)
      : db.from('shared_trips').select();
    final data=await tripQuery.order('updated_at',ascending:false).limit(200);
@@ -226,7 +226,7 @@ class _TripsScreenState extends State<TripsScreen> {
       trailing:ItemMenu(kind:'trip',recordId:trip['id'].toString(),title:trip['title']?.toString(),
        onOpen:()=>open(trip),openLabel:tt('Open'),table:'shared_trips',
        moreActions:[
-        if((OneSpaceEnv.isProduction||trip['private_space_id']==null)&&
+        if((OneSpaceEnv.usesLegacyBackend||trip['private_space_id']==null)&&
            space!=null&&trip['archived_at']==null&&CounterSource.trip(trip)!=null)
          ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
           ()=>CounterSourceActions.open(context,space!,CounterSource.trip(trip))),
@@ -289,7 +289,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
   origin=o.isEmpty?null:o;destination=d.isEmpty?null:d;
   originText=TextEditingController(text:o);destinationText=TextEditingController(text:d);
   visibility=(x['visibility']??
-    (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty?'private':'shared')).toString();
+    (!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty?'private':'shared')).toString();
   from=DateTime.tryParse((x['start_on']??'').toString());
   to=DateTime.tryParse((x['end_on']??'').toString());
   traveler=x['traveler_id']?.toString();
@@ -325,7 +325,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
     'end_on':to==null||tripType=='one_way'?null:CalendarRules.sqlDate(to!),
    };
    if(widget.existing==null){
-    final personal=!OneSpaceEnv.isProduction&&visibility=='private';
+    final personal=!OneSpaceEnv.usesLegacyBackend&&visibility=='private';
     if(!personal&&widget.spaceId.isEmpty){
       throw StateError('Connect with a partner before sharing Trips');
     }
@@ -372,7 +372,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    saveLabel:editing?'Save':'Next',
    meta:MetaStrip(personal:widget.spaceId.isEmpty,value:MetaValues(shared:visibility=='shared'),showBelongs:false,showDate:false,
     enabled:!editing,onChanged:(v)=>setState(()=>visibility=
-      (!OneSpaceEnv.isProduction&&widget.spaceId.isEmpty)
+      (!OneSpaceEnv.usesLegacyBackend&&widget.spaceId.isEmpty)
         ?'private':(v.shared?'shared':'private'))),
    body:ListView(padding:const EdgeInsets.all(18),children:[
    TextField(controller:title,maxLength:160,autofocus:!editing,
@@ -410,7 +410,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    Padding(padding:const EdgeInsets.only(top:4),child:Text(
     tt('Dates can wait while you plan. Booking a flight fills them in.'),
     style:Theme.of(context).textTheme.bodySmall)),
-   if(!OneSpaceEnv.isProduction&&visibility=='private')...[
+   if(!OneSpaceEnv.usesLegacyBackend&&visibility=='private')...[
     FormSection(tt("Who's traveling")),
     Text(tt('Only you can see this trip, so it is planned for you. Choose Both of us to plan a trip for your partner.'),
      style:Theme.of(context).textTheme.bodySmall),
@@ -750,13 +750,13 @@ class _TripDetailState extends State<TripDetail>{
      ],
      onOpen:editTrip,
      moreActions:[
-      if((OneSpaceEnv.isProduction||t['private_space_id']==null)&&
+      if((OneSpaceEnv.usesLegacyBackend||t['private_space_id']==null)&&
         t['space_id']!=null&&t['archived_at']==null&&CounterSource.trip(t)!=null)
        ItemMenuAction('Add to counters',Icons.hourglass_bottom_outlined,
         ()=>CounterSourceActions.open(context,t['space_id'].toString(),CounterSource.trip(t))),
       if(isFlight)ItemMenuAction(tt('Search on Google Flights'),Icons.travel_explore,
        ()=>openLink(tripGoogleFlights(t).toString())),
-      if(OneSpaceEnv.isProduction||t['private_space_id']==null)
+      if(OneSpaceEnv.usesLegacyBackend||t['private_space_id']==null)
         ItemMenuAction(tt('Add a travel checklist'),Icons.checklist_outlined,
          ()=>TripPreparationSection.addChecklist(context,widget.tripId)),
       if(t['space_id']!=null)ItemMenuAction(tt('Create from this'),MenuIcons.createFrom,
@@ -774,7 +774,7 @@ class _TripDetailState extends State<TripDetail>{
     physics:const AlwaysScrollableScrollPhysics(),
     padding:const EdgeInsetsDirectional.fromSTEB(16,10,16,32),children:[
      Text(tt(t['title'].toString()),style:Theme.of(context).textTheme.headlineSmall),
-     if(OneSpaceEnv.isProduction||t['private_space_id']==null)
+     if(OneSpaceEnv.usesLegacyBackend||t['private_space_id']==null)
        LinkedItemsStrip(key:_links,kind:LinkKind.trip,id:widget.tripId),
      summary(t),
      if((t['notes']??'').toString().isNotEmpty)
@@ -817,15 +817,15 @@ class _TripDetailState extends State<TripDetail>{
       Text(tt('Costs so far: ')+tt(TripRules.formatTotals(amounts)),
        style:Theme.of(context).textTheme.titleSmall),
      ],
-     if(OneSpaceEnv.isProduction||t['private_space_id']==null)
+     if(OneSpaceEnv.usesLegacyBackend||t['private_space_id']==null)
        TripPreparationSection(tripId:widget.tripId),
      const Divider(height:30),
-     Text(tt(!OneSpaceEnv.isProduction&&t['private_space_id']!=null
+     Text(tt(!OneSpaceEnv.usesLegacyBackend&&t['private_space_id']!=null
        ?'My trip notes':'Trip conversation'),
        style:Theme.of(context).textTheme.titleLarge),
      const SizedBox(height:8),
      if(messages.where((m)=>m['archived_at']==null).isEmpty)
-      Text(tt(!OneSpaceEnv.isProduction&&t['private_space_id']!=null
+      Text(tt(!OneSpaceEnv.usesLegacyBackend&&t['private_space_id']!=null
          ?'Keep personal notes about this trip.'
          :'Share ideas or updates for this trip.')),
      for(final m in messages.where((m)=>m['archived_at']==null))
@@ -837,7 +837,7 @@ class _TripDetailState extends State<TripDetail>{
          onPressed:busy?null:()=>retract(m)):null)),
      const SizedBox(height:10),
      TextField(controller:message,maxLength:3000,minLines:2,maxLines:4,
-      decoration:InputDecoration(labelText:tt(!OneSpaceEnv.isProduction&&t['private_space_id']!=null
+      decoration:InputDecoration(labelText:tt(!OneSpaceEnv.usesLegacyBackend&&t['private_space_id']!=null
          ?'Add my note':'Share a thought'),
        border:const OutlineInputBorder())),
      Align(alignment:AlignmentDirectional.centerEnd,child:FilledButton.icon(

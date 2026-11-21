@@ -36,7 +36,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
  StreamSubscription<List<Map<String,dynamic>>>? pageChanges,photoChanges,inviteChanges;
  bool busy=false,loading=true,shared=true,justCreated=false;
  /// QA: an unpaired account can only make a personal scrapbook.
- bool get canShare=>OneSpaceEnv.isProduction||widget.spaceId.isNotEmpty;
+ bool get canShare=>OneSpaceEnv.usesLegacyBackend||widget.spaceId.isNotEmpty;
  String get me=>db.auth.currentUser?.id??'';
  bool get isOwner=>memory?['created_by']==me;
  bool get isShared=>memory?['visibility']=='shared';
@@ -68,7 +68,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
    var query=db.from('memories').select(
     'id,space_id,private_space_id,title,created_by,visibility,memory_type,archived_at')
     .eq('id',current);
-   if(OneSpaceEnv.isProduction)query=query.eq('space_id',widget.spaceId);
+   if(OneSpaceEnv.usesLegacyBackend)query=query.eq('space_id',widget.spaceId);
    final row=await query.single();
    if(row['memory_type']!='scrapbook')throw StateError('Not a scrapbook');
    final photos=await db.from('memory_photos')
@@ -116,7 +116,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   try{
    final key=await db.rpc('create_scrapbook',params:{
     // QA: a personal scrapbook belongs to the account, never to a couple.
-    'p_space_id':(!OneSpaceEnv.isProduction&&(!shared||widget.spaceId.isEmpty))
+    'p_space_id':(!OneSpaceEnv.usesLegacyBackend&&(!shared||widget.spaceId.isEmpty))
       ?null:widget.spaceId,
     'p_title':shared&&canShare?tt('Our scrapbook'):tt('My scrapbook'),
     'p_template_key':design.key,'p_visibility':shared&&canShare?'shared':'private',

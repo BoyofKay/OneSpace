@@ -56,7 +56,7 @@ class ActivityImageService {
         'label': 'Photo',
         'payload': {
           'object_path': path,
-          if (!OneSpaceEnv.isProduction) 'bucket_id': bucket,
+          if (!OneSpaceEnv.usesLegacyBackend) 'bucket_id': bucket,
           'mime': mime,
           'note': '',
         },

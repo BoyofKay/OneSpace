@@ -87,7 +87,7 @@ class _PlansScreenState extends State<PlansScreen> {
       objectType: 'task',
       onChanged: () {
         if (!mounted || _spaceId != id) return;
-        setState(() => _tasksStream = OneSpaceEnv.isProduction
+        setState(() => _tasksStream = OneSpaceEnv.usesLegacyBackend
            ? _client.from('tasks').stream(primaryKey: ['id'])
                .eq('space_id', id).order('created_at', ascending: false)
            : _client.from('tasks').stream(primaryKey: ['id'])
@@ -118,7 +118,7 @@ class _PlansScreenState extends State<PlansScreen> {
       }
       String? id = await CurrentSpaceCache.instance.get();
       bool personalReady = false;
-      if (!OneSpaceEnv.isProduction) {
+      if (!OneSpaceEnv.usesLegacyBackend) {
         final scopes = await _client.rpc('my_storage_scopes');
         if (scopes is! Map || scopes['private_space_id']?.toString()!=userId) {
           throw StateError('Personal scope unavailable');
@@ -127,7 +127,7 @@ class _PlansScreenState extends State<PlansScreen> {
         personalReady = true;
       }
       if (!mounted || _client.auth.currentUser?.id!=userId) return;
-      if (id == null && OneSpaceEnv.isProduction) {
+      if (id == null && OneSpaceEnv.usesLegacyBackend) {
         setState(() {
           _spaceId = null;
           _memberNames = const {};
@@ -148,7 +148,7 @@ class _PlansScreenState extends State<PlansScreen> {
           ...?cachedNames,
           _me: tr(context, 'me'),
         };
-        _tasksStream = OneSpaceEnv.isProduction
+        _tasksStream = OneSpaceEnv.usesLegacyBackend
           ? _client.from('tasks').stream(primaryKey: ['id'])
              .eq('space_id', id!).order('created_at', ascending: false)
           : _client.from('tasks').stream(primaryKey: ['id'])
@@ -218,7 +218,7 @@ class _PlansScreenState extends State<PlansScreen> {
               throw StateError('Connect with a partner to share a checklist.');
             final created = await _client.from('tasks').insert({
               ...fields,
-              if (!OneSpaceEnv.isProduction &&
+              if (!OneSpaceEnv.usesLegacyBackend &&
                   draft.visibility==TaskVisibility.private)
                 'private_space_id':_me
               else 'space_id': spaceId,
@@ -236,7 +236,7 @@ class _PlansScreenState extends State<PlansScreen> {
           } else {
             var query = _client.from('tasks')
               .update(fields).eq('id', existing.id);
-            if (OneSpaceEnv.isProduction) query=query.eq('space_id',spaceId!);
+            if (OneSpaceEnv.usesLegacyBackend) query=query.eq('space_id',spaceId!);
             final rows=await query.select('id');
             if (rows.isEmpty) {
               throw StateError('Task is no longer available for editing.');
@@ -249,7 +249,7 @@ class _PlansScreenState extends State<PlansScreen> {
 
   Future<void> _changeStatus(SharedTask task, TaskStatus status) async {
     if (_busy || task.status == status ||
-      (OneSpaceEnv.isProduction && _spaceId == null)) return;
+      (OneSpaceEnv.usesLegacyBackend && _spaceId == null)) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -257,7 +257,7 @@ class _PlansScreenState extends State<PlansScreen> {
     try {
       var query=_client.from('tasks').update({'status': status.name})
         .eq('id',task.id);
-      if (OneSpaceEnv.isProduction) query=query.eq('space_id',_spaceId!);
+      if (OneSpaceEnv.usesLegacyBackend) query=query.eq('space_id',_spaceId!);
       await query.select('id');
     } on PostgrestException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -470,7 +470,7 @@ class _PlansScreenState extends State<PlansScreen> {
       createdBy: task.createdBy,
       userId: _me,
     );
-    final canShare = (OneSpaceEnv.isProduction ||
+    final canShare = (OneSpaceEnv.usesLegacyBackend ||
        task.privateSpaceId==null) &&
        ObjectPermissions.canManagePrivateShare(
        visibility: task.visibility.name,

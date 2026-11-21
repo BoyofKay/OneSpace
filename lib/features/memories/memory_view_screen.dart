@@ -192,7 +192,7 @@ class _MemoryViewScreenState extends State<MemoryViewScreen> {
         polaroid(mine.firstOrNull, 'You', onAdd: shared || memory?['created_by'] == me ? addMySelfie : null),
         if (shared) polaroid(theirs.firstOrNull, people?.partnerName ?? 'Partner'),
       ]),
-      if (shared && theirs.isEmpty && !OneSpaceEnv.isProduction && memory?['archived_at'] == null)
+      if (shared && theirs.isEmpty && !OneSpaceEnv.usesLegacyBackend && memory?['archived_at'] == null)
         Center(child: TextButton.icon(
           key: const Key('nudgePartnerSelfie'),
           onPressed: nudging ? null : nudge,
