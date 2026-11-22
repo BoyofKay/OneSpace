@@ -29,6 +29,19 @@ class IOSProjectTests(unittest.TestCase):
         self.assertEqual(extension["NSExtension"]["NSExtensionPointIdentifier"],
                          "com.apple.share-services")
 
+    def test_production_testflight_requires_qa_first_promotion(self):
+        workflow = (ROOT / ".github/workflows/ios-testflight.yml").read_text()
+        # Production must name a QA-tested commit on main, carry explicit
+        # approval, and be rebuilt from exactly that commit.
+        for required in (
+            "qa_tested_sha", "APPROVE PRODUCTION TESTFLIGHT",
+            "merge-base --is-ancestor", 'startswith("iOS qa TestFlight | upload=true")',
+            "needs: release-gate", "ref: ${{ needs.release-gate.outputs.build_sha }}",
+            "ios-release-attestation.json",
+        ):
+            self.assertIn(required, workflow)
+        self.assertNotIn("push:", workflow)
+
     def test_invitation_universal_links_entitlement(self):
         with (RUNNER / "Runner.entitlements").open("rb") as stream:
             ent = plistlib.load(stream)

@@ -6,6 +6,13 @@ name: Build and optionally upload OneSpace iOS to TestFlight
 # (com.onespace.onespace, Production backend) are separate App Store Connect
 # apps with separate profiles and Firebase registrations. Uploading to
 # TestFlight never submits the app for App Store review or release.
+#
+# QA-first promotion (owner policy, 22 Nov 2026): a Production build is only
+# allowed for a commit that (1) is on main, (2) already had a successful QA
+# TestFlight upload from this workflow, and (3) is explicitly approved in the
+# run form. Production is then rebuilt from that exact commit with
+# ONESPACE_ENV=production. Nothing runs on push; nothing is auto-promoted.
+run-name: iOS ${{ inputs.environment }} TestFlight | upload=${{ inputs.upload_testflight }} | ${{ inputs.environment == 'production' && inputs.qa_tested_sha || github.sha }}
 on:
   workflow_dispatch:
     inputs:
@@ -20,9 +27,20 @@ on:
         type: boolean
         required: true
         default: false
+      qa_tested_sha:
+        description: 'Production only: full 40-character commit SHA that passed QA on iPhone'
+        type: string
+        required: false
+        default: ''
+      release_approval:
+        description: 'Production only: type APPROVE PRODUCTION TESTFLIGHT to confirm the owner approved this commit'
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: onespace-ios-testflight-${{ inputs.environment }}
@@ -33,12 +51,77 @@ env:
   BUNDLE_ID: ${{ inputs.environment == 'qa' && 'com.onespace.onespace.qa' || 'com.onespace.onespace' }}
 
 jobs:
-  ios-signed:
-    name: Signed iOS ${{ inputs.environment }}
-    runs-on: macos-15
-    timeout-minutes: 60
+  # Cheap Linux gate: refuses a Production build before any macOS minutes or
+  # signing secrets are used.
+  release-gate:
+    name: QA-first release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build_sha: ${{ steps.gate.outputs.build_sha }}
+      qa_run_url: ${{ steps.gate.outputs.qa_run_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check QA-first promotion rules
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          QA_SHA: ${{ inputs.qa_tested_sha }}
+          APPROVAL: ${{ inputs.release_approval }}
+          UPLOAD: ${{ inputs.upload_testflight }}
+        run: |
+          set -euo pipefail
+          if [ "$ONESPACE_ENV" = qa ]; then
+            echo "build_sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "qa_run_url=" >> "$GITHUB_OUTPUT"
+            echo "QA build of $GITHUB_SHA (no promotion gate for QA)."
+            exit 0
+          fi
+          if [[ ! "$QA_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Production needs qa_tested_sha: the full 40-character commit that passed QA."; exit 1
+          fi
+          if [ "$APPROVAL" != "APPROVE PRODUCTION TESTFLIGHT" ]; then
+            echo "::error::Production needs release_approval = APPROVE PRODUCTION TESTFLIGHT."; exit 1
+          fi
+          if [ "$UPLOAD" != "true" ]; then
+            echo "::notice::Production dry run: the IPA is built and verified but not uploaded."
+          fi
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor "$QA_SHA" origin/main; then
+            echo "::error::$QA_SHA is not on main. Merge it first; Production never builds from a side branch."; exit 1
+          fi
+          # A successful QA TestFlight upload from this workflow for the same commit.
+          qa_run=$(gh api -X GET "repos/$REPO/actions/workflows/ios-testflight.yml/runs" \
+            -f head_sha="$QA_SHA" -f status=success --paginate \
+            --jq '.workflow_runs[] | select(.display_title | startswith("iOS qa TestFlight | upload=true")) | .html_url' | head -n1)
+          if [ -z "$qa_run" ]; then
+            echo "::error::No successful QA TestFlight upload found for $QA_SHA. Run this workflow with environment=qa and upload enabled on that commit, test it on iPhone, then promote."; exit 1
+          fi
+          echo "build_sha=$QA_SHA" >> "$GITHUB_OUTPUT"
+          echo "qa_run_url=$qa_run" >> "$GITHUB_OUTPUT"
+          echo "Promotion allowed: $QA_SHA (QA evidence: $qa_run)"
+
+  ios-signed:
+    name: Signed iOS ${{ inputs.environment }}
+    needs: release-gate
+    runs-on: macos-15
+    timeout-minutes: 60
+    # Optional extra gate: add required reviewers to the ios-production
+    # environment in repository settings, where the GitHub plan allows it.
+    environment: ${{ inputs.environment == 'production' && 'ios-production' || 'ios-qa' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-gate.outputs.build_sha }}
+      - name: Confirm the exact commit being built
+        env:
+          EXPECTED: ${{ needs.release-gate.outputs.build_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED"
+          echo "Building $EXPECTED as $ONESPACE_ENV"
       - name: Validate signing prerequisites before building
         env:
           CERT_B64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
@@ -223,3 +306,36 @@ jobs:
           test -n "$IPA"
           xcrun altool --upload-app --type ios -f "$IPA" \
             --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+      - name: Write release attestation
+        if: ${{ always() }}
+        env:
+          BUILD_SHA: ${{ needs.release-gate.outputs.build_sha }}
+          QA_RUN: ${{ needs.release-gate.outputs.qa_run_url }}
+          UPLOAD: ${{ inputs.upload_testflight }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import json,os,datetime
+          record={
+            'environment':os.environ['ONESPACE_ENV'],
+            'bundle_id':os.environ['BUNDLE_ID'],
+            'commit':os.environ['BUILD_SHA'],
+            'qa_evidence_run':os.environ.get('QA_RUN') or None,
+            'uploaded_to_testflight':os.environ['UPLOAD']=='true',
+            'build_number':os.environ['GITHUB_RUN_NUMBER'],
+            'requested_by':os.environ['GITHUB_ACTOR'],
+            'result':os.environ['OUTCOME'],
+            'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+            'app_store_release':'not submitted (TestFlight only)',
+          }
+          open('ios-release-attestation.json','w').write(json.dumps(record,indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('## iOS release attestation\n\n```json\n'+json.dumps(record,indent=2)+'\n```\n')
+          PY
+      - name: Keep the attestation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ inputs.environment }}-attestation-${{ github.run_number }}
+          path: ios-release-attestation.json
+          retention-days: 90

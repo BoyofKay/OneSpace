@@ -66,6 +66,21 @@ their packaged Firebase registration.
    exports a signed IPA, and only uploads when upload_testflight is enabled.
    Uploading to TestFlight never submits the app for App Store review.
 
+   **QA-first promotion (owner policy, 22 November 2026).** Production can
+   only be built for a commit that is on main, has a successful QA TestFlight
+   upload from this workflow, and is approved in the run form:
+   - `qa_tested_sha`: the full commit SHA that passed iPhone QA.
+   - `release_approval`: `APPROVE PRODUCTION TESTFLIGHT`.
+   A Linux gate checks this before any Mac minutes or signing secrets are
+   used. The Production IPA is then rebuilt from exactly that commit with
+   `ONESPACE_ENV=production`. Each run writes a release attestation (commit,
+   environment, QA evidence run, who requested it, result) to the job summary
+   and keeps it as an artifact for 90 days. The signing job runs in the
+   `ios-qa` or `ios-production` GitHub environment, so required reviewers can
+   be added to `ios-production` where the GitHub plan supports it.
+   Production TestFlight is not an App Store release. Submitting for review
+   stays a separate, manual decision by the owner.
+
 Neither signed workflow runs on normal GitHub commits. Mac CI is expensive for
 private repositories. Use a physical iPhone + TestFlight for actual UAT;
 a Windows PC cannot run Apple's iPhone Simulator.
@@ -141,6 +156,12 @@ button and manual code entry.
 
 - [ ] Sign-up, account pairing, recovery, biometric lock and account deletion
       work on a signed iPhone build.
+- [ ] Invitations: email link, web page "Open in OneSpace", and manual code
+      entry each reach the right (QA or Production) app.
+- [ ] Private/shared ownership and lifecycle: leave, remove and delete a
+      space, and the 7-day account deletion with cancel.
+- [ ] Share Extension from Safari, Photos and Files, including cancel.
+- [ ] iPad layout (the app is built for iPhone and iPad).
 - [ ] Partner A on Android and Partner B on iPhone can create, edit, see,
       acknowledge and delete shared objects; private objects never cross.
 - [ ] Mixed-platform notifications work in foreground/background/locked
