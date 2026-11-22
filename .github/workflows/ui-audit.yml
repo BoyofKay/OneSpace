@@ -1,0 +1,94 @@
+name: UI audit robot (tablet, foldable, landscape)
+
+# Photographs every main screen of the real app (QA backend, demo couple
+# Omar & Lina) at phone, small phone, landscape phone, open foldable and
+# tablet sizes, in English, Arabic, dark mode and large text, plus forms with
+# the keyboard up. Runs the app as a Linux program on a virtual screen, so no
+# Android emulator is needed (faster, cheaper and stable).
+# Manual only. Read-only except resetting the demo couple's own space.
+# Results: the "ui-audit-<shape>" artifacts on the run page (kept 14 days).
+
+on:
+  workflow_dispatch:
+    inputs:
+      shapes:
+        description: 'Screen shapes (comma list): phone,small-phone,phone-landscape,foldable-open,tablet,tablet-landscape'
+        default: 'phone,small-phone,phone-landscape,foldable-open,tablet,tablet-landscape'
+        required: true
+      variants:
+        description: 'Variants (comma list): en,ar,en-dark,en-bigtext'
+        default: 'en,ar,en-dark,en-bigtext'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: onespace-demo-space   # shares the demo space with the screenshots robot
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      shapes: ${{ steps.list.outputs.shapes }}
+    steps:
+      - id: list
+        env:
+          SHAPES: ${{ inputs.shapes }}
+        run: |
+          json=$(python3 -c "import json,os;print(json.dumps([s.strip() for s in os.environ['SHAPES'].split(',') if s.strip()]))")
+          echo "shapes=$json" >> "$GITHUB_OUTPUT"
+      - name: Reset the demo space once
+        env:
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+        run: |
+          if [ -z "$DEMO_PASSWORD" ]; then echo "::warning::DEMO_PASSWORD secret missing: only signed-out screens will be photographed"; exit 0; fi
+          url=https://ugwrpeduzyzrujkizqfo.supabase.co
+          key=sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe
+          body=$(python3 -c "import json,os;print(json.dumps({'email':'demo.omar@example.com','password':os.environ['DEMO_PASSWORD']}))")
+          token=$(curl -sf "$url/auth/v1/token?grant_type=password" -H "apikey: $key" -H 'Content-Type: application/json' -d "$body" | python3 -c "import json,sys;print(json.load(sys.stdin)['access_token'])")
+          curl -sf "$url/rest/v1/rpc/demo_reset_space" -H "apikey: $key" -H "Authorization: Bearer $token" \
+            -H 'Content-Type: application/json' -d '{"p_mode":"apart_different_tz","p_lang":"en"}' >/dev/null
+          echo "Demo space reset"
+
+  audit:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shape: ${{ fromJson(needs.plan.outputs.shapes) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux build tools, virtual screen and keyring
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libsecret-1-dev gnome-keyring dbus-x11 xvfb >/dev/null
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Run the robot (${{ matrix.shape }})
+        env:
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+          AUDIT_OUT: ${{ github.workspace }}/build/ui_audit/${{ matrix.shape }}
+          AUDIT_SHAPES: ${{ matrix.shape }}
+          AUDIT_VARIANTS: ${{ inputs.variants }}
+          AUDIT_RESET: '0'
+        run: |
+          mkdir -p "$AUDIT_OUT"
+          # flutter_secure_storage needs an unlocked keyring on Linux.
+          dbus-run-session -- bash -c 'echo -n robot | gnome-keyring-daemon --unlock --components=secrets >/dev/null;
+            xvfb-run -a -s "-screen 0 1920x1440x24" flutter test integration_test/ui_audit_test.dart \
+              -d linux --dart-define=ONESPACE_ENV=qa'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-audit-${{ matrix.shape }}
+          path: build/ui_audit/
+          retention-days: 14
