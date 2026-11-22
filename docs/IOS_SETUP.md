@@ -8,6 +8,8 @@ services, permissions, Face ID integration and Arabic permission text.
 
 ## Status
 
+- **Founder Member badge (22 Nov 2026):** the shared Flutter Me screen already displays the unnumbered badge by calling `public.my_founder_status()`. The matching RPC, private Founder table and signup hooks are now deployed in **both** QA and Production Supabase, verified by post-deployment permissions/RLS checks and transactional founder/non-founder tests. Hardening and Production SQL audit trail: [PR #145](https://github.com/BoyofKay/OneSpace/pull/145). Real iPhone/UI acceptance still requires signed TestFlight after Apple setup.
+
 - 20 November 2026: the iOS readiness work (formerly PRs #65 and #66) was
   re-applied on top of current main, which now includes private/shared
   spaces, the leave/remove/delete lifecycle, 7-day account deletion and the
