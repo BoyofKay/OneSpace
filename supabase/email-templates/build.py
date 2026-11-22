@@ -70,7 +70,12 @@ TEMPLATES = {
         "Confirm your OneSpace email address", "Confirm your email",
         "Confirm that <strong>{{ .Email }}</strong> belongs to you to finish creating your "
         "OneSpace account. If you opened your partner's invitation, it will be saved while "
-        "you confirm your email and sign in.",
+        "you confirm your email and sign in."
+        # Founding 500 (Amr, 22 Nov 2026): the first 500 people get a Founder badge on their
+        # profile. The sign-up trigger sets user_metadata.founder; never show a number.
+        "{{ if .Data.founder }}<br><br><strong>You're one of the Founding 500.</strong> You're among "
+        "the first 500 people to join OneSpace, so a Founder badge will appear on your profile "
+        "once you confirm. Thank you for being early.{{ end }}",
         button("Confirm my email"), IGNORE),
     "invite_user.html": (
         "You're invited to OneSpace", "You're invited to OneSpace",

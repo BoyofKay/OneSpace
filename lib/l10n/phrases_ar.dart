@@ -2176,6 +2176,7 @@ const Map<String, String> arPhrases = {
   'Your choice will be visible in a shared reminder.': 'سيظهر اختيارك في تذكير مشترك.',
   'Your daily schedule': 'جدولك اليومي',
   'Your data and account': 'بياناتك وحسابك',
+  'Founder Member': 'عضو مؤسس',
   'Your display name must be 1–80 characters.': 'يجب أن يكون اسم العرض من 1 إلى 80 حرفًا.',
   'Your drafts are visible only to you. Sent letters are private to your shared space.': 'مسوداتك ظاهرة لك وحدك. الرسائل المرسلة خاصة بمساحتكما المشتركة.',
   'Your effort never goes unnoticed. Proud of you.': 'مجهودك لا يمر دون ملاحظة. فخور بك.',
