@@ -137,3 +137,9 @@ To review, make contact sheets with ImageMagick, for example
   shapes and variants, using the fixed demo seed. Its result is next step 3 above. Find it under
   Actions → UI audit robot.
 - PR #144 holds the branch commits and this note.
+
+### Update 16:20 UTC
+- Full run #4 (`45040948697`) finished: all 6 shapes, 106 photos each.
+- Defect register written: `docs/UI_AUDIT_DEFECT_REGISTER_2026-11-22.md` (12 items: 4 P1, 6 P2, 1 P3, 1 to recheck).
+- Next steps 1 to 3 are done. Remaining: merge PR #144; get Amr's go for Step 1 of the adaptive plan;
+  recheck the "spinner only" screens with a longer wait in the robot.
