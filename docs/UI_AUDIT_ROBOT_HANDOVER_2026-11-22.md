@@ -129,3 +129,11 @@ To review, make contact sheets with ImageMagick, for example
   dialogs on wide screens.
 - iOS: the same robot idea can run on GitHub macOS runners (iPhone + iPad simulators). Mac
   minutes count 10× on a private repo. Do it after iOS PR #134 lands.
+
+### Update 16:00 UTC
+- Phone-only check run `45040291124` passed: 30 photos and no `MISSING` lines, so the home tabs
+  are reached now.
+- Full run #4 started at about 16:00 UTC on branch `claude/project-thread-gwl96u` with all
+  shapes and variants, using the fixed demo seed. Its result is next step 3 above. Find it under
+  Actions → UI audit robot.
+- PR #144 holds the branch commits and this note.
