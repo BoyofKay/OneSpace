@@ -21,6 +21,8 @@ class MeScreen extends StatefulWidget {
 
 class _MeScreenState extends State<MeScreen> {
   String name = '';
+  /// Founding 500 (Amr, 22 Nov 2026): a badge without any number.
+  bool founder = false;
 
   @override
   void initState() {
@@ -36,6 +38,10 @@ class _MeScreenState extends State<MeScreen> {
       final p = await db.from('profiles').select('display_name').eq('id', me.id).maybeSingle();
       if (mounted) setState(() => name = p?['display_name']?.toString() ?? me.email ?? '');
     } catch (_) {}
+    try {
+      final isFounder = await Supabase.instance.client.rpc('my_founder_status');
+      if (mounted && isFounder == true) setState(() => founder = true);
+    } catch (_) {}  // the badge is optional; never block the Me screen
   }
 
   void _open(Widget page) => Navigator.of(context).push<void>(MaterialPageRoute<void>(builder: (_) => page));
@@ -58,6 +64,15 @@ class _MeScreenState extends State<MeScreen> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(tt(name.isEmpty ? tr(context, 'profile') : name), style: theme.textTheme.titleLarge),
           if (email.isNotEmpty) Text(tt(email), style: theme.textTheme.bodySmall),
+          if (founder) Padding(padding: const EdgeInsets.only(top: 6), child: Container(
+            key: const Key('founderBadge'),
+            padding: const EdgeInsetsDirectional.fromSTEB(8, 3, 10, 3),
+            decoration: BoxDecoration(color: theme.colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(999)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.workspace_premium_outlined, size: 16, color: theme.colorScheme.onSecondaryContainer),
+              const SizedBox(width: 4),
+              Text(tt('Founder Member'), style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSecondaryContainer)),
+            ]))),
         ])),
       ]),
       const SizedBox(height: 16),

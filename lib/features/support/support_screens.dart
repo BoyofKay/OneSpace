@@ -369,19 +369,21 @@ class AboutPrivacyScreen extends StatelessWidget {
   const AboutPrivacyScreen({super.key});
 
   static const _en = <(String, String)>[
-    ('What OneSpace is', 'A private shared space for two people in a relationship. Everything you add belongs to you and your partner.'),
+    ('What OneSpace is', 'Your own private space for everyday life, on your own or as a couple. It gathers what you save in different apps in one place. If you invite a partner, what you mark "Shared" is visible to both of you.'),
     ('What we store', 'Your account (name, email, language, time zone), and what you create: notes, lists, reminders, events, trips, occasions, memories, photos, letters, check-ins and gestures. Items marked "Only me" are visible only to you.'),
     ('What we never do', 'We do not sell data, show ads, track your location or phone activity, or read your content to profile you. Voice commands are handled by your phone\'s speech service and are not stored.'),
-    ('Where it is kept', 'In our database and file storage (Supabase), protected by per-person access rules so only you and your partner can reach your space. Push notifications go through Firebase Cloud Messaging.'),
-    ('Your choices', 'Download everything you created at any time, and delete your account from Me → Your data and account. Shared items stay for your partner; private items are deleted after 7 days.'),
+    ('Where it is kept', 'In our database and file storage (Supabase), protected by access rules checked for every item, so only you, and the partner you invite, can reach your items. The live app is hosted in the European Union (Frankfurt); test versions may use servers in South Korea. Push notifications go through Firebase Cloud Messaging.'),
+    ('If you separate', 'If either of you leaves the shared space, removes the other or deletes it, everything shared in it is permanently deleted for both of you and cannot be restored. Each person keeps their own "Only me" items.'),
+    ('Your choices', 'Download a copy of your account information at any time, and delete your account from Me → Your data and account. Nothing is deleted for 7 days and you can cancel in that time. After that your account and your "Only me" items are deleted, together with what you share with your current partner; your partner keeps their own "Only me" items.'),
     ('Help and support', 'Messages you send from Contact us or Report a technical issue are kept so we can answer you. Technical details are only attached when you allow it. If the app hits an error, the error message (never your content) is sent to us automatically so we can fix it.'),
   ];
   static const _ar = <(String, String)>[
-    ('ما هو OneSpace', 'مساحة خاصة مشتركة لشخصين في علاقة. كل ما تضيفه ملك لك ولشريكك.'),
+    ('ما هو OneSpace', 'مساحتك الخاصة لحياتك اليومية، بمفردك أو مع شريكك. يجمع ما تحفظه في تطبيقات مختلفة في مكان واحد. وإذا دعوت شريكًا، فما تجعله «مشتركًا» يراه كلاكما.'),
     ('ما الذي نحفظه', 'حسابك (الاسم والبريد واللغة والمنطقة الزمنية)، وما تنشئه: الملاحظات والقوائم والتذكيرات والمواعيد والرحلات والمناسبات والذكريات والصور والرسائل والتواصل اليومي واللفتات. العناصر المعلّمة «أنا فقط» تظهر لك وحدك.'),
     ('ما لا نفعله أبدًا', 'لا نبيع البيانات ولا نعرض إعلانات ولا نتتبع موقعك أو نشاط هاتفك ولا نقرأ محتواك لبناء ملف عنك. الأوامر الصوتية تعالجها خدمة الكلام في هاتفك ولا تُحفظ.'),
-    ('أين تُحفظ', 'في قاعدة بياناتنا وتخزين الملفات (Supabase)، بحماية قواعد وصول لكل شخص بحيث لا يصل إلى مساحتكما سواكما. تمر الإشعارات عبر Firebase Cloud Messaging.'),
-    ('خياراتك', 'نزّل كل ما أنشأته في أي وقت، واحذف حسابك من «أنا» ← «بياناتك وحسابك». تبقى العناصر المشتركة لشريكك؛ وتُحذف العناصر الخاصة بعد 7 أيام.'),
+    ('أين تُحفظ', 'في قاعدة بياناتنا وتخزين الملفات (Supabase)، بحماية قواعد وصول تُفحص لكل عنصر، فلا يصل إلى عناصرك سواك وسوى الشريك الذي تدعوه. النسخة الرسمية مستضافة في الاتحاد الأوروبي (فرانكفورت)، وقد تستخدم النسخ التجريبية خوادم في كوريا الجنوبية. تمر الإشعارات عبر Firebase Cloud Messaging.'),
+    ('إذا انفصلتما', 'إذا غادر أحدكما المساحة المشتركة أو أزال الآخر أو حذفها، يُحذف كل ما شاركتماه فيها نهائيًا لكليكما ولا يمكن استعادته. ويحتفظ كل منكما بعناصره «أنا فقط».'),
+    ('خياراتك', 'نزّل نسخة من معلومات حسابك في أي وقت، واحذف حسابك من «أنا» ← «بياناتك وحسابك». لا يُحذف شيء لمدة 7 أيام ويمكنك الإلغاء خلالها. بعد ذلك يُحذف حسابك وعناصرك «أنا فقط»، ومعها ما تشاركه مع شريكك الحالي؛ ويحتفظ شريكك بعناصره «أنا فقط».'),
     ('المساعدة والدعم', 'نحتفظ بالرسائل التي ترسلها عبر «تواصل معنا» أو «الإبلاغ عن مشكلة تقنية» لنرد عليك. لا تُرفق التفاصيل التقنية إلا بإذنك. وإذا واجه التطبيق خطأً تصلنا رسالة الخطأ تلقائيًا (دون أي من محتواك) لنصلحه.'),
   ];
 

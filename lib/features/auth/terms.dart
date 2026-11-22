@@ -4,30 +4,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:onespace/l10n/phrases.dart';
 import '../support/support_screens.dart';
 
-/// R74 (Ahmed): people agree to the terms when they sign up (email or
-/// Google / Apple). Bump [termsVersion] when the text changes in substance;
-/// everyone is then asked once more.
-const termsVersion = '2026-11-16';
+/// R74 (Ahmed): people agree to the terms when they sign up (email only).
+/// Bump [termsVersion] when the text changes in substance; everyone is then
+/// asked once more. 2026-11-22: solo use, shared editing, separation and
+/// account deletion now match ADR-2026-11-20 and the website terms.
+const termsVersion = '2026-11-22';
 
 const _termsEn = <(String, String)>[
-  ('The short version', 'OneSpace is a private space for you and your partner. Use it kindly and lawfully, keep your password safe, and remember that what you mark "Shared" is seen by your partner.'),
-  ('Your account', 'You need to be at least 18. Give a real email address and keep your sign-in private. You are responsible for what happens under your account. One shared space connects exactly two people.'),
+  ('The short version', 'OneSpace is a private space for you, and for you and your partner if you invite one. Use it kindly and lawfully, keep your password safe, and remember that what you mark "Shared" is seen by your partner.'),
+  ('Your account', 'You need to be at least 18. Give a real email address and keep your sign-in private. You are responsible for what happens under your account. You can use OneSpace on your own; a shared space connects exactly two people.'),
   ('Your content', 'What you write and upload stays yours. You give OneSpace only the permission needed to store it, show it to you and your partner, and send you notifications about it. We do not sell it, show ads or use it to profile you.'),
-  ('Sharing with your partner', 'Items marked "Shared" are visible to your partner and may notify them. "Only me" items are visible only to you. If one of you leaves or deletes the account, shared items stay with the other person.'),
+  ('Sharing with your partner', 'Items marked "Shared" are visible to your partner, who can also edit them, and may notify them. "Only me" items are visible only to you. If either of you leaves the shared space, removes the other or deletes it, everything shared in it is permanently deleted for both of you and cannot be restored; each person keeps their own "Only me" items. If you delete your account, the same happens after a 7-day period in which you can cancel.'),
   ('Acceptable use', 'Do not use OneSpace to harass, threaten or spy on anyone, to store illegal material, or to break into other accounts or the service. We may suspend accounts that do.'),
-  ('Test version', 'This is an early version shared with a small group of testers. Features may change, and something may break. Please keep your own copy of anything important and tell us about problems.'),
+  ('Test version', 'This is an early version shared with a small group of people. Features may change, and something may break. Please keep your own copy of anything important and tell us about problems.'),
   ('Ending', 'You can download your data and delete your account at any time (Me → Your data and account). We may end the test or the service with notice by email.'),
   ('Liability', 'OneSpace is provided "as is". To the extent the law allows, we are not liable for indirect losses or for missed reminders or notifications.'),
   ('Privacy', 'How we handle data is explained in About and privacy. Contact us from the app or the sign-in screen with any question.'),
 ];
 
 const _termsAr = <(String, String)>[
-  ('باختصار', 'OneSpace مساحة خاصة لك ولشريكك. استخدمه بلطف وبما يوافق القانون، واحفظ كلمة مرورك، وتذكّر أن ما تجعله «مشتركًا» يراه شريكك.'),
-  ('حسابك', 'يجب أن يكون عمرك 18 عامًا على الأقل. استخدم بريدًا حقيقيًا وحافظ على سرية تسجيل دخولك. أنت مسؤول عمّا يحدث في حسابك. المساحة المشتركة تجمع شخصين فقط.'),
+  ('باختصار', 'OneSpace مساحة خاصة لك، ولك ولشريكك إن دعوته. استخدمه بلطف وبما يوافق القانون، واحفظ كلمة مرورك، وتذكّر أن ما تجعله «مشتركًا» يراه شريكك.'),
+  ('حسابك', 'يجب أن يكون عمرك 18 عامًا على الأقل. استخدم بريدًا حقيقيًا وحافظ على سرية تسجيل دخولك. أنت مسؤول عمّا يحدث في حسابك. يمكنك استخدام OneSpace بمفردك؛ والمساحة المشتركة تجمع شخصين فقط.'),
   ('محتواك', 'ما تكتبه وترفعه يبقى ملكك. تمنح OneSpace فقط الإذن اللازم لحفظه وعرضه لك ولشريكك وإرسال إشعارات عنه. لا نبيعه ولا نعرض إعلانات ولا نستخدمه لبناء ملف عنك.'),
-  ('المشاركة مع شريكك', 'العناصر «المشتركة» يراها شريكك وقد تصله إشعارات عنها. عناصر «أنا فقط» تراها وحدك. إذا غادر أحدكما أو حذف حسابه، تبقى العناصر المشتركة مع الآخر.'),
+  ('المشاركة مع شريكك', 'العناصر «المشتركة» يراها شريكك ويمكنه تعديلها أيضًا، وقد تصله إشعارات عنها. عناصر «أنا فقط» تراها وحدك. إذا غادر أحدكما المساحة المشتركة أو أزال الآخر أو حذفها، يُحذف كل ما شاركتماه فيها نهائيًا لكليكما ولا يمكن استعادته؛ ويحتفظ كل منكما بعناصره «أنا فقط». وإذا حذفت حسابك، يحدث الأمر نفسه بعد 7 أيام يمكنك الإلغاء خلالها.'),
   ('الاستخدام المقبول', 'لا تستخدم OneSpace للمضايقة أو التهديد أو التجسس على أحد، أو لحفظ مواد غير قانونية، أو لاختراق حسابات أخرى أو الخدمة. قد نوقف الحسابات المخالفة.'),
-  ('نسخة تجريبية', 'هذه نسخة مبكرة لمجموعة صغيرة من المختبرين. قد تتغير الميزات وقد يتعطل شيء. احتفظ بنسخة من كل ما هو مهم، وأخبرنا بأي مشكلة.'),
+  ('نسخة تجريبية', 'هذه نسخة مبكرة لمجموعة صغيرة من الأشخاص. قد تتغير الميزات وقد يتعطل شيء. احتفظ بنسخة من كل ما هو مهم، وأخبرنا بأي مشكلة.'),
   ('الإنهاء', 'يمكنك تنزيل بياناتك وحذف حسابك في أي وقت (أنا ← بياناتك وحسابك). قد ننهي التجربة أو الخدمة بإشعار عبر البريد.'),
   ('المسؤولية', 'يُقدَّم OneSpace «كما هو». وبالقدر الذي يسمح به القانون، لسنا مسؤولين عن الخسائر غير المباشرة أو عن تذكيرات أو إشعارات لم تصل.'),
   ('الخصوصية', 'طريقة تعاملنا مع البيانات موضحة في «عن التطبيق والخصوصية». تواصل معنا من التطبيق أو من شاشة الدخول لأي سؤال.'),
@@ -83,7 +84,7 @@ class TermsAgreement extends StatelessWidget {
 }
 
 /// Shown once after signing in when this account has not accepted the
-/// current terms (Google / Apple sign-ups, or older accounts).
+/// current terms (older accounts, or after the terms change).
 class TermsGate extends StatefulWidget {
   const TermsGate({super.key, required this.child});
   final Widget child;
