@@ -18,6 +18,20 @@ void main() {
     expect(sql, isNot(contains('founder_number')));
   });
 
+  test('Founder eligibility is server-controlled in both database environments', () {
+    final qaPatch = File('supabase/schema/0319_qa_founder_server_authority.sql').readAsStringSync();
+    final prodRollout = File('supabase/production/founder_badge_rollout_20261122.sql').readAsStringSync();
+    for (final sql in [qaPatch, prodRollout]) {
+      expect(sql, contains("new.raw_app_meta_data || jsonb_build_object('onespace_founder_offer', true)"));
+      expect(sql, contains("(new.raw_app_meta_data ->> 'onespace_founder_offer')::boolean"));
+      expect(sql, contains("new.raw_user_meta_data := coalesce(new.raw_user_meta_data, '{}'::jsonb) - 'founder'"));
+      expect(sql, contains('pg_advisory_xact_lock(1500500)'));
+      expect(sql, contains('revoke all on function private.founder_grant_on_confirm()'));
+    }
+    expect(prodRollout, contains('create or replace function public.my_founder_status()'));
+    expect(prodRollout, contains('create table if not exists private.app_founders'));
+  });
+
   test('FAQ matches how the app works today', () {
     final all = faqEntries.map((e) => '${e.qEn} ${e.aEn}').join('\n');
     expect(all, contains('Can I use OneSpace without a partner?'));
