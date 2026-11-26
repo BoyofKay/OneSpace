@@ -171,6 +171,13 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 ### Command Center
 - 26 Nov: support-ticket screenshots can be opened from the Support page (audited, server-side). Needs two new Cloudflare secrets before it works: `QA_SUPPORT_STORAGE_READ_KEY`, `PRODUCTION_SUPPORT_STORAGE_READ_KEY` (owner decision: these are server keys with storage read access; until set, the feature says "not configured").
 
+### Google Play reports (Command Center, built 26 Nov 2026 — needs 3 owner steps)
+1. Play Console → **Download reports → Statistics** → copy the Cloud Storage URI (`gs://pubsite_prod_<number>/…`). In Cloudflare (Workers & Pages → onespace-command → Settings → Variables and Secrets) add secret **`PLAY_REPORTS_BUCKET`** = `pubsite_prod_<number>`.
+2. Google Cloud project `onespace-b70a2` → IAM → **Service accounts** → create `onespace-command-play-reports` with **no roles** → Keys → Add key → JSON. Add secret **`PLAY_REPORTS_SERVICE_ACCOUNT_JSON`** = the whole file.
+3. Play Console → **Users and permissions → Invite new users** → the service-account email → account permission **"View app information and download bulk reports"** only. Google can take up to 24 hours to grant access; reports appear about 2 days after the first installs.
+
+The Mobile App tab then shows new installs and uninstalls (30 days) and devices with the app; Systems & Connections shows the row as Live. Store-listing conversion is not in these reports (Play Console shows it).
+
 ### Open items for the owner
 1. **GitHub account locked for a billing issue** (confirmed 26 Nov 2026: GitHub's message on the website's jobs is "The job was not started because your account is locked due to a billing issue"). Every GitHub Actions job in all three repositories is blocked, **including the public website** — so making a repository public does not help until the lock is lifted. Owner: GitHub → Settings → Billing and plans (payment method / unpaid invoice). GitHub Pages deploys and Cloudflare builds still work.
 2. Decide the Command Center screenshot keys (above).
@@ -437,6 +444,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - Found and recorded: 0319 applied to QA without a merged file; QA-only `demo_reset` edit (0320).
 - Workflow triggers reduced (D88). Founder backend moved to the private repository (D89). All documents merged into this book (D90).
 - Local results: app `flutter test` 427/427, iOS tool checks 11/11, Command Center build + 218/218 tests, website 6/6 checks.
+- **Command Center feedback (26 Nov, later):** "See the inbox" button for Zoho Mail; service cards and Systems rows coloured by status; sidebar badges for Website, Founder Outreach and Systems load in the background; the Firebase "Reported dates in window" tile (always 7, because Firebase always answers with a 7-day window) became "Days with counts", saying how many days Firebase hid for privacy; Website page visits now come from the Command Center's own GoatCounter reading (the Production report showed 0 while other figures were filled); one Reload refreshes every panel on Communications and Mobile App (per-panel buttons removed, "Updated hh:mm" shown); Support inbox (up to 200) and access log paginated, 8 per page; Systems rows updated (iOS, closed testing, repositories, Founder backend location, email-only sign-in) plus new rows "GitHub Actions builds" and "Google Play reports"; Google Play installs reader built (needs the 3 steps above). Local: build OK, 238/238 tests.
 - Website and Command Center merged to `main` with the owner's go-ahead (no GitHub cost): onespace.live redeployed by GitHub Pages; Command Center deployed by Cloudflare Workers Builds (build 0521bfa1, success). The website's own GitHub checks and IndexNow ping could not start (billing lock).
 
 ---
