@@ -2989,4 +2989,12 @@ const Map<String, String> arPhrases = {
   "Calendar first data": "تحميل أول بيانات التقويم",
   "Text size": "حجم النص",
   "ms": "مللي ثانية",
+  "Your private reminder is saved independently. Removing this event will not automatically cancel it.": "يُحفظ تذكيرك الخاص بشكل مستقل. لن يؤدي حذف هذا الموعد إلى إلغاء التذكير تلقائيًا.",
+  "This checklist stays private. You can share new checklists when you connect with a partner.": "تبقى قائمة التحقق هذه خاصة بك. يمكنك مشاركة قوائم تحقق جديدة عند الارتباط بشريك.",
+  "A copy was sent to your current partner. Your personal draft stays in your account.": "أُرسلت نسخة إلى شريكك الحالي. تبقى مسودتك الشخصية في حسابك.",
+  "Connect with a partner to exchange daily check-ins. Your personal feelings journal is available anytime.": "ارتبط بشريك لتبادل التواصل اليومي. يمكنك استخدام يوميات مشاعرك الشخصية في أي وقت.",
+  "One daily selfie a day keeps the story honest. You can take the next one tomorrow. Open today’s selfie to see it or share it.": "صورة شخصية واحدة كل يوم تحافظ على صدق الحكاية. يمكنك التقاط الصورة التالية غدًا. افتح صورة اليوم لعرضها أو مشاركتها.",
+  "Enter your personal occasion date manually. Linking special dates will be available after the private calendar integration.": "أدخل تاريخ مناسبتك الخاصة يدويًا. سيتاح ربط التواريخ المميزة بعد دمج التقويم الخاص.",
+  "Choose whether a day off is personal or shared. Shared dates appear on both calendars; personal dates stay with your account. Your normal sleep and notification schedule remains in Settings.": "اختر ما إذا كان يوم الإجازة خاصًا أم مشتركًا. تظهر التواريخ المشتركة في التقويمين، وتبقى التواريخ الخاصة في حسابك. يبقى جدول نومك وإشعاراتك المعتاد في الإعدادات.",
+  "Connect with a partner to use this destination. Your personal inbox, Notes, Activities, To-do and Places are available.": "ارتبط بشريك لاستخدام هذه الوجهة. يظل صندوق الوارد الشخصي والملاحظات والأنشطة والمهام والأماكن متاحًا لك.",
 };
