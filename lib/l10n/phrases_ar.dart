@@ -3165,4 +3165,17 @@ const Map<String, String> arPhrases = {
   'Connect a counter': 'اربط عدّادًا',
   'From {} to {}': 'من {} إلى {}',
   'Connect counters to see the time between each of them on one timeline.': 'اربط العدّادات لترى المدة بين كل منها على خط زمني واحد.',
+  // 26 Nov 2026: named counter timelines (D100).
+  'Timelines': 'الخطوط الزمنية',
+  'See the time between this and other counters on a named timeline.': 'شاهد المدة بين هذا العدّاد وعدّادات أخرى على خط زمني له اسم.',
+  'Add to a timeline': 'أضف إلى خط زمني',
+  'For example: Our story, Travels': 'مثلًا: حكايتنا، رحلاتنا',
+  'New timeline…': 'خط زمني جديد…',
+  'Both of you see it; it holds shared counters.': 'يراه كلاكما، ويضم العدّادات المشتركة.',
+  'Only you see it; it holds your private counters.': 'تراه أنت فقط، ويضم عدّاداتك الخاصة.',
+  'New timeline': 'خط زمني جديد',
+  'No timelines yet. Create one and add counters to see the time between them.': 'لا توجد خطوط زمنية بعد. أنشئ واحدًا وأضف إليه عدّادات لترى المدة بينها.',
+  'Delete this timeline?': 'حذف هذا الخط الزمني؟',
+  'The counters stay; only this timeline and its name are deleted.': 'تبقى العدّادات، ويُحذف هذا الخط الزمني واسمه فقط.',
+  'Rename timeline': 'إعادة تسمية الخط الزمني',
 };

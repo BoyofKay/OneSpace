@@ -135,10 +135,13 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | D93 | 26 Nov 2026 | **Portrait only** on Android and iOS, phones and tablets (Android manifest + Android 16 large-screen opt-out, iPad portrait + full screen, Flutter preferred orientations). Landscape layout work is not needed while this holds; Today shortcuts and Quick add were still made width-safe. | **Active** |
 | D94 | 26 Nov 2026 | **Global app: no regional themes.** Eid, Ramadan and Saudi National Day seasonal themes removed; Eid and Ramadan scrapbook designs no longer offered (existing scrapbooks keep their look). Country holiday calendars stay, because each person chooses their own countries. | **Active** |
 | D95 | 26 Nov 2026 | **Preferred currency: every world currency** (about 150, searchable, named in English and Arabic). New accounts start with US dollar (was Saudi riyal). | **Active** |
-| D96 | 26 Nov 2026 | **Connected counters:** any number of counters on one timeline, on its own page, with the time between each pair of neighbouring points; "Today" appears only when it falls between the first and last point; a counter can be removed from a timeline without disconnecting the others. Storage unchanged (`linked_counter_id`); only counters in the same space can be connected. | **Active** |
+| D96 | 26 Nov 2026 | ⚠️ OVERRIDDEN by D100 (26 Nov 2026) — **Connected counters:** any number of counters on one timeline, on its own page, with the time between each pair of neighbouring points; "Today" appears only when it falls between the first and last point; a counter can be removed from a timeline without disconnecting the others. Storage unchanged (`linked_counter_id`); only counters in the same space can be connected. | **Active** |
 | D97 | 26 Nov 2026 | **Arabic is complete and kept complete:** every text passed to `tt()` must have Arabic; `test/arabic_coverage_test.dart` fails otherwise. All popups and bottom sheets scroll. | **Active** |
 | D98 | 26 Nov 2026 | **Command Center quotas follow the chosen Supabase plan** (owner: Pro). Chosen on Infrastructure from a dropdown (Free / Pro / Team); cards and hourly alerts use it; a Cloudflare limit still wins. Quotas are Supabase's published included amounts, to be confirmed on the billing page. | **Active** |
 | D99 | 26 Nov 2026 | **Support inbox:** Open (new, in progress) and Closed (answered, closed) tabs; 10 per page for the inbox and the access log. Command Center version 1.5.0. | **Active** |
+| D100 | 26 Nov 2026 | **Named counter timelines:** every timeline has a name (rename/delete); one counter can be on several timelines; private timelines hold private counters, shared ones shared counters. Database 0321 (tables counter_timelines, counter_timeline_members); old one-to-one links were moved onto timelines; `linked_counter_id` is no longer written. Counters page → Timelines; each counter shows its timelines and "Add to a timeline". | **Active** |
+| D101 | 26 Nov 2026 | **Support tickets are closed with an outcome** from the Command Center: status (New, In progress, Answered, Closed), outcome (Solved, Not a bug, Feature request, Duplicate, No reply, Other; required to close) and an internal note, saved with time and admin email and logged. The Command Center's only database change, through one key-protected function (0322; Supabase stores only the key's SHA-256). | **Active** |
+| D102 | 26 Nov 2026 | **Arabesque background and Desert Sand theme stay** (owner). | **Active** |
 
 ### 4.2 Override index — which decision replaced which
 
@@ -151,6 +154,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | Seasonal themes incl. Eid, Ramadan and Saudi National Day (R64) | 15 Nov | D94 | 26 Nov | Regional themes removed (global app). |
 | R69 currency list "region's first" (15 choices, SAR default) | 16 Nov | D95 | 26 Nov | All world currencies; USD default. |
 | R78 "Link to another counter" (one pair, line shows Today always) | 16 Nov | D96 | 26 Nov | Any number on a timeline page; Today only in between. |
+| D96 connected counters through `linked_counter_id` (one timeline per counter) | 26 Nov | D100 | 26 Nov | Named timelines; a counter can be on several. |
 | D47 account deletion keeps shared items for the partner | 15 Nov | ADR-2026-11-20 | 20 Nov | Shared content of that couple is deleted; the partner keeps only their private content. |
 | D8 shared memories "Remove (restorable)" — as applied to separation | 15 Nov | ADR-2026-11-20 | 20 Nov | Ending a relationship permanently erases shared content (item-level Remove/Restore still exists). |
 | D64 (R74) Google/Apple sign-in for testers | 16 Nov | D82 | 21–22 Nov | Email and password only (buttons stay off). |
@@ -170,7 +174,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 ### Databases
 - **Production** (Frankfurt): one-shot upgrade 0142–0317 applied 21 Nov (`production_upgrade_0142_0317`); Founder badge 0318 + 0319 applied 22 Nov (`production_founder_badge_server_authority_0318_0319`, file `supabase/production/founder_badge_rollout_20261122.sql`). `supabase/production/upgrade.sql` is that historical script — do not re-run it.
 - **QA** (Seoul): has everything up to 0319. 0313–0318 were applied without migration records; 0319 recorded.
-- **Pending for Production at next go-live:** `0320_qa_record_demo_reset_drift.sql` (demo couple only; checked read-only 26 Nov: result matches QA exactly).
+- **Pending for Production at next go-live:** `0320_qa_record_demo_reset_drift.sql` (demo couple only), `0321_qa_counter_timelines.sql` (named timelines; moves existing links) and `0322_qa_support_ticket_outcomes.sql` (ticket outcomes). 0321 and 0322 are applied and checked on QA (26 Nov).
 - QA vs Production function check (26 Nov): 16 QA functions differ only by Windows line endings (same logic); the deletion dispatcher differs only by its project URL (intended); `demo_reset` → 0320.
 
 ### Apps
@@ -187,6 +191,12 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 3. Play Console → **Users and permissions → Invite new users** → the service-account email → account permission **"View app information and download bulk reports"** only. Google can take up to 24 hours to grant access; reports appear about 2 days after the first installs.
 
 The Mobile App tab then shows new installs and uninstalls (30 days) and devices with the app; Systems & Connections shows the row as Live. Store-listing conversion is not in these reports (Play Console shows it).
+
+### Support ticket outcomes — owner setup (once per environment)
+1. Make a long random key (at least 32 characters, e.g. from a password manager). Never paste it in chat.
+2. Cloudflare → Workers & Pages → onespace-command → Settings → Variables and Secrets → add secret **`SUPPORT_OPS_KEY_QA`** with that key.
+3. Supabase → project **OneSpace** (QA) → SQL editor → run `select private.set_support_ops_key('<the same key>');`
+4. Repeat with a different key for Production (`SUPPORT_OPS_KEY_PRODUCTION`) after 0322 reaches Production at go-live.
 
 ### Open items for the owner
 1. **GitHub account locked for a billing issue** (confirmed 26 Nov 2026: GitHub's message on the website's jobs is "The job was not started because your account is locked due to a billing issue"). Every GitHub Actions job in all three repositories is blocked, **including the public website** — so making a repository public does not help until the lock is lifted. Owner: GitHub → Settings → Billing and plans (payment method / unpaid invoice). GitHub Pages deploys and Cloudflare builds still work.
@@ -457,6 +467,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - **Command Center feedback (26 Nov, later):** "See the inbox" button for Zoho Mail; service cards and Systems rows coloured by status; sidebar badges for Website, Founder Outreach and Systems load in the background; the Firebase "Reported dates in window" tile (always 7, because Firebase always answers with a 7-day window) became "Days with counts", saying how many days Firebase hid for privacy; Website page visits now come from the Command Center's own GoatCounter reading (the Production report showed 0 while other figures were filled); one Reload refreshes every panel on Communications and Mobile App (per-panel buttons removed, "Updated hh:mm" shown); Support inbox (up to 200) and access log paginated, 8 per page; Systems rows updated (iOS, closed testing, repositories, Founder backend location, email-only sign-in) plus new rows "GitHub Actions builds" and "Google Play reports"; Google Play installs reader built (needs the 3 steps above). Local: build OK, 238/238 tests.
 - **App feedback iteration (26 Nov):** portrait lock (D93), all world currencies (D95), regional themes removed (D94), connected counters timeline (D96), 166 missing Arabic texts added plus a coverage test (D97), 46 dialogs and 14 bottom sheets made scrollable, Quick add scrolls, Today shortcuts keep a phone-like size on wide screens. Local: flutter analyze no errors/warnings, flutter test 439/439, iOS checks 11/11. Not built: QA APK waits for the GitHub billing lock and the owner's go.
 - **Command Center v1.5.0 (26 Nov):** Supabase plan dropdown drives all quotas (D98); Support inbox Open/Closed tabs, 10 per page (D99). Local: build OK, 243/243 tests. onespace.live "What's new" is updated when these app changes reach testers.
+- **Timelines, tickets, Zoho (26 Nov, evening):** 0321 and 0322 applied to QA and checked (a stranger sees no timelines; the ticket function refuses calls without the key and signed-in users cannot call it). App: named timelines (D100), Arabic added, flutter test 437/437. Command Center v1.6.0 deployed (Cloudflare build success 19:45 UTC): ticket outcomes (D101) and the **Zoho fix** — Zoho allows ~10 new access tokens per 10 minutes and every Overview/Systems/background read asked for one; the token (1 h) and counts (5 min) are now reused and each failure names its step. 249/249 tests.
 - Website and Command Center merged to `main` with the owner's go-ahead (no GitHub cost): onespace.live redeployed by GitHub Pages; Command Center deployed by Cloudflare Workers Builds (build 0521bfa1, success). The website's own GitHub checks and IndexNow ping could not start (billing lock).
 
 ---

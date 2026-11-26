@@ -14,6 +14,7 @@ import '../memories/memory_view_screen.dart';
 import 'counter_sources.dart';
 import 'smart_duration.dart';
 import 'counter_chains.dart';
+import 'counter_timelines.dart';
 import 'connected_counters_screen.dart';
 
 /// R77 (Ahmed's friend's idea): our counters — moments in the past ("since")
@@ -224,6 +225,15 @@ class _CountersScreenState extends State<CountersScreen> {
     ]));
     return Scaffold(
       appBar: AppBar(title: Text(tt('Counters')), actions: [
+        // 26 Nov 2026 (D100): named timelines, several per counter.
+        IconButton(tooltip: tt('Timelines'), icon: const Icon(Icons.linear_scale),
+          onPressed: space == null && scope == null ? null : () async {
+            await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TimelinesListScreen(
+              counters: {for (final p in points) if (p.saved) p.row!['id'].toString(): p.row!}.values.toList(),
+              sharedSpaceId: scope == null ? space : scope!.sharedSpaceId,
+              privateSpaceId: scope?.privateSpaceId)));
+            await _load();
+          }),
         IconButton(tooltip: tt(timeline ? 'Show as cards' : 'Show as a timeline'),
           icon: Icon(timeline ? Icons.view_agenda_outlined : Icons.timeline),
           onPressed: () => setState(() => timeline = !timeline)),
@@ -477,14 +487,24 @@ class CounterDetail extends StatefulWidget {
 class _CounterDetailState extends State<CounterDetail> {
   final db = Supabase.instance.client;
   late CounterPoint point = widget.point;
-  /// Updated when the connected timeline changes links (26 Nov 2026).
   late List<CounterPoint> all = widget.all;
+  /// Named timelines (D100); null until loaded or when the backend has none yet.
+  List<NamedTimeline>? timelines;
+  List<Map<String, dynamic>> get _counterRows =>
+      {for (final p in all) if (p.saved) p.row!['id'].toString(): p.row!}.values.toList();
+  Future<void> _loadTimelines() async {
+    try {
+      final t = await CounterTimelinesStore(db).load();
+      if (mounted) setState(() => timelines = t);
+    } catch (_) { /* timelines not available on this backend yet */ }
+  }
   String? placeName;
 
   @override
   void initState() {
     super.initState();
     _loadPlace();
+    _loadTimelines();
   }
 
   Future<void> _loadPlace() async {
@@ -616,29 +636,24 @@ class _CounterDetailState extends State<CounterDetail> {
           icon: Icon(r['memory_id'] == null ? Icons.add_a_photo_outlined : Icons.photo_library_outlined),
           label: Text(tt(r['memory_id'] == null ? 'Add photos and the story' : 'Open the photos and story'))),
         const SizedBox(height: 8),
-        // 26 Nov 2026: connected counters live on their own timeline page (any number of them).
-        if (r != null) Builder(builder: (context) {
-          final saved = [for (final p in all) if (p.saved && !p.yearly) p];
-          final members = CounterChains.group(r['id'].toString(), [
-            for (final p in saved) CounterLink(id: p.row!['id'].toString(), date: p.date, linkedTo: p.row!['linked_counter_id']?.toString()),
-          ]);
-          final linked = members.length > 1;
-          return Card(elevation: 0, child: ListTile(
-            leading: const Icon(Icons.timeline),
-            title: Text(tt('Connected timeline')),
-            subtitle: Text(linked
-                ? '${tt('{} counters').replaceFirst('{}', '${members.length}')} · '
-                    '${SmartSpan.between(members.first.date, members.last.date).label}'
-                : tt('Connect this counter with others to see the time between them.')),
-            trailing: const Icon(Icons.chevron_right),
+        // 26 Nov 2026 (D100): named timelines; this counter can be on several.
+        if (r != null && timelines != null) Card(elevation: 0, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          ListTile(leading: const Icon(Icons.timeline), title: Text(tt('Timelines')),
+            subtitle: Text(tt('See the time between this and other counters on a named timeline.'))),
+          for (final t in timelines!.where((t) => t.counterIds.contains(r['id'].toString()))) ListTile(
+            dense: true, contentPadding: const EdgeInsetsDirectional.only(start: 56, end: 16),
+            title: Text(t.title), trailing: const Icon(Icons.chevron_right),
             onTap: () async {
-              final updated = await Navigator.of(context).push<List<CounterPoint>>(MaterialPageRoute(
-                builder: (_) => ConnectedCountersScreen(startId: r['id'].toString(), all: all)));
-              if (updated == null || !mounted) return;
-              final byId = {for (final u in updated) u.id: u};
-              setState(() => all = [for (final p in all) byId[p.id] ?? p]);
-            }));
-        }),
+              await Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => TimelineScreen(timeline: t, counters: _counterRows)));
+              await _loadTimelines();
+            }),
+          Padding(padding: const EdgeInsets.fromLTRB(12, 0, 12, 8), child: Align(alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(icon: const Icon(Icons.add_link), label: Text(tt('Add to a timeline')),
+              onPressed: () async {
+                if (await addCounterToTimeline(context, r, timelines!)) await _loadTimelines();
+              }))),
+        ])),
       ]),
     );
   }
@@ -675,7 +690,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
   late String emoji, category;
   DateTime? date;
   TimeOfDay? time;
-  String? placeId, linkedId;
+  String? placeId;
   late bool yearly, pinned, shared;
   late List<String> people;
   List<Map<String, dynamic>> places = [];
@@ -685,7 +700,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
 
   @override
   String get signature => [title.text, description.text, placeText.text, emoji, category, date, time,
-    placeId, linkedId, yearly, pinned, shared, people.join(',')].join('|');
+    placeId, yearly, pinned, shared, people.join(',')].join('|');
 
   @override
   void initState() {
@@ -701,7 +716,6 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
     final t = (e['at_time'] ?? '').toString();
     if (t.length >= 5) time = TimeOfDay(hour: int.parse(t.substring(0, 2)), minute: int.parse(t.substring(3, 5)));
     placeId = e['place_id']?.toString();
-    linkedId = e['linked_counter_id']?.toString();
     yearly = e['yearly'] == true;
     pinned = e['pinned'] == true;
     shared = (e['visibility'] ?? 'shared') == 'shared';
@@ -758,7 +772,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
       'at_time': time == null ? null
         : '${time!.hour.toString().padLeft(2, '0')}:${time!.minute.toString().padLeft(2, '0')}',
       'place_id': placeId, 'place_text': placeId == null ? placeText.text.trim() : '',
-      'people': people, 'linked_counter_id': linkedId, 'yearly': yearly, 'pinned': pinned,
+      'people': people, 'yearly': yearly, 'pinned': pinned,
       'visibility': shared ? 'shared' : 'private',
     };
     final sc = widget.scope;
@@ -873,18 +887,6 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
           onSubmitted: (n) {
             if (n.trim().isNotEmpty && !people.contains(n.trim())) setState(() { people.add(n.trim()); personName.clear(); });
           }),
-        if (widget.others.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          FormSection(tt('Connect to another counter')),
-          DropdownButtonFormField<String?>(
-            initialValue: widget.others.any((o) => o.id == linkedId) ? linkedId : null,
-            decoration: InputDecoration(labelText: tt('Show the time between this and…'), border: const OutlineInputBorder()),
-            items: [
-              DropdownMenuItem<String?>(value: null, child: Text(tt('None'))),
-              for (final o in widget.others) DropdownMenuItem<String?>(value: o.id, child: Text('${o.emoji} ${o.title}')),
-            ],
-            onChanged: (v) => setState(() => linkedId = v)),
-        ],
         if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
           child: Text(tt(error!), style: TextStyle(color: Theme.of(context).colorScheme.error))),
         const SizedBox(height: 24),
