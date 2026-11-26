@@ -660,7 +660,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   Future<void> _setComponentRemoved(Map<String,dynamic> item,bool remove) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
-      AlertDialog(
+      AlertDialog(scrollable:true,
         title:Text(tt(remove?tt('Remove this component?'):tt('Restore this component?'))),
         content:Text(tt(remove
           ?'It will disappear from the active Activity. Its contents and '
@@ -686,7 +686,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   Future<void> _setActivityArchived(Map<String,dynamic> item,bool archive) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
-      AlertDialog(
+      AlertDialog(scrollable:true,
         title:Text(tt(archive?tt('Remove this Activity?'):tt('Restore this Activity?'))),
         content:Text(tt(archive
           ?'Hide this Activity from active lists while keeping its '
@@ -712,7 +712,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   Future<void> _finishActivity(Map<String,dynamic> item) async{
     final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
-      AlertDialog(
+      AlertDialog(scrollable:true,
         title:Text(tt('Mark Activity completed?')),
         content:Text(tt('Every comment, component, decision and edit '
           'remains available. You can reopen it later.')),
@@ -1353,7 +1353,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           final action = await showModalBottomSheet<String>(
             context: context,
             showDragHandle: true,
-            builder: (ctx) => SafeArea(child: Column(
+            builder: (ctx) => SafeArea(child: SingleChildScrollView(child:Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
@@ -1366,7 +1366,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     title: Text(tt('Copy message')),
                     onTap: () => Navigator.pop(ctx, 'copy')),
               ],
-            )),
+            ))),
           );
           if (!mounted) return;
           if (action == 'copy') {

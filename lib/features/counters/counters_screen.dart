@@ -13,6 +13,8 @@ import '../memories/memories_screen.dart';
 import '../memories/memory_view_screen.dart';
 import 'counter_sources.dart';
 import 'smart_duration.dart';
+import 'counter_chains.dart';
+import 'connected_counters_screen.dart';
 
 /// R77 (Ahmed's friend's idea): our counters — moments in the past ("since")
 /// and the future ("to go"), counted in the units that matter, with photos,
@@ -424,8 +426,9 @@ class LinkedDatesLine extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final first = a.isBefore(b) ? a : b, last = a.isBefore(b) ? b : a;
     final firstLabel = a.isBefore(b) ? aLabel : bLabel, lastLabel = a.isBefore(b) ? bLabel : aLabel;
-    final from = [first, today].reduce((x, y) => x.isBefore(y) ? x : y);
-    final to = [last, today].reduce((x, y) => x.isAfter(y) ? x : y);
+    // 26 Nov 2026: the line covers only the two dates; Today shows only between them.
+    final from = first, to = last;
+    final withToday = CounterChains.showToday([first, last], today);
     final total = to.difference(from).inDays.clamp(1, 1 << 30);
     double at(DateTime d) => d.difference(from).inDays / total;
     final between = SmartSpan.between(first, last);
@@ -449,11 +452,10 @@ class LinkedDatesLine extends StatelessWidget {
           child: Container(height: 8, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(4)))),
         dot(first, primary, 8),
         dot(last, primary, 8),
-        if (!today.isAtSameMomentAs(first) && !today.isAtSameMomentAs(last))
-          dot(today, theme.colorScheme.tertiary, 6),
+        if (withToday) dot(today, theme.colorScheme.tertiary, 6),
         label(first, '$firstLabel\n${loc.formatShortDate(first)}'),
         label(last, '$lastLabel\n${loc.formatShortDate(last)}'),
-        if (!today.isAtSameMomentAs(first) && !today.isAtSameMomentAs(last)) label(today, tt('Today'), below: true),
+        if (withToday) label(today, tt('Today'), below: true),
         Positioned(left: x(first), width: (x(last) - x(first)).clamp(60.0, double.infinity), top: 70,
           child: Text(between.label, textAlign: TextAlign.center,
             style: theme.textTheme.labelLarge?.copyWith(color: primary, fontWeight: FontWeight.w700))),
@@ -475,14 +477,13 @@ class CounterDetail extends StatefulWidget {
 class _CounterDetailState extends State<CounterDetail> {
   final db = Supabase.instance.client;
   late CounterPoint point = widget.point;
-  CounterPoint? compareWith;
+  /// Updated when the connected timeline changes links (26 Nov 2026).
+  late List<CounterPoint> all = widget.all;
   String? placeName;
 
   @override
   void initState() {
     super.initState();
-    final link = point.row?['linked_counter_id']?.toString();
-    if (link != null) compareWith = widget.all.where((x) => x.id == link).firstOrNull;
     _loadPlace();
   }
 
@@ -523,18 +524,6 @@ class _CounterDetailState extends State<CounterDetail> {
         try { await db.from('space_counters').update({'memory_id': id}).eq('id', r['id']); } catch (_) {}
       })));
     await _reload();
-  }
-
-  Future<void> _pickCompare() async {
-    final others = widget.all.where((x) => x.id != point.id && !x.yearly).toList();
-    final hit = await showModalBottomSheet<CounterPoint>(context: context, showDragHandle: true,
-      builder: (ctx) => SafeArea(child: ListView(shrinkWrap: true, children: [
-        ListTile(title: Text(tt('Measure the time between this and…'), style: const TextStyle(fontWeight: FontWeight.w700))),
-        for (final o in others) ListTile(leading: _emoji(o), title: Text(o.title),
-          subtitle: Text(MaterialLocalizations.of(ctx).formatMediumDate(o.date)),
-          onTap: () => Navigator.pop(ctx, o)),
-      ])));
-    if (hit != null) setState(() => compareWith = hit);
   }
 
   @override
@@ -627,22 +616,29 @@ class _CounterDetailState extends State<CounterDetail> {
           icon: Icon(r['memory_id'] == null ? Icons.add_a_photo_outlined : Icons.photo_library_outlined),
           label: Text(tt(r['memory_id'] == null ? 'Add photos and the story' : 'Open the photos and story'))),
         const SizedBox(height: 8),
-        Card(elevation: 0, child: Column(children: [
-          ListTile(leading: const Icon(Icons.straighten), title: Text(tt('Time between two points')),
-            subtitle: Text(compareWith == null ? tt('Pick another counter to compare')
-              : '${compareWith!.title} ↔ ${point.title}'),
-            trailing: TextButton(onPressed: _pickCompare, child: Text(tt(compareWith == null ? 'Pick' : 'Change')))),
-          if (compareWith != null) Padding(padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-            child: LinkedDatesLine(a: compareWith!.date, b: point.date, aLabel: compareWith!.title, bLabel: point.title)),
-          if (compareWith != null) Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Text(
-            () {
-              final between = SmartSpan.between(compareWith!.date, point.date);
-              return between.isToday ? tt('The same day')
-                : tt(between.future ? '{} after {}' : '{} before {}')
-                    .replaceFirst('{}', between.label).replaceFirst('{}', compareWith!.title);
-            }(),
-            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary))),
-        ])),
+        // 26 Nov 2026: connected counters live on their own timeline page (any number of them).
+        if (r != null) Builder(builder: (context) {
+          final saved = [for (final p in all) if (p.saved && !p.yearly) p];
+          final members = CounterChains.group(r['id'].toString(), [
+            for (final p in saved) CounterLink(id: p.row!['id'].toString(), date: p.date, linkedTo: p.row!['linked_counter_id']?.toString()),
+          ]);
+          final linked = members.length > 1;
+          return Card(elevation: 0, child: ListTile(
+            leading: const Icon(Icons.timeline),
+            title: Text(tt('Connected timeline')),
+            subtitle: Text(linked
+                ? '${tt('{} counters').replaceFirst('{}', '${members.length}')} · '
+                    '${SmartSpan.between(members.first.date, members.last.date).label}'
+                : tt('Connect this counter with others to see the time between them.')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final updated = await Navigator.of(context).push<List<CounterPoint>>(MaterialPageRoute(
+                builder: (_) => ConnectedCountersScreen(startId: r['id'].toString(), all: all)));
+              if (updated == null || !mounted) return;
+              final byId = {for (final u in updated) u.id: u};
+              setState(() => all = [for (final p in all) byId[p.id] ?? p]);
+            }));
+        }),
       ]),
     );
   }
@@ -879,7 +875,7 @@ class _CounterEditorState extends State<CounterEditor> with FormChangeTracker<Co
           }),
         if (widget.others.isNotEmpty) ...[
           const SizedBox(height: 12),
-          FormSection(tt('Link to another counter')),
+          FormSection(tt('Connect to another counter')),
           DropdownButtonFormField<String?>(
             initialValue: widget.others.any((o) => o.id == linkedId) ? linkedId : null,
             decoration: InputDecoration(labelText: tt('Show the time between this and…'), border: const OutlineInputBorder()),

@@ -98,7 +98,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
  Future<void> editCaption(Map<String,dynamic> p)async{
   var caption=(p['caption']??'').toString();
   final ok=await showDialog<bool>(context:context,
-   builder:(ctx)=>AlertDialog(
+   builder:(ctx)=>AlertDialog(scrollable:true,
     title:Text(tt('Photo caption')),
     content:TextFormField(initialValue:caption,maxLength:500,
      minLines:2,maxLines:5,onChanged:(v)=>caption=v,
@@ -117,7 +117,7 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
   String people=(photo['people_tags'] as List? ?? const []).join(', ');
   String place=(photo['place_tag']??'').toString();
   String tags=(photo['other_tags'] as List? ?? const []).join(', ');
-  final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+  final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
    title:Text(tt('Photo details & searchable tags')),
    content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
     TextFormField(initialValue:people,maxLength:1200,

@@ -2,8 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onespace/features/memories/scrapbook_templates.dart';
 
 void main(){
- test('R70: 22 scrapbook templates with unique stable keys and 1–4 photo slots',(){
-  final designs=ScrapbookTemplates.designs;
+ test('20 offered scrapbook templates (+2 retired) with unique stable keys and 1–4 photo slots',(){
+  final designs=[...ScrapbookTemplates.designs,...ScrapbookTemplates.retiredDesigns];
+  expect(ScrapbookTemplates.designs.length,20);
   expect(designs.length,22);
   expect(designs.map((x)=>x.key).toSet().length,22);
   const layouts={'pair_tilted','hero_two','left_three','two_top_one','grid4','strip4','single','miles_apart','hero_three','postcard'};
@@ -12,6 +13,13 @@ void main(){
    expect(layouts.contains(d.layout),isTrue,reason:d.key);
    expect(ScrapbookTemplates.get(d.key).name,d.name);
   }
+ });
+ test('Global app: Eid and Ramadan designs are not offered but old scrapbooks keep them (26 Nov 2026)',(){
+  final offered=ScrapbookTemplates.designs.map((d)=>d.key);
+  expect(offered,isNot(contains('eid_joy')));
+  expect(offered,isNot(contains('ramadan_nights')));
+  expect(ScrapbookTemplates.get('eid_joy').name,'Eid Joy');
+  expect(ScrapbookTemplates.get('ramadan_nights').name,'Ramadan Nights');
  });
  test('Unknown saved template safely falls back to first design',(){
   expect(ScrapbookTemplates.get('retired_template').key,'polaroid_letters');

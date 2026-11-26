@@ -207,7 +207,7 @@ Future<bool> editFlightOption(BuildContext context,{required String tripId,
 
 /// A booked option becomes a flight in the itinerary (asks first).
 Future<void> addFlightToItinerary(BuildContext context,String tripId,Map<String,dynamic> row)async{
- final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+ final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
   title:Text(tt('Add this flight to the itinerary?')),
   content:Text(tt('The booked details are copied into the trip. Nothing is bought or checked in.')),
   actions:[

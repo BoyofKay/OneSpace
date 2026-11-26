@@ -156,7 +156,7 @@ class MemoryExport {
 
   /// Asks: save/share the PDF, or send it by email. Null when closed.
   static Future<bool?> askHow(BuildContext context) => showModalBottomSheet<bool>(
-    context: context, showDragHandle: true, builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    context: context, showDragHandle: true, builder: (ctx) => SafeArea(child: SingleChildScrollView(child:Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(leading: const Icon(Icons.picture_as_pdf_outlined), title: Text(tt('Save or share as PDF')),
         subtitle: Text(tt('Saved in Downloads › OneSpace, then share it anywhere')),
         onTap: () => Navigator.pop(ctx, false)),
@@ -164,7 +164,7 @@ class MemoryExport {
         subtitle: Text(tt('Opens your email with the PDF attached')),
         onTap: () => Navigator.pop(ctx, true)),
       const SizedBox(height: 8),
-    ])));
+    ]))));
 
   static Future<void> share(Uint8List pdf, {required String name, bool email = false}) =>
     _channel.invokeMethod<Object>('sharePdf', {'bytes': pdf, 'name': name, 'email': email,

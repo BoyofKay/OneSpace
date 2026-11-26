@@ -166,7 +166,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
       initialDate: initial, firstDate: DateTime(1900), lastDate: DateTime(2100));
     if (picked == null || !mounted) return null;
     if (current == null) {
-      final keep = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      final keep = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
         title: Text(tt('Keep the year?')),
         content: Text(tt('With the year, OneSpace can say "turns 40" or "5 years". Without it, only the day and month are kept.')),
         actions: [
@@ -259,7 +259,7 @@ class _SpecialDatesScreenState extends State<SpecialDatesScreen> {
     final s = space;
     if (s == null) return;
     final name = TextEditingController(text: d?.title ?? '');
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
       title: Text(tt(d == null ? 'Add your own special date' : 'Rename')),
       content: TextField(controller: name, autofocus: true, maxLength: 120,
         textCapitalization: TextCapitalization.sentences,

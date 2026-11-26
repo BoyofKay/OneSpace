@@ -995,7 +995,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
   Future<void> _chooseHowWeLive() async {
     final choice=await showModalBottomSheet<bool>(
       context:context,showDragHandle:true,
-      builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,children:[
+      builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
         ListTile(title:Text(tt('How do you live?'),
           style:TextStyle(fontWeight:FontWeight.w700))),
         ListTile(
@@ -1011,7 +1011,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           trailing:!_together&&relationshipMode!='not_set'?const Icon(Icons.check):null,
           onTap:()=>Navigator.pop(ctx,false)),
         const SizedBox(height:8),
-      ])));
+      ]))));
     if(choice==null||!mounted)return;
     final wasTogether=_together;
     if(choice==wasTogether&&relationshipMode!='not_set')return;
@@ -1029,7 +1029,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
     await _load();
     if(!mounted)return;
     if(choice&&!wasTogether&&previousMode!='not_set'){
-      final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+      final save=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
         title:Text(tt('Moving in together')),
         content:Text(tt('Save our journey apart as a memory? Nothing is deleted; '
           'the meeting counters simply hide while you live together.')),
@@ -1134,14 +1134,16 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         Padding(padding:const EdgeInsetsDirectional.fromSTEB(2,10,2,6),
           child:Text(tt(label).toUpperCase(),style:theme.textTheme.labelSmall?.copyWith(
             color:color,fontWeight:FontWeight.w800,letterSpacing:.8))),
-        GridView.count(
-          crossAxisCount:3,
+        // 26 Nov 2026: tiles keep a phone-like size on wide screens (3 per row on a
+        // phone, more per row on tablets or landscape) instead of growing into big blocks.
+        LayoutBuilder(builder:(context,box)=>GridView.count(
+          crossAxisCount:shortcutColumns(box.maxWidth),
           shrinkWrap:true,
           physics:const NeverScrollableScrollPhysics(),
           crossAxisSpacing:8,mainAxisSpacing:8,
           childAspectRatio:1.05,
           children:[for(final t in tiles)_shortcutTile(t,color)],
-        ),
+        )),
       ]);
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Text(tt('Our space'),
@@ -1612,3 +1614,6 @@ class _Shortcut {
   final VoidCallback? onTap;
   final int badge;
 }
+
+/// Columns for the Today shortcut grid: about 130 px per tile, at least 3.
+int shortcutColumns(double width)=>width.isFinite?(width/130).floor().clamp(3,8):3;

@@ -337,7 +337,7 @@ class _PlaceDetailState extends State<PlaceDetail> {
     final caption = TextEditingController();
     var day = DateTime.now();
     final ok = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, showDragHandle: true,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, set) => Padding(
+      builder: (ctx) => StatefulBuilder(builder: (ctx, set) => SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(tt('We were here'), style: Theme.of(ctx).textTheme.titleLarge),
@@ -486,7 +486,7 @@ class _PlaceDetailState extends State<PlaceDetail> {
           onTap: v['memory_id'] == null ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => MemoryViewScreen(memoryId: v['memory_id'].toString(), spaceId: widget.spaceId))),
           onLongPress: () async {
-            final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+            final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
               title: Text(tt('Remove this visit?')),
               content: Text(tt('Photos and stories stay in Memories.')),
               actions: [

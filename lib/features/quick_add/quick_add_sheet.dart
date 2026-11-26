@@ -39,14 +39,17 @@ Future<void> showQuickAdd(BuildContext context, {required String spaceId}) async
   final kind = await showModalBottomSheet<QuickAddKind>(
     context: context,
     showDragHandle: true,
-    builder: (ctx) => SafeArea(child: Padding(
+    // 26 Nov 2026: scrolls when the screen is short (small phones, large text).
+    isScrollControlled: true,
+    constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .85),
+    builder: (ctx) => SafeArea(child: SingleChildScrollView(
       padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 16),
       child: Column(mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(padding: const EdgeInsetsDirectional.fromSTEB(4, 0, 4, 10),
           child: Text(tt('Quick add'), style: Theme.of(ctx).textTheme.titleLarge)),
         GridView.count(
-          crossAxisCount: 4, shrinkWrap: true,
+          crossAxisCount: MediaQuery.sizeOf(ctx).width >= 600 ? 6 : 4, shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: .85,
           children: [

@@ -31,7 +31,7 @@ class TripPreparationSection extends StatefulWidget {
   }catch(_){}
   if(!context.mounted)return;
   final key=await showModalBottomSheet<String>(context:context,showDragHandle:true,
-   builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,children:[
+   builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
     Padding(padding:const EdgeInsets.fromLTRB(20,0,20,8),child:Text(tt('Add a travel checklist'),
      style:Theme.of(ctx).textTheme.titleMedium)),
     for(final t in templates.entries)ListTile(
@@ -40,7 +40,7 @@ class TripPreparationSection extends StatefulWidget {
      enabled:!made.contains(t.key),
      onTap:()=>Navigator.pop(ctx,t.key)),
     const SizedBox(height:8),
-   ])));
+   ]))));
   if(key==null||!context.mounted)return;
   final messenger=ScaffoldMessenger.of(context);
   final nav=Navigator.of(context);

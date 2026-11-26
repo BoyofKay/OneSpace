@@ -35,7 +35,7 @@ class EditorScaffold extends StatelessWidget {
   final Widget? meta;
 
   static Future<bool> confirmDiscard(BuildContext context) async =>
-      await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
         title: Text(tt('Discard changes?')),
         content: Text(tt('What you changed on this page will not be saved.')),
         actions: [

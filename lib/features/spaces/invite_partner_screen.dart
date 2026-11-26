@@ -117,7 +117,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
     if (replace && _hasActive) {
       final approved = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => AlertDialog(scrollable:true,
           title: Text(tt('Replace the current invitation?')),
           content: Text(tt('The previous invitation code will stop working immediately, '
             'even if the email has already been sent.')),
@@ -162,7 +162,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
     if (_busy || !_hasActive || _recipient == null) return;
     final approved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AlertDialog(scrollable:true,
         title: Text(tt('Resend the invitation?')),
         content: Text(tt('Send another OneSpace invitation to') +
           ' ' + _recipient! + '? ' +
@@ -196,7 +196,7 @@ class _InvitePartnerScreenState extends State<InvitePartnerScreen> {
     if (_busy || !_hasActive || _space == null) return;
     final approved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AlertDialog(scrollable:true,
         title: Text(tt('Revoke invitation?')),
         content: Text(tt('Your partner will no longer be able to use this code.')),
         actions: [

@@ -59,6 +59,9 @@ import 'package:onespace/l10n/phrases.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 26 Nov 2026: portrait only on every phone and tablet (Android manifest and iOS
+  // Info.plist say the same). Never fails start-up if the platform refuses.
+  try { await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]); } catch (_) {}
   // Replace Flutter's unreadable black/red build-error surface with a
   // recoverable diagnostic card. Never hide the underlying exception.
   ErrorWidget.builder=(details)=>OneSpaceErrorFallback(details:details);
@@ -370,7 +373,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
       final row=await db.from('account_deletion_requests').select('user_id,requested_at,purge_after,cancelled_at,completed_at,processing_at').eq('user_id',me).maybeSingle();
       if(!mounted||!AccountDataRules.pending(row))return;
       final due=DateTime.tryParse(row!['purge_after']?.toString()??'')?.toLocal();
-      final keep=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+      final keep=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
         icon:const Icon(Icons.person_remove_outlined),
         title:Text(tt('Your account is scheduled for deletion')),
         content:Text(tt(due==null?'Do you want to keep it?':

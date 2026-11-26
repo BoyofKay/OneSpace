@@ -164,7 +164,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if(space==null&&OneSpaceEnv.usesLegacyBackend)return;
     if(!OneSpaceEnv.usesLegacyBackend&&await _hasOwnSelfieToday()){
       if(!mounted)return;
-      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+      await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
         icon:const Icon(Icons.photo_camera_front_outlined),
         title:Text(tt('You already took today’s selfie')),
         content:Text(tt('One daily selfie a day keeps the story honest. '

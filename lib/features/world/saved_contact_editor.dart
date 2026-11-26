@@ -91,7 +91,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
        }).toList();
        if(matching.isNotEmpty){
         if(!mounted)return;
-        final confirm=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+        final confirm=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
          title:Text(tt('Possible duplicate contact')),
          content:Text(tt('You already have a saved card matching this phone number or email: ')+
           matching.first['label'].toString()+

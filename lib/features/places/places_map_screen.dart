@@ -146,7 +146,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
 
   Future<void> _search() async {
     final text = TextEditingController();
-    final query = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+    final query = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
       title: Text(tt('Search the map')),
       content: TextField(controller: text, autofocus: true, textInputAction: TextInputAction.search,
         decoration: InputDecoration(hintText: tt('A place, street or city'),

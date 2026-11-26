@@ -18,7 +18,7 @@ Future<void> showInvitationEmailDialog(BuildContext context, {
   await showDialog<void>(
     context: context,
     builder: (ctx) => StatefulBuilder(
-      builder: (ctx, update) => AlertDialog(
+      builder: (ctx, update) => AlertDialog(scrollable:true,
         title: Text(tt('Send an invitation by email')),
         content: SingleChildScrollView(
           child: Column(

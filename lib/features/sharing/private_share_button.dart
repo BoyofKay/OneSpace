@@ -64,7 +64,7 @@ class _PrivateShareButtonState extends State<PrivateShareButton> {
     if (enable) {
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(scrollable:true,
           title: Text(tr(context, 'shareViewOnly')),
           content: Text(tr(context, 'shareExplanation')),
           actions: [

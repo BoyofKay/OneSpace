@@ -271,7 +271,7 @@ class _PlansScreenState extends State<PlansScreen> {
   Future<void> _cancelTask(SharedTask task) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(scrollable:true,
         title: Text(tt('Cancel task?')),
         content: Text(
           tt('Cancelled tasks remain in history and can be reopened.'),

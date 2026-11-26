@@ -164,7 +164,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   if(pages.length<=1){
    setState(()=>error='A scrapbook keeps at least one page.');return;
   }
-  final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+  final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
    title:Text(tt('Remove this page?')),
    content:Text(tt('Its words and photo choices are removed. The photos stay in the scrapbook library.')),
    actions:[
@@ -224,7 +224,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
   if(!canEdit||busy||id==null)return;
   final has=_merged(page)['photo_${slot}_id']!=null;
   final choice=await showModalBottomSheet<String>(context:context,
-   showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
+   showDragHandle:true,builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Column(
     mainAxisSize:MainAxisSize.min,children:[
      ListTile(leading:const Icon(Icons.photo_camera_outlined),
       title:Text(tt('Take a photo')),onTap:()=>Navigator.pop(ctx,'camera')),
@@ -236,7 +236,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
       onTap:()=>Navigator.pop(ctx,'existing')),
      if(has)ListTile(leading:const Icon(Icons.remove_circle_outline),
       title:Text(tt('Empty this spot')),onTap:()=>Navigator.pop(ctx,'clear')),
-   ])));
+   ]))));
   if(choice==null||!mounted)return;
   String? photoId;
   if(choice=='existing'){
@@ -310,7 +310,7 @@ class _ScrapbookStudioScreenState extends State<ScrapbookStudioScreen>{
  }
  Future<bool> _confirmLeave()async{
   if(!dirty)return true;
-  final choice=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(
+  final choice=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
    title:Text(tt('Save your changes?')),
    content:Text(tt('You changed this scrapbook. Save before leaving?')),
    actions:[

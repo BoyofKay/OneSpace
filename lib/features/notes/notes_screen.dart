@@ -539,7 +539,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     if (!restoring) {
       final proceed = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(scrollable:true,
           title: Text(tr(context, 'archiveNote')),
           content: Text(tr(context, 'archiveExplanation')),
           actions: [

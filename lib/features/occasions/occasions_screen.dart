@@ -557,7 +557,7 @@ class _OccasionDetailState extends State<OccasionDetail>{
  Future<void> setArchived()async{
   final p=plan;if(p==null)return;
   if(p['archived_at']==null){
-   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
     title:Text(tt('Remove this occasion?')),
     content:Text(tt('It moves to Removed. You can restore it from the filter anytime.')),
     actions:[

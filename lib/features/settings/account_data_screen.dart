@@ -98,7 +98,7 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (dialogContext, refresh) => AlertDialog(
+          builder: (dialogContext, refresh) => AlertDialog(scrollable:true,
             title: Text(tt('Delete your account?')),
             content: SingleChildScrollView(
               child: Column(

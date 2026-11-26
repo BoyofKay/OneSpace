@@ -452,7 +452,7 @@ class _PartnerGesturesScreenState extends State<PartnerGesturesScreen> {
  }
  Future<void> _deleteCustom(String id) async {
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>
-     AlertDialog(title:Text(tt('Remove personal gesture?')),
+     AlertDialog(scrollable:true,title:Text(tt('Remove personal gesture?')),
        content:Text(tt('Sent messages remain in gesture history. '
          'This only removes your reusable template.')),
        actions:[
