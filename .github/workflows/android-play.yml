@@ -86,7 +86,7 @@ jobs:
         run: |
           for v in KEYSTORE_B64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
             if [ -z "${!v}" ]; then
-              echo "::error::Missing GitHub secret for the Play upload key ($v). See docs/RELEASE_ENVIRONMENTS.md."
+              echo "::error::Missing GitHub secret for the Play upload key ($v). See docs/PROJECT_BOOK.md section 1 (archived RELEASE_ENVIRONMENTS)."
               exit 1
             fi
           done

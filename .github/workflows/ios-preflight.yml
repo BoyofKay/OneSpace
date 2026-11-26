@@ -10,7 +10,6 @@ on:
       - 'lib/core/ios_build_configuration.dart'
       - 'lib/features/notifications/push_registration_gate.dart'
       - 'lib/main.dart'
-      - 'docs/IOS_SETUP.md'
   workflow_dispatch:
 
 permissions:

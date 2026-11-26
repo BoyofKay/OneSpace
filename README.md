@@ -4,9 +4,9 @@
 
 - Website: **https://onespace.live** (English, Arabic, Spanish, French, and German). Website source: public repo [BoyofKay/onespace-app](https://github.com/BoyofKay/onespace-app).
 - Canonical launch policy pages: **https://onespace.live/privacy/** · **https://onespace.live/terms/** · **https://onespace.live/delete-account/**. Support: **https://onespace.live/support/**; FAQs: **https://onespace.live/faq/**. Old `.html` addresses redirect to these clean paths.
-- Latest Android preview: **0.1.444** (R80, 17 Nov 2026) on [GitHub Releases](../../releases). iPhone: waiting for the Apple Developer account (TestFlight, see `docs/IOS_SETUP.md`).
+- Latest Android preview: **0.1.444** (R80, 17 Nov 2026) on [GitHub Releases](../../releases). iPhone: waiting for the Apple Developer account (TestFlight; see the project book).
 
-**Continuing this project (any assistant): read [docs/DECISION_LOG.md](docs/DECISION_LOG.md) first.** It is the single source of truth for decisions, the working agreement and the iteration plan.
+**Continuing this project (any assistant): read [docs/PROJECT_BOOK.md](docs/PROJECT_BOOK.md) first.** It is the single document for how we work, the system, every decision (with overrides) and the history; all earlier documents are archived inside it.
 
 ## What the app does (as built at R80)
 
@@ -51,7 +51,7 @@ flutter test
 flutter run --flavor qa --dart-define=ONESPACE_ENV=qa
 ```
 
-Two apps, two backends (see `docs/RELEASE_ENVIRONMENTS.md`):
+Two apps, two backends (see the project book, section 1):
 - **OneSpace QA** — package `onespace.qa`, QA Supabase project, test signing key under `tools/dev-signing/`; APKs in GitHub Releases (`qa-0.1.N`).
 - **OneSpace** — package `live.onespace.app`, production Supabase project, Play upload key from GitHub secrets; built by the manual *Build OneSpace for Google Play* workflow and shipped through Play Console.
 
@@ -59,9 +59,5 @@ The old preview package `com.onespace.onespace.preview` is retired.
 
 ## Documents
 
-- `docs/RELEASE_ENVIRONMENTS.md` — QA vs production apps and backends, secrets, Play release steps.
-- `docs/DECISION_LOG.md` — decisions D1–D76, working agreement, iteration plan (start here).
-- `docs/HANDBOOK_R45.md` — how the app worked at R45 (older; the decision log records what changed since).
-- `docs/R46_*` … `docs/R78_QA.md` — per-iteration notes and two-phone test scripts.
-- `docs/R74_SETUP.md` — owner setup steps (Google/Apple sign-in, backups). `docs/IOS_SETUP.md` — iPhone checklist.
+- `docs/PROJECT_BOOK.md` — the one project document (process, system, decisions, history, archive of all earlier documents).
 - `website/` — **archived** first version of the website (16 Nov). The live site is built from the public repo `onespace-app`; do not edit here.
