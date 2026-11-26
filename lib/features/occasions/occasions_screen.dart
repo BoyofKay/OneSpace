@@ -429,7 +429,7 @@ class _OccasionEditorState extends State<OccasionEditor> with FormChangeTracker<
    const SizedBox(height:12),
    TextField(controller:title,maxLength:160,textCapitalization:TextCapitalization.sentences,
     decoration:InputDecoration(labelText:tt('What are we celebrating? *'),
-     hintText:tt('Kay’s birthday, our anniversary…'),border:const OutlineInputBorder())),
+     hintText:tt('A birthday, an anniversary, a graduation…'),border:const OutlineInputBorder())),
    Text(tt('For whom'),style:theme.textTheme.labelLarge),
    const SizedBox(height:6),
    Wrap(spacing:8,runSpacing:6,children:[

@@ -462,7 +462,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
            const SizedBox(height:6),
            Text(tt(e.value),maxLines:2,textAlign:TextAlign.center,
             style:Theme.of(context).textTheme.labelLarge),
-           Text('${rows.where((r)=>r['category']==e.key&&r['archived_at']==null&&r['status']!='enjoyed').length} to enjoy',
+           Text(tt('{} to enjoy').replaceFirst('{}','${rows.where((r)=>r['category']==e.key&&r['archived_at']==null&&r['status']!='enjoyed').length}'),
             style:Theme.of(context).textTheme.labelSmall),
           ])))),
      ])),
@@ -615,7 +615,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
    }
    if(mounted)Navigator.pop(context,true);
   }on PostgrestException catch(e){if(mounted)setState(()=>error=e.message);}
-   catch(_){if(mounted)setState(()=>error='Could not save experience.');}
+   catch(_){if(mounted)setState(()=>error=tt('Could not save experience.'));}
    finally{if(mounted)setState(()=>saving=false);}
  }
  static const platformChoices=<String,List<String>>{
@@ -655,7 +655,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     onSelected:(v){if(v!=null)setState(()=>kind=v);}),
    TextField(controller:title,maxLength:160,autofocus:widget.original==null,
     textCapitalization:TextCapitalization.sentences,
-    decoration:InputDecoration(labelText:'${w['title']} *',border:const OutlineInputBorder())),
+    decoration:InputDecoration(labelText:'${tt(w['title']!)} *',border:const OutlineInputBorder())),
    const SizedBox(height:6),
    // R71: the usual places for this kind are one tap; anything else can be typed.
    if((platformChoices[kind]??const []).isNotEmpty)Padding(padding:const EdgeInsets.only(bottom:8),
@@ -666,7 +666,7 @@ class _ExperienceEditorState extends State<ExperienceEditor> with FormChangeTrac
     ])),
    TextField(controller:platform,maxLength:100,
     onChanged:(_)=>setState((){}),
-    decoration:InputDecoration(labelText:w['platform'],hintText:w['hint']!.isEmpty?null:w['hint'],
+    decoration:InputDecoration(labelText:tt(w['platform']!),hintText:w['hint']!.isEmpty?null:tt(w['hint']!),
      prefixIcon:const Icon(Icons.live_tv_outlined),border:const OutlineInputBorder())),
    const SizedBox(height:10),
    TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,

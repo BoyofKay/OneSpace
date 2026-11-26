@@ -51,7 +51,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
      child:TextField(
        controller:c,maxLength:max,minLines:lines,maxLines:lines==1?1:lines+3,keyboardType:type,
        textCapitalization:type==null?TextCapitalization.sentences:TextCapitalization.none,
-       decoration:InputDecoration(labelText:label,hintText:hint,
+       decoration:InputDecoration(labelText:tt(label),hintText:hint,
          prefixIcon:icon==null?null:Icon(icon),
          border:const OutlineInputBorder(),counterText:''),
      ));
@@ -147,7 +147,7 @@ class _SavedContactEditorState extends State<SavedContactEditor> with FormChange
        if(fromActivity)Padding(padding:const EdgeInsets.only(bottom:12),
         child:Text(tt('This card comes from an Activity, so it follows that Activity’s privacy.'),
          style:Theme.of(context).textTheme.bodySmall)),
-       field(name,'Name on the card *',icon:Icons.badge_outlined,hint:tt('Dr. Sara, Kids’ swim club…')),
+       field(name,'Name on the card *',icon:Icons.badge_outlined,hint:tt('A doctor, a school, a repair service…')),
        field(person,'Contact person',icon:Icons.person_outline),
        FormSection(tt('Reach them')),
        field(phone,'Phone',max:80,type:TextInputType.phone,icon:Icons.phone_outlined),

@@ -647,7 +647,7 @@ class _PlaceEditorState extends State<PlaceEditor> with FormChangeTracker<PlaceE
         const SizedBox(height: 16),
         TextField(controller: name, maxLength: 120, textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: tt(requiredLabel('Name')),
-            hintText: tt('Our café, Santorini, the old bridge…'), border: const OutlineInputBorder())),
+            hintText: tt('A café, a beach, a city…'), border: const OutlineInputBorder())),
         Row(children: [
           Expanded(child: TextField(controller: city, maxLength: 120, textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(labelText: tt('City'), border: const OutlineInputBorder()))),

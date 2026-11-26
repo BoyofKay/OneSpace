@@ -18,12 +18,35 @@ class PreferredCurrency {
 
   static String _code = 'USD';
   static bool _loaded = false;
+  static String? _userId;
 
   /// The currency to start money fields with (USD until loaded; global app since 26 Nov 2026).
-  static String get code => _code;
+  /// UAT 26 Nov: the cache belongs to one account. After signing in with another
+  /// account it falls back to USD (and reloads) instead of showing the last account's choice.
+  static String get code {
+    _forgetIfOtherUser(_currentUserId());
+    return _code;
+  }
+
+  static String? _currentUserId() {
+    try {
+      return Supabase.instance.client.auth.currentUser?.id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static void _forgetIfOtherUser(String? me) {
+    if (me != _userId) {
+      _code = 'USD';
+      _loaded = false;
+      _userId = me;
+    }
+  }
 
   /// Loads the saved choice once (falls back to USD).
   static Future<String> load() async {
+    _forgetIfOtherUser(_currentUserId());
     if (_loaded) return _code;
     try {
       final db = Supabase.instance.client;
@@ -43,6 +66,7 @@ class PreferredCurrency {
     final me = db.auth.currentUser?.id;
     if (me == null) return;
     await db.from('profiles').update({'preferred_currency': code}).eq('id', me);
+    _userId = me;
     _code = code;
     _loaded = true;
   }
@@ -51,5 +75,6 @@ class PreferredCurrency {
   static void reset() {
     _code = 'USD';
     _loaded = false;
+    _userId = null;
   }
 }

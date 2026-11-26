@@ -226,11 +226,11 @@ class _MemoryPhotoGalleryState extends State<MemoryPhotoGallery>{
       subtitle:Text(tt([
        p['created_by']==db.auth.currentUser?.id?'Added by you':'Added by partner',
        if((p['people_tags'] as List? ??const []).isNotEmpty)
-        'People: '+(p['people_tags'] as List).join(', '),
+        tt('People: ')+(p['people_tags'] as List).join(', '),
        if((p['place_tag']??'').toString().isNotEmpty)
         'Place: '+p['place_tag'].toString(),
        if((p['other_tags'] as List? ??const []).isNotEmpty)
-        'Tags: '+(p['other_tags'] as List).join(', '),
+        tt('Tags: ')+(p['other_tags'] as List).join(', '),
       ].join(' · '))),
       trailing:widget.editable?PopupMenuButton<String>(
        tooltip:tt('More'),

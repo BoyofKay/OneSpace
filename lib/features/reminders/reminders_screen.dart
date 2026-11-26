@@ -646,7 +646,7 @@ class _ReminderEditorScreenState extends State<ReminderEditorScreen> with FormCh
   final personal=!OneSpaceEnv.usesLegacyBackend && visibility=='private'
     && widget.existing==null;
   if(visibility=='shared' && widget.spaceId.isEmpty) {
-    setState(()=>error='Connect with a partner before sharing a reminder.');
+    setState(()=>error=tt('Connect with a partner before sharing a reminder.'));
     return;
   }
   if(personal && sourceKind!=null) {

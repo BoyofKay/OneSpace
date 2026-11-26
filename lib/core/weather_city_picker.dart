@@ -67,7 +67,7 @@ class _WeatherCityPickerState extends State<WeatherCityPicker> {
             onSubmitted:(_)=>search(),
             decoration:InputDecoration(
               labelText:tt('City or city, country'),
-              hintText:tt('e.g. Riyadh or Norristown, Pennsylvania'),
+              hintText:tt('City name, and the country if needed'),
               prefixIcon:const Icon(Icons.search),
               suffixIcon:IconButton(
                 tooltip:tt('Search cities'),

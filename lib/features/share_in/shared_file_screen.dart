@@ -43,8 +43,8 @@ class _SharedFileScreenState extends State<SharedFileScreen> {
     final user = db.auth.currentUser?.id;
     if (user == null || title.text.trim().isEmpty) return;
     if(!OneSpaceEnv.usesLegacyBackend&&shared&&widget.spaceId.isEmpty){
-      setState(()=>error='To share a file, connect with a partner first. '
-        'You can always save it privately.');
+      setState(()=>error=tt('To share a file, connect with a partner first. '
+        'You can always save it privately.'));
       return;
     }
     setState(() { saving = true; error = null; });

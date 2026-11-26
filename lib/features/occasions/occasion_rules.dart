@@ -1,3 +1,4 @@
+import 'package:onespace/l10n/phrases.dart';
 import '../calendar/calendar_rules.dart';
 
 /// All occasion dates are calendar days, not UTC timestamps.
@@ -37,7 +38,7 @@ class OccasionRules {
   if(days==null)return 'Past occasion';
   if(days==0)return 'Today';
   if(days==1)return 'Tomorrow';
-  return 'In '+days.toString()+' days';
+  return tt('In {} days').replaceFirst('{}', days.toString());
  }
 
  static Map<String,double> estimatedByCurrency(List<Map<String,dynamic>> rows){

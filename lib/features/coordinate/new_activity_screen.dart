@@ -15,7 +15,7 @@ enum ActivityPurpose {
       'What we need and why.', [
         'Agree on a budget', 'Compare at least two options', 'Choose where to buy',
       ]),
-  findService('Find a class or service', Icons.school_outlined,
+  findService('Find a service or provider', Icons.manage_search_outlined,
       'What we are looking for, and when.', [
         'List places or people to contact', 'Ask about times and prices', 'Pick a start date',
       ]),
@@ -40,7 +40,7 @@ enum ActivityPurpose {
 
   List<Map<String, dynamic>> sectionsFor(String activityId) => [
     for (final step in steps)
-      {'activity_id': activityId, 'kind': 'step', 'label': step,
+      {'activity_id': activityId, 'kind': 'step', 'label': tt(step),
        'payload': {'value': '', 'status': 'open'}},
   ];
 }
@@ -185,7 +185,7 @@ class _NewActivityScreenState extends State<NewActivityScreen> with FormChangeTr
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
               labelText: tt('Details'), alignLabelWithHint: true,
-              hintText: purpose?.outline,
+              hintText: purpose?.outline == null || purpose!.outline.isEmpty ? null : tt(purpose!.outline),
               border: const OutlineInputBorder())),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8),
             child: Text(tt(error!), style: TextStyle(color: theme.colorScheme.error))),

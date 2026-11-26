@@ -10,6 +10,7 @@ import '../../core/current_space_cache.dart';
 import '../../theme/onespace_appearance.dart';
 import '../../theme/occasion_theme_resolver.dart';
 import '../../l10n/onespace_locale_controller.dart';
+import '../../core/preferred_currency.dart';
 import '../../l10n/onespace_strings.dart';
 import 'auth_language_switcher.dart';
 import 'password_recovery_screen.dart';
@@ -78,6 +79,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
           OneSpaceAppearance.instance.setPersonalSeason(null);
           _idleTimer?.cancel();
           OneSpaceLocaleController.instance.selectLanguage(null);
+          PreferredCurrency.reset();
           setState(() {
             _recovery = false;
             _locked = false;
@@ -127,9 +129,17 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       final profile = await Supabase.instance.client.from('profiles')
           .select('locale,display_name').eq('id', userId).single();
       if (mounted && Supabase.instance.client.auth.currentUser?.id == userId) {
-        OneSpaceLocaleController.instance.selectLanguage(
-          profile['locale'] as String?,
-        );
+        final controller = OneSpaceLocaleController.instance;
+        final chosen = controller.chosenOnSignIn;
+        controller.chosenOnSignIn = null;
+        if (chosen != null && chosen != profile['locale']) {
+          // The language picked on the sign-in screen wins and is saved.
+          await Supabase.instance.client.from('profiles')
+              .update({'locale': chosen}).eq('id', userId);
+          controller.selectLanguage(chosen);
+        } else {
+          controller.selectLanguage(profile['locale'] as String?);
+        }
         final name=FirstName.of(profile['display_name'],fallback:'');
         final email=Supabase.instance.client.auth.currentUser?.email?.toLowerCase();
         if(name.isNotEmpty&&email!=null){

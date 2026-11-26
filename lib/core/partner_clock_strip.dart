@@ -78,8 +78,8 @@ class _PartnerClockStripState extends State<PartnerClockStrip> {
      Row(children:[
        Icon(Icons.water_drop_outlined,size:15,color:cs.primary),
        const SizedBox(width:4),
-       Expanded(child:Text(tt(rain is num?
-         'Rain '+rain.toStringAsFixed(0)+'%':'Rain —'),
+       Expanded(child:Text(rain is num?
+         '${tt('Rain')} ${rain.toStringAsFixed(0)}%':tt('Rain —'),
          style:Theme.of(context).textTheme.bodySmall)),
      ]),
      if(stale)Padding(padding:const EdgeInsets.only(top:5),

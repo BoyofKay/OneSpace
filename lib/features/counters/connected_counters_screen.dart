@@ -90,7 +90,7 @@ class _TimelinesListScreenState extends State<TimelinesListScreen> {
       final t = await store.load();
       if (mounted) setState(() { timelines = t; error = null; });
     } catch (_) {
-      if (mounted) setState(() => error = 'Timelines could not be loaded. Check your connection and try again.');
+      if (mounted) setState(() => error = tt('Timelines could not be loaded. Check your connection and try again.'));
     }
   }
 

@@ -96,7 +96,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
    return;
   }
   if (!OneSpaceEnv.usesLegacyBackend && visibility=='shared' && widget.spaceId.isEmpty) {
-    setState(()=>error='Connect with a partner before sharing a note.');
+    setState(()=>error=tt('Connect with a partner before sharing a note.'));
     return;
   }
   setState((){busy=true;error=null;});
@@ -140,7 +140,7 @@ class _QuillNoteEditorState extends State<QuillNoteEditorScreen> with FormChange
   setState((){busy=true;error=null;});
   try{
    if (!OneSpaceEnv.usesLegacyBackend && visibility=='shared' && widget.spaceId.isEmpty) {
-     if(mounted)setState(()=>error='Connect with a partner before sharing a note.');
+     if(mounted)setState(()=>error=tt('Connect with a partner before sharing a note.'));
      return;
    }
    final row=await db.from('notes').insert({

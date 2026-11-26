@@ -163,7 +163,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       _error=null;
       if(starting){
         if(!EventTimeRules.validStart(result)){
-          _error='Choose a start before 23:59 so the event can end after it.';
+          _error=tt('Choose a start before 23:59 so the event can end after it.');
           return;
         }
         // The end follows the start by one hour; it can be changed after.
@@ -171,7 +171,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
       }else if(EventTimeRules.validEnd(_start,result)){
         _end=result;
       }else{
-        _error='The end time must be after the start time.';
+        _error=tt('The end time must be after the start time.');
       }
     });
   }
@@ -186,7 +186,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
     }
     if(!OneSpaceEnv.usesLegacyBackend && widget.spaceId.isEmpty &&
       _visibility=='shared'){
-      setState(()=>_error='Connect with a partner before sharing an event.');
+      setState(()=>_error=tt('Connect with a partner before sharing an event.'));
       return;
     }
     setState(() { _saving = true; _error = null; });
@@ -213,7 +213,7 @@ class _CalendarEventEditorState extends State<CalendarEventEditor> with FormChan
         final start=ZoneTime.instant(_date.year,_date.month,_date.day,_start.hour,_start.minute,zone);
         final end=ZoneTime.instant(_date.year,_date.month,_date.day,_end.hour,_end.minute,zone);
         if(!end.isAfter(start)){
-          if(mounted)setState((){_saving=false;_error='The end time must be after the start time.';});
+          if(mounted)setState((){_saving=false;_error=tt('The end time must be after the start time.');});
           return;
         }
         fields['starts_at']=start.toIso8601String();

@@ -16,13 +16,17 @@ class AuthLanguageSwitcher extends StatelessWidget {
       children: [
         TextButton(
           onPressed: disabled ? null : () =>
-              OneSpaceLocaleController.instance.selectLanguage('en'),
+              OneSpaceLocaleController.instance
+                ..chosenOnSignIn = 'en'
+                ..selectLanguage('en'),
           child: Text(tt('EN')),
         ),
         const Text('|'),
         TextButton(
           onPressed: disabled ? null : () =>
-              OneSpaceLocaleController.instance.selectLanguage('ar'),
+              OneSpaceLocaleController.instance
+                ..chosenOnSignIn = 'ar'
+                ..selectLanguage('ar'),
           child: Text(tt('AR')),
         ),
       ],

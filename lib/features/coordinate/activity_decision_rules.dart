@@ -27,8 +27,9 @@ class ActivityDecisionRules {
   static String titleFor(String action) => switch (action) {
     'chosen' => 'Selected an option',
     'purchased' => 'Purchased',
-    'delivered' => 'Delivered',
-    'registered' => 'Registered',
+    // UAT 26 Nov 2026: general words (not tied to the early "class" example).
+    'delivered' => 'Done or received',
+    'registered' => 'Booked or signed up',
     'postponed' => 'Postponed',
     'reopened' => 'Reopened',
     'cancelled' => 'Cancelled',

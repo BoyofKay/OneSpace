@@ -40,7 +40,7 @@ class OneSpacePhrases {
   static List<String> get monthsShort => arabic ? _monthsAr
     : const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  static final _edges = RegExp(r'^([^A-Za-z]*)(.*?)([\s:·•,.!?…]*)$', dotAll: true);
+  static final _edges = RegExp(r'^([^A-Za-z]*)(.*?)([\s:·•,.!?…*]*)$', dotAll: true);
 
   static final Map<String, String> _caseless = {
     for (final e in arPhrases.entries) e.key.toLowerCase(): e.value,

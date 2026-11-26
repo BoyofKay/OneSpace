@@ -146,7 +146,7 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
         await db.rpc('qa_request_account_deletion');
         await _load();
         if (mounted) setState(() =>
-          message = 'Deletion requested. You can cancel within 7 days.');
+          message = tt('Deletion requested. You can cancel within 7 days.'));
       } catch (_) {
         if (mounted) setState(() =>
           error = 'Account deletion could not be scheduled. No data was deleted.');

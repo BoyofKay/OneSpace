@@ -336,9 +336,19 @@ class _MySupportRequestsScreenState extends State<MySupportRequestsScreen> {
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
+    final db = Supabase.instance.client;
     try {
-      final r = await Supabase.instance.client.from('support_requests')
-        .select('kind,subject,message,status,created_at').order('created_at', ascending: false).limit(50);
+      List<dynamic> r;
+      try {
+        r = await db.from('support_requests')
+          .select('kind,subject,message,status,outcome,support_reply,support_reply_at,created_at')
+          .order('created_at', ascending: false).limit(50);
+      } on PostgrestException {
+        // A backend without replies yet (before 0323): show what it has.
+        r = await db.from('support_requests')
+          .select('kind,subject,message,status,created_at')
+          .order('created_at', ascending: false).limit(50);
+      }
       if (mounted) setState(() { rows = List<Map<String, dynamic>>.from(r); failed = false; });
     } catch (_) {
       if (mounted) setState(() => failed = true);
@@ -347,24 +357,92 @@ class _MySupportRequestsScreenState extends State<MySupportRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = MaterialLocalizations.of(context);
-    String status(String s) => switch (s) {
-      'in_progress' => 'We are working on it', 'answered' => 'Answered by email', 'closed' => 'Closed', _ => 'Received',
-    };
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(tt('Your messages'))),
       body: RefreshIndicator(onRefresh: _load, child: ListView(padding: const EdgeInsets.all(16), children: [
         if (failed) Text(tt('Could not load your messages. Pull down to retry.'))
         else if (rows == null) const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
         else if (rows!.isEmpty) Text(tt('You have not sent anything yet.'))
-        else for (final r in rows!) Card(elevation: 0, child: ListTile(
-          leading: Icon(r['kind'] == 'issue' ? Icons.bug_report_outlined : Icons.mail_outline),
-          title: Text(r['subject'].toString()),
-          subtitle: Text('${tt(status(r['status'].toString()))} · ${loc.formatMediumDate(DateTime.parse(r['created_at'].toString()).toLocal())}\n${r['message']}',
-            maxLines: 3, overflow: TextOverflow.ellipsis),
-          isThreeLine: true)),
+        else ...[
+          Text(tt('Replies from OneSpace support appear here. Pull down to refresh.'),
+            style: theme.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          for (final r in rows!) SupportRequestCard(row: r),
+        ],
       ])),
     );
+  }
+}
+
+/// UAT 26 Nov 2026 (D105): one sent message with its status, outcome and the
+/// reply support wrote for this person. Never shows support's internal note.
+class SupportRequestCard extends StatelessWidget {
+  const SupportRequestCard({super.key, required this.row});
+  final Map<String, dynamic> row;
+
+  static String kindLabel(String? kind) => switch (kind) {
+    'issue' => 'Technical issue', 'idea' => 'Idea', 'complaint' => 'Complaint',
+    'account' => 'Sign-in help', _ => 'Message',
+  };
+  static String statusLabel(String? status) => switch (status) {
+    'in_progress' => 'We are working on it', 'answered' => 'Answered', 'closed' => 'Closed', _ => 'Received',
+  };
+  static String? outcomeLabel(String? outcome) => switch (outcome) {
+    'solved' => 'Solved', 'not_a_bug' => 'Working as intended',
+    'feature_request' => 'Added to our list of ideas', 'duplicate' => 'Already reported',
+    'no_reply' => 'Closed without a reply from you', 'other' => 'Closed', _ => null,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = MaterialLocalizations.of(context);
+    String date(Object? v) {
+      final d = DateTime.tryParse(v?.toString() ?? '');
+      return d == null ? '' : loc.formatMediumDate(d.toLocal());
+    }
+    final reply = row['support_reply']?.toString().trim() ?? '';
+    final outcome = outcomeLabel(row['outcome']?.toString());
+    final closed = row['status'] == 'closed';
+    return Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(14), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(row['kind'] == 'issue' ? Icons.bug_report_outlined : Icons.mail_outline, size: 20),
+          const SizedBox(width: 8),
+          Expanded(child: Text('${tt(kindLabel(row['kind']?.toString()))} · ${date(row['created_at'])}',
+            style: theme.textTheme.bodySmall)),
+          Chip(visualDensity: VisualDensity.compact,
+            label: Text(tt(statusLabel(row['status']?.toString()))),
+            backgroundColor: closed ? theme.colorScheme.surfaceContainerHighest : theme.colorScheme.secondaryContainer),
+        ]),
+        const SizedBox(height: 6),
+        Text(tt(row['subject']?.toString() ?? ''), style: theme.textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(row['message']?.toString() ?? '', maxLines: 4, overflow: TextOverflow.ellipsis),
+        if (outcome != null) ...[
+          const SizedBox(height: 10),
+          Row(children: [
+            Icon(Icons.check_circle_outline, size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 6),
+            Expanded(child: Text('${tt('Outcome')}: ${tt(outcome)}', style: theme.textTheme.bodyMedium)),
+          ]),
+        ],
+        if (reply.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${tt('Reply from OneSpace support')}${row['support_reply_at'] == null ? '' : ' · ${date(row['support_reply_at'])}'}',
+                style: theme.textTheme.labelMedium),
+              const SizedBox(height: 4),
+              SelectableText(reply),
+            ])),
+        ],
+      ])));
   }
 }
 
