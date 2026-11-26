@@ -34,7 +34,7 @@ Future<String> collectDiagnostics(BuildContext context) async {
     try {
       await db.from('space_members').select('space_id').eq('user_id', id).limit(1)
           .timeout(const Duration(seconds: 12));
-      PerformanceTimings.instance.record('${OneSpaceEnv.isProduction ? 'Frankfurt' : 'Seoul'} API round trip', sample.elapsed);
+      PerformanceTimings.instance.record(OneSpaceEnv.diagnosticRoundTripLabel, sample.elapsed);
     } catch (_) {
       PerformanceTimings.instance.record('API failed or timed out', sample.elapsed);
     }
@@ -42,7 +42,7 @@ Future<String> collectDiagnostics(BuildContext context) async {
   final media = context.mounted ? MediaQuery.maybeOf(context) : null;
   return [
     '${tt('App')}: ${OneSpaceEnv.label} ${AppInfo.version}',
-    '${tt('Environment')}: ${tt(OneSpaceEnv.isProduction ? 'Production' : 'QA')} · ${OneSpaceEnv.isProduction ? 'Frankfurt' : 'Seoul'}',
+    '${tt('Environment')}: ${tt(OneSpaceEnv.isProduction ? 'Production' : 'QA')} · ${OneSpaceEnv.backendRegion}',
     '${tt('Phone')}: ${AppInfo.platform} ${Platform.operatingSystemVersion}',
     '${tt('Language')}: ${OneSpacePhrases.lang}',
     if (media != null) '${tt('Screen')}: ${media.size.width.round()}×${media.size.height.round()} · ${tt('Text size')} ${media.textScaler.scale(10) / 10}x',
