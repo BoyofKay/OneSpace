@@ -184,7 +184,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 
 ### Apps
 - QA APK latest: `qa-0.1.483` (26 Nov, commit `f9105c6` = main with the UAT fixes, run 45902755025, APK 105.8 MB). UAT round 2 in progress (owner, UAT form v2: 17 cases). Previous: `qa-0.1.482` (`de3c51d`, UAT round 1: 16 pass, 3 fail, 2 not tested). **UAT round 2 (owner, 26–27 Nov):** 16 of 17 passed; A7 failed (Activity priority "Low" shown as the mood word «متضايق»), fixed on `iteration/2026-11-27-uat-round2` (priority/status words have their own Arabic; test added). **Approved 27 Nov:** tag `approved-2026-11-27` on `f9105c6` (the tested qa-0.1.483 source). Owner decision: no new release for the A7 fix; it is merged (`41264ce`) and marked **not tested — retest A7 in the next iteration's APK**. F4 note: support screenshots say "not configured" until the owner adds the Cloudflare secrets (section 5, Command Center). B1: Founder badge works on QA; Production waits for the go-live app.
-- Production AAB latest: 21 Nov from `a7b476c` (no Founder badge yet). Not on Play yet.
+- Production AAB latest: **1.0.0 (version code 12)**, 27 Nov, from `35cfe2d` (approved `f9105c6` + A7 fix), run 45908669222, artifact `OneSpace-Play-1.0.0-12` (package, upload signature and Production backend verified by the workflow). Owner uploads it to Play Console. Previous: 21 Nov from `a7b476c` (code 11).
 - iOS: QA/Production TestFlight pipeline, share extension and separate identities merged 26 Nov; waiting for the Apple Developer account.
 
 ### Command Center
@@ -480,6 +480,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - **UAT round 2 fixes (27 Nov):** app — Activity priority/status words get their own Arabic (the shared phrase "Low" is the check-in mood); flutter test 441/441, analyze clean. Command Center v1.6.2 — the screenshot reader sends Supabase's newer secret keys (`sb_secret_…`) only in `apikey` (a bearer JWT only for an older service_role key); 251/251 tests, build OK.
 - **Approval (27 Nov):** owner approved round 2. Tag `approved-2026-11-27` → `f9105c6` (qa-0.1.483) — **to be created by the owner**: this session's GitHub access can push branches but not tags (HTTP 403). No production build. Carried to the next iteration: retest A7 (Activity priority words). Command Center v1.6.2 merged (`6a59d90`) and deployed by Cloudflare. Owner to add `QA_SUPPORT_STORAGE_READ_KEY` and `PRODUCTION_SUPPORT_STORAGE_READ_KEY` (Supabase secret keys) in Cloudflare for support screenshots.
 - **Go-live, Android (27 Nov):** owner: "line up the android prod and build the AAB to update Google Play". Production database 0320, 0321, 0324 applied and checked. Production AAB to be built once from `main` (= approved `f9105c6` + A7 fix `41264ce` + book) through `release/PRODUCTION_READY_TO_BUILD.md` when the repository is public; owner uploads it to Play Console. iOS waits for the Apple Developer account.
+- **Production AAB built (27 Nov, 23:12 UTC):** run 45908669222 (#12) success; artifact `OneSpace-Play-1.0.0-12` (93 MB zip, AAB inside); the workflow's "Verify package, signature and backend" step passed. Repository can return to private. Owner uploads to Play Console (closed testing first).
 
 ---
 
