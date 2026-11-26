@@ -1,3 +1,4 @@
+import 'package:onespace/l10n/phrases.dart';
 import '../calendar/calendar_rules.dart';
 import 'occasion_rules.dart';
 
@@ -32,21 +33,23 @@ class OccasionPreparationRules {
   // Actual shipping dates should be reviewed in the gift comparison planner.
   final orderDays=researchDays>=14?14:researchDays;
   final preparationDays=researchDays>=3?3:researchDays;
-  final label=(plan['title']??'the occasion').toString().trim();
-  final name=label.isEmpty?'the occasion':label;
+  final label=(plan['title']??'').toString().trim();
+  final name=label.isEmpty?tt('the occasion'):label;
+  // UAT 26 Nov 2026: saved in the app language (they become reminders).
+  String f(String template)=>tt(template).replaceFirst('{}',name);
   OccasionPreparationStep step(String phase,String title,String details,int days)=>
    OccasionPreparationStep(phase:phase,title:title,description:details,
     suggestedDate:OccasionRules.prepStart(next,days)!,
     occasionDate:next);
   return [
-   step('save','Set money aside for $name',
-    'Review your available salary-month budget and save what you can.',savingDays),
-   step('research','Research choices for $name',
-    'Compare ideas, prices, preferences, reviews and sellers.',researchDays),
-   step('order','Review ordering deadlines for $name',
-    'Check actual shipping estimates before placing an order.',orderDays),
-   step('prepare','Final preparations for $name',
-    'Check arrivals, wrapping, reservations and any missing supplies.',preparationDays),
+   step('save',f('Set money aside for {}'),
+    tt('Check your budget and set aside what you need.'),savingDays),
+   step('research',f('Research choices for {}'),
+    tt('Compare ideas, prices, preferences, reviews and sellers.'),researchDays),
+   step('order',f('Review ordering deadlines for {}'),
+    tt('Check actual shipping estimates before placing an order.'),orderDays),
+   step('prepare',f('Final preparations for {}'),
+    tt('Check arrivals, wrapping, reservations and any missing supplies.'),preparationDays),
   ];
  }
 

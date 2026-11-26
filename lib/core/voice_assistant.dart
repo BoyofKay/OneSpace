@@ -56,9 +56,9 @@ class VoiceAssistant {
     '“Check off milk on the groceries list”',
     '“Read the groceries list” · “What’s on today?”',
     '“I took my vitamins” · “Snooze the rent reminder for an hour”',
-    '“I’m feeling great today” · “Send Kay a hug”',
+    '“I’m feeling great today” · “Send my partner a hug”',
     '“How many days until our anniversary?” · “When’s our next trip?”',
-    '“Read Kay’s last letter” · “Read the Paris trip”',
+    '“Read the last letter” · “Read our next trip”',
     '“Take a note: …” · “Add an event dinner on Friday at 8”',
     '“Open the calendar” · “Search for passport”',
   ];

@@ -288,7 +288,7 @@ class _ShareIntakeScreenState extends State<ShareIntakeScreen> {
           if (!personal && (pairedSpace == null || pairedSpace.isEmpty)) {
             if (mounted) setState(() {
               saving = false;
-              error = 'Connect with a partner before saving shared notes.';
+              error = tt('Connect with a partner before saving shared notes.');
             });
             return;
           }

@@ -117,7 +117,7 @@ class _OccasionBudgetItemEditorState extends State<OccasionBudgetItemEditor> wit
      ]),
      FormSection(tt('Where to get it')),
      TextField(controller:merchant,maxLength:140,
-      decoration:InputDecoration(labelText:tt('Shop'),hintText:tt('Amazon, Noon, Jarir…'),
+      decoration:InputDecoration(labelText:tt('Shop'),hintText:tt('An online shop or a store'),
        prefixIcon:const Icon(Icons.storefront_outlined),border:const OutlineInputBorder())),
      const SizedBox(height:6),
      TextField(controller:url,maxLength:1800,keyboardType:TextInputType.url,

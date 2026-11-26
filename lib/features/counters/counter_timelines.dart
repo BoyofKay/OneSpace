@@ -1,3 +1,4 @@
+import 'package:onespace/l10n/phrases.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Named counter timelines (26 Nov 2026, decision D100; database 0321).
@@ -30,8 +31,8 @@ class NamedTimeline {
 
   static String? validateTitle(String title) {
     final t = title.trim();
-    if (t.isEmpty) return 'Give the timeline a name.';
-    if (t.length > 80) return 'Keep the name under 80 characters.';
+    if (t.isEmpty) return tt('Give the timeline a name.');
+    if (t.length > 80) return tt('Keep the name under 80 characters.');
     return null;
   }
 }

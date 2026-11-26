@@ -246,9 +246,9 @@ class _FormPageState extends State<_FormPage> {
           keyboardType: widget.fields[i].keyboard,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
-            labelText: widget.fields[i].required ? requiredLabel(widget.fields[i].label)
-                : widget.fields[i].label,
-            hintText: widget.fields[i].hint,
+            labelText: widget.fields[i].required ? requiredLabel(tt(widget.fields[i].label))
+                : tt(widget.fields[i].label),
+            hintText: widget.fields[i].hint == null ? null : tt(widget.fields[i].hint!),
             alignLabelWithHint: widget.fields[i].lines > 1,
             border: const OutlineInputBorder()))),
     ]));

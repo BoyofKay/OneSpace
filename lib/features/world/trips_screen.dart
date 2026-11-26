@@ -378,7 +378,7 @@ class _TripEditorState extends State<TripEditor> with FormChangeTracker<TripEdit
    TextField(controller:title,maxLength:160,autofocus:!editing,
     textCapitalization:TextCapitalization.sentences,
     decoration:InputDecoration(labelText:tt('Trip name *'),
-     hintText:tt('Christmas in Philadelphia, weekend in AlUla…'),border:const OutlineInputBorder())),
+     hintText:tt('A family visit, a weekend away, a summer holiday…'),border:const OutlineInputBorder())),
    ChoiceRow<String>(label:tt('How are we traveling?'),options:tripModes,selected:mode,
     icons:const {'flight':Icons.flight_outlined,'road':Icons.directions_car_outlined,
      'train':Icons.train_outlined,'other':Icons.luggage_outlined},

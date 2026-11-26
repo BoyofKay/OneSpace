@@ -31,6 +31,18 @@ import 'package:onespace/l10n/phrases.dart';
 
 /// Purpose-first Activity detail. Primary content gets the screen; metadata,
 /// actions and reactions are deliberately tucked into compact controls.
+/// UAT 26 Nov 2026: Activity priority and status values as words in the app language.
+class ActivityScreenWords {
+  const ActivityScreenWords._();
+  static const _words = {
+    'low': 'Low', 'normal': 'Normal', 'high': 'High', 'urgent': 'Urgent',
+    'exploring': 'Exploring', 'comparing': 'Comparing', 'decided': 'Decided',
+    'purchased': 'Purchased', 'registered': 'Booked or signed up', 'completed': 'Completed',
+    'on_hold': 'On hold', 'cancelled': 'Cancelled',
+  };
+  static String word(String v) => tt(_words[v] ?? v.replaceAll('_', ' '));
+}
+
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key, required this.id, this.focusConversation = false});
   final String id;
@@ -167,8 +179,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final reason = await prompt(
       action == 'chosen' ? 'Why choose this option?' :
       action == 'purchased' ? 'Purchase details (optional)' :
-      action == 'registered' ? 'Registration details (optional)' :
-      action == 'delivered' ? 'Delivery details (optional)' :
+      action == 'registered' ? 'Booking details (optional)' :
+      action == 'delivered' ? 'Details (optional)' :
       'Reason or update (optional)',
       max: 2000,
     );
@@ -1459,7 +1471,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         if(replyingTo!=null||onComponent!=null)Row(children:[
           Expanded(child:Text(
             tt(replyingTo!=null?'Replying to: '+(replyPreview??'message'):
-              'Discussing: '+(onComponentTitle??'attached item')),
+              tt('Discussing: ')+(onComponentTitle??tt('attached item'))),
             maxLines:1,overflow:TextOverflow.ellipsis,
             style:Theme.of(context).textTheme.labelSmall)),
           IconButton(icon:const Icon(Icons.close,size:16),
@@ -1523,6 +1535,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     ),
   );
 
+  static String activityWord(String v) => ActivityScreenWords.word(v);
+
   Widget toolbar(Map<String,dynamic> item) {
     final priority = item['priority']?.toString() ?? 'normal';
     final stage = item['stage']?.toString() ?? 'exploring';
@@ -1530,18 +1544,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Column(children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         AnchoredMenuButton<String>(
-          tooltip: '${tt('Priority')}: $priority',
+          tooltip: '${tt('Priority')}: ${activityWord(priority)}',
           icon: Icon(Icons.flag_outlined, size: 22,
             color: priority == 'high' || priority == 'urgent'
               ? Theme.of(context).colorScheme.error : null),
           onSelected: (value) => changeField(item, 'priority', value),
           itemBuilder: (_) => [
             for (final v in ['low','normal','high','urgent'])
-              PopupMenuItem(value: v, child: Text('${tt('Priority')} · $v')),
+              PopupMenuItem(value: v, child: Text('${tt('Priority')} · ${activityWord(v)}')),
           ],
         ),
         AnchoredMenuButton<String>(
-          tooltip: '${tt('Status')}: $stage',
+          tooltip: '${tt('Status')}: ${activityWord(stage)}',
           icon: const Icon(Icons.task_alt, size: 22),
           onSelected: (value) {
             if (value == 'decision') {
@@ -1554,7 +1568,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           },
           itemBuilder: (_) => [
             for (final v in ['exploring','comparing'])
-              PopupMenuItem(value: v, child: Text('${tt('Status')} · $v')),
+              PopupMenuItem(value: v, child: Text('${tt('Status')} · ${activityWord(v)}')),
             PopupMenuItem(value: 'decision',
                 child: Text(tt('Choose an option…'))),
             PopupMenuItem(value: 'outcome',
@@ -1583,9 +1597,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
       Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(
-          '${priority[0].toUpperCase()}${priority.substring(1)} priority'
-          ' · ${stage.replaceAll('_', ' ')}'
-          '${due == null ? '' : ' · due $due'}'
+          '${tt('Priority')}: ${activityWord(priority)}'
+          ' · ${activityWord(stage)}'
+          '${due == null ? '' : ' · ${tt('Due {}').replaceFirst('{}', due)}'}'
           '${item['for_user_id'] == null || people == null ? '' : ' · ${item['for_user_id'] == people!.me ? tt('Me') : people!.partnerName}'}',
           style: Theme.of(context).textTheme.labelSmall,
         ),

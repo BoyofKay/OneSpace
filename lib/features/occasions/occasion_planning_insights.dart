@@ -37,21 +37,22 @@ class OccasionPlanningInsights{
   if(days!=null&&days>=0&&days<=14&&reserved+purchased==0){
    suggestions.add(OccasionPlanningInsight(
     code:'approaching',
-    message:tt('Only ')+days.toString()+' day(s) until the occasion, and nothing is reserved or purchased yet.',
+    message:tt(days==1?'Only 1 day until the occasion, and nothing is reserved or purchased yet.'
+      :'Only {} days until the occasion, and nothing is reserved or purchased yet.').replaceFirst('{}',days.toString()),
     actionLabel:tt('Plan a purchase'),action:'purchase',priority:1));
   }
   if(budget.unpriced>0){
    suggestions.add(OccasionPlanningInsight(
     code:'missing_prices',
-    message:budget.unpriced.toString()+
-     ' committed item(s) have no price. Add estimates so the remaining balance is trustworthy.',
+    message:tt('{} committed item(s) have no price. Add estimates so the remaining balance is trustworthy.')
+      .replaceFirst('{}',budget.unpriced.toString()),
     actionLabel:tt('Review items'),action:'review',priority:2));
   }
   if(budget.foreignCurrency>0){
    suggestions.add(OccasionPlanningInsight(
     code:'currency',
-    message:budget.foreignCurrency.toString()+
-     ' item(s) use different currencies. They are not automatically subtracted from this budget.',
+    message:tt('{} item(s) use different currencies. They are not automatically subtracted from this budget.')
+      .replaceFirst('{}',budget.foreignCurrency.toString()),
     actionLabel:tt('Review items'),action:'review',priority:3));
   }
   if(active.isEmpty){

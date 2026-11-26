@@ -164,10 +164,10 @@ class _CoordinateScreenState extends State<CoordinateScreen> {
               ])),
             const SizedBox(height: 5),
             Text(
-              '${archived ? 'Removed · ' : ''}'
-              '${stage.replaceAll('_', ' ')}'
-              '${emphasis ? ' · $priority priority' : ''}'
-              '${due == null ? '' : ' · due $due'}'
+              '${archived ? '${tt('Removed')} · ' : ''}'
+              '${ActivityScreenWords.word(stage)}'
+              '${emphasis ? ' · ${tt('Priority')}: ${ActivityScreenWords.word(priority)}' : ''}'
+              '${due == null ? '' : ' · ${tt('Due {}').replaceFirst('{}', due)}'}'
               '${item['updated_at'] == null ? '' : ' · ${updated(item['updated_at'])}'}',
               maxLines: 2,
               style: Theme.of(context).textTheme.labelSmall,

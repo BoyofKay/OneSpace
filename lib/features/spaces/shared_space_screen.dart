@@ -1085,7 +1085,8 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
         else if(sinceAwayCollapsed)ListTile(
           dense:true,
           contentPadding:const EdgeInsets.symmetric(horizontal:4),
-          title:Text('$sinceAwayTotal update${sinceAwayTotal==1?'':'s'} you have already seen'),
+          title:Text(tt(sinceAwayTotal==1?'1 update you have already seen':'{} updates you have already seen')
+            .replaceFirst('{}','$sinceAwayTotal')),
           trailing:const Icon(Icons.expand_more),
           onTap:()=>setState(()=>sinceAwayCollapsed=false))
         else ...[
