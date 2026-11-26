@@ -39,6 +39,20 @@ void main() {
     expect(tt('Lord of the Rings · Kay'), 'Lord of the Rings · Kay');
   });
 
+  test('closed-testing workflow and support labels are translated', () {
+    OneSpacePhrases.lang = 'ar';
+    for (final phrase in [
+      'Invite my partner', 'Resend email — same code', 'Revoke invitation',
+      'Confirm your email address', 'Change password', 'My Space',
+      'Delete your account?', 'Delete shared content permanently',
+      'Daily selfies', 'Search the map', 'Frankfurt API round trip',
+      'Seoul API round trip', 'Environment', 'No timings collected yet.',
+    ]) {
+      expect(tt(phrase), isNot(phrase), reason: phrase);
+      expect(tt(phrase), contains(RegExp(r'[\u0600-\u06ff]')), reason: phrase);
+    }
+  });
+
   test('every Arabic phrase is filled in', () {
     for (final e in arPhrases.entries) {
       expect(e.value.trim(), isNotEmpty, reason: e.key);

@@ -9,7 +9,7 @@ name: Back up OneSpace database
 # IMPORTANT: this is QA only. It does NOT include physical Storage object bytes.\n# Successful decryption/integrity verification is not proof of an actual DB restore.\n# Never restore into a live project; practice in an isolated Supabase clone.
 on:
   schedule:
-    - cron: '41 23 * * *'   # 02:41 Riyadh
+    - cron: '41 23 * * 0'   # Sundays 02:41 Riyadh (weekly since 26 Nov 2026: QA test data only)
   workflow_dispatch:
 
 permissions:

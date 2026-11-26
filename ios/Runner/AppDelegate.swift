@@ -15,7 +15,7 @@ import EventKit
 ///  - onespace/data_export       save a file through the share sheet ("Save to Files")
 ///  - onespace/scrapbook_export  share/save a PNG page
 ///  - onespace/device_contacts   pick a contact, add a contact (user confirms in Contacts UI)
-///  - onespace/incoming_share    nothing pending on iOS yet (needs a Share Extension)
+///  - onespace/incoming_share    local Share Extension inbox; no automatic partner post
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, UIDocumentPickerDelegate,
   AVSpeechSynthesizerDelegate, CNContactPickerDelegate, CNContactViewControllerDelegate {
@@ -42,6 +42,7 @@ import EventKit
 
   // Contacts
   private var contactResult: FlutterResult?
+  private var saveContactResult: FlutterResult?
 
   override func application(
     _ application: UIApplication,
@@ -219,9 +220,24 @@ import EventKit
         }
       }
 
+    // Fail closed if an iOS binary's identity differs from the Flutter backend.
+    FlutterMethodChannel(name: "onespace/build_environment", binaryMessenger: messenger)
+      .setMethodCallHandler { call, result in
+        guard call.method == "read" else { result(FlutterMethodNotImplemented); return }
+        let info = Bundle.main.infoDictionary ?? [:]
+        let urlTypes = info["CFBundleURLTypes"] as? [[String: Any]] ?? []
+        let schemes = urlTypes.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
+        result([
+          "environment": info["OneSpaceEnvironment"] as? String ?? "",
+          "bundleId": Bundle.main.bundleIdentifier ?? "",
+          "authScheme": schemes.first ?? ""
+        ])
+      }
+
     FlutterMethodChannel(name: "onespace/incoming_share", binaryMessenger: messenger)
       .setMethodCallHandler { call, result in
-        if call.method == "takePendingShare" { result(nil) } else { result(FlutterMethodNotImplemented) }
+        if call.method == "takePendingShare" { result(OneSpaceShareInbox.takeNext()) }
+        else { result(FlutterMethodNotImplemented) }
       }
   }
 
@@ -503,6 +519,9 @@ import EventKit
   }
 
   private func saveContact(_ f: [String: Any], result: @escaping FlutterResult) {
+    guard saveContactResult == nil else {
+      result(FlutterError(code: "ALREADY_SAVING", message: "Contact editor is already open", details: nil)); return
+    }
     guard let top = topViewController() else {
       result(FlutterError(code: "UNAVAILABLE", message: "Contacts unavailable", details: nil)); return
     }
@@ -524,11 +543,15 @@ import EventKit
     editor.contactStore = CNContactStore()
     editor.delegate = self
     let nav = UINavigationController(rootViewController: editor)
+    nav.isModalInPresentation = true
+    // Do not claim a saved contact before the user confirms Apple's editor.
+    saveContactResult = result
     top.present(nav, animated: true)
-    result(true)
   }
 
   func contactViewController(_ viewController: CNContactViewController, didCompleteWith contact: CNContact?) {
+    saveContactResult?(contact != nil)
+    saveContactResult = nil
     viewController.dismiss(animated: true)
   }
 }
@@ -606,15 +629,20 @@ final class PhoneCalendar {
       e.notes = (item["notes"] as? String).flatMap { $0.isEmpty ? nil : $0 }
       e.location = (item["location"] as? String).flatMap { $0.isEmpty ? nil : $0 }
       if (item["allDay"] as? Bool) == true {
+        // Dart sends the end date EXCLUSIVE (a five-day trip ending Dec 5
+        // arrives as Dec 6). EventKit also expects an exclusive end for
+        // all-day events: subtracting one second is wrong, especially at DST.
         guard let s = (item["startDate"] as? String).flatMap(day),
-              let end = (item["endDate"] as? String).flatMap(day) else { continue }
+              let end = (item["endDate"] as? String).flatMap(day),
+              end > s else { continue }
         e.isAllDay = true
         e.startDate = s
-        e.endDate = end.addingTimeInterval(-1)
+        e.endDate = end
       } else {
         guard let s = item["startMs"] as? NSNumber, let end = item["endMs"] as? NSNumber else { continue }
         e.startDate = Date(timeIntervalSince1970: s.doubleValue / 1000)
         e.endDate = Date(timeIntervalSince1970: end.doubleValue / 1000)
+        guard e.endDate > e.startDate else { continue }
       }
       try store.save(e, span: .thisEvent, commit: false)
       count += 1

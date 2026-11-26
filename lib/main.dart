@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'core/app_env.dart';
 import 'core/android_startup_gate.dart';
+import 'core/ios_build_configuration.dart';
 import 'features/spaces/invitation_link_inbox.dart';
 import 'core/preferred_currency.dart';
 import 'features/share_in/shared_file_screen.dart';
@@ -147,6 +148,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
   bool _busy = true;
   String? _error;
   String _stage = 'Verifying your app installation…';
+  bool _configurationError = false;
 
   @override
   void initState() {
@@ -162,6 +164,7 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
     setState(() {
       _busy = true;
       _error = null;
+      _configurationError = false;
       _stage = 'Verifying your app installation…';
     });
     final clock = Stopwatch()..start();
@@ -171,6 +174,8 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         await AndroidStartupGate.verify();
       }
+      // iOS equivalent: the bundle ID, URL scheme and backend must match.
+      await IosBuildConfiguration.verify();
       if (mounted) {
         setState(() => _stage = 'Opening your secure session…');
       }
@@ -190,7 +195,11 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = e is StateError
+          _configurationError = e is IosBuildConfigurationException;
+          _error = _configurationError
+            ? 'This iPhone build has mismatched QA/production settings and '
+              'cannot safely connect. Install a corrected OneSpace update.'
+            : e is StateError
             ? e.message.toString()
             : e is TimeoutException
               ? 'Opening your saved secure session timed out. '
@@ -239,11 +248,13 @@ class _OneSpaceBootstrapState extends State<OneSpaceBootstrap> {
                 ],
                 if (_error != null) ...[
                   Text(tt(_error!),textAlign:TextAlign.center),
-                  const SizedBox(height:14),
-                  FilledButton.icon(
-                    onPressed:_initialize,
-                    icon:const Icon(Icons.refresh),
-                    label:Text(tt('Retry'))),
+                  if (!_configurationError) ...[
+                    const SizedBox(height:14),
+                    FilledButton.icon(
+                      onPressed:_initialize,
+                      icon:const Icon(Icons.refresh),
+                      label:Text(tt('Retry'))),
+                  ],
                 ],
               ]),
             ),
@@ -308,7 +319,7 @@ class OneSpaceHome extends StatefulWidget {
   State<OneSpaceHome> createState() => _OneSpaceHomeState();
 }
 
-class _OneSpaceHomeState extends State<OneSpaceHome> {
+class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver {
   int selectedIndex = 0;
   int refreshToken = 0;
   bool showProfile = false;
@@ -320,6 +331,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
 
   @override void initState(){
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _incomingShares.setMethodCallHandler((call)async{
       if(call.method=='shareAvailable')await _takeIncomingShare();
     });
@@ -335,7 +347,16 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
     });
   }
 
+  @override void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_takeIncomingShare());
+      });
+    }
+  }
+
   @override void dispose(){
+    WidgetsBinding.instance.removeObserver(this);
     _incomingShares.setMethodCallHandler(null);
     super.dispose();
   }
@@ -378,6 +399,10 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
         if(space!=null)open(SavedContactEditor(spaceId:space,imported:sharedContact));
         return;
       }
+      // Preserve iPhone shares in the App Group until a space exists.
+      // This check deliberately does not change Android's share behavior.
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS &&
+          await CurrentSpaceCache.instance.get() == null) return;
       final message=await _incomingShares.invokeMapMethod<String,dynamic>(
        'takePendingShare');
       if(!mounted||message==null)return;
@@ -399,7 +424,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> {
       if(!data.hasContent)return;
       open(ShareIntakeScreen(shared:data));
     }on MissingPluginException{
-      // iOS shares currently require manual paste, not a share extension.
+      // Graceful fallback for older builds without an incoming-share channel.
     }on PlatformException{
       // Invalid shares must not interrupt authentication or normal browsing.
     }finally{

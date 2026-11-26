@@ -99,42 +99,42 @@ class _AccountDataScreenState extends State<AccountDataScreen> {
         barrierDismissible: false,
         builder: (dialogContext) => StatefulBuilder(
           builder: (dialogContext, refresh) => AlertDialog(
-            title: const Text('Delete your account?'),
+            title: Text(tt('Delete your account?')),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('You have 7 days to cancel this request. '
+                  Text(tt('You have 7 days to cancel this request. '
                       'After the deadline, your account and ALL your private '
                       'data and files will be permanently deleted. '
                       'Your current couple’s shared space and all shared '
                       'data and files will also be deleted. Your partner '
                       'will become unpaired and keep only their own private '
-                      'content. Nothing is transferred to a new partner.'),
+                      'content. Nothing is transferred to a new partner.')),
                   const SizedBox(height: 12),
-                  const Text('No automatic archive or recovery is created.'),
+                  Text(tt('No automatic archive or recovery is created.')),
                   const SizedBox(height: 14),
-                  const Text('Type DELETE to confirm:'),
+                  Text(tt('Type DELETE to confirm:')),
                   TextField(
                     key: const Key('qaAccountDeletionTypedConfirmation'),
                     controller: phrase,
                     autocorrect: false,
                     enableSuggestions: false,
                     onChanged: (_) => refresh(() {}),
-                    decoration: const InputDecoration(labelText: 'Confirmation'),
+                    decoration: InputDecoration(labelText: tt('Confirmation')),
                   ),
                 ],
               ),
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Cancel')),
+                child: Text(tt('Cancel'))),
               FilledButton(
                 key: const Key('qaConfirmAccountDeletionRequest'),
                 onPressed: AccountDataRules.confirmed(phrase.text)
                   ? () => Navigator.pop(dialogContext, true) : null,
-                child: const Text('Schedule deletion in 7 days'),
+                child: Text(tt('Schedule deletion in 7 days')),
               ),
             ],
           ),

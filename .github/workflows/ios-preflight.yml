@@ -1,0 +1,41 @@
+name: iOS source preflight (no Mac or signing)
+
+# Linux checks only. A signed IPA and iPhone UAT have separate gates.
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'tools/ios/**'
+      - '.github/workflows/ios-*.yml'
+      - 'lib/core/ios_build_configuration.dart'
+      - 'lib/features/notifications/push_registration_gate.dart'
+      - 'lib/main.dart'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-source-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate identity, App Group and extension project
+        run: python3 -m unittest discover -s tools/ios -p 'test_*.py' -v
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Resolve committed dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Test iOS guard, share intake and calendar
+        run: |
+          flutter test test/ios_build_configuration_test.dart
+          flutter test test/share_intake_rules_test.dart
+          flutter test test/phone_calendar_rules_test.dart

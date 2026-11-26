@@ -1,0 +1,341 @@
+name: Build and optionally upload OneSpace iOS to TestFlight
+
+# Manual only. Uses a macOS runner; a build cannot sign without Apple's
+# distribution certificate and App Store provisioning profiles.
+# QA (com.onespace.onespace.qa, QA backend) and Production
+# (com.onespace.onespace, Production backend) are separate App Store Connect
+# apps with separate profiles and Firebase registrations. Uploading to
+# TestFlight never submits the app for App Store review or release.
+#
+# QA-first promotion (owner policy, 22 Nov 2026): a Production build is only
+# allowed for a commit that (1) is on main, (2) already had a successful QA
+# TestFlight upload from this workflow, and (3) is explicitly approved in the
+# run form. Production is then rebuilt from that exact commit with
+# ONESPACE_ENV=production. Nothing runs on push; nothing is auto-promoted.
+run-name: iOS ${{ inputs.environment }} TestFlight | upload=${{ inputs.upload_testflight }} | ${{ inputs.environment == 'production' && inputs.qa_tested_sha || github.sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Which app to build: qa or production'
+        type: choice
+        options: [qa, production]
+        required: true
+        default: qa
+      upload_testflight:
+        description: 'Upload the signed IPA to TestFlight'
+        type: boolean
+        required: true
+        default: false
+      qa_tested_sha:
+        description: 'Production only: full 40-character commit SHA that passed QA on iPhone'
+        type: string
+        required: false
+        default: ''
+      release_approval:
+        description: 'Production only: type APPROVE PRODUCTION TESTFLIGHT to confirm the owner approved this commit'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: onespace-ios-testflight-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  ONESPACE_ENV: ${{ inputs.environment }}
+  BUNDLE_ID: ${{ inputs.environment == 'qa' && 'com.onespace.onespace.qa' || 'com.onespace.onespace' }}
+
+jobs:
+  # Cheap Linux gate: refuses a Production build before any macOS minutes or
+  # signing secrets are used.
+  release-gate:
+    name: QA-first release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build_sha: ${{ steps.gate.outputs.build_sha }}
+      qa_run_url: ${{ steps.gate.outputs.qa_run_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check QA-first promotion rules
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          QA_SHA: ${{ inputs.qa_tested_sha }}
+          APPROVAL: ${{ inputs.release_approval }}
+          UPLOAD: ${{ inputs.upload_testflight }}
+        run: |
+          set -euo pipefail
+          if [ "$ONESPACE_ENV" = qa ]; then
+            echo "build_sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "qa_run_url=" >> "$GITHUB_OUTPUT"
+            echo "QA build of $GITHUB_SHA (no promotion gate for QA)."
+            exit 0
+          fi
+          if [[ ! "$QA_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Production needs qa_tested_sha: the full 40-character commit that passed QA."; exit 1
+          fi
+          if [ "$APPROVAL" != "APPROVE PRODUCTION TESTFLIGHT" ]; then
+            echo "::error::Production needs release_approval = APPROVE PRODUCTION TESTFLIGHT."; exit 1
+          fi
+          if [ "$UPLOAD" != "true" ]; then
+            echo "::notice::Production dry run: the IPA is built and verified but not uploaded."
+          fi
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor "$QA_SHA" origin/main; then
+            echo "::error::$QA_SHA is not on main. Merge it first; Production never builds from a side branch."; exit 1
+          fi
+          # A successful QA TestFlight upload from this workflow for the same commit.
+          qa_run=$(gh api -X GET "repos/$REPO/actions/workflows/ios-testflight.yml/runs" \
+            -f head_sha="$QA_SHA" -f status=success --paginate \
+            --jq '.workflow_runs[] | select(.display_title | startswith("iOS qa TestFlight | upload=true")) | .html_url' | head -n1)
+          if [ -z "$qa_run" ]; then
+            echo "::error::No successful QA TestFlight upload found for $QA_SHA. Run this workflow with environment=qa and upload enabled on that commit, test it on iPhone, then promote."; exit 1
+          fi
+          echo "build_sha=$QA_SHA" >> "$GITHUB_OUTPUT"
+          echo "qa_run_url=$qa_run" >> "$GITHUB_OUTPUT"
+          echo "Promotion allowed: $QA_SHA (QA evidence: $qa_run)"
+
+  ios-signed:
+    name: Signed iOS ${{ inputs.environment }}
+    needs: release-gate
+    runs-on: macos-15
+    timeout-minutes: 60
+    # Optional extra gate: add required reviewers to the ios-production
+    # environment in repository settings, where the GitHub plan allows it.
+    environment: ${{ inputs.environment == 'production' && 'ios-production' || 'ios-qa' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-gate.outputs.build_sha }}
+      - name: Confirm the exact commit being built
+        env:
+          EXPECTED: ${{ needs.release-gate.outputs.build_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED"
+          echo "Building $EXPECTED as $ONESPACE_ENV"
+      - name: Validate signing prerequisites before building
+        env:
+          CERT_B64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          PROFILE_B64: ${{ inputs.environment == 'qa' && secrets.IOS_APPSTORE_PROVISIONING_PROFILE_QA_BASE64 || secrets.IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 }}
+          SHARE_PROFILE_B64: ${{ inputs.environment == 'qa' && secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_QA_BASE64 || secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          FIREBASE_B64: ${{ inputs.environment == 'qa' && secrets.IOS_GOOGLE_SERVICE_INFO_QA_BASE64 || secrets.IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          UPLOAD: ${{ inputs.upload_testflight }}
+        run: |
+          python3 - <<'PY'
+          import os
+          required=['CERT_B64','CERT_PASSWORD','PROFILE_B64','SHARE_PROFILE_B64','APPLE_TEAM_ID','FIREBASE_B64']
+          if os.environ['UPLOAD']=='true':
+              required+=['ASC_KEY_ID','ASC_ISSUER_ID','ASC_KEY_P8_BASE64']
+          missing=[name for name in required if not os.getenv(name,'').strip()]
+          if missing: raise SystemExit('Missing GitHub signing secrets: '+', '.join(missing))
+          print('Signing and release prerequisites are present')
+          PY
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Ensure App Store supported Xcode
+        run: |
+          xcodebuild -version
+          python3 - <<'PY'
+          import subprocess,re
+          version=subprocess.check_output(['xcodebuild','-version'],text=True)
+          found=re.search(r'Xcode (\d+)',version)
+          if not found or int(found.group(1))<26:
+              raise SystemExit('App Store Connect requires Xcode 26 or newer for iOS submissions')
+          PY
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+      - name: Set ${{ inputs.environment }} bundle and auth callback
+        run: python3 tools/ios/configure_env.py "$ONESPACE_ENV"
+      - name: Verify bundle isolation rules
+        run: python3 -m unittest discover -s tools/ios -p 'test_*.py'
+      - name: Resolve exact dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Install matching Firebase plist
+        env:
+          FIREBASE_B64: ${{ inputs.environment == 'qa' && secrets.IOS_GOOGLE_SERVICE_INFO_QA_BASE64 || secrets.IOS_GOOGLE_SERVICE_INFO_PROD_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import os,base64,plistlib,pathlib
+          data=base64.b64decode(os.environ['FIREBASE_B64'],validate=True)
+          plist=plistlib.loads(data)
+          if plist.get('BUNDLE_ID')!=os.environ['BUNDLE_ID'] or not plist.get('GOOGLE_APP_ID'):
+              raise SystemExit('Firebase iOS app registration does not match '+os.environ['BUNDLE_ID'])
+          pathlib.Path('ios/Runner/GoogleService-Info.plist').write_bytes(data)
+          print('Firebase iOS configuration installed for '+os.environ['BUNDLE_ID'])
+          PY
+      - name: Import Apple Distribution certificate and provisioning profile
+        env:
+          CERT_B64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          PROFILE_B64: ${{ inputs.environment == 'qa' && secrets.IOS_APPSTORE_PROVISIONING_PROFILE_QA_BASE64 || secrets.IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 }}
+          SHARE_PROFILE_B64: ${{ inputs.environment == 'qa' && secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_QA_BASE64 || secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,os,pathlib
+          workspace=pathlib.Path(os.environ['RUNNER_TEMP'])
+          (workspace/'ios-distribution.p12').write_bytes(base64.b64decode(os.environ['CERT_B64'],validate=True))
+          (workspace/'ios-appstore.mobileprovision').write_bytes(base64.b64decode(os.environ['PROFILE_B64'],validate=True))
+          (workspace/'ios-share.mobileprovision').write_bytes(base64.b64decode(os.environ['SHARE_PROFILE_B64'],validate=True))
+          PY
+          KEYCHAIN="$RUNNER_TEMP/onespace-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/ios-distribution.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          security default-keychain -s "$KEYCHAIN"
+          security cms -D -i "$RUNNER_TEMP/ios-appstore.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          security cms -D -i "$RUNNER_TEMP/ios-share.mobileprovision" > "$RUNNER_TEMP/share-profile.plist"
+          python3 - <<'PY'
+          import os,plistlib,pathlib
+          temp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          with (temp/'profile.plist').open('rb') as stream: p=plistlib.load(stream)
+          with (temp/'share-profile.plist').open('rb') as stream: sp=plistlib.load(stream)
+          team=os.environ['APPLE_TEAM_ID'].strip()
+          ent=p.get('Entitlements',{})
+          if team not in p.get('TeamIdentifier',[]):
+              raise SystemExit('Apple Team ID does not match the provisioning profile')
+          if ent.get('aps-environment')!='production':
+              raise SystemExit('Production push entitlement is required for TestFlight')
+          bundle=os.environ['BUNDLE_ID']
+          if ent.get('application-identifier')!=team+'.'+bundle:
+              raise SystemExit('App Store profile must be for '+bundle)
+          if 'applinks:onespace.live' not in ent.get('com.apple.developer.associated-domains',[]) and ent.get('com.apple.developer.associated-domains')!='*':
+              raise SystemExit('App Store profile lacks Associated Domains (needed for invitation links)')
+          required_group='group.'+bundle
+          if required_group not in ent.get('com.apple.security.application-groups',[]):
+              raise SystemExit('Main App Store profile lacks OneSpace App Group')
+          share_ent=sp.get('Entitlements',{})
+          if team not in sp.get('TeamIdentifier',[]):
+              raise SystemExit('Share Extension profile belongs to another team')
+          if share_ent.get('application-identifier') != team+'.'+bundle+'.ShareExtension':
+              raise SystemExit('Share Extension profile has the wrong bundle ID')
+          if required_group not in share_ent.get('com.apple.security.application-groups',[]):
+              raise SystemExit('Share Extension profile lacks OneSpace App Group')
+          profile_uuid=p['UUID']
+          profile_name=p['Name']
+          share_uuid=sp['UUID']
+          share_name=sp['Name']
+          if any(c in x for x in (profile_name,share_name) for c in '\r\n"'):
+              raise SystemExit('Unexpected characters in provisioning profile name')
+          dest=pathlib.Path.home()/'Library/MobileDevice/Provisioning Profiles'
+          dest.mkdir(parents=True,exist_ok=True)
+          (dest/(profile_uuid+'.mobileprovision')).write_bytes((temp/'ios-appstore.mobileprovision').read_bytes())
+          (dest/(share_uuid+'.mobileprovision')).write_bytes((temp/'ios-share.mobileprovision').read_bytes())
+          config=pathlib.Path('ios/Flutter/BuildEnvironment.xcconfig')
+          with config.open('a') as stream:
+              stream.write('\nDEVELOPMENT_TEAM = '+team+
+                  '\nCODE_SIGN_STYLE = Manual\nCODE_SIGN_IDENTITY = Apple Distribution\n'
+                  'PROVISIONING_PROFILE_SPECIFIER = "'+profile_name+'"\n'
+                  'ONESPACE_SHARE_EXTENSION_PROFILE = "'+share_name+'"\n')
+          export={
+              'method':'app-store-connect',
+              'destination':'export',
+              'signingStyle':'manual',
+              'teamID':team,
+              'signingCertificate':'Apple Distribution',
+              'provisioningProfiles':{bundle:profile_name,
+                bundle+'.ShareExtension':share_name},
+              'uploadSymbols':True,
+              'stripSwiftSymbols':True,
+          }
+          with (temp/'ExportOptions.plist').open('wb') as stream: plistlib.dump(export,stream)
+          print('App Store provisioning profiles verified for '+bundle)
+          PY
+          /usr/libexec/PlistBuddy -c 'Set :aps-environment production' ios/Runner/Runner.entitlements
+      - name: Build signed ${{ inputs.environment }} archive and IPA
+        run: |
+          flutter build ipa --release \
+            --build-number=${{ github.run_number }} \
+            --dart-define=ONESPACE_ENV=${{ inputs.environment }} \
+            --dart-define=ONESPACE_VERSION=ios-${{ inputs.environment }}-${{ github.run_number }} \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+      - name: Verify signed IPA identity and embedded Firebase app
+        run: |
+          IPA="$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -type f -print -quit)"
+          test -n "$IPA"
+          python3 tools/ios/verify_bundle.py \
+            --ipa "$IPA" --environment "$ONESPACE_ENV" --require-firebase
+      - name: Retain the signed IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneSpace-iOS-${{ inputs.environment }}-IPA-${{ github.run_number }}
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload to App Store Connect for TestFlight processing
+        if: ${{ inputs.upload_testflight }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          python3 - <<'PY'
+          import base64,os,pathlib
+          key_id=os.environ['ASC_KEY_ID']
+          if not key_id.isalnum(): raise SystemExit('Invalid App Store Connect API key ID')
+          file=pathlib.Path.home()/'.appstoreconnect/private_keys'/('AuthKey_'+key_id+'.p8')
+          file.write_bytes(base64.b64decode(os.environ['ASC_KEY_P8_BASE64'],validate=True))
+          file.chmod(0o600)
+          PY
+          IPA="$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -type f -print -quit)"
+          test -n "$IPA"
+          xcrun altool --upload-app --type ios -f "$IPA" \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+      - name: Write release attestation
+        if: ${{ always() }}
+        env:
+          BUILD_SHA: ${{ needs.release-gate.outputs.build_sha }}
+          QA_RUN: ${{ needs.release-gate.outputs.qa_run_url }}
+          UPLOAD: ${{ inputs.upload_testflight }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import json,os,datetime
+          record={
+            'environment':os.environ['ONESPACE_ENV'],
+            'bundle_id':os.environ['BUNDLE_ID'],
+            'commit':os.environ['BUILD_SHA'],
+            'qa_evidence_run':os.environ.get('QA_RUN') or None,
+            'uploaded_to_testflight':os.environ['UPLOAD']=='true',
+            'build_number':os.environ['GITHUB_RUN_NUMBER'],
+            'requested_by':os.environ['GITHUB_ACTOR'],
+            'result':os.environ['OUTCOME'],
+            'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+            'app_store_release':'not submitted (TestFlight only)',
+          }
+          open('ios-release-attestation.json','w').write(json.dumps(record,indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('## iOS release attestation\n\n```json\n'+json.dumps(record,indent=2)+'\n```\n')
+          PY
+      - name: Keep the attestation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ inputs.environment }}-attestation-${{ github.run_number }}
+          path: ios-release-attestation.json
+          retention-days: 90

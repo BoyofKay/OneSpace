@@ -17,6 +17,11 @@ Applies to all coding agents (ChatGPT, Codex, Claude and others). Owner-approved
 - Report commit/ref, workflow/run, artifact/version, tests, remaining issues, costs or unverified items, and whether owner action is needed. Do not conflate an APK/AAB artifact with store publication or device UAT. No background-work promises.
 
 ## OneSpace mobile
-- Normal visibility: private. Follow `docs/RELEASE_ENVIRONMENTS.md` and `docs/RELEASE_POLICY_ONE_APK_PER_ITERATION.md`; verify current workflow definitions rather than relying on older examples. Do not touch release markers during development. One completed iteration, one intended preview build; production builds and store submissions require the authorized release gate.
+- Normal visibility: private. Follow the project book (`docs/PROJECT_BOOK.md`: section 1 system, section 2 SDLC; the earlier release documents are in its archive); verify current workflow definitions rather than relying on older examples. Do not touch release markers during development. One completed iteration, one intended preview build; production builds and store submissions require the authorized release gate.
 - Maintain separate QA (onespace.qa) and Production (live.onespace.app) apps/backends; QA first, never share data or signing credentials. Preserve private/shared-space boundaries and existing approved deletion rules. Never deploy a database migration to Production solely to test it.
 - Tagline: Two of Us. One Space. iOS builds require the supported macOS workflow; do not substitute Android or change app identifiers.
+
+## Project book and development process (owner decision, 26 Nov 2026)
+- The single project document is `docs/PROJECT_BOOK.md` in the private repository `BoyofKay/OneSpace` (attach that repository if you work elsewhere). Read its sections 0-5 before acting.
+- Follow its SDLC (section 2): work on one branch `iteration/YYYY-MM-DD-topic` created from the latest `main`; merge it back into `main` when the iteration is done. Never branch from another working branch and never continue an old branch (section 7 lists them).
+- Do not create new project documents. At the end of every iteration update the book: dated decisions (section 4), current state (section 5) and history (section 6). When a decision replaces an older one, mark the older one "OVERRIDDEN by Dnn (date)" and keep it; never delete a decision.

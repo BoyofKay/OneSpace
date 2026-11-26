@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Fail the iOS build if the archived bundle doesn't match the selected backend."""
+import argparse
+import plistlib
+import sys
+import zipfile
+from pathlib import Path
+
+EXPECTED = {
+    "qa": ("com.onespace.onespace.qa", "onespace-preview", "OneSpace QA"),
+    "production": ("com.onespace.onespace", "onespace", "OneSpace"),
+}
+
+
+def verify(info: dict, environment: str) -> None:
+    bundle, scheme, display = EXPECTED[environment]
+    schemes = [
+        s for url_type in info.get("CFBundleURLTypes", [])
+        for s in url_type.get("CFBundleURLSchemes", [])
+    ]
+    checks = {
+        "OneSpaceShareGroup": (info.get("OneSpaceShareGroup"), "group." + bundle),
+        "CFBundleIdentifier": (info.get("CFBundleIdentifier"), bundle),
+        "OneSpaceEnvironment": (info.get("OneSpaceEnvironment"), environment),
+        "CFBundleDisplayName": (info.get("CFBundleDisplayName"), display),
+        "auth scheme": (schemes, scheme),
+    }
+    for label, (value, expected) in checks.items():
+        okay = expected in value if isinstance(value, list) else value == expected
+        if not okay:
+            sys.exit(f"iOS release rejected: {label}={value!r}, expected {expected!r}")
+    print(f"Verified iOS {environment} identity and callback: {bundle}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    arg = parser.add_mutually_exclusive_group(required=True)
+    arg.add_argument("--app", type=Path)
+    arg.add_argument("--ipa", type=Path)
+    parser.add_argument("--require-firebase", action="store_true")
+    parser.add_argument("--environment", choices=sorted(EXPECTED), required=True)
+    args = parser.parse_args()
+    if args.app:
+        with (args.app / "Info.plist").open("rb") as stream:
+            info = plistlib.load(stream)
+    else:
+        with zipfile.ZipFile(args.ipa) as archive:
+            names = [name for name in archive.namelist()
+                     if name.startswith("Payload/") and name.endswith(".app/Info.plist")]
+            if len(names) != 1:
+                sys.exit("Expected exactly one app Info.plist in the IPA")
+            info = plistlib.loads(archive.read(names[0]))
+            if args.require_firebase:
+                firebase_paths = [name for name in archive.namelist()
+                                  if name.startswith("Payload/") and name.endswith(".app/GoogleService-Info.plist")]
+                if len(firebase_paths) != 1:
+                    sys.exit("IPA is missing its Firebase iOS configuration")
+                firebase = plistlib.loads(archive.read(firebase_paths[0]))
+                if firebase.get("BUNDLE_ID") != EXPECTED[args.environment][0]:
+                    sys.exit("IPA contains Firebase config for the wrong bundle ID")
+                extension_plists = [name for name in archive.namelist()
+                                    if name.startswith("Payload/") and
+                                    name.endswith(".app/PlugIns/OneSpaceShare.appex/Info.plist")]
+                if len(extension_plists) != 1:
+                    sys.exit("IPA is missing the Share Extension")
+                extension = plistlib.loads(archive.read(extension_plists[0]))
+                if extension.get("CFBundleIdentifier") != EXPECTED[args.environment][0] + ".ShareExtension":
+                    sys.exit("Share Extension bundle ID does not match its host app")
+                if extension.get("OneSpaceShareGroup") != "group." + EXPECTED[args.environment][0]:
+                    sys.exit("Share Extension is configured for the wrong App Group")
+    verify(info, args.environment)
+
+
+if __name__ == "__main__":
+    main()
