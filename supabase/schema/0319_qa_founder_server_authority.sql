@@ -4,10 +4,6 @@
 -- Reserve app offers in server-only raw_app_meta_data; count pending offers
 -- so multiple unconfirmed signups cannot all claim the last Founder places.
 -- Existing confirmed website Founders remain eligible, including older accounts.
---
--- Recovered 26 Nov 2026 from QA supabase_migrations.schema_migrations
--- (version 20261122185726, name qa_founder_server_authority_0319): it was
--- applied to QA on 22 Nov 2026 without a schema file in the repository.
 
 create or replace function private.founder_people_count()
 returns int language sql volatile security definer set search_path to '' as $function$
