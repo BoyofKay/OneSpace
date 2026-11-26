@@ -34,13 +34,20 @@ import 'package:onespace/l10n/phrases.dart';
 /// UAT 26 Nov 2026: Activity priority and status values as words in the app language.
 class ActivityScreenWords {
   const ActivityScreenWords._();
-  static const _words = {
-    'low': 'Low', 'normal': 'Normal', 'high': 'High', 'urgent': 'Urgent',
-    'exploring': 'Exploring', 'comparing': 'Comparing', 'decided': 'Decided',
-    'purchased': 'Purchased', 'registered': 'Booked or signed up', 'completed': 'Completed',
-    'on_hold': 'On hold', 'cancelled': 'Cancelled',
+  // Own Arabic here: the shared phrase "Low" is the check-in mood («متضايق»),
+  // which is wrong for a priority (UAT round 2, 27 Nov 2026).
+  static const _words = <String, (String, String)>{
+    'low': ('Low', 'منخفضة'), 'normal': ('Normal', 'عادية'), 'high': ('High', 'عالية'),
+    'urgent': ('Urgent', 'عاجلة'), 'exploring': ('Exploring', 'استكشاف'),
+    'comparing': ('Comparing', 'مقارنة'), 'decided': ('Decided', 'تم القرار'),
+    'purchased': ('Purchased', 'تم الشراء'), 'registered': ('Booked or signed up', 'تم الحجز أو التسجيل'),
+    'completed': ('Completed', 'مكتمل'), 'on_hold': ('On hold', 'معلّق'), 'cancelled': ('Cancelled', 'ملغى'),
   };
-  static String word(String v) => tt(_words[v] ?? v.replaceAll('_', ' '));
+  static String word(String v) {
+    final w = _words[v];
+    if (w == null) return tt(v.replaceAll('_', ' '));
+    return OneSpacePhrases.arabic ? w.$2 : w.$1;
+  }
 }
 
 class ActivityScreen extends StatefulWidget {
