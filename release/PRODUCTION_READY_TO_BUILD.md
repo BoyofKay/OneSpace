@@ -1,3 +1,14 @@
+# OneSpace Production Google Play bundle — go-live 27 Nov 2026
+Signed Android AAB for live.onespace.app and Production Supabase (Frankfurt).
+
+- Source: main = approved-2026-11-27 (f9105c6, UAT round 2) + the A7 Arabic
+  word fix (41264ce, unit-tested, owner retests in the next iteration) + book.
+- Production database already has 0320–0324 (applied 27 Nov before this build).
+- Signing: OneSpace Play upload key only. Version code = workflow run number (12).
+- Owner uploads the AAB to Play Console by hand; nothing is published automatically.
+
+---
+
 # OneSpace Production Google Play upload bundle (2026-11-19)
 
 Signed Android AAB for live.onespace.app and Production Supabase.
