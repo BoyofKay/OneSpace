@@ -1,3 +1,23 @@
+# OneSpace QA — 26 Nov 2026 iteration (one APK)
+Require-Firebase-Config: true
+
+Source: main after the 26 Nov iterations (project book, section 6). QA database
+already has 0319–0322. Production untouched (0322 there since 26 Nov, D103).
+
+What to test on two phones (both accounts):
+- Arabic everywhere (switch Me → Language): no English left on screens or popups.
+- Popups and bottom sheets scroll on a small phone / large text; Quick add scrolls.
+- App stays in portrait; Today shortcuts keep their size.
+- Settings → Preferred currency: search any world currency.
+- Themes: no Eid, Ramadan or National Day; Arabesque and Desert Sand still there.
+- Counters → Timelines: create a named timeline (Shared and Only me), add/remove
+  counters, rename, delete; one counter on two timelines; Today only between
+  the first and last counter. Your old connection now appears as a timeline.
+- Closed-tester feedback (Arabic labels, support diagnostics), iOS-readiness
+  code (no iPhone build here), Founder badge rules (0318/0319).
+
+---
+
 # OneSpace QA — rebuild from current main (20 Nov 2026)
 Require-Firebase-Config: true
 
