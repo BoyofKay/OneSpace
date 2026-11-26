@@ -48,4 +48,6 @@ class OneSpaceEnv {
 
   /// Shown in Support so testers can tell the two apps apart.
   static const label = isProduction ? 'OneSpace' : 'OneSpace QA';
+  static const backendRegion = isProduction ? 'Frankfurt' : 'Seoul';
+  static const diagnosticRoundTripLabel = '$backendRegion API round trip';
 }
