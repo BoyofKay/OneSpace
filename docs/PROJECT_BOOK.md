@@ -179,7 +179,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 - QA vs Production function check (26 Nov): 16 QA functions differ only by Windows line endings (same logic); the deletion dispatcher differs only by its project URL (intended); `demo_reset` → 0320.
 
 ### Apps
-- QA APK latest: `qa-0.1.481` (22 Nov, commit `5e9303c`). Merged since: UI audit robot (#143), closed-tester feedback (26 Nov), Founder server authority (#145), iOS readiness (#134). → next QA APK after this iteration.
+- QA APK latest: `qa-0.1.482` (26 Nov, commit `de3c51d`, run 45891190056, release `qa-0.1.482`, APK 105.7 MB). Contains everything merged up to 26 Nov evening (closed-tester feedback, Founder server authority, iOS readiness, app feedback iteration, named timelines). UAT in progress (owner, UAT form artifact). Previous: `qa-0.1.481` (22 Nov, `5e9303c`).
 - Production AAB latest: 21 Nov from `a7b476c` (no Founder badge yet). Not on Play yet.
 - iOS: QA/Production TestFlight pipeline, share extension and separate identities merged 26 Nov; waiting for the Apple Developer account.
 
@@ -470,6 +470,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - **Command Center v1.5.0 (26 Nov):** Supabase plan dropdown drives all quotas (D98); Support inbox Open/Closed tabs, 10 per page (D99). Local: build OK, 243/243 tests. onespace.live "What's new" is updated when these app changes reach testers.
 - **Timelines, tickets, Zoho (26 Nov, evening):** 0321 and 0322 applied to QA and checked (a stranger sees no timelines; the ticket function refuses calls without the key and signed-in users cannot call it). App: named timelines (D100), Arabic added, flutter test 437/437. Command Center v1.6.0 deployed (Cloudflare build success 19:45 UTC): ticket outcomes (D101) and the **Zoho fix** — Zoho allows ~10 new access tokens per 10 minutes and every Overview/Systems/background read asked for one; the token (1 h) and counts (5 min) are now reused and each failure names its step. 249/249 tests.
 - Website and Command Center merged to `main` with the owner's go-ahead (no GitHub cost): onespace.live redeployed by GitHub Pages; Command Center deployed by Cloudflare Workers Builds (build 0521bfa1, success). The website's own GitHub checks and IndexNow ping could not start (billing lock).
+- **QA APK `qa-0.1.482` built (26 Nov, 20:45 UTC):** owner made BoyofKay/OneSpace public and cleared the GitHub billing lock; run 45891190056 (attempt 1 hit the billing lock → startup failure; attempt 2 success: build + publish). Release `qa-0.1.482` has `OneSpace-QA-0.1.482.apk`. Owner returns the repository to private after downloading. Next: owner UAT, then approval tag.
 
 ---
 
