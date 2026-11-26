@@ -1,0 +1,8 @@
+// Default for local iOS builds is QA. For production, run:
+// python3 tools/ios/configure_env.py production
+// Always pair the environment with --dart-define=ONESPACE_ENV=<same>.
+ONESPACE_IOS_ENV = qa
+ONESPACE_IOS_BUNDLE_ID = com.onespace.onespace.qa
+ONESPACE_AUTH_SCHEME = onespace-preview
+ONESPACE_APP_DISPLAY_NAME = OneSpace QA
+ONESPACE_SHARE_GROUP = group.com.onespace.onespace.qa
