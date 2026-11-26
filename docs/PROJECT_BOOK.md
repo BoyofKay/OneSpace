@@ -142,6 +142,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | D100 | 26 Nov 2026 | **Named counter timelines:** every timeline has a name (rename/delete); one counter can be on several timelines; private timelines hold private counters, shared ones shared counters. Database 0321 (tables counter_timelines, counter_timeline_members); old one-to-one links were moved onto timelines; `linked_counter_id` is no longer written. Counters page → Timelines; each counter shows its timelines and "Add to a timeline". | **Active** |
 | D101 | 26 Nov 2026 | **Support tickets are closed with an outcome** from the Command Center: status (New, In progress, Answered, Closed), outcome (Solved, Not a bug, Feature request, Duplicate, No reply, Other; required to close) and an internal note, saved with time and admin email and logged. The Command Center's only database change, through one key-protected function (0322; Supabase stores only the key's SHA-256). | **Active** |
 | D102 | 26 Nov 2026 | **Arabesque background and Desert Sand theme stay** (owner). | **Active** |
+| D103 | 26 Nov 2026 | **0322 (ticket outcomes) applied to Production now**, at the owner's request, ahead of go-live: it only adds fields, a log table and the key-protected function, and the app does not depend on it. Checked: recorded as a migration, 4 existing tickets untouched, signed-in users cannot call the function. 0320 and 0321 still wait for go-live with the new app. | **Active** |
 
 ### 4.2 Override index — which decision replaced which
 
@@ -174,7 +175,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 ### Databases
 - **Production** (Frankfurt): one-shot upgrade 0142–0317 applied 21 Nov (`production_upgrade_0142_0317`); Founder badge 0318 + 0319 applied 22 Nov (`production_founder_badge_server_authority_0318_0319`, file `supabase/production/founder_badge_rollout_20261122.sql`). `supabase/production/upgrade.sql` is that historical script — do not re-run it.
 - **QA** (Seoul): has everything up to 0319. 0313–0318 were applied without migration records; 0319 recorded.
-- **Pending for Production at next go-live:** `0320_qa_record_demo_reset_drift.sql` (demo couple only), `0321_qa_counter_timelines.sql` (named timelines; moves existing links) and `0322_qa_support_ticket_outcomes.sql` (ticket outcomes). 0321 and 0322 are applied and checked on QA (26 Nov).
+- **Pending for Production at next go-live:** `0320_qa_record_demo_reset_drift.sql` (demo couple only), and `0321_qa_counter_timelines.sql` (named timelines; moves existing links; applied and checked on QA 26 Nov). `0322` (ticket outcomes) is already on Production (D103).
 - QA vs Production function check (26 Nov): 16 QA functions differ only by Windows line endings (same logic); the deletion dispatcher differs only by its project URL (intended); `demo_reset` → 0320.
 
 ### Apps
@@ -196,7 +197,7 @@ The Mobile App tab then shows new installs and uninstalls (30 days) and devices 
 1. Make a long random key (at least 32 characters, e.g. from a password manager). Never paste it in chat.
 2. Cloudflare → Workers & Pages → onespace-command → Settings → Variables and Secrets → add secret **`SUPPORT_OPS_KEY_QA`** with that key.
 3. Supabase → project **OneSpace** (QA) → SQL editor → run `select private.set_support_ops_key('<the same key>');`
-4. Repeat with a different key for Production (`SUPPORT_OPS_KEY_PRODUCTION`) after 0322 reaches Production at go-live.
+4. Repeat with a different key for Production (`SUPPORT_OPS_KEY_PRODUCTION`, project OneSpace Production). Easiest: `select encode(extensions.gen_random_bytes(24), 'hex');` makes a 48-character key. QA key set 26 Nov 2026 and tested by the owner.
 
 ### Open items for the owner
 1. **GitHub account locked for a billing issue** (confirmed 26 Nov 2026: GitHub's message on the website's jobs is "The job was not started because your account is locked due to a billing issue"). Every GitHub Actions job in all three repositories is blocked, **including the public website** — so making a repository public does not help until the lock is lifted. Owner: GitHub → Settings → Billing and plans (payment method / unpaid invoice). GitHub Pages deploys and Cloudflare builds still work.
