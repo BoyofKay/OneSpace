@@ -3,11 +3,9 @@ name: Build OneSpace for iPhone (unsigned QA and Production)
 # Unsigned compile-only archives. TestFlight/IPA distribution still needs
 # Apple Developer signing, provisioning, and App Store Connect credentials.
 on:
+  # Manual only (owner decision 26 Nov 2026): macOS minutes cost ~10x Linux.
+  # Run it once per go-live, or when an iOS-specific change must be checked.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'release/READY_TO_BUILD.md'
 
 permissions:
   contents: read

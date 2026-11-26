@@ -1,11 +1,8 @@
 name: Verify QA release recovery (no APK)
 
 on:
-  push:
-    branches:
-      - qa/recover-release461-full-source-20261119
-  pull_request:
-    branches: [main]
+  # Manual only (26 Nov 2026): the QA APK release workflow already runs the
+  # analyzer and all tests, so running this on every pull request was redundant.
   workflow_dispatch:
 
 permissions:

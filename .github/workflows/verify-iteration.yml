@@ -1,12 +1,8 @@
 name: Verify OneSpace iteration (no APK or release)
 
 on:
+  # Manual only (26 Nov 2026): the R12/R13 validation markers are historical.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'validation/R12_READY_FOR_TESTS.md'
-      - 'validation/R13_VERIFY.md'
 
 permissions:
   contents: read

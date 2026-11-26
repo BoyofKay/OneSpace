@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds the one-shot Production database upgrade from the QA schema files.
 
-QA received supabase/schema/0142..0317 one at a time. Production stopped at
+QA received supabase/schema/0142..0319 one at a time. Production stopped at
 0141. This joins those files, in order, into supabase/production/upgrade.sql,
 pointing the worker schedules at the Production project instead of QA, then
 appends supabase/production/finalize.sql (existing-data move + checks).
@@ -18,7 +18,7 @@ FINALIZE = ROOT / "supabase" / "production" / "finalize.sql"
 QA_HOST = "ugwrpeduzyzrujkizqfo.supabase.co"
 PROD_HOST = "letcgxbnblohhfyeuigz.supabase.co"
 UNRECORDED = ROOT / "supabase" / "production" / "unrecorded"
-FIRST, LAST = 142, 317
+FIRST, LAST = 142, 319
 # Files whose number does not match the order QA actually received them in
 # (from QA's supabase_migrations history). Value = sort key to use instead.
 QA_ORDER = {
@@ -28,7 +28,7 @@ QA_ORDER = {
 }
 
 def files():
-    """Schema files 0142..0317 plus changes QA received without a schema file
+    """Schema files 0142..0319 plus changes QA received without a schema file
     (supabase/production/unrecorded, named so they sort into place, e.g.
     0150a_ runs after 0150_)."""
     out = []

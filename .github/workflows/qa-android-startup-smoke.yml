@@ -10,15 +10,6 @@ on:
       - 'test/android_startup_gate_test.dart'
       - 'test/android_bootstrap_black_screen_test.dart'
       - '.github/workflows/qa-android-startup-smoke.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'lib/main.dart'
-      - 'lib/core/android_startup_gate.dart'
-      - 'android/app/src/main/res/**'
-      - 'test/android_startup_gate_test.dart'
-      - 'test/android_bootstrap_black_screen_test.dart'
-      - '.github/workflows/qa-android-startup-smoke.yml'
 
 permissions:
   contents: read

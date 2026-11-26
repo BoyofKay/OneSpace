@@ -26,7 +26,7 @@ final faqEntries = <FaqEntry>[
     'نعم. متزوجًا كنت أو في علاقة أو لا، يعمل OneSpace بالكامل وأنت بمفردك. وعندما يظهر شخص مميز يمكنك دعوته؛ وحتى ذلك الحين يبقى كل شيء لك.'),
   FaqEntry(_start.$1, _start.$2,
     'How do I connect my partner?', 'كيف أربط شريكي؟',
-    'From Today, choose Invite my partner and enter their email address. Only the account with that verified email can accept. The invitation expires after 48 hours. Your partner can open the invitation in OneSpace or use its code or QR code, then accept it. Your personal content remains private.',
+    'From Today, choose Invite my partner and enter their email address. Only the account with that verified email can accept. The invitation is valid for 48 hours. Your partner can open the invitation in OneSpace or use its code or QR code, then accept it. Your personal content remains private.',
     'من «اليوم»، اختر «دعوة شريكي» وأدخل بريده الإلكتروني. لا يمكن قبول الدعوة إلا من الحساب المرتبط بذلك البريد بعد تأكيده. تنتهي صلاحية الدعوة بعد 48 ساعة. يمكن لشريكك فتح الدعوة داخل OneSpace أو استخدام رمزها أو رمز QR ثم قبولها. يبقى محتواك الشخصي خاصًا بك.'),
   FaqEntry(_start.$1, _start.$2,
     'What are the five tabs?', 'ما هي التبويبات الخمسة؟',

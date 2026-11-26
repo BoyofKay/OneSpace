@@ -4,7 +4,7 @@ on:
   push:
     # R70: also on iteration branches, so CI can verify a new package
     # before merging (the lock is committed back to the same branch).
-    branches: [main, 'r[0-9]*']
+    branches: [main]
     paths:
       - pubspec.yaml
   workflow_dispatch:
