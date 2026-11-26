@@ -1,9 +1,9 @@
 name: Compile OneSpace iOS QA and production (unsigned)
 
 # Unsigned compile-only builds of both QA and Production. macOS runners are
-# expensive in private repositories, so this runs manually, when a release is
-# marked ready, or when the iOS build files change on the iOS working branch.
-# Unsigned builds cannot be installed on iPhones. Signed TestFlight is separate.
+# expensive in private repositories, so this runs manually only.
+# Unsigned builds cannot be installed on iPhones. Signed TestFlight is separate
+# (ios-testflight.yml, also manual).
 on:
   # Manual only (owner decision 26 Nov 2026): macOS minutes cost ~10x Linux.
   # Run it once per go-live, or when an iOS-specific change must be checked.
