@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:onespace/l10n/phrases.dart';
 
 /// QA lifecycle: explicit consent UI, not an active relationship-delete action.
 /// MySpace keeps destructive CTAs disabled until the server endpoint, physical
@@ -60,7 +61,7 @@ class _RelationshipExitConfirmationState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_title),
+      title: Text(tt(_title)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -72,25 +73,19 @@ class _RelationshipExitConfirmationState
                 style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
             ],
-            const Text(
-              'This action permanently ends your current shared space. '
+            Text(tt('This action permanently ends your current shared space. '
               'All content belonging to this relationship, including shared '
               'memories, activities, photos and messages, is permanently erased. '
-              'Neither person can recover it in OneSpace.',
-            ),
+              'Neither person can recover it in OneSpace.')),
             const SizedBox(height: 12),
-            const Text(
-              'Both people keep their own private Notes, Tasks, Memories, '
+            Text(tt('Both people keep their own private Notes, Tasks, Memories, '
               'photos and other account-owned information. Your private data '
-              'will never be given to a future partner.',
-            ),
+              'will never be given to a future partner.')),
             const SizedBox(height: 12),
-            const Text(
-              'No automatic archive, export or restore is created. '
-              'Once completed, this decision cannot be reversed.',
-            ),
+            Text(tt('No automatic archive, export or restore is created. '
+              'Once completed, this decision cannot be reversed.')),
             const SizedBox(height: 16),
-            const Text('To confirm, enter the exact phrase:'),
+            Text(tt('To confirm, enter the exact phrase:')),
             const SizedBox(height: 6),
             const SelectableText(
               RelationshipExitConfirmation.requiredPhrase,
@@ -103,9 +98,9 @@ class _RelationshipExitConfirmationState
               maxLength: 64,
               autocorrect: false,
               enableSuggestions: false,
-              decoration: const InputDecoration(
-                labelText: 'Confirmation phrase',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: tt('Confirmation phrase'),
+                border: const OutlineInputBorder(),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -116,12 +111,12 @@ class _RelationshipExitConfirmationState
         TextButton(
           key: const Key('relationshipDeleteCancel'),
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(tt('Cancel')),
         ),
         FilledButton(
           key: const Key('relationshipDeleteConfirm'),
           onPressed: _matches ? () => Navigator.pop(context, true) : null,
-          child: const Text('Delete shared content permanently'),
+          child: Text(tt('Delete shared content permanently')),
         ),
       ],
     );

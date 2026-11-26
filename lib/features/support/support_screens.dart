@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 
 import '../../core/editor_scaffold.dart';
+import '../../core/app_env.dart';
 import '../../core/form_kit.dart';
 import '../../core/performance_timings.dart';
 import '../../l10n/onespace_strings.dart';
@@ -33,20 +34,25 @@ Future<String> collectDiagnostics(BuildContext context) async {
     try {
       await db.from('space_members').select('space_id').eq('user_id', id).limit(1)
           .timeout(const Duration(seconds: 12));
-      PerformanceTimings.instance.record('Seoul API round trip', sample.elapsed);
+      PerformanceTimings.instance.record(OneSpaceEnv.diagnosticRoundTripLabel, sample.elapsed);
     } catch (_) {
       PerformanceTimings.instance.record('API failed or timed out', sample.elapsed);
     }
   }
   final media = context.mounted ? MediaQuery.maybeOf(context) : null;
   return [
-    'App: OneSpace ${AppInfo.version}',
-    'Phone: ${AppInfo.platform} ${Platform.operatingSystemVersion}',
-    'Language: ${OneSpacePhrases.lang}',
-    if (media != null) 'Screen: ${media.size.width.round()}×${media.size.height.round()} · text ${media.textScaler.scale(10) / 10}x',
-    'Time zone: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? '' : '+'}${DateTime.now().timeZoneOffset.inMinutes / 60})',
+    '${tt('App')}: ${OneSpaceEnv.label} ${AppInfo.version}',
+    '${tt('Environment')}: ${tt(OneSpaceEnv.isProduction ? 'Production' : 'QA')} · ${OneSpaceEnv.backendRegion}',
+    '${tt('Phone')}: ${AppInfo.platform} ${Platform.operatingSystemVersion}',
+    '${tt('Language')}: ${OneSpacePhrases.lang}',
+    if (media != null) '${tt('Screen')}: ${media.size.width.round()}×${media.size.height.round()} · ${tt('Text size')} ${media.textScaler.scale(10) / 10}x',
+    '${tt('Time zone')}: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? '' : '+'}${DateTime.now().timeZoneOffset.inMinutes / 60})',
     '',
-    PerformanceTimings.instance.report,
+    if (PerformanceTimings.instance.measurements.value.isEmpty)
+      tt('No timings collected yet.')
+    else
+      ...PerformanceTimings.instance.measurements.value.entries.map(
+        (entry) => '${tt(entry.key)}: ${entry.value} ${tt('ms')}'),
   ].join('\n');
 }
 
