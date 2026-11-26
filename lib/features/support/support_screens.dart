@@ -45,10 +45,14 @@ Future<String> collectDiagnostics(BuildContext context) async {
     '${tt('Environment')}: ${tt(OneSpaceEnv.isProduction ? 'Production' : 'QA')} · ${OneSpaceEnv.isProduction ? 'Frankfurt' : 'Seoul'}',
     '${tt('Phone')}: ${AppInfo.platform} ${Platform.operatingSystemVersion}',
     '${tt('Language')}: ${OneSpacePhrases.lang}',
-    if (media != null) '${tt('Screen')}: ${media.size.width.round()}×${media.size.height.round()} · text ${media.textScaler.scale(10) / 10}x',
+    if (media != null) '${tt('Screen')}: ${media.size.width.round()}×${media.size.height.round()} · ${tt('Text size')} ${media.textScaler.scale(10) / 10}x',
     '${tt('Time zone')}: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? '' : '+'}${DateTime.now().timeZoneOffset.inMinutes / 60})',
     '',
-    PerformanceTimings.instance.report,
+    if (PerformanceTimings.instance.measurements.value.isEmpty)
+      tt('No timings collected yet.')
+    else
+      ...PerformanceTimings.instance.measurements.value.entries.map(
+        (entry) => '${tt(entry.key)}: ${entry.value} ${tt('ms')}'),
   ].join('\n');
 }
 
