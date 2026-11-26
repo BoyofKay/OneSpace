@@ -78,7 +78,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
     final scheme=Theme.of(ctx).colorScheme;
     return Dialog(
      shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(22)),
-     child:Padding(padding:const EdgeInsetsDirectional.fromSTEB(20,10,10,18),child:Column(
+     child:SingleChildScrollView(padding:const EdgeInsetsDirectional.fromSTEB(20,10,10,18),child:Column(
       mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
        Row(children:[
         Icon(Icons.auto_awesome,color:scheme.primary),
@@ -272,7 +272,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
    review.text=(old.firstOrNull?['review']??'').toString();
    if(!mounted)return;
    final confirm=await showDialog<bool>(context:context,builder:(ctx)=>
-    StatefulBuilder(builder:(ctx,update)=>AlertDialog(
+    StatefulBuilder(builder:(ctx,update)=>AlertDialog(scrollable:true,
      title:Text(tt('Rate ')+row['title'].toString()),
      content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       StarRating(value:rating,onChanged:(v)=>update(()=>rating=v)),
@@ -312,7 +312,7 @@ class _SharedExperiencesScreenState extends State<SharedExperiencesScreen>{
  Future<void> archiveFromList(Map<String,dynamic> row)async{
   final archived=row['archived_at']!=null;
   if(!archived){
-   final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+   final yes=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
     title:Text(tt('Remove this experience?')),
     content:Text(tt('It will move to experience history. Reviews remain saved.')),
     actions:[
@@ -873,7 +873,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
   if(!ExperienceCommentRules.canEdit(row,me))return;
   final controller=TextEditingController(text:(row['body']??'').toString());
   final next=await showDialog<String>(context:context,builder:(ctx)=>
-   AlertDialog(title:Text(tt('Edit your comment')),
+   AlertDialog(scrollable:true,title:Text(tt('Edit your comment')),
     content:TextField(controller:controller,maxLength:2000,maxLines:4,
      autofocus:true,decoration:InputDecoration(labelText:tt('Comment'))),
     actions:[
@@ -903,7 +903,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     !ExperienceCommentRules.canRetract(row,me))return;
   if(!retracted){
    final confirmed=await showDialog<bool>(context:context,builder:(ctx)=>
-    AlertDialog(title:Text(tt('Retract this comment?')),
+    AlertDialog(scrollable:true,title:Text(tt('Retract this comment?')),
      content:Text(tt('Your partner will no longer see it. You can restore it later.')),
      actions:[
       TextButton(onPressed:()=>Navigator.pop(ctx,false),child:Text(tt('Keep'))),
@@ -964,7 +964,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
     onTap:retracted?null:()=>setState(()=>replyingTo=x),
     onLongPress:()async{
      final action=await showModalBottomSheet<String>(context:context,showDragHandle:true,
-      builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,children:[
+      builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
        if(!retracted)ListTile(leading:const Icon(Icons.reply_outlined),title:Text(tt('Reply')),
         onTap:()=>Navigator.pop(ctx,'reply')),
        if(!retracted)ListTile(leading:const Icon(Icons.copy_outlined),title:Text(tt('Copy message')),
@@ -974,7 +974,7 @@ class _ExperienceDetailState extends State<ExperienceDetail>{
        if(ExperienceCommentRules.isAuthor(x,myId))ListTile(
         leading:Icon(retracted?MenuIcons.restore:MenuIcons.remove),
         title:Text(tt(retracted?'Restore':'Remove')),onTap:()=>Navigator.pop(ctx,'archive')),
-      ])));
+      ]))));
      if(!mounted)return;
      if(action=='reply'){setState(()=>replyingTo=x);}
      else if(action=='copy'){await Clipboard.setData(ClipboardData(text:(x['body']??'').toString()));}

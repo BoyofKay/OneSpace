@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:onespace/core/world_currencies.dart';
 import 'change_password_screen.dart';
 import '../spaces/my_space_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../l10n/onespace_locale_controller.dart';
 import '../../core/preferred_currency.dart';
+import '../../core/form_kit.dart';
 import '../../l10n/onespace_strings.dart';
 import '../../core/device_time_zone.dart';
 import '../../core/device_weather_service.dart';
@@ -29,7 +31,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   bool _loading = true;
   bool _saving = false;
   String _language = 'en';
-  String _currency = 'SAR';
+  String _currency = 'USD';
   String? _timeZone;
   bool _shareCityWeather = false;
   bool _weatherBusy = false;
@@ -260,18 +262,18 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
         const SizedBox(height:16),
         // R69: the currency every money field starts with.
-        DropdownButtonFormField<String>(
+        // 26 Nov 2026: every world currency, searchable (was 15 regional choices).
+        ChoicePickerField<String>(
           key: ValueKey('currency-$_currency'),
-          initialValue: PreferredCurrency.choices.containsKey(_currency) ? _currency : null,
-          isExpanded: true,
-          decoration: InputDecoration(labelText: tt('Preferred currency'),
-            prefixIcon: const Icon(Icons.payments_outlined),
-            helperText: tt('Budgets, prices and costs start with this currency.'),
-            border: const OutlineInputBorder()),
-          items: [for (final e in PreferredCurrency.choices.entries)
-            DropdownMenuItem(value: e.key, child: Text(tt(e.value)))],
-          onChanged: (value) { if (value != null) setState(() => _currency = value); },
+          label: tt('Preferred currency'),
+          icon: Icons.payments_outlined,
+          options: PreferredCurrency.choices(OneSpacePhrases.lang),
+          selected: worldCurrencies.containsKey(_currency) ? _currency : null,
+          onSelected: (value) { if (value != null) setState(() => _currency = value); },
         ),
+        Padding(padding: const EdgeInsets.only(top: 4, left: 12),
+          child: Text(tt('Budgets, prices and costs start with this currency.'),
+            style: Theme.of(context).textTheme.bodySmall)),
         const SizedBox(height:12),
         ],
         if(widget.section=='labels')...[

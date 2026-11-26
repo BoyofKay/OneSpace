@@ -132,6 +132,11 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | D90 | 26 Nov 2026 | **One project book** (this file) replaces all separate project documents in the three repositories; every iteration updates it; old decisions are marked overridden, never deleted. | **Active** |
 | D91 | 26 Nov 2026 | **Every database change is a file first.** Reaffirms the 17 Nov lesson after two violations were found: 0319 (applied to QA 22 Nov, file only on an unmerged branch) and an undocumented QA edit of `demo_reset` (recorded as 0320). | **Active** |
 | D92 | 26 Nov 2026 | **Repository visibility:** app and Command Center private; website public (GitHub Pages). Only the owner changes visibility. | **Active** |
+| D93 | 26 Nov 2026 | **Portrait only** on Android and iOS, phones and tablets (Android manifest + Android 16 large-screen opt-out, iPad portrait + full screen, Flutter preferred orientations). Landscape layout work is not needed while this holds; Today shortcuts and Quick add were still made width-safe. | **Active** |
+| D94 | 26 Nov 2026 | **Global app: no regional themes.** Eid, Ramadan and Saudi National Day seasonal themes removed; Eid and Ramadan scrapbook designs no longer offered (existing scrapbooks keep their look). Country holiday calendars stay, because each person chooses their own countries. | **Active** |
+| D95 | 26 Nov 2026 | **Preferred currency: every world currency** (about 150, searchable, named in English and Arabic). New accounts start with US dollar (was Saudi riyal). | **Active** |
+| D96 | 26 Nov 2026 | **Connected counters:** any number of counters on one timeline, on its own page, with the time between each pair of neighbouring points; "Today" appears only when it falls between the first and last point; a counter can be removed from a timeline without disconnecting the others. Storage unchanged (`linked_counter_id`); only counters in the same space can be connected. | **Active** |
+| D97 | 26 Nov 2026 | **Arabic is complete and kept complete:** every text passed to `tt()` must have Arabic; `test/arabic_coverage_test.dart` fails otherwise. All popups and bottom sheets scroll. | **Active** |
 
 ### 4.2 Override index — which decision replaced which
 
@@ -141,6 +146,9 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | Working agreement: "one branch and one PR per iteration (`rNN-…`)", "Ahmed approves merges to `main`" | 15 Nov | D86, D87 | 26 Nov | One working branch per iteration merged by the assistant at "done"; the owner approves through UAT. |
 | Working agreement: "workflow *Verify OneSpace iteration* must pass on the branch" | 15 Nov | D88 | 26 Nov | Tests run locally; the QA release workflow is the gate. |
 | D21 tagline "Two of us, One Space" | 15 Nov | D83 | 20 Nov | Exact "Two of Us. One Space." |
+| Seasonal themes incl. Eid, Ramadan and Saudi National Day (R64) | 15 Nov | D94 | 26 Nov | Regional themes removed (global app). |
+| R69 currency list "region's first" (15 choices, SAR default) | 16 Nov | D95 | 26 Nov | All world currencies; USD default. |
+| R78 "Link to another counter" (one pair, line shows Today always) | 16 Nov | D96 | 26 Nov | Any number on a timeline page; Today only in between. |
 | D47 account deletion keeps shared items for the partner | 15 Nov | ADR-2026-11-20 | 20 Nov | Shared content of that couple is deleted; the partner keeps only their private content. |
 | D8 shared memories "Remove (restorable)" — as applied to separation | 15 Nov | ADR-2026-11-20 | 20 Nov | Ending a relationship permanently erases shared content (item-level Remove/Restore still exists). |
 | D64 (R74) Google/Apple sign-in for testers | 16 Nov | D82 | 21–22 Nov | Email and password only (buttons stay off). |
@@ -445,6 +453,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - Workflow triggers reduced (D88). Founder backend moved to the private repository (D89). All documents merged into this book (D90).
 - Local results: app `flutter test` 427/427, iOS tool checks 11/11, Command Center build + 218/218 tests, website 6/6 checks.
 - **Command Center feedback (26 Nov, later):** "See the inbox" button for Zoho Mail; service cards and Systems rows coloured by status; sidebar badges for Website, Founder Outreach and Systems load in the background; the Firebase "Reported dates in window" tile (always 7, because Firebase always answers with a 7-day window) became "Days with counts", saying how many days Firebase hid for privacy; Website page visits now come from the Command Center's own GoatCounter reading (the Production report showed 0 while other figures were filled); one Reload refreshes every panel on Communications and Mobile App (per-panel buttons removed, "Updated hh:mm" shown); Support inbox (up to 200) and access log paginated, 8 per page; Systems rows updated (iOS, closed testing, repositories, Founder backend location, email-only sign-in) plus new rows "GitHub Actions builds" and "Google Play reports"; Google Play installs reader built (needs the 3 steps above). Local: build OK, 238/238 tests.
+- **App feedback iteration (26 Nov):** portrait lock (D93), all world currencies (D95), regional themes removed (D94), connected counters timeline (D96), 166 missing Arabic texts added plus a coverage test (D97), 46 dialogs and 14 bottom sheets made scrollable, Quick add scrolls, Today shortcuts keep a phone-like size on wide screens. Local: flutter analyze no errors/warnings, flutter test 439/439, iOS checks 11/11. Not built: QA APK waits for the GitHub billing lock and the owner's go.
 - Website and Command Center merged to `main` with the owner's go-ahead (no GitHub cost): onespace.live redeployed by GitHub Pages; Command Center deployed by Cloudflare Workers Builds (build 0521bfa1, success). The website's own GitHub checks and IndexNow ping could not start (billing lock).
 
 ---

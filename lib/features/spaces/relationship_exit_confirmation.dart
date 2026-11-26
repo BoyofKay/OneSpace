@@ -60,7 +60,7 @@ class _RelationshipExitConfirmationState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AlertDialog(scrollable:true,
       title: Text(tt(_title)),
       content: SingleChildScrollView(
         child: Column(

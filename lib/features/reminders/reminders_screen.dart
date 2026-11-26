@@ -155,7 +155,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
  }
  Future<String?> notesPrompt(String type)async{
   final input=TextEditingController();
-  final answer=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(
+  final answer=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
    title:Text(tt(type=='done'?tt('Mark job done'):tt('Needs follow-up'))),
    content:TextField(controller:input,maxLength:1200,maxLines:4,minLines:2,
     autofocus:true,decoration:InputDecoration(
@@ -171,7 +171,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
  }
  Future<DateTime?> chooseSnooze()async{
   final answer=await showModalBottomSheet<String>(context:context,
-   showDragHandle:true,builder:(ctx)=>SafeArea(child:Column(
+   showDragHandle:true,builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Column(
     mainAxisSize:MainAxisSize.min,children:[
      ListTile(title:Text(tt('Snooze until…')),
        subtitle:Text(tt('Your choice will be visible in a shared reminder.'))),
@@ -184,7 +184,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
      ListTile(leading:const Icon(Icons.edit_calendar_outlined),
       title:Text(tt('Choose a date and time')),
       onTap:()=>Navigator.pop(ctx,'custom')),
-    ])));
+    ]))));
   if(answer==null)return null;
   final now=DateTime.now();
   if(answer=='today'){
@@ -240,7 +240,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
  Future<void> archive(Map<String,dynamic> r)async{
   if(busy||r['created_by']!=me)return;
   final isArchived=r['archived_at']!=null;
-  final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+  final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
    title:Text(tt(isArchived?tt('Restore reminder?'):tt('Remove reminder?'))),
    content:Text(tt('The reminder and its outcome history stay saved.')),
    actions:[

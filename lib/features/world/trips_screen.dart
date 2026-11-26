@@ -568,7 +568,7 @@ class _TripDetailState extends State<TripDetail>{
  Future<void> setTripRemoved()async{
   final t=trip;if(t==null)return;
   if(t['archived_at']==null){
-   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+   final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
     title:Text(tt('Remove this trip?')),
     content:Text(tt('It moves to Removed. You can restore it from the filter anytime.')),
     actions:[

@@ -64,8 +64,6 @@ class _AtmospherePainter extends CustomPainter{
     case SeasonChoice.winter:
     case SeasonChoice.christmas:
      _snowflake(canvas,center,5+(i%4)*2,paint);
-    case SeasonChoice.eid:
-     _moon(canvas,center,5+(i%4)*2,paint);
     case SeasonChoice.birthday:
     case SeasonChoice.newYear:
      _flower(canvas,center,5+(i%4)*2,paint);
@@ -73,12 +71,6 @@ class _AtmospherePainter extends CustomPainter{
      _heart(canvas,center,5+(i%4)*2,paint);
     case SeasonChoice.thanksgiving:
      _flower(canvas,center,5+(i%4)*2,paint);
-    case SeasonChoice.ramadan:
-     if(i%3==0){_lantern(canvas,center,5+(i%4)*2,paint);}
-     else if(i%3==1){_moon(canvas,center,4+(i%4)*2,paint);}
-     else{_star(canvas,center,3+(i%3)*1.5,paint);}
-    case SeasonChoice.nationalDay:
-     if(i%2==0){_palm(canvas,center,6+(i%4)*2,paint);}else{_star8(canvas,center,4+(i%3)*2,paint);}
     case SeasonChoice.off:
     case SeasonChoice.automatic:
      break;
@@ -149,24 +141,6 @@ class _AtmospherePainter extends CustomPainter{
     if(k==0){p.moveTo(pt.dx,pt.dy);}else{p.lineTo(pt.dx,pt.dy);}
    }
    canvas.drawPath(p..close(),paint);
-  }
- }
- void _lantern(Canvas canvas,Offset c,double r,Paint paint){
-  canvas.drawLine(Offset(c.dx,c.dy-r*2.2),Offset(c.dx,c.dy-r*1.2),paint);
-  final body=Path()..moveTo(c.dx-r*.5,c.dy-r*1.2)..lineTo(c.dx+r*.5,c.dy-r*1.2)
-   ..lineTo(c.dx+r*.8,c.dy)..lineTo(c.dx+r*.5,c.dy+r*1.2)..lineTo(c.dx-r*.5,c.dy+r*1.2)
-   ..lineTo(c.dx-r*.8,c.dy)..close();
-  canvas.drawPath(body,paint);
-  canvas.drawLine(Offset(c.dx-r*.8,c.dy),Offset(c.dx+r*.8,c.dy),paint);
- }
- void _palm(Canvas canvas,Offset c,double r,Paint paint){
-  canvas.drawLine(Offset(c.dx,c.dy+r*1.6),Offset(c.dx,c.dy-r*.2),paint);
-  for(var k=0;k<5;k++){
-   final a=math.pi+k*math.pi/4;
-   final end=Offset(c.dx+math.cos(a)*r*1.3,c.dy-r*.2+math.sin(a)*r*.9);
-   final path=Path()..moveTo(c.dx,c.dy-r*.2)
-    ..quadraticBezierTo((c.dx+end.dx)/2,c.dy-r*1.1,end.dx,end.dy);
-   canvas.drawPath(path,paint);
   }
  }
  void _heart(Canvas canvas,Offset center,double size,Paint paint){

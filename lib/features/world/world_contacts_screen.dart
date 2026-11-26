@@ -146,7 +146,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  }
  Future<void> removal(WorldContactEntry item,bool remove)async{
    final confirm=await showDialog<bool>(context:context,builder:(ctx)=>
-     AlertDialog(
+     AlertDialog(scrollable:true,
        title:Text(tt(remove?tt('Move contact to Recently deleted?'):tt('Restore contact?'))),
        content:Text(tt(remove
          ?'This contact is recoverable. The original data and edit history '

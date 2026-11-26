@@ -22,22 +22,20 @@ class AppearanceSettingsScreen extends StatelessWidget{
    SeasonChoice.off=>'themeOff',SeasonChoice.automatic=>'themeAutomatic',
    SeasonChoice.valentines=>'themeValentine',SeasonChoice.spring=>'themeSpring',
    SeasonChoice.halloween=>'themeHalloween',SeasonChoice.winter=>'themeWinter',
-   SeasonChoice.eid=>'themeEid',SeasonChoice.birthday=>'themeBirthday',
+   SeasonChoice.birthday=>'themeBirthday',
    SeasonChoice.anniversary=>'themeAnniversary',
    SeasonChoice.thanksgiving=>'themeThanksgiving',
    SeasonChoice.christmas=>'themeChristmas',SeasonChoice.newYear=>'themeNewYear',
-   _=>null,
   };
-  return key==null?tt(OneSpaceAppearance.seasonName(s)):tr(context,key);
+  return tr(context,key);
  }
  static IconData seasonIcon(SeasonChoice s)=>switch(s){
   SeasonChoice.off=>Icons.block,SeasonChoice.automatic=>Icons.event_repeat,
   SeasonChoice.valentines=>Icons.favorite_outline,SeasonChoice.spring=>Icons.local_florist_outlined,
   SeasonChoice.halloween=>Icons.nights_stay_outlined,SeasonChoice.winter=>Icons.ac_unit,
-  SeasonChoice.eid=>Icons.mosque_outlined,SeasonChoice.birthday=>Icons.cake_outlined,
+  SeasonChoice.birthday=>Icons.cake_outlined,
   SeasonChoice.anniversary=>Icons.favorite,SeasonChoice.thanksgiving=>Icons.eco_outlined,
   SeasonChoice.christmas=>Icons.park_outlined,SeasonChoice.newYear=>Icons.celebration_outlined,
-  SeasonChoice.ramadan=>Icons.dark_mode_outlined,SeasonChoice.nationalDay=>Icons.flag_outlined,
  };
  static IconData backgroundIcon(BackgroundStyle b)=>switch(b){
   BackgroundStyle.calm=>Icons.blur_circular,BackgroundStyle.hearts=>Icons.favorite_border,
@@ -157,14 +155,11 @@ class SeasonalThemePreview extends StatelessWidget{
      SeasonChoice.spring=>(Icons.local_florist_outlined,'A fresh chapter','Small moments, new memories'),
      SeasonChoice.halloween=>(Icons.nights_stay_outlined,'Spooky season','Make room for playful memories'),
      SeasonChoice.winter=>(Icons.ac_unit_rounded,'Warm wishes','Celebrate your moments together'),
-     SeasonChoice.eid=>(Icons.nights_stay_rounded,'Eid Mubarak','A beautiful season of togetherness'),
      SeasonChoice.birthday=>(Icons.cake_outlined,'Happy birthday!','Make the day feel extraordinary'),
      SeasonChoice.anniversary=>(Icons.favorite_rounded,'Another chapter together','Celebrate your story'),
      SeasonChoice.thanksgiving=>(Icons.local_florist_outlined,'A grateful season','Celebrate what matters'),
      SeasonChoice.christmas=>(Icons.auto_awesome_outlined,'Christmas glow','Warm moments across the miles'),
      SeasonChoice.newYear=>(Icons.celebration_outlined,'A new chapter','Dream together, begin together'),
-     SeasonChoice.ramadan=>(Icons.dark_mode_outlined,'Ramadan Kareem','Peaceful nights and shared iftars'),
-     SeasonChoice.nationalDay=>(Icons.flag_outlined,'Happy National Day','Proud moments, together'),
      _=>(Icons.palette_outlined,'Your OneSpace',OneSpaceBrand.tagline),
     };
     final reduced=MediaQuery.disableAnimationsOf(ctx);

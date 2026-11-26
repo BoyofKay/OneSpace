@@ -421,7 +421,7 @@ class _CheckinsScreenState extends State<CheckinsScreen> with SingleTickerProvid
                      selectedIcon:Icon(_ackIcon(entry.key,true),
                       color:Theme.of(context).colorScheme.primary),
                      onPressed:_ackBusy?null:()async{
-                      final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+                      final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
                        icon:Icon(_ackIcon(entry.key,true)),
                        title:Text(tt(entry.value)),
                        content:Text(tt('Send this to your partner?')),

@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum OneSpacePalette { midnightBlue, monochrome, cleanLight, softRose, oneSpace, oceanTeal, sageGarden, lavenderDusk, desertSand }
 /// R64: the background pattern behind every screen (seasons override it while active).
 enum BackgroundStyle { calm, hearts, stars, waves, pattern, plain }
-enum SeasonChoice { off, automatic, valentines, spring, halloween, winter, eid, birthday, anniversary, thanksgiving, christmas, newYear, ramadan, nationalDay }
+/// 26 Nov 2026 (global app): Eid, Ramadan and Saudi National Day themes removed; a saved
+/// choice of one of them falls back to Automatic when the app loads.
+enum SeasonChoice { off, automatic, valentines, spring, halloween, winter, birthday, anniversary, thanksgiving, christmas, newYear }
 
 class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
  OneSpaceAppearance._(){WidgetsBinding.instance.addObserver(this);}
@@ -126,14 +128,11 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.spring=>'Spring',
   SeasonChoice.halloween=>'Halloween',
   SeasonChoice.winter=>'Winter celebrations',
-  SeasonChoice.eid=>'Eid celebration',
   SeasonChoice.birthday=>'Birthday celebration',
   SeasonChoice.anniversary=>'Anniversary',
   SeasonChoice.thanksgiving=>'Thanksgiving',
   SeasonChoice.christmas=>'Christmas',
   SeasonChoice.newYear=>'New Year',
-  SeasonChoice.ramadan=>'Ramadan',
-  SeasonChoice.nationalDay=>'Saudi National Day',
  };
  static SeasonChoice effectiveSeason(SeasonChoice setting,DateTime date,
    {SeasonChoice? personal}){
@@ -163,14 +162,11 @@ class OneSpaceAppearance extends ChangeNotifier with WidgetsBindingObserver {
   SeasonChoice.spring=>const Color(0xFF4F9A74),
   SeasonChoice.halloween=>const Color(0xFFBD7134),
   SeasonChoice.winter=>const Color(0xFF567BA6),
-  SeasonChoice.eid=>const Color(0xFF328F78),
   SeasonChoice.birthday=>const Color(0xFF9A54BE),
   SeasonChoice.anniversary=>const Color(0xFFB84677),
   SeasonChoice.thanksgiving=>const Color(0xFFB4783F),
   SeasonChoice.christmas=>const Color(0xFF2D8659),
   SeasonChoice.newYear=>const Color(0xFFAD8E46),
-  SeasonChoice.ramadan=>const Color(0xFF7A5BA6),
-  SeasonChoice.nationalDay=>const Color(0xFF1F8A55),
   _=>null,
  };
 }

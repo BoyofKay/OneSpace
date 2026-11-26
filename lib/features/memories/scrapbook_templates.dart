@@ -3,7 +3,8 @@ import 'package:material_ui/material_ui.dart';
 /// All templates are entirely local assets: no remote theme service and
 /// no technology-heavy design customization required from either partner.
 ///
-/// R70: 22 designs. [layout] says how the photos sit on the page:
+/// R70: 22 designs; 20 offered since 26 Nov 2026 (global app: the Eid and Ramadan
+/// designs are retired but still render scrapbooks that already use them). [layout] says how the photos sit on the page:
 /// pair_tilted · hero_two · left_three · two_top_one · grid4 · strip4 ·
 /// single · miles_apart · hero_three · postcard.
 class ScrapbookDesign{
@@ -75,12 +76,6 @@ class ScrapbookTemplates {
   ScrapbookDesign(key:'birthday_bash',name:'Birthday Bash',group:'Celebrations',
    subtitle:'Confetti, candles and four photos',layout:'grid4',
    photoCount:4,paper:Color(0xFFFFF4FA),ink:Color(0xFF4A2E46),accent:Color(0xFFD25FA4),icon:Icons.cake_outlined),
-  ScrapbookDesign(key:'eid_joy',name:'Eid Joy',group:'Celebrations',
-   subtitle:'Green and gold for Eid mornings',layout:'hero_three',
-   photoCount:3,paper:Color(0xFFF1F7F0),ink:Color(0xFF1F4228),accent:Color(0xFFB8963E),icon:Icons.mosque_outlined),
-  ScrapbookDesign(key:'ramadan_nights',name:'Ramadan Nights',group:'Celebrations',
-   subtitle:'Lanterns and a crescent moon for iftar memories',layout:'pair_tilted',dark:true,
-   photoCount:2,paper:Color(0xFF14213D),ink:Color(0xFFF3E9D2),accent:Color(0xFFF2C14E),icon:Icons.nights_stay_outlined),
   ScrapbookDesign(key:'milestone_story',name:'Milestone Story',group:'Celebrations',
    subtitle:'A dramatic timeline for life-changing days',layout:'two_top_one',
    photoCount:3,paper:Color(0xFFECEEF5),ink:Color(0xFF272E4B),accent:Color(0xFF7179C3),icon:Icons.celebration_outlined),
@@ -92,9 +87,19 @@ class ScrapbookTemplates {
    subtitle:'Winter, spring, summer, autumn: one photo each',layout:'grid4',
    photoCount:4,paper:Color(0xFFF2F7F1),ink:Color(0xFF2C3E2D),accent:Color(0xFF6A994E),icon:Icons.eco_outlined),
  ];
+ /// Not offered for new scrapbooks; kept so existing ones keep their look.
+ static const retiredDesigns=<ScrapbookDesign>[
+  ScrapbookDesign(key:'eid_joy',name:'Eid Joy',group:'Celebrations',
+   subtitle:'Green and gold for Eid mornings',layout:'hero_three',
+   photoCount:3,paper:Color(0xFFF1F7F0),ink:Color(0xFF1F4228),accent:Color(0xFFB8963E),icon:Icons.mosque_outlined),
+  ScrapbookDesign(key:'ramadan_nights',name:'Ramadan Nights',group:'Celebrations',
+   subtitle:'Lanterns and a crescent moon for iftar memories',layout:'pair_tilted',dark:true,
+   photoCount:2,paper:Color(0xFF14213D),ink:Color(0xFFF3E9D2),accent:Color(0xFFF2C14E),icon:Icons.nights_stay_outlined),
+ ];
  static List<String> get groups=>[for(final d in designs)d.group].toSet().toList();
  static ScrapbookDesign get(String? key){
   for(final d in designs){if(d.key==key)return d;}
+  for(final d in retiredDesigns){if(d.key==key)return d;}
   return designs.first;
  }
  static String? validateTitle(String title){

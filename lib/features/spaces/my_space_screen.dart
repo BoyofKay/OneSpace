@@ -108,7 +108,7 @@ class _MySpaceScreenState extends State<MySpaceScreen> {
         job['requested_by_me'] != true) return;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AlertDialog(scrollable:true,
         title: Text(tt('Cancel previous preparation request?')),
         content: Text(tt('This request was created under the old '
           'non-destructive archive policy. No partner has been removed '

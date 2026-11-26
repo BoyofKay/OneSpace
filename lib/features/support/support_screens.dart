@@ -60,7 +60,7 @@ Future<String> collectDiagnostics(BuildContext context) async {
 Future<void> showTroubleshooting(BuildContext context) async {
   final report = await collectDiagnostics(context);
   if (!context.mounted) return;
-  await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+  await showDialog<void>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
     title: Text(tt('Troubleshooting')),
     content: SingleChildScrollView(child: SelectableText(report)),
     actions: [
@@ -196,7 +196,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
           'p_diagnostics': details == null ? null : (details.length > 4000 ? details.substring(0, 4000) : details),
         });
         if (!mounted) return;
-        await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+        await showDialog<void>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
           icon: const Icon(Icons.favorite_outline),
           title: Text(tt('Thank you — we got it')),
           content: Text(tt('We will reply to {} as soon as we can.').replaceFirst('{}', mail)),
@@ -217,7 +217,7 @@ class _SupportFormScreenState extends State<SupportFormScreen> {
         if (shotPath != null) 'screenshot_path': shotPath,
       });
       if (!mounted) return;
-      await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+      await showDialog<void>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
         icon: const Icon(Icons.favorite_outline),
         title: Text(tt('Thank you — we got it')),
         content: Text(tt(issue

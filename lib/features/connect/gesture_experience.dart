@@ -156,7 +156,7 @@ class GestureNotificationDialog {
        .eq('id',gestureId).single();
      if(!context.mounted)return;
      final theme=GestureTheme.forKind(row['kind']?.toString());
-     await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+     await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(scrollable:true,
        icon:CircleAvatar(radius:34,
          backgroundColor:theme.color.withValues(alpha:.16),
          child:GestureKindSymbol(kind:row['kind']?.toString(),size:36,color:theme.color)),

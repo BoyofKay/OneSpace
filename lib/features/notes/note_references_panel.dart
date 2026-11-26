@@ -56,7 +56,7 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
   if(busy||!widget.canEdit)return;
   final kind=await showModalBottomSheet<String>(
    context:context,showDragHandle:true,
-   builder:(ctx)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,
+   builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,
     children:[
      Padding(padding:const EdgeInsets.all(12),
       child:Text(tt('Link something in OneSpace'),
@@ -70,7 +70,7 @@ class _NoteReferencesPanelState extends State<NoteReferencesPanel>{
         _=>Icons.movie_filter_outlined,
        }),
        onTap:()=>Navigator.pop(ctx,entry.key)),
-    ])));
+    ]))));
   if(kind==null||!mounted)return;
   final table=NoteReferenceRules.table(kind);
   if(table==null)return;

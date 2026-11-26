@@ -560,7 +560,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// R53: the event's Linked items, in a small sheet (tap opens, long-press unlinks).
   Future<void> _showLinked(Map<String,dynamic> event)=>showModalBottomSheet<void>(
     context:context,showDragHandle:true,
-    builder:(ctx)=>SafeArea(child:Padding(
+    builder:(ctx)=>SafeArea(child:SingleChildScrollView(child:Padding(
       padding:const EdgeInsetsDirectional.fromSTEB(16,0,16,20),
       child:Column(mainAxisSize:MainAxisSize.min,
         crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -571,7 +571,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         const SizedBox(height:6),
         Text(tt('Nothing shows here until something is linked, for example with Create from this.'),
           style:Theme.of(ctx).textTheme.bodySmall),
-      ]))));
+      ])))));
 
   Future<void> _emailEvent(Map<String,dynamic> event) async {
     final title=event['title']?.toString()??'Calendar event';

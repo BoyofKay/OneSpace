@@ -50,7 +50,7 @@ class WhatsNew {
     final ar = OneSpacePhrases.arabic;
     return showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (ctx) {
       final theme = Theme.of(ctx);
-      return SafeArea(child: Padding(
+      return SafeArea(child: SingleChildScrollView(child:Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(ar ? 'ما الجديد' : "What's new", style: theme.textTheme.headlineSmall),
@@ -70,7 +70,7 @@ class WhatsNew {
           SizedBox(width: double.infinity, child: FilledButton(
             onPressed: () => Navigator.pop(ctx), child: Text(ar ? 'رائع' : 'Got it'))),
         ]),
-      ));
+      )));
     });
   }
 }

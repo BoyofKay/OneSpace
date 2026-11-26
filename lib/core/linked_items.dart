@@ -115,7 +115,7 @@ class LinkedItemsStripState extends State<LinkedItemsStrip> {
         content: Text(tt('This link is part of the reminder itself. Edit the reminder to change it.'))));
       return;
     }
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
       title: Text(tt('Unlink?')),
       content: Text('"${item.title}" ${tt('stays as it is; only the link is removed.')}'),
       actions: [
@@ -240,13 +240,13 @@ Future<void> createFromThis(BuildContext context, {required LinkKind kind,
     DateTime? date, bool shared = true, VoidCallback? onLinked}) async {
   final action = await showModalBottomSheet<CreateFromAction>(
     context: context, showDragHandle: true,
-    builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    builder: (ctx) => SafeArea(child: SingleChildScrollView(child:Column(mainAxisSize: MainAxisSize.min, children: [
       ListTile(title: Text('${tt('Create from')} "$title"', maxLines: 1, overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontWeight: FontWeight.w700))),
       for (final a in CreateFromAction.forKind(kind)) ListTile(
         leading: Icon(a.icon), title: Text(tt(a.label)), onTap: () => Navigator.pop(ctx, a)),
       const SizedBox(height: 8),
-    ])));
+    ]))));
   if (action == null || !context.mounted) return;
   final db = Supabase.instance.client;
   Future<void> link(LinkKind to, String toId) async {

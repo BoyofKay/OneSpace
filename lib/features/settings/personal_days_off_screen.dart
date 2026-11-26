@@ -112,7 +112,7 @@ class _PersonalDaysOffScreenState extends State<PersonalDaysOffScreen>{
  }
  Future<void> _remove(Map<String,dynamic> row)async{
    final yes=await showDialog<bool>(context:context,builder:(ctx)=>
-     AlertDialog(title:Text(tt('Remove this day off?')),
+     AlertDialog(scrollable:true,title:Text(tt('Remove this day off?')),
        content:Text(tt('Your usual schedule will apply again.')),
        actions:[
          TextButton(onPressed:()=>Navigator.pop(ctx,false),

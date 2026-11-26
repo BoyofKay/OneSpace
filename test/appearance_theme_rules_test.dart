@@ -41,9 +41,11 @@ void main(){
   expect(ordinary.cardTheme.color,isNot(holiday.cardTheme.color));
   expect(holiday.extension<OneSpaceVisualTokens>(),isNotNull);
  });
- test('Manual Eid or anniversary theme does not infer a lunar date',(){
-  expect(OneSpaceAppearance.effectiveSeason(
-   SeasonChoice.eid,DateTime(2027,6,8)),SeasonChoice.eid);
+ test('Global app: no Eid, Ramadan or national-day themes (26 Nov 2026)',(){
+  final names=SeasonChoice.values.map((s)=>s.name).toSet();
+  expect(names.intersection({'eid','ramadan','nationalDay'}),isEmpty);
+ });
+ test('Manual anniversary theme is kept on any date',(){
   expect(OneSpaceAppearance.effectiveSeason(
    SeasonChoice.anniversary,DateTime(2027,4,23)),SeasonChoice.anniversary);
  });

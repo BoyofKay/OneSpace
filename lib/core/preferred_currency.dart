@@ -1,26 +1,28 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'world_currencies.dart';
+
 /// R69: each person's preferred currency (Settings › Language and currency).
 /// It is the starting value of every money field: budgets, prices, costs.
 class PreferredCurrency {
   PreferredCurrency._();
 
-  /// Common choices, the region's first.
-  static const choices = <String, String>{
-    'SAR': 'Saudi riyal (SAR)', 'USD': 'US dollar (USD)', 'EGP': 'Egyptian pound (EGP)',
-    'AED': 'UAE dirham (AED)', 'KWD': 'Kuwaiti dinar (KWD)', 'QAR': 'Qatari riyal (QAR)',
-    'BHD': 'Bahraini dinar (BHD)', 'OMR': 'Omani rial (OMR)', 'JOD': 'Jordanian dinar (JOD)',
-    'EUR': 'Euro (EUR)', 'GBP': 'British pound (GBP)', 'CAD': 'Canadian dollar (CAD)',
-    'AUD': 'Australian dollar (AUD)', 'TRY': 'Turkish lira (TRY)', 'INR': 'Indian rupee (INR)',
-  };
+  /// Every circulating currency (26 Nov 2026: the app is global), named in the
+  /// app language and sorted by that name; the code is shown after it.
+  static Map<String, String> choices([String language = 'en']) {
+    final list = worldCurrencies.entries.toList()
+      ..sort((a, b) => (language == 'ar' ? a.value.$2 : a.value.$1)
+          .compareTo(language == 'ar' ? b.value.$2 : b.value.$1));
+    return {for (final e in list) e.key: '${language == 'ar' ? e.value.$2 : e.value.$1} (${e.key})'};
+  }
 
-  static String _code = 'SAR';
+  static String _code = 'USD';
   static bool _loaded = false;
 
-  /// The currency to start money fields with (SAR until loaded).
+  /// The currency to start money fields with (USD until loaded; global app since 26 Nov 2026).
   static String get code => _code;
 
-  /// Loads the saved choice once (falls back to SAR).
+  /// Loads the saved choice once (falls back to USD).
   static Future<String> load() async {
     if (_loaded) return _code;
     try {
@@ -47,7 +49,7 @@ class PreferredCurrency {
 
   /// Forget the cache (sign-out).
   static void reset() {
-    _code = 'SAR';
+    _code = 'USD';
     _loaded = false;
   }
 }

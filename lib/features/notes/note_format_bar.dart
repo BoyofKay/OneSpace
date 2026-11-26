@@ -48,7 +48,7 @@ class NoteFormatBar extends StatelessWidget {
   Future<void> _pickColour(BuildContext context, {required bool highlight}) async {
     final options = highlight ? highlights : colours;
     final picked = await showModalBottomSheet<String>(context: context, showDragHandle: true,
-      builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      builder: (ctx) => SafeArea(child: SingleChildScrollView(child:Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(tt(highlight ? 'Highlight the selected text' : 'Colour the selected text'),
             style: Theme.of(ctx).textTheme.titleMedium),
@@ -70,7 +70,7 @@ class NoteFormatBar extends StatelessWidget {
                 Text(tt('None'), style: Theme.of(ctx).textTheme.labelSmall),
               ])),
           ]),
-        ]))));
+        ])))));
     if (picked == null) return;
     final a = highlight ? quill.Attribute.background : quill.Attribute.color;
     controller.formatSelection(quill.Attribute.clone(a, picked.isEmpty ? null : picked));
@@ -79,7 +79,7 @@ class NoteFormatBar extends StatelessWidget {
   Future<void> _link(BuildContext context) async {
     final field = TextEditingController(
       text: controller.getSelectionStyle().attributes[quill.Attribute.link.key]?.value?.toString() ?? 'https://');
-    final url = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
+    final url = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(scrollable:true,
       title: Text(tt('Add a link')),
       content: TextField(controller: field, autofocus: true, keyboardType: TextInputType.url,
         decoration: InputDecoration(labelText: tt('Web address'), border: const OutlineInputBorder())),
