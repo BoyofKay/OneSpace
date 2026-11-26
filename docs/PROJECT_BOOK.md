@@ -172,7 +172,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 - 26 Nov: support-ticket screenshots can be opened from the Support page (audited, server-side). Needs two new Cloudflare secrets before it works: `QA_SUPPORT_STORAGE_READ_KEY`, `PRODUCTION_SUPPORT_STORAGE_READ_KEY` (owner decision: these are server keys with storage read access; until set, the feature says "not configured").
 
 ### Open items for the owner
-1. **GitHub billing:** private repositories' workflows fail at start since ~25 Nov (likely minutes used up). Check Settings → Billing.
+1. **GitHub account locked for a billing issue** (confirmed 26 Nov 2026: GitHub's message on the website's jobs is "The job was not started because your account is locked due to a billing issue"). Every GitHub Actions job in all three repositories is blocked, **including the public website** — so making a repository public does not help until the lock is lifted. Owner: GitHub → Settings → Billing and plans (payment method / unpaid invoice). GitHub Pages deploys and Cloudflare builds still work.
 2. Decide the Command Center screenshot keys (above).
 3. Apple Developer account (iOS).
 4. Website: the server code of the Founder backend remains in the public repository's *history* (D89). Rewriting public history is possible but destructive; not done.
@@ -437,6 +437,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - Found and recorded: 0319 applied to QA without a merged file; QA-only `demo_reset` edit (0320).
 - Workflow triggers reduced (D88). Founder backend moved to the private repository (D89). All documents merged into this book (D90).
 - Local results: app `flutter test` 427/427, iOS tool checks 11/11, Command Center build + 218/218 tests, website 6/6 checks.
+- Website and Command Center merged to `main` with the owner's go-ahead (no GitHub cost): onespace.live redeployed by GitHub Pages; Command Center deployed by Cloudflare Workers Builds (build 0521bfa1, success). The website's own GitHub checks and IndexNow ping could not start (billing lock).
 
 ---
 
