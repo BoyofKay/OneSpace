@@ -1,3 +1,18 @@
+# OneSpace QA — UAT fixes for qa-0.1.482 (26 Nov 2026, one APK)
+Require-Firebase-Config: true
+
+Source: main 66ea9ff (iteration/2026-11-26-uat-fixes). QA database has 0319–0324.
+Production: 0322 and 0323 only (D103, D105); app code not released there.
+
+Retest the three UAT failures and the two untested cases:
+- Arabic everywhere (D104): your list from UAT L1, the terms screen, notifications.
+- New account starts on USD, also after signing out of another account.
+- Me → Your messages: status, outcome and support's reply (Command Center v1.6.1).
+- General hints and Activity outcome words (D106).
+- Old connected counters as timelines (T8); Founder badge (B1).
+
+---
+
 # OneSpace QA — 26 Nov 2026 iteration (one APK)
 Require-Firebase-Config: true
 
