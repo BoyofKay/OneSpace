@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       sets:
-        description: 'Comma-separated sets: core|themes|together - en|ar'
+        description: 'Comma-separated sets: core|themes|together|video|tutorial - en|ar'
         default: 'core-en,core-ar,together-en,together-ar,themes-en,themes-ar,video-en,video-ar'
         required: true
       demo_password:

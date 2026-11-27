@@ -30,13 +30,25 @@ import 'package:onespace/features/connect/couple_letters_screen.dart';
 import 'package:onespace/features/connect/partner_gestures_screen.dart';
 import 'package:onespace/features/notifications/notifications_screen.dart';
 import 'package:onespace/theme/appearance_settings_screen.dart';
+import 'package:onespace/core/account_content_scope.dart';
+import 'package:onespace/features/calendar/calendar_event_editor.dart';
+import 'package:onespace/features/reminders/reminders_screen.dart';
+import 'package:onespace/features/coordinate/new_activity_screen.dart';
+import 'package:onespace/features/contacts/contact_cards_screen.dart';
+import 'package:onespace/features/checkins/checkins_screen.dart';
+import 'package:onespace/features/connect/shared_experiences_screen.dart';
+import 'package:onespace/features/memories/scrapbook_studio_screen.dart';
+import 'package:onespace/features/memories/selfie_calendar_screen.dart';
+import 'package:onespace/features/share_in/share_intake_rules.dart';
+import 'package:onespace/features/share_in/share_intake_screen.dart';
+import 'package:onespace/features/share_in/items_to_sort_screen.dart';
 
 const _url = 'https://ugwrpeduzyzrujkizqfo.supabase.co';
 const _key = 'sb_publishable_TtW_uUboFxD4adF5o7FSfA_cpjojMCe';
 const _email = 'demo.omar@example.com';
 // Set by tools/screenshots/run.sh with `adb shell setprop` so one prebuilt APK
 // serves every run: debug.onespace.shots = <set>-<lang>, debug.onespace.pw.
-//   set: core | themes | together | video     lang: en | ar
+//   set: core | themes | together | video | tutorial     lang: en | ar
 late String _password;
 late String _set;
 late String _lang;
@@ -158,7 +170,253 @@ void main() {
       if (f.evaluate().isNotEmpty) { await tester.tap(f.first); await wait(settle); }
     }
 
-    if (_set == 'video') {
+    // Tutorial set (D110): one short video per feature, English first. Each
+    // CHAPTER line marks where a caption starts inside its clip; cut_clips.py
+    // turns them into <lang>_<clip>.chapters.json for the website. Every step
+    // is best-effort: a missing button skips that step, never the whole run.
+    String clipName = '';
+    int clipStart = 0;
+    var chapterNo = 0;
+    void chapter() {
+      debugPrint('CHAPTER $clipName ${chapterNo++} ${DateTime.now().millisecondsSinceEpoch - clipStart}');
+    }
+    Future<void> scene(String name, Future<void> Function() body) async {
+      await clip(name, () async {
+        clipName = name; chapterNo = 0; clipStart = DateTime.now().millisecondsSinceEpoch;
+        try { await body(); } catch (e) { debugPrint('SCENE_WARN $name $e'); }
+        try { await popAll(); } catch (_) {}
+      });
+      await shot('tut_$name');
+    }
+    Future<bool> tapFinder(Finder f, {double settle = 2}) async {
+      if (f.evaluate().isEmpty) return false;
+      await tester.ensureVisible(f.first);
+      await wait(0.4);
+      await tester.tap(f.first);
+      await wait(settle);
+      return true;
+    }
+    Future<bool> tapText(String text, {double settle = 2}) async =>
+        await tapFinder(find.text(text), settle: settle) ||
+        await tapFinder(find.textContaining(text), settle: settle);
+    Future<bool> tapTip(String tip, {double settle = 2}) => tapFinder(find.byTooltip(tip), settle: settle);
+    Future<void> type(String text, {int field = 0}) async {
+      final f = find.byType(EditableText);
+      if (f.evaluate().length <= field) return;
+      final target = f.at(field);
+      await tester.ensureVisible(target);
+      await tester.tap(target);
+      await wait(0.5);
+      for (var i = 1; i <= text.length; i++) {
+        await tester.enterText(target, text.substring(0, i));
+        await tester.pump(const Duration(milliseconds: 55));
+      }
+      await wait(0.6);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await wait(0.6);
+    }
+    Future<void> back() async { if (nav().canPop()) { nav().pop(); await wait(1.2); } }
+
+    Future<void> tutorials() async {
+      final scope = await AccountContentScope.load(db!);
+      final sp = scope.sharedSpaceId!;
+      final now = DateTime.now();
+      final toFriday = (DateTime.friday - now.weekday + 7) % 7;
+      final friday = now.add(Duration(days: toFriday == 0 ? 7 : toFriday));
+
+      await scene('today', () async {
+        await tapIcon(Icons.today_outlined, Icons.today, settle: 3);
+        chapter(); await wait(2.5);
+        chapter(); await wait(2);
+        chapter(); await scroll(-260); await wait(1.5);
+        chapter(); await scroll(-360); await wait(2);
+        await scroll(900, seconds: 1);
+        chapter();
+        final fab = find.byType(FloatingActionButton);
+        if (fab.evaluate().isNotEmpty) { await tester.tap(fab.first); await wait(3.5); nav().maybePop(); await wait(1); }
+      });
+
+      await scene('calendar', () async {
+        await push(CalendarEventEditor(spaceId: sp, initialDate: friday), settle: 2.5);
+        chapter(); await type("Dinner with Lina's parents");
+        chapter(); await scroll(-300); await wait(2);
+        chapter(); await scroll(-400); await wait(2.5);
+        await back();
+        await push(const CalendarScreen(), settle: 3);
+        chapter(); await tapText('Day', settle: 3); await wait(2); await scroll(-300); await wait(1.5);
+      });
+
+      await scene('todo', () async {
+        await push(const PlansScreen(), settle: 3);
+        chapter();
+        if (await tapText('New list') || await tapFinder(find.byType(FloatingActionButton))) {
+          await type('Weekend groceries');
+          chapter();
+          await type('Milk\nEggs\nBread\nTomatoes\nCoffee', field: 1);
+          await wait(1.5);
+          await back();
+        }
+        chapter();
+        if (await tapText('Groceries', settle: 3)) {
+          for (final item in find.byType(Checkbox).evaluate().take(2).toList()) {
+            await tester.tap(find.byWidget(item.widget)); await wait(1.2);
+          }
+          chapter(); await scroll(-400); await wait(2);
+        }
+      });
+
+      await scene('reminders', () async {
+        await push(ReminderEditorScreen(spaceId: sp, initialShared: true), settle: 2.5);
+        chapter(); await type('Renew passport');
+        chapter(); await scroll(-300); await wait(2);
+        chapter(); await scroll(-300); await wait(2);
+        await back();
+        await push(const RemindersScreen(), settle: 3);
+        chapter(); await wait(2.5);
+      });
+
+      await scene('notes', () async {
+        await push(NoteEditorScreen(spaceId: sp), settle: 2.5);
+        chapter(); await type('Gift ideas for Mum');
+        await tapTip('Bullets', settle: 1); await type('Scarf from the market', field: 1);
+        chapter(); await wait(2);
+        chapter(); await scroll(-300); await wait(2);
+        await back();
+        await push(const NotesScreen(), settle: 3);
+        await tapText('Weekend away ideas', settle: 3); await wait(2);
+      });
+
+      await scene('activities', () async {
+        await push(NewActivityScreen(scope: scope), settle: 2.5);
+        chapter(); await wait(2); await scroll(-250); await wait(1.5);
+        await back();
+        final sofa = await idOf('activities', 'title', 'A new sofa');
+        if (sofa != null) {
+          await push(ActivityScreen(id: sofa), settle: 3.5);
+          chapter(); await scroll(-350); await wait(2);
+          chapter(); await back();
+          await push(ActivityScreen(id: sofa, focusConversation: true), settle: 3.5); await wait(2); await back();
+          await push(ActivityScreen(id: sofa), settle: 3);
+          chapter(); if (await tapTip('Compare options', settle: 3)) { await wait(2.5); await back(); }
+          chapter(); await scroll(-700, seconds: 2); await wait(2);
+        }
+      });
+
+      await scene('trips', () async {
+        await push(const TripsScreen(), settle: 3);
+        chapter(); await wait(2);
+        final trip = await idOf('shared_trips', 'title', 'Istanbul reunion');
+        if (trip != null) {
+          await push(TripDetail(tripId: trip), settle: 3.5);
+          chapter(); await scroll(-350); await wait(2);
+          chapter(); await scroll(-350); await wait(2);
+          chapter(); await scroll(-400); await wait(2);
+          chapter(); await scroll(-500); await wait(2);
+        }
+      });
+
+      await scene('occasions', () async {
+        await push(OccasionEditor(spaceId: sp, initialKind: 'birthday'), settle: 2.5);
+        chapter(); await wait(1.5); await scroll(-300); await wait(1.5);
+        await back();
+        final occ = await idOf('occasion_plans', 'title', "Lina's birthday");
+        if (occ != null) {
+          await push(OccasionDetail(id: occ), settle: 3.5);
+          chapter(); await scroll(-300); await wait(2);
+          chapter(); await scroll(-350); await wait(2);
+          chapter(); await scroll(-350); await wait(2);
+          chapter(); await scroll(-450); await wait(2);
+        }
+      });
+
+      await scene('counters', () async {
+        await push(const CountersScreen(), settle: 3);
+        chapter();
+        if (await tapText('Add a counter', settle: 2.5)) { await type('Our wedding'); await scroll(-300); chapter(); await wait(1.5); await back(); }
+        chapter(); await tapText('Wedding day', settle: 3); await wait(2.5); await back();
+        chapter(); await tapTip('Timelines', settle: 3); await wait(1.5); await scroll(-300); await wait(1.5);
+      });
+
+      await scene('places', () async {
+        await push(const PlacesScreen(), settle: 3);
+        chapter(); await tapText('Nook Café', settle: 3); await wait(2); await back();
+        chapter(); await scroll(-400); await wait(1.5); await tapText('Santorini', settle: 3); await wait(2); await back();
+        chapter();
+        final map = find.byIcon(Icons.map_outlined);
+        if (map.evaluate().isNotEmpty) { await tester.tap(map.first); await wait(7); await back(); }
+        chapter(); await tapText('Santorini', settle: 3); await scroll(-400); await tapText('Plan a trip', settle: 3); await wait(2);
+      });
+
+      await scene('contacts', () async {
+        await push(const ContactCardsScreen(), settle: 3);
+        chapter(); await wait(2);
+        chapter(); await tapText('Dr. Sara', settle: 3); await wait(2);
+        chapter(); await scroll(-300); await wait(2);
+        chapter(); await wait(1.5);
+      });
+
+      await scene('letters', () async {
+        await push(CoupleLetterEditor(spaceId: sp), settle: 2.5);
+        chapter(); await type('For your graduation'); await type('I am so proud of you. Open this when you have your gown on.', field: 1);
+        chapter(); await scroll(-300); await wait(2);
+        chapter(); await wait(1); await back();
+        await push(const CoupleLettersScreen(), settle: 3);
+        chapter(); await tapText('Thinking of you', settle: 3); await wait(2.5);
+      });
+
+      await scene('gestures', () async {
+        await push(const PartnerGesturesScreen(), settle: 3);
+        chapter(); await tapText('Send a hug', settle: 3);
+        chapter(); await wait(2);
+        chapter(); await push(const PartnerGesturesScreen(manageOnly: true), settle: 3); await scroll(-300); await wait(1.5); await back();
+        chapter(); if (await tapText('Create my own gesture', settle: 2.5)) { await type('Coffee is on me'); await wait(1.5); }
+      });
+
+      await scene('checkins', () async {
+        await push(const CheckinsScreen(), settle: 3);
+        chapter(); await wait(2);
+        chapter(); await scroll(-300); await wait(2);
+        chapter(); await scroll(-300); await wait(2);
+        chapter(); await scroll(600, seconds: 1); await wait(1.5);
+      });
+
+      await scene('experiences', () async {
+        await push(ExperienceEditor(spaceId: sp, initialKind: 'show'), settle: 2.5);
+        chapter(); await type('Slow Horses'); await scroll(-250); await wait(1.5);
+        await back();
+        await push(const SharedExperiencesScreen(), settle: 3);
+        chapter(); await wait(2);
+        chapter(); await tapText('The Great British Bake Off', settle: 3); await wait(2); await back();
+        chapter(); await tapText('Before Sunrise', settle: 3); await scroll(-300); await wait(2);
+      });
+
+      await scene('memories', () async {
+        await push(ScrapbookStudioScreen(spaceId: sp), settle: 3.5);
+        chapter(); await wait(2.5);
+        chapter(); await scroll(-300); await wait(2);
+        await back();
+        final book = await idOf('memories', 'title', 'Our year in pages');
+        if (book != null) { await push(ScrapbookStudioScreen(spaceId: sp, memoryId: book), settle: 3.5); }
+        chapter(); await wait(2);
+        chapter(); await scroll(-300); await wait(1.5); await back();
+        await push(SelfieCalendarScreen(spaceId: sp), settle: 3.5);
+        chapter(); await wait(2.5);
+      });
+
+      await scene('share_in', () async {
+        await push(const ShareIntakeScreen(shared: IncomingShare(
+          title: 'Linen picnic blanket', link: 'https://shop.example.com/linen-picnic-blanket', note: '')), settle: 3.5);
+        chapter(); await wait(2);
+        chapter(); await scroll(-250); await wait(2);
+        chapter(); await scroll(-300); await wait(1.5); await back();
+        await push(const ItemsToSortScreen(), settle: 3);
+        chapter(); await wait(2.5);
+      });
+    }
+
+    if (_set == 'tutorial') {
+      await tutorials();
+    } else if (_set == 'video') {
       await clip('tour', () async {
         await wait(1.5);
         await scroll(-420); await scroll(-420); await scroll(840, seconds: 1.2);
@@ -289,5 +547,5 @@ void main() {
 
     }
     expect(count, greaterThan(0));
-  }, timeout: const Timeout(Duration(minutes: 25)));
+  }, timeout: const Timeout(Duration(minutes: 40)));
 }

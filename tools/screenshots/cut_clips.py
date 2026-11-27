@@ -3,8 +3,11 @@
 
 Inputs (build/videos/): rec_<lang>_<n>.mp4 segments, segments_<lang>.txt (segment
 number + device epoch ms at start), markers_<lang>.log (the flutter drive output).
-Outputs: build/videos/<lang>_<clip>.mp4 (H.264, 30 fps, no audio) and .jpg poster.
+Outputs: build/videos/<lang>_<clip>.mp4 (H.264, 30 fps, no audio) and .jpg poster,
+plus <lang>_<clip>.chapters.json (seconds into the clip where each caption starts)
+for clips that print CHAPTER lines (the tutorial set).
 """
+import json
 import re
 import subprocess
 import sys
@@ -22,6 +25,12 @@ for line in (V / f'segments_{lang}.txt').read_text().split('\n'):
 log = (V / f'markers_{lang}.log').read_text(errors='ignore')
 starts = {m.group(1): int(m.group(2)) for m in re.finditer(r'CLIP_START (\w+) (\d+)', log)}
 ends = {m.group(1): int(m.group(2)) for m in re.finditer(r'CLIP_END (\w+) (\d+)', log)}
+chapters = {}
+for m in re.finditer(r'CHAPTER (\w+) (\d+) (\d+)', log):
+    # The scene body starts 0.8 s after CLIP_START (see clip() in the robot).
+    chapters.setdefault(m.group(1), []).append(round((int(m.group(3)) + 800) / 1000, 1))
+for name, marks in chapters.items():
+    (V / f'{lang}_{name}.chapters.json').write_text(json.dumps(marks))
 
 
 def duration(f):

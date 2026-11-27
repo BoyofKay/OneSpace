@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# R80: runs the screenshot robot once per set (core/themes/together × en/ar) on
+# R80: runs the screenshot robot once per set (core/themes/together/video/tutorial × en/ar) on
 # the emulator started by .github/workflows/screenshots.yml.
 set -uo pipefail
 mkdir -p build/screenshots build/logs
@@ -47,7 +47,7 @@ for spec in ${SHOT_SETS//,/ }; do
   set_name="${spec%-*}"; lang="${spec#*-}"
   revive
   echo "::group::Screens $set_name ($lang)"
-  if [ "$set_name" = "video" ]; then
+  if [ "$set_name" = "video" ] || [ "$set_name" = "tutorial" ]; then
     mkdir -p build/videos
     : > "build/videos/segments_$lang.txt"
     ( for i in $(seq 1 60); do
@@ -69,7 +69,7 @@ for spec in ${SHOT_SETS//,/ }; do
       2>&1 | python3 tools/screenshots/watch.py "build/logs/$spec.log"; then
     echo "::warning::Screens $spec failed"; status=1
   fi
-  if [ "$set_name" = "video" ]; then
+  if [ "$set_name" = "video" ] || [ "$set_name" = "tutorial" ]; then
     touch /tmp/stop_rec
     adb shell pkill -INT screenrecord || true
     sleep 4; kill "$rec_pid" 2>/dev/null || true
