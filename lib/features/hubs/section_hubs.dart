@@ -85,6 +85,7 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
  final db=Supabase.instance.client;
  String? spaceId;
  String mode='not_set';
+ String savedMode='not_set';
  DateTime? last,next;
  bool loading=true,saving=false,paired=true;
  String? error;
@@ -100,6 +101,7 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
        spaceId=id;
        paired=members.length==2;
        mode=row['relationship_mode'] as String? ?? 'not_set';
+       savedMode=mode;
        last=DateTime.tryParse(row['last_met_on'] as String? ?? '');
        next=DateTime.tryParse(row['next_meet_on'] as String? ?? '');
        loading=false;
@@ -119,9 +121,17 @@ class _RelationshipSettingsState extends State<RelationshipSettings> {
    try{
      String? sqlDate(DateTime? d)=>d==null?null:
        '${d.year.toString().padLeft(4,'0')}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
+     // 27 Nov 2026: a change of how we live goes through the same server
+     // function as the Today icon, so the partner is notified and "apart" is
+     // split into same or different time zones from both phones.
+     final together=mode=='living_together';
+     final wasTogether=savedMode=='living_together';
+     if(mode!='not_set'&&(savedMode=='not_set'||together!=wasTogether)){
+       mode=(await db.rpc('set_how_we_live',params:{'p_together':together})).toString();
+       savedMode=mode;
+     }
      await db.from('spaces').update({
-       'relationship_mode':mode,'last_met_on':sqlDate(last),
-       'next_meet_on':sqlDate(next),
+       'last_met_on':sqlDate(last),'next_meet_on':sqlDate(next),
      }).eq('id',spaceId!);
      if(mounted) { ScaffoldMessenger.of(context).showSnackBar(
        SnackBar(content:Text(tt('Shared relationship settings saved')))); }
