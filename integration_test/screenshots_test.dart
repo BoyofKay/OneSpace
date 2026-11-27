@@ -37,6 +37,7 @@ import 'package:onespace/features/coordinate/new_activity_screen.dart';
 import 'package:onespace/features/contacts/contact_cards_screen.dart';
 import 'package:onespace/features/checkins/checkins_screen.dart';
 import 'package:onespace/features/connect/shared_experiences_screen.dart';
+import 'package:onespace/features/memories/memories_screen.dart';
 import 'package:onespace/features/memories/scrapbook_studio_screen.dart';
 import 'package:onespace/features/memories/selfie_calendar_screen.dart';
 import 'package:onespace/features/share_in/share_intake_rules.dart';
@@ -171,9 +172,10 @@ void main() {
     }
 
     // Tutorial set (D110): one short video per feature, English first. Each
-    // CHAPTER line marks where a caption starts inside its clip; cut_clips.py
-    // turns them into <lang>_<clip>.chapters.json for the website. Every step
-    // is best-effort: a missing button skips that step, never the whole run.
+    // CHAPTER line marks where a caption starts inside its clip (call it just
+    // BEFORE the step it names); cut_clips.py turns them into
+    // <lang>_<clip>.chapters.json for the website. Every step is best-effort:
+    // a missing button skips that step, never the whole run.
     String clipName = '';
     int clipStart = 0;
     var chapterNo = 0;
@@ -184,12 +186,13 @@ void main() {
       await clip(name, () async {
         clipName = name; chapterNo = 0; clipStart = DateTime.now().millisecondsSinceEpoch;
         try { await body(); } catch (e) { debugPrint('SCENE_WARN $name $e'); }
+        await wait(2.5); // the last caption stays on screen long enough to read
         try { await popAll(); } catch (_) {}
       });
       await shot('tut_$name');
     }
     Future<bool> tapFinder(Finder f, {double settle = 2}) async {
-      if (f.evaluate().isEmpty) return false;
+      if (f.evaluate().isEmpty) { debugPrint('SCENE_MISS $clipName $f'); return false; }
       await tester.ensureVisible(f.first);
       await wait(0.4);
       await tester.tap(f.first);
@@ -197,9 +200,18 @@ void main() {
       return true;
     }
     Future<bool> tapText(String text, {double settle = 2}) async =>
-        await tapFinder(find.text(text), settle: settle) ||
-        await tapFinder(find.textContaining(text), settle: settle);
+        find.text(text).evaluate().isNotEmpty
+            ? tapFinder(find.text(text), settle: settle)
+            : tapFinder(find.textContaining(text), settle: settle);
     Future<bool> tapTip(String tip, {double settle = 2}) => tapFinder(find.byTooltip(tip), settle: settle);
+    // Drags the middle of the screen, so it always moves the page in front
+    // (not a chip row or a screen underneath).
+    Future<void> swipe(double dy, {double seconds = 1.4}) async {
+      final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+      await tester.timedDragFrom(Offset(size.width / 2, size.height * 0.62), Offset(0, dy),
+          Duration(milliseconds: (seconds * 1000).round()));
+      await wait(1);
+    }
     Future<void> type(String text, {int field = 0}) async {
       final f = find.byType(EditableText);
       if (f.evaluate().length <= field) return;
@@ -213,7 +225,7 @@ void main() {
       }
       await wait(0.6);
       FocusManager.instance.primaryFocus?.unfocus();
-      await wait(0.6);
+      await wait(0.8);
     }
     Future<void> back() async { if (nav().canPop()) { nav().pop(); await wait(1.2); } }
 
@@ -225,192 +237,166 @@ void main() {
       final friday = now.add(Duration(days: toFriday == 0 ? 7 : toFriday));
 
       await scene('today', () async {
-        await tapIcon(Icons.today_outlined, Icons.today, settle: 3);
-        chapter(); await wait(2.5);
-        chapter(); await wait(2);
-        chapter(); await scroll(-260); await wait(1.5);
-        chapter(); await scroll(-360); await wait(2);
-        await scroll(900, seconds: 1);
+        await tapIcon(Icons.today_outlined, Icons.today, settle: 1);
+        chapter(); await wait(3);
+        chapter(); await wait(3.5);
+        chapter(); await swipe(-260); await wait(2.5);
+        chapter(); await swipe(-420); await wait(3);
+        await swipe(900, seconds: 0.8);
         chapter();
         final fab = find.byType(FloatingActionButton);
-        if (fab.evaluate().isNotEmpty) { await tester.tap(fab.first); await wait(3.5); nav().maybePop(); await wait(1); }
+        if (fab.evaluate().isNotEmpty) { await tester.tap(fab.first); await wait(4); nav().maybePop(); await wait(1); }
       });
 
       await scene('calendar', () async {
-        await push(CalendarEventEditor(spaceId: sp, initialDate: friday), settle: 2.5);
-        chapter(); await type("Dinner with Lina's parents");
-        chapter(); await scroll(-300); await wait(2);
-        chapter(); await scroll(-400); await wait(2.5);
+        chapter(); await push(CalendarEventEditor(spaceId: sp, initialDate: friday), settle: 2); await type("Dinner with Lina's parents");
+        chapter(); await swipe(-520); await wait(3.5);
+        chapter(); await wait(3);
         await back();
-        await push(const CalendarScreen(), settle: 3);
-        chapter(); await tapText('Day', settle: 3); await wait(2); await scroll(-300); await wait(1.5);
+        chapter(); await push(const CalendarScreen(), settle: 2.5); await tapText('Day', settle: 3); await wait(3);
       });
 
       await scene('todo', () async {
-        await push(const PlansScreen(), settle: 3);
+        chapter(); await push(const PlansScreen(), settle: 2.5);
+        final started = await tapText('New list');
+        if (started) await type('Weekend groceries');
         chapter();
-        if (await tapText('New list') || await tapFinder(find.byType(FloatingActionButton))) {
-          await type('Weekend groceries');
-          chapter();
-          await type('Milk\nEggs\nBread\nTomatoes\nCoffee', field: 1);
-          await wait(1.5);
-          await back();
-        }
+        if (started) { await type('Milk\nEggs\nBread\nTomatoes\nCoffee', field: 1); await wait(2.5); await back(); }
         chapter();
-        if (await tapText('Groceries', settle: 3)) {
+        if (await tapText('Groceries', settle: 2.5)) {
           for (final item in find.byType(Checkbox).evaluate().take(2).toList()) {
-            await tester.tap(find.byWidget(item.widget)); await wait(1.2);
+            await tester.tap(find.byWidget(item.widget)); await wait(1.4);
           }
-          chapter(); await scroll(-400); await wait(2);
+          await wait(1.5);
+          chapter(); await swipe(-380); await wait(3);
         }
       });
 
       await scene('reminders', () async {
-        await push(ReminderEditorScreen(spaceId: sp, initialShared: true), settle: 2.5);
-        chapter(); await type('Renew passport');
-        chapter(); await scroll(-300); await wait(2);
-        chapter(); await scroll(-300); await wait(2);
+        chapter(); await push(ReminderEditorScreen(spaceId: sp, initialShared: true), settle: 2); await type('Renew passport');
+        chapter(); await swipe(-260); await wait(3.5);
+        chapter(); await wait(3);
         await back();
-        await push(const RemindersScreen(), settle: 3);
-        chapter(); await wait(2.5);
+        chapter(); await push(const RemindersScreen(), settle: 3); await wait(3);
       });
 
       await scene('notes', () async {
-        await push(NoteEditorScreen(spaceId: sp), settle: 2.5);
-        chapter(); await type('Gift ideas for Mum');
-        await tapTip('Bullets', settle: 1); await type('Scarf from the market', field: 1);
-        chapter(); await wait(2);
-        chapter(); await scroll(-300); await wait(2);
-        await back();
-        await push(const NotesScreen(), settle: 3);
-        await tapText('Weekend away ideas', settle: 3); await wait(2);
+        chapter(); await push(NoteEditorScreen(spaceId: sp), settle: 2); await type('Gift ideas for Mum');
+        chapter(); await tapTip('Bullets', settle: 1); await type('Scarf from the market', field: 1); await wait(2);
+        chapter(); await swipe(-320); await wait(3.5);
       });
 
       await scene('activities', () async {
-        await push(NewActivityScreen(scope: scope), settle: 2.5);
-        chapter(); await wait(2); await scroll(-250); await wait(1.5);
+        chapter(); await push(NewActivityScreen(scope: scope), settle: 3); await wait(2);
         await back();
         final sofa = await idOf('activities', 'title', 'A new sofa');
+        final weekend = await idOf('activities', 'title', 'Weekend away');
+        if (sofa != null) { chapter(); await push(ActivityScreen(id: sofa), settle: 2.5); await swipe(-320); await wait(2.5); await back(); }
+        if (weekend != null) { chapter(); await push(ActivityScreen(id: weekend, focusConversation: true), settle: 3.5); await wait(3); await back(); }
         if (sofa != null) {
-          await push(ActivityScreen(id: sofa), settle: 3.5);
-          chapter(); await scroll(-350); await wait(2);
-          chapter(); await back();
-          await push(ActivityScreen(id: sofa, focusConversation: true), settle: 3.5); await wait(2); await back();
-          await push(ActivityScreen(id: sofa), settle: 3);
-          chapter(); if (await tapTip('Compare options', settle: 3)) { await wait(2.5); await back(); }
-          chapter(); await scroll(-700, seconds: 2); await wait(2);
+          await push(ActivityScreen(id: sofa), settle: 2.5);
+          chapter(); if (await tapTip('Compare options', settle: 3)) { await wait(3); await back(); }
+          chapter(); await swipe(-700, seconds: 1.8); await wait(3);
         }
       });
 
       await scene('trips', () async {
-        await push(const TripsScreen(), settle: 3);
-        chapter(); await wait(2);
+        chapter(); await push(const TripsScreen(), settle: 3);
         final trip = await idOf('shared_trips', 'title', 'Istanbul reunion');
         if (trip != null) {
-          await push(TripDetail(tripId: trip), settle: 3.5);
-          chapter(); await scroll(-350); await wait(2);
-          chapter(); await scroll(-350); await wait(2);
-          chapter(); await scroll(-400); await wait(2);
-          chapter(); await scroll(-500); await wait(2);
+          chapter(); await push(TripDetail(tripId: trip), settle: 3); await wait(1);
+          chapter(); await tapText('Flights', settle: 2.5); await swipe(-300); await wait(2.5);
+          chapter(); await swipe(-420); await wait(3);
+          chapter(); await swipe(-520); await wait(3);
         }
       });
 
       await scene('occasions', () async {
-        await push(OccasionEditor(spaceId: sp, initialKind: 'birthday'), settle: 2.5);
-        chapter(); await wait(1.5); await scroll(-300); await wait(1.5);
+        chapter(); await push(OccasionEditor(spaceId: sp, initialKind: 'birthday'), settle: 3); await wait(1);
         await back();
         final occ = await idOf('occasion_plans', 'title', "Lina's birthday");
         if (occ != null) {
-          await push(OccasionDetail(id: occ), settle: 3.5);
-          chapter(); await scroll(-300); await wait(2);
-          chapter(); await scroll(-350); await wait(2);
-          chapter(); await scroll(-350); await wait(2);
-          chapter(); await scroll(-450); await wait(2);
+          await push(OccasionDetail(id: occ), settle: 3);
+          chapter(); await swipe(-240); await wait(3);
+          chapter(); await tapText('Ideas', settle: 2); await swipe(-300); await wait(2);
+          chapter(); await tapText('Purchased', settle: 2); await swipe(-300); await wait(2);
+          chapter(); await swipe(-700, seconds: 1.8); await wait(3);
         }
       });
 
       await scene('counters', () async {
-        await push(const CountersScreen(), settle: 3);
-        chapter();
-        if (await tapText('Add a counter', settle: 2.5)) { await type('Our wedding'); await scroll(-300); chapter(); await wait(1.5); await back(); }
+        chapter(); await push(const CountersScreen(), settle: 3); await wait(1);
+        chapter(); if (await tapText('Add a counter', settle: 2)) { await type('Our wedding'); await wait(1.5); await back(); }
         chapter(); await tapText('Wedding day', settle: 3); await wait(2.5); await back();
-        chapter(); await tapTip('Timelines', settle: 3); await wait(1.5); await scroll(-300); await wait(1.5);
+        chapter(); if (await tapTip('Timelines', settle: 2.5)) { if (await tapText('New timeline', settle: 2)) await type('Our story'); await wait(2); }
       });
 
       await scene('places', () async {
-        await push(const PlacesScreen(), settle: 3);
-        chapter(); await tapText('Nook Café', settle: 3); await wait(2); await back();
-        chapter(); await scroll(-400); await wait(1.5); await tapText('Santorini', settle: 3); await wait(2); await back();
+        chapter(); await push(const PlacesScreen(), settle: 2.5); await tapText('Nook Café', settle: 3); await wait(1.5); await back();
+        chapter(); await tapText('Bucket list', settle: 2.5); await wait(2);
+        chapter(); if (await tapTip('Our map', settle: 7)) { await wait(1); await back(); }
         chapter();
-        final map = find.byIcon(Icons.map_outlined);
-        if (map.evaluate().isNotEmpty) { await tester.tap(map.first); await wait(7); await back(); }
-        chapter(); await tapText('Santorini', settle: 3); await scroll(-400); await tapText('Plan a trip', settle: 3); await wait(2);
+        if (await tapText('Santorini', settle: 2.5)) {
+          if (await tapFinder(find.byIcon(Icons.more_vert), settle: 1.5)) await tapText('Plan a trip', settle: 3);
+          await wait(2);
+        }
       });
 
       await scene('contacts', () async {
-        await push(const ContactCardsScreen(), settle: 3);
-        chapter(); await wait(2);
-        chapter(); await tapText('Dr. Sara', settle: 3); await wait(2);
-        chapter(); await scroll(-300); await wait(2);
-        chapter(); await wait(1.5);
+        chapter(); await push(const ContactCardsScreen(), settle: 3);
+        chapter(); await tapText('Dr. Sara', settle: 3);
+        chapter(); await wait(3);
+        chapter(); await tapText('Add contact card', settle: 3); await wait(1.5);
       });
 
       await scene('letters', () async {
-        await push(CoupleLetterEditor(spaceId: sp), settle: 2.5);
-        chapter(); await type('For your graduation'); await type('I am so proud of you. Open this when you have your gown on.', field: 1);
-        chapter(); await scroll(-300); await wait(2);
-        chapter(); await wait(1); await back();
-        await push(const CoupleLettersScreen(), settle: 3);
-        chapter(); await tapText('Thinking of you', settle: 3); await wait(2.5);
+        chapter(); await push(CoupleLetterEditor(spaceId: sp), settle: 2); await type('For your graduation');
+        await type('I am so proud of you. Open this when you have your gown on.', field: 1);
+        chapter(); await tapText('Open on a special day', settle: 2.5); await wait(2); await back();
+        chapter(); await swipe(-260); await wait(3);
+        await back();
+        chapter(); await push(const CoupleLettersScreen(), settle: 2.5); await tapText('Thinking of you', settle: 3); await wait(2);
       });
 
       await scene('gestures', () async {
-        await push(const PartnerGesturesScreen(), settle: 3);
-        chapter(); await tapText('Send a hug', settle: 3);
-        chapter(); await wait(2);
-        chapter(); await push(const PartnerGesturesScreen(manageOnly: true), settle: 3); await scroll(-300); await wait(1.5); await back();
-        chapter(); if (await tapText('Create my own gesture', settle: 2.5)) { await type('Coffee is on me'); await wait(1.5); }
+        chapter(); await push(const PartnerGesturesScreen(), settle: 3); await tapText('Send a hug', settle: 1);
+        chapter(); await wait(3);
+        chapter(); await push(const PartnerGesturesScreen(manageOnly: true), settle: 2.5); await tapText('Send a hug', settle: 2); await wait(1.5); await back();
+        chapter(); await swipe(600, seconds: 0.8); if (await tapText('Create my own gesture', settle: 2.5)) { await type('Coffee is on me'); await wait(1.5); }
       });
 
       await scene('checkins', () async {
-        await push(const CheckinsScreen(), settle: 3);
-        chapter(); await wait(2);
-        chapter(); await scroll(-300); await wait(2);
-        chapter(); await scroll(-300); await wait(2);
-        chapter(); await scroll(600, seconds: 1); await wait(1.5);
+        chapter(); await push(const CheckinsScreen(), settle: 2.5); await tapText('Feelings journal', settle: 2.5); await wait(1);
+        chapter(); await wait(3);
+        chapter(); await swipe(-320); await wait(3);
+        chapter(); await swipe(500, seconds: 0.8); await wait(2.5);
       });
 
       await scene('experiences', () async {
-        await push(ExperienceEditor(spaceId: sp, initialKind: 'show'), settle: 2.5);
-        chapter(); await type('Slow Horses'); await scroll(-250); await wait(1.5);
+        chapter(); await push(ExperienceEditor(spaceId: sp, initialKind: 'show'), settle: 2); await type('Slow Horses'); await wait(1);
         await back();
         await push(const SharedExperiencesScreen(), settle: 3);
-        chapter(); await wait(2);
-        chapter(); await tapText('The Great British Bake Off', settle: 3); await wait(2); await back();
-        chapter(); await tapText('Before Sunrise', settle: 3); await scroll(-300); await wait(2);
+        await tapTip('Close', settle: 1.2);
+        chapter(); await wait(2.5);
+        chapter(); await tapText('TV Shows', settle: 2.5); await tapText('The Great British Bake Off', settle: 3); await wait(1.5); await back(); await back();
+        chapter(); await tapText('Movie Watchlist', settle: 2.5); await tapText('Before Sunrise', settle: 3); await swipe(-320); await wait(2);
       });
 
       await scene('memories', () async {
-        await push(ScrapbookStudioScreen(spaceId: sp), settle: 3.5);
-        chapter(); await wait(2.5);
-        chapter(); await scroll(-300); await wait(2);
-        await back();
-        final book = await idOf('memories', 'title', 'Our year in pages');
-        if (book != null) { await push(ScrapbookStudioScreen(spaceId: sp, memoryId: book), settle: 3.5); }
-        chapter(); await wait(2);
-        chapter(); await scroll(-300); await wait(1.5); await back();
-        await push(SelfieCalendarScreen(spaceId: sp), settle: 3.5);
-        chapter(); await wait(2.5);
+        chapter(); await push(ScrapbookStudioScreen(spaceId: sp), settle: 3); await wait(1.5);
+        chapter(); await tapText('Our First Date', settle: 3.5); await wait(2);
+        chapter(); await popAll(); await push(const MemoriesScreen(), settle: 3); await wait(1);
+        chapter(); await swipe(-320); await wait(2.5);
+        chapter(); await popAll(); await push(SelfieCalendarScreen(spaceId: sp), settle: 3); await wait(1.5);
       });
 
       await scene('share_in', () async {
-        await push(const ShareIntakeScreen(shared: IncomingShare(
-          title: 'Linen picnic blanket', link: 'https://shop.example.com/linen-picnic-blanket', note: '')), settle: 3.5);
-        chapter(); await wait(2);
-        chapter(); await scroll(-250); await wait(2);
-        chapter(); await scroll(-300); await wait(1.5); await back();
-        await push(const ItemsToSortScreen(), settle: 3);
-        chapter(); await wait(2.5);
+        chapter(); await push(const ShareIntakeScreen(shared: IncomingShare(
+          title: 'Linen picnic blanket', link: 'https://shop.example.com/linen-picnic-blanket', note: '')), settle: 3);
+        chapter(); await wait(3);
+        chapter(); await tapText('More', settle: 2.5); await wait(1.5);
+        await popAll();
+        chapter(); await push(const ItemsToSortScreen(), settle: 3);
       });
     }
 
