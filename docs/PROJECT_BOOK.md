@@ -483,6 +483,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - **Go-live, Android (27 Nov):** owner: "line up the android prod and build the AAB to update Google Play". Production database 0320, 0321, 0324 applied and checked. Production AAB to be built once from `main` (= approved `f9105c6` + A7 fix `41264ce` + book) through `release/PRODUCTION_READY_TO_BUILD.md` when the repository is public; owner uploads it to Play Console. iOS waits for the Apple Developer account.
 - **Production AAB built (27 Nov, 23:12 UTC):** run 45908669222 (#12) success; artifact `OneSpace-Play-1.0.0-12` (93 MB zip, AAB inside); the workflow's "Verify package, signature and backend" step passed. Repository can return to private. Owner uploads to Play Console (closed testing first).
 - **Play upload (27 Nov):** owner uploaded OneSpace 1.0.0 (build 12) to Closed testing – Alpha with full rollout; status "Changes in review". Production track promotion after the closed testers confirm.
+- **Support screenshots live (27 Nov):** owner added `PRODUCTION_SUPPORT_STORAGE_READ_KEY` and `QA_SUPPORT_STORAGE_READ_KEY` (Supabase secret keys named `command_center_screenshots`, one per project) in Cloudflare; both tested by the owner. Command Center v1.6.3 trims the key and names the failing step; **v1.6.4 fixes the real bug**: Workers reject `redirect: 'error'`, so the storage request never left (now `manual`, 3xx refused). 251/251 tests.
 
 ---
 
