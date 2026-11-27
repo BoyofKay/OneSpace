@@ -182,7 +182,10 @@ void main() {
     void chapter() {
       debugPrint('CHAPTER $clipName ${chapterNo++} ${DateTime.now().millisecondsSinceEpoch - clipStart}');
     }
+    // "tutorial.experiences+letters-en" films only those scenes (targeted retakes).
+    final only = _set.contains('.') ? _set.split('.')[1].split('+').toSet() : <String>{};
     Future<void> scene(String name, Future<void> Function() body) async {
+      if (only.isNotEmpty && !only.contains(name)) return;
       await clip(name, () async {
         clipName = name; chapterNo = 0; clipStart = DateTime.now().millisecondsSinceEpoch;
         try { await body(); } catch (e) { debugPrint('SCENE_WARN $name $e'); }
@@ -228,6 +231,9 @@ void main() {
       await wait(0.8);
     }
     Future<void> back() async { if (nav().canPop()) { nav().pop(); await wait(1.2); } }
+    Future<void> closeOver(String title) async {
+      if (find.text(title).hitTestable().evaluate().isEmpty) { nav().maybePop(); await wait(1.2); }
+    }
 
     Future<void> tutorials() async {
       final scope = await AccountContentScope.load(db!);
@@ -352,7 +358,7 @@ void main() {
       await scene('letters', () async {
         chapter(); await push(CoupleLetterEditor(spaceId: sp), settle: 2); await type('For your graduation');
         await type('I am so proud of you. Open this when you have your gown on.', field: 1);
-        chapter(); await tapText('Open on a special day', settle: 2.5); await wait(2); await back();
+        chapter(); await tapText('Open on a special day', settle: 2.5); await wait(2); await closeOver('Write a letter');
         chapter(); await swipe(-260); await wait(3);
         await back();
         chapter(); await push(const CoupleLettersScreen(), settle: 2.5); await tapText('Thinking of you', settle: 3); await wait(2);
@@ -376,9 +382,9 @@ void main() {
         chapter(); await push(ExperienceEditor(spaceId: sp, initialKind: 'show'), settle: 2); await type('Slow Horses'); await wait(1);
         await back();
         await push(const SharedExperiencesScreen(), settle: 3);
-        await tapTip('Close', settle: 1.2);
+        if (!await tapFinder(find.byIcon(Icons.close), settle: 1.2)) await tapTip('Close', settle: 1.2);
         chapter(); await wait(2.5);
-        chapter(); await tapText('TV Shows', settle: 2.5); await tapText('The Great British Bake Off', settle: 3); await wait(1.5); await back(); await back();
+        chapter(); if (await tapText('TV Shows', settle: 2.5)) { await tapText('The Great British Bake Off', settle: 3); await wait(1.5); await closeOver('Shared experiences'); await closeOver('Shared experiences'); }
         chapter(); await tapText('Movie Watchlist', settle: 2.5); await tapText('Before Sunrise', settle: 3); await swipe(-320); await wait(2);
       });
 
@@ -400,7 +406,7 @@ void main() {
       });
     }
 
-    if (_set == 'tutorial') {
+    if (_set.startsWith('tutorial')) {
       await tutorials();
     } else if (_set == 'video') {
       await clip('tour', () async {

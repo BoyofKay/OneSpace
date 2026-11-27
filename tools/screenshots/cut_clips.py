@@ -28,10 +28,11 @@ ends = {m.group(1): int(m.group(2)) for m in re.finditer(r'CLIP_END (\w+) (\d+)'
 chapters = {}
 for m in re.finditer(r'CHAPTER (\w+) (\d+) (\d+)', log):
     # The scene body starts 0.8 s after CLIP_START (see clip() in the robot); the
-    # recording runs ~0.3 s behind and the cut skips that, so marks land ~0.5 s early
-    # of the step they name. The first caption always starts at 0.
+    # marks were measured to land ~1 s after the moment in the cut video (27 Nov
+    # review), so they are moved 0.5 s earlier than the body start. The first
+    # caption always starts at 0.
     marks = chapters.setdefault(m.group(1), [])
-    marks.append(0.0 if not marks else round((int(m.group(3)) + 500) / 1000, 1))
+    marks.append(0.0 if not marks else max(0.0, round((int(m.group(3)) - 500) / 1000, 1)))
 for name, marks in chapters.items():
     (V / f'{lang}_{name}.chapters.json').write_text(json.dumps(marks))
 
