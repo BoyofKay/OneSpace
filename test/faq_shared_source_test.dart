@@ -29,9 +29,13 @@ void main() {
     }
   });
 
-  test('Every feature has a "How do I use" answer with a tutorial link', () {
+  test('Every feature has a "How do I use" answer that opens its video tutorial', () {
     final howTo = faqEntries.where((e) => e.topicEn == 'How to use each feature').toList();
     expect(howTo.length, greaterThanOrEqualTo(14));
-    expect(howTo.where((e) => e.tutorial).length, greaterThanOrEqualTo(13));
+    final videos = howTo.where((e) => e.tutorial != null).toList();
+    expect(videos.length, 17, reason: 'one video tutorial per feature (D110)');
+    for (final e in videos) {
+      expect(e.tutorialUrl, startsWith('https://onespace.live/tutorials.html#'));
+    }
   });
 }

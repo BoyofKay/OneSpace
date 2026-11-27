@@ -10,11 +10,12 @@ class FaqBlock {
 }
 
 class FaqEntry {
-  const FaqEntry(this.topicEn, this.topicAr, this.qEn, this.qAr, this.blocks, {this.tutorial = false});
+  const FaqEntry(this.topicEn, this.topicAr, this.qEn, this.qAr, this.blocks, {this.tutorial});
   final String topicEn, topicAr, qEn, qAr;
   final List<FaqBlock> blocks;
-  /// True when the website has a step-by-step tutorial for this.
-  final bool tutorial;
+  /// The feature's video tutorial on the website (tutorials.html, at its id), if any.
+  final String? tutorial;
+  String? get tutorialUrl => tutorial == null ? null : '$faqTutorialUrl#$tutorial';
   String topic(bool ar) => ar ? topicAr : topicEn;
   String q(bool ar) => ar ? qAr : qEn;
   String a(bool ar) => [for (final b in blocks) ...b.lines(ar)].join('\n');
@@ -57,7 +58,7 @@ const faqEntries = <FaqEntry>[
         ['في «اليوم» اضغط «ادعُ شريكي».', 'أدخل بريد شريكك الإلكتروني وأرسل الدعوة.', 'يفتح شريكك الرسالة (أو يستخدم الرمز أو رمز QR) ويقبل خلال 48 ساعة.']),
       FaqBlock('p', ['Only the account with that verified email can join. Your “Only me” items stay private.'],
         ['لا ينضم إلا الحساب صاحب ذلك البريد الموثّق، وتبقى عناصرك «أنا فقط» خاصة.']),
-    ], tutorial: true),
+    ]),
   FaqEntry('Getting started', 'البداية',
     'How do I resend, replace or revoke an invitation?', 'كيف أعيد إرسال الدعوة أو أستبدلها أو ألغيها؟', [
       FaqBlock('p', ['On Today, tap Manage invitation.'],
@@ -111,7 +112,7 @@ const faqEntries = <FaqEntry>[
         ['الساعات والطقس: عندما تعيشان بعيدين، لكل منكما عمود فيه وقته المحلي وطقس المدينة التي اختارها (الحرارة والعظمى والصغرى واحتمال المطر). اختر مدينتك من أنا ← الإعدادات. وعندما تعيشان معًا تعرض البطاقة بيتًا واحدًا بدلًا من ذلك.', 'وقت مناسب للحديث: عندما تعيشان في منطقتين زمنيتين مختلفتين، تعرض «اليوم» متى تكونان مستيقظين ومتفرغين، بناءً على ساعات العمل والنوم.', 'أيقونة البيت أو الطائرة تُظهر طريقة عيشكما؛ اضغطها للتبديل بين «معًا» و«بعيدين» (ويُبلَّغ شريكك).', '«يحتاج انتباهك» يعرض العناصر المتأخرة والعاجلة والتذكيرات المستحقة الآن ورسائل الاطمئنان التي تنتظرك. اضغط أيًا منها لفتحه.', '«قادم» يعرض المواعيد والرحلات والمناسبات التالية. و«منذ غيابك» يعرض تحديثات شريكك.', '«إضافة سريعة» تحفظ تذكيرًا أو مهمة أو ملاحظة أو مكانًا أو رحلة بضغطتين، والاختصارات تفتح الأقسام التي تستخدمها أكثر.']),
       FaqBlock('p', ['On your own, Today shows your clock, weather, plans and reminders without the partner parts.'],
         ['وأنت بمفردك تعرض «اليوم» ساعتك وطقسك وخططك وتذكيراتك دون أجزاء الشريك.']),
-    ], tutorial: true),
+    ], tutorial: 'today'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use the calendar?', 'كيف أستخدم التقويم؟', [
       FaqBlock('steps', ['Go to Remember → Calendar and tap +.', 'Write what is happening and set the date and time (or All day). Add a place if you like.', 'Choose who it is for: me, my partner or both of us.', 'Choose who can see it: Shared or Only me. Then save.'],
@@ -120,26 +121,26 @@ const faqEntries = <FaqEntry>[
         ['في عرض اليوم مسار لكل منكما. يظهر موعد أحدكما في مساره، ويمتد موعدكما معًا على المسارين. وتظهر ساعات العمل والنوم مظللة لتريا متى تكونان متفرغين.', 'يظهر الموعد المشترك في تقويم شريكك بتوقيته المحلي.', 'من الموعد يمكنك إنشاء تذكير أو مهمة أو ملاحظة، أو فتح مكانه في الخرائط.']),
       FaqBlock('p', ['On your own, events are Only me and for you, and the day view shows one lane.'],
         ['وأنت بمفردك تكون المواعيد «أنا فقط» ولك أنت، ويعرض عرض اليوم مسارًا واحدًا.']),
-    ], tutorial: true),
+    ], tutorial: 'calendar'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use to-do lists and checklists?', 'كيف أستخدم قوائم المهام وقوائم التحقق؟', [
       FaqBlock('steps', ['Go to Remember → To-do and tap +.', 'Write a title. To make a checklist, type one item per line: each line becomes its own item to tick.', 'Optional: set the priority, a date, who it belongs to, and Shared or Only me.', 'For a routine, choose Repeat. Each time it starts fresh, and it can skip the days off of the person it belongs to.'],
         ['اذهب إلى «نتذكّر» ← «المهام» واضغط +.', 'اكتب عنوانًا. ولعمل قائمة تحقق اكتب عنصرًا في كل سطر: كل سطر يصبح عنصرًا مستقلًا تضع عليه علامة.', 'اختياري: حدّد الأولوية والتاريخ ولمن تتبع، و«مشترك» أو «أنا فقط».', 'للمهام الروتينية اختر «تكرار». تبدأ من جديد في كل مرة، ويمكنها تخطي أيام إجازة صاحبها.']),
       FaqBlock('p', ['A shared list updates on both phones as items are ticked.'],
         ['تتحدّث القائمة المشتركة على الهاتفين عند وضع العلامات على العناصر.']),
-    ], tutorial: true),
+    ], tutorial: 'todo'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use reminders?', 'كيف أستخدم التذكيرات؟', [
       FaqBlock('steps', ['Go to Remember → Reminders and tap +.', 'Write what to remember and when. Choose who it is for: you, your partner or both.', 'Make it repeat if needed. Mark it Urgent only if it must ring during sleep hours.'],
         ['اذهب إلى «نتذكّر» ← «التذكيرات» واضغط +.', 'اكتب ما تريد تذكّره ومتى، واختر لمن هو: لك أو لشريكك أو لكليكما.', 'اجعله يتكرر عند الحاجة، واجعله «عاجلًا» فقط إذا كان يجب أن يرن خلال ساعات النوم.']),
       FaqBlock('p', ['When it rings, mark it done, snooze it or add a follow-up note. Type @ in the details to mention your partner.'],
         ['عندما يرن يمكنك إنهاؤه أو تأجيله أو إضافة ملاحظة متابعة. واكتب @ في التفاصيل للإشارة إلى شريكك.']),
-    ], tutorial: true),
+    ], tutorial: 'reminders'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use notes?', 'كيف أستخدم الملاحظات؟', [
       FaqBlock('steps', ['Go to Remember → Notes and tap +.', 'Write and format your note. Type @ to mention your partner; they get a notification.', 'Choose Shared or Only me, then save. From a note you can also create a reminder, an event or a to-do.'],
         ['اذهب إلى «نتذكّر» ← «الملاحظات» واضغط +.', 'اكتب ملاحظتك ونسّقها، واكتب @ للإشارة إلى شريكك فيصله إشعار.', 'اختر «مشترك» أو «أنا فقط» ثم احفظ. ومن الملاحظة يمكنك أيضًا إنشاء تذكير أو موعد أو مهمة.']),
-    ], tutorial: true),
+    ], tutorial: 'notes'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use Activities to plan and decide together?', 'كيف أستخدم الأنشطة للتخطيط واتخاذ القرار معًا؟', [
       FaqBlock('p', ['An Activity holds one plan or decision from start to finish: the options, the conversation and the outcome.'],
@@ -150,14 +151,14 @@ const faqEntries = <FaqEntry>[
         ['تعرض المقارنة عمودًا لكل خيار وصفًا لكل تفصيل (السعر والمواصفات والمزايا والعيوب). والخانة الفارغة تعني أنه لم يُسجَّل بعد.', 'اربط النشاط برحلة أو مناسبة أو تجربة أو موعد أو تذكير أو مهمة أو ملاحظة أو ذكرى، أو استخدم «إنشاء من هذا» لعمل تذكير أو موعد أو مهمة أو ملاحظة أو رحلة منه.', 'يمكن إرسال خيار الهدية المختار إلى خطة شراء المناسبة.', 'تُحفظ معلومات الاتصال التي ترفقها أيضًا كبطاقة في «بطاقات جهات الاتصال» بخصوصية النشاط نفسها.', 'من تطبيق أو موقع آخر اضغط «مشاركة» ← OneSpace واختر «نشاط» لإضافة الرابط كنشاط جديد أو كخيار.']),
       FaqBlock('p', ['On your own, Activities work the same way as a private planner; the conversation and reactions are just yours.'],
         ['وأنت بمفردك تعمل الأنشطة بالطريقة نفسها كمخطط خاص، والمحادثة والتفاعلات لك وحدك.']),
-    ], tutorial: true),
+    ], tutorial: 'activities'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I plan a trip?', 'كيف أخطط لرحلة؟', [
       FaqBlock('steps', ['Go to Coordinate → Trips and tap +. Give it a name, the type of trip and where and when (dates can wait). Choose Both of us, or Only me for a surprise.', 'Flights: tap Search on Google Flights (it opens with your airports, dates and travellers). When you find one, share it back to OneSpace or copy the link and tap Paste a flight.', 'Compare the saved flight options (the price you saw, baggage, seats, pros and cons), then add the one you book to the itinerary. Its dates fill in the trip.', 'Build the itinerary with stays, activities and reservations, in local times.', 'Add a travel checklist and attach travel documents (boarding passes, tickets, visas; PDF or photo up to 10 MB). Only people who can see the trip can open them.', 'Before you leave, use Create from this for a leave-for-the-airport reminder (6:00 on the day) or an online check-in reminder (9:00 the day before).'],
         ['اذهب إلى «ننسّق» ← «الرحلات» واضغط +. أعطها اسمًا ونوعًا والوجهة والتوقيت (يمكن تأجيل التواريخ). اختر «كلانا» أو «أنا فقط» لمفاجأة.', 'الرحلات الجوية: اضغط «ابحث في Google Flights» (يفتح بمطاراتك وتواريخك وعدد المسافرين). وعندما تجد رحلة شاركها إلى OneSpace أو انسخ الرابط واضغط «الصق رحلة».', 'قارن خيارات الرحلات المحفوظة (السعر الذي رأيته والأمتعة والمقاعد والمزايا والعيوب)، ثم أضف ما تحجزه إلى خط السير، فتملأ تواريخه الرحلة.', 'ابنِ خط السير بالإقامة والأنشطة والحجوزات بالتوقيت المحلي.', 'أضف قائمة تجهيز للسفر وأرفق وثائق السفر (بطاقات الصعود والتذاكر والتأشيرات؛ PDF أو صورة حتى 10 ميغابايت). لا يفتحها إلا من يرى الرحلة.', 'قبل السفر استخدم «إنشاء من هذا» لتذكير بالتوجه إلى المطار (6:00 صباح يوم السفر) أو تذكير بإنهاء إجراءات السفر عبر الإنترنت (9:00 في اليوم السابق).']),
       FaqBlock('bullets', ['Each trip has its own conversation, and Costs so far adds up what you entered.', 'Booking sites and travel links shared into OneSpace can go straight to a trip.', 'Nothing is bought or checked in for you: prices are what you saw when saving.'],
         ['لكل رحلة محادثتها الخاصة، ويجمع «التكاليف حتى الآن» ما أدخلتماه.', 'يمكن أن تذهب مواقع الحجز وروابط السفر التي تشاركها إلى OneSpace مباشرة إلى رحلة.', 'لا يُشترى أي شيء ولا تُنجز إجراءات السفر نيابة عنك: الأسعار هي ما رأيته عند الحفظ.']),
-    ], tutorial: true),
+    ], tutorial: 'trips'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I prepare for an occasion?', 'كيف أستعد لمناسبة؟', [
       FaqBlock('steps', ['Go to Remember → Occasions and tap +. Pick one of your saved special dates or a public holiday, or type your own (a birthday, anniversary, graduation…). Choose who it is for and Shared or Only me.', 'Set a total budget. The budget shows what is reserved, what is spent and what is left, and warns you when you go over.', 'Add gift options with a product link, price, shop, rating and expected delivery. Compare lists of gifts and try different combinations before you decide.', 'Reserve your choices (the cost is set aside), then mark each as purchased when you order it (the cost moves to Spent). Track the order number, status and delivery; you are warned if it arrives after the date.', 'Set preparation reminders: save money, research choices, order in time, final preparations. Nothing is scheduled until you choose.'],
@@ -166,7 +167,7 @@ const faqEntries = <FaqEntry>[
         ['يقدّم «التخطيط الذكي» نصائح مثل اقتراب الموعد دون حجز شيء، أو عناصر بلا سعر، أو تجاوز الميزانية.', 'يمكن أن تصبح روابط المتاجر التي تشاركها إلى OneSpace أفكار هدايا، ويمكن إرسال خيار تم اختياره في نشاط إلى المناسبة.', 'تخطط لمفاجأة؟ اجعلها «أنا فقط»: لن يرى شريكك شيئًا حتى تشاركها.']),
       FaqBlock('p', ['Tip: save birthdays and your anniversary once in Me → Settings → Birthdays, anniversary & special dates, and they are ready to pick here.'],
         ['نصيحة: احفظ أعياد الميلاد وذكرى ارتباطكما مرة واحدة في أنا ← الإعدادات ← أعياد الميلاد والذكرى والتواريخ الخاصة، فتكون جاهزة للاختيار هنا.']),
-    ], tutorial: true),
+    ], tutorial: 'occasions'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use counters and timelines?', 'كيف أستخدم العدّادات والخطوط الزمنية؟', [
       FaqBlock('p', ['A counter shows how long since or until a moment that matters: days, months and years, with the next milestone.'],
@@ -175,28 +176,28 @@ const faqEntries = <FaqEntry>[
         ['اذهب إلى «نتذكّر» ← «العدّادات» واضغط +. اكتب ما حدث أو ما هو قادم والتاريخ، أو اختره من تقويمك أو تواريخك الخاصة أو المناسبات أو الرحلات الجوية أو الرحلات.', 'اختر «كل سنة» للذكريات السنوية وأعياد الميلاد، و«مشترك» أو «أنا فقط».', 'لرؤية المدة بين اللحظات اضغط «الخطوط الزمنية» وأنشئ خطًا زمنيًا باسم («مشترك» أو «أنا فقط») وأضف إليه العدّادات. يمكن أن يكون العدّاد في عدة خطوط.']),
       FaqBlock('p', ['A timeline shows the time between each pair of moments, and Today appears on it when today falls between the first and last. On your own, counters and timelines are Only me.'],
         ['يعرض الخط الزمني المدة بين كل لحظتين متتاليتين، ويظهر «اليوم» عليه إذا وقع بين أول لحظة وآخر لحظة. وأنت بمفردك تكون العدّادات والخطوط «أنا فقط».']),
-    ], tutorial: true),
+    ], tutorial: 'counters'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use Our places and the map?', 'كيف أستخدم «أماكننا» والخريطة؟', [
       FaqBlock('steps', ['Go to Remember → Our places and tap +. Search the map, paste a Google Maps link, or tap the map where the place is (or press and hold).', 'Choose Been here (a visit, with the date and your rating) or Add to bucket list (a place you want to go). Choose Shared or Only me.'],
         ['اذهب إلى «نتذكّر» ← «أماكننا» واضغط +. ابحث في الخريطة أو الصق رابط Google Maps أو اضغط على موقع المكان في الخريطة (أو اضغط مطولًا).', 'اختر «زرناه» (زيارة بتاريخها وتقييمكما) أو «أضف إلى قائمة الأمنيات» (مكان تريدان زيارته)، واختر «مشترك» أو «أنا فقط».']),
       FaqBlock('bullets', ['On the map, a red check pin is a place you have been, a teal bookmark pin is on your bucket list, and each pin shows a category icon. The initials on a pin show who can see it.', 'From a bucket-list place, tap Plan a trip to start a trip there; the place then shows In a planned trip.', 'Photos and stories of a visit live in Memories. In Google Maps you can also tap Share → OneSpace to save a place.'],
         ['على الخريطة: الدبوس الأحمر بعلامة صح مكان زرتماه، والدبوس الأخضر المزرق بعلامة إشارة مرجعية في قائمة الأمنيات، ولكل دبوس أيقونة فئة. والأحرف الأولى على الدبوس تُظهر من يستطيع رؤيته.', 'من مكان في قائمة الأمنيات اضغط «خطط لرحلة» لبدء رحلة إليه، فيظهر المكان بعدها «في رحلة مخطط لها».', 'صور وقصص الزيارة تُحفظ في «الذكريات». ويمكنك أيضًا في Google Maps الضغط على «مشاركة» ← OneSpace لحفظ مكان.']),
-    ], tutorial: true),
+    ], tutorial: 'places'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use contact cards?', 'كيف أستخدم بطاقات جهات الاتصال؟', [
       FaqBlock('steps', ['Go to Remember → Contact cards and tap +, or tap Import from phone to start from one of your phone contacts.', 'Add the name on the card, a contact person, phone, email, website, address, opening hours, work details and notes.', 'Choose Shared or Only me and save.'],
         ['اذهب إلى «نتذكّر» ← «بطاقات جهات الاتصال» واضغط +، أو اضغط «استيراد من الهاتف» للبدء من إحدى جهات اتصال هاتفك.', 'أضف الاسم على البطاقة والشخص المسؤول والهاتف والبريد والموقع والعنوان وساعات العمل وتفاصيل العمل والملاحظات.', 'اختر «مشترك» أو «أنا فقط» واحفظ.']),
       FaqBlock('bullets', ['From a card you can call, email, open the website or the address in Maps, or tap Save to phone to add it to your phone contacts.', 'Contacts you add inside an Activity also appear here, with the Activity’s privacy.', 'OneSpace only stores the cards you save; it never uploads your phone contacts.'],
         ['من البطاقة يمكنك الاتصال أو المراسلة أو فتح الموقع أو العنوان في الخرائط، أو الضغط على «حفظ في الهاتف» لإضافتها إلى جهات اتصال هاتفك.', 'تظهر هنا أيضًا جهات الاتصال التي تضيفها داخل نشاط، بخصوصية ذلك النشاط.', 'لا يحفظ OneSpace إلا البطاقات التي تحفظها، ولا يرفع جهات اتصال هاتفك أبدًا.']),
-    ], tutorial: true),
+    ], tutorial: 'contacts'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use letters?', 'كيف أستخدم الرسائل؟', [
       FaqBlock('steps', ['Go to Connect → Letters and start a new letter.', 'Write it. Save privately as a draft as often as you like; only you see drafts.', 'Optional: choose Open on a special day. Your partner can open it from that date.', 'Send it. A sent letter cannot be edited and stays in your shared history. You see when your partner has read it, and they can write a reply.'],
         ['اذهب إلى «نتواصل» ← «الرسائل» وابدأ رسالة جديدة.', 'اكتبها، واحفظها كمسودة خاصة متى شئت؛ لا يرى المسودات غيرك.', 'اختياري: اختر «تُفتح في يوم مميز»، فيستطيع شريكك فتحها من ذلك التاريخ.', 'أرسلها. لا يمكن تعديل الرسالة المرسلة وتبقى في سجلكما المشترك. ترى متى قرأها شريكك، ويمكنه كتابة رد.']),
       FaqBlock('p', ['On your own, you can write and keep private drafts, and send them once you connect a partner.'],
         ['وأنت بمفردك يمكنك كتابة مسودات خاصة والاحتفاظ بها، وإرسالها بعد ربط شريك.']),
-    ], tutorial: true),
+    ], tutorial: 'letters'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use A little love?', 'كيف أستخدم «لمسة حب»؟', [
       FaqBlock('steps', ['Go to Connect → A little love and tap a gesture: a hug, thinking of you, good morning, good night, thank you, proud of you, I miss you and more.', 'OneSpace picks a message for it at random from that gesture’s pool. Edit the message before sending if you want your own words.', 'Send it. Your partner gets a notification, and both of you see it in the sent and received history.'],
@@ -205,21 +206,21 @@ const faqEntries = <FaqEntry>[
         ['اجعلها خاصة بك: اضغط «أنشئ لمستي الخاصة» لعمل لمسة باسمك ورسالتك. ومن أنا ← الإعدادات ← إعدادات لمسات الحب يمكنك تعديل الرسائل الجاهزة أو إخفاؤها وإضافة رسائلك وتحديد رسالة «لا تخترها عشوائيًا».', 'عند العيش معًا تُستبعد رسائل «من بعيد» ولمسات الحنين إلى البيت. وعند العيش بعيدين تحصلان أيضًا على لمسات مثل «أشتاق إلى وجودنا معًا» و«أشتاق إلى بيتنا».']),
       FaqBlock('p', ['A little love needs a partner. On your own it is not available.'],
         ['تحتاج «لمسة حب» إلى شريك، ولا تتوفر وأنت بمفردك.']),
-    ], tutorial: true),
+    ], tutorial: 'gestures'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use daily check-ins?', 'كيف أستخدم التواصل اليومي؟', [
       FaqBlock('bullets', ['Feelings journal: go to Connect → Daily check-ins and record how you feel today, once a day. You can edit today’s feeling, and search your journal later.', 'With a partner, you can share your feeling with them, or ask them how they are. They reply when they choose, and you can answer back with a gesture.', 'Only your partner sees a feeling you share with them.'],
         ['دفتر المشاعر: اذهب إلى «نتواصل» ← «التواصل اليومي» وسجّل شعورك اليوم، مرة واحدة يوميًا. يمكنك تعديل شعور اليوم والبحث في دفترك لاحقًا.', 'مع شريك يمكنك مشاركته شعورك أو سؤاله عن حاله. يرد عندما يختار، ويمكنك الرد عليه بلمسة.', 'لا يرى الشعور الذي تشاركه مع شريكك أحد غيره.']),
       FaqBlock('p', ['On your own, the feelings journal works fully as your private diary.'],
         ['وأنت بمفردك يعمل دفتر المشاعر بالكامل كمذكراتك الخاصة.']),
-    ], tutorial: true),
+    ], tutorial: 'checkins'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I use shared experiences?', 'كيف أستخدم التجارب المشتركة؟', [
       FaqBlock('steps', ['Go to Connect → Shared experiences and pick a category: movies, shows, music, books or games. Each tile shows how many are still to enjoy.', 'Add one with its title, where to watch, read or play, and a link. You can also share it from Netflix, Spotify or any website with Share → OneSpace.', 'Each of you marks Interested on your own. When you both do, it becomes a mutual pick.', 'Tap Plan a date to choose when you will enjoy it together; your partner sees the plan. Open link takes you straight to the platform.', 'Afterwards, mark it enjoyed, then rate and review it. Talk about it in the comments.'],
         ['اذهب إلى «نتواصل» ← «التجارب المشتركة» واختر فئة: أفلام أو مسلسلات أو موسيقى أو كتب أو ألعاب. وتعرض كل فئة عدد ما بقي للاستمتاع.', 'أضف تجربة بعنوانها ومكان المشاهدة أو القراءة أو اللعب ورابطها. ويمكنك أيضًا مشاركتها من نتفليكس أو سبوتيفاي أو أي موقع عبر «مشاركة» ← OneSpace.', 'يختار كل منكما «مهتم» بشكل مستقل، وعندما يفعل كلاكما يصبح اختيارًا مشتركًا.', 'اضغط «خطط لموعد» لاختيار متى تستمتعان بها معًا، فيرى شريكك الخطة. و«افتح الرابط» ينقلك مباشرة إلى المنصة.', 'بعد ذلك ضع علامة «استمتعنا بها» ثم قيّمها واكتب رأيك، وتحدثا عنها في التعليقات.']),
       FaqBlock('p', ['Now and then, OneSpace suggests “What shall we do together?” from your list, preferring mutual picks. On your own, it works as your personal watch, read and play list.'],
         ['من حين لآخر يقترح OneSpace «ماذا نفعل معًا؟» من قائمتكما، مفضّلًا الاختيارات المشتركة. وأنت بمفردك تعمل كقائمتك الشخصية للمشاهدة والقراءة واللعب.']),
-    ], tutorial: true),
+    ], tutorial: 'experiences'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I keep memories, make a scrapbook and take daily selfies?', 'كيف أحفظ الذكريات وأصنع ألبومًا وألتقط السيلفي اليومية؟', [
       FaqBlock('steps', ['Go to Connect → Memories and tap +. Add a title, date, place, the story and photos. People and photo tags make it easy to find later.', 'For a scrapbook, pick a page design and fill it right on the page. Add as many pages as you like with New page.', 'In a shared scrapbook you can both edit every page. Use Nudge partner in the memory menu to ask for their part.', 'Save or share the finished scrapbook as a PDF (saved in Downloads › OneSpace).'],
@@ -228,14 +229,14 @@ const faqEntries = <FaqEntry>[
         ['السيلفي اليومية: سيلفي واحدة في اليوم. وللزوجين تُصنع معًا: يضيف كل منكما صورته إلى اليوم نفسه («أضف صورتك إلى سيلفي اليوم»).', 'يعرض تقويم السيلفي الأيام التي فيها سيلفي، والصورة الصغيرة في الزاوية هي صورة شريكك.']),
       FaqBlock('p', ['On your own, memories, scrapbooks and daily selfies are your private story.'],
         ['وأنت بمفردك تكون الذكريات والألبومات والسيلفي اليومية قصتك الخاصة.']),
-    ], tutorial: true),
+    ], tutorial: 'memories'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'How do I save something from another app or website?', 'كيف أحفظ شيئًا من تطبيق أو موقع آخر؟', [
       FaqBlock('steps', ['In any app or website, tap Share and choose OneSpace (Android).', 'OneSpace suggests up to three places for it, based on what you shared: a shop link → gift idea, Activity option or to-do; a movie or song → shared experience; a flight → flight option or trip; a Google Maps place → bucket list or visited place; text with a date → reminder, to-do or event. More… shows every other choice.', 'Not sure yet? Save it to Items to sort (only you see it) and sort it later; items older than 30 days get a gentle “still want this?” label.'],
         ['في أي تطبيق أو موقع اضغط «مشاركة» واختر OneSpace (أندرويد).', 'يقترح OneSpace حتى ثلاثة أماكن لحفظه حسب ما شاركته: رابط متجر ← فكرة هدية أو خيار في نشاط أو مهمة؛ فيلم أو أغنية ← تجربة مشتركة؛ رحلة طيران ← خيار رحلة أو رحلة؛ مكان من Google Maps ← قائمة الأمنيات أو مكان زرتماه؛ نص فيه تاريخ ← تذكير أو مهمة أو موعد. ويعرض «المزيد…» بقية الخيارات.', 'لم تقرر بعد؟ احفظه في «عناصر للفرز» (لا يراه غيرك) وافرزه لاحقًا؛ وتحصل العناصر الأقدم من 30 يومًا على تذكير لطيف «هل ما زلت تريده؟».']),
       FaqBlock('p', ['Sharing into OneSpace on iPhone comes with the iPhone app.'],
         ['المشاركة إلى OneSpace على الآيفون تأتي مع تطبيق الآيفون.']),
-    ], tutorial: true),
+    ], tutorial: 'share-in'),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'Can I use OneSpace by voice?', 'هل يمكنني استخدام OneSpace بالصوت؟', [
       FaqBlock('p', ['Not yet. Speaking to OneSpace is coming soon, and we will announce it in What’s new when it is ready.'],

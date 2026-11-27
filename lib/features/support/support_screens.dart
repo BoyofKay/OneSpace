@@ -81,7 +81,7 @@ class FaqScreen extends StatefulWidget {
 }
 
 /// 27 Nov 2026: an answer as short paragraphs, numbered steps and bullets,
-/// with a link to the website's step-by-step tutorial where there is one.
+/// with a link to the feature's video tutorial on the website where there is one.
 class FaqAnswer extends StatelessWidget {
   const FaqAnswer({super.key, required this.entry, required this.arabic});
   final FaqEntry entry;
@@ -107,11 +107,12 @@ class FaqAnswer extends StatelessWidget {
       }
       children.add(const SizedBox(height: 8));
     }
-    if (entry.tutorial) {
+    final video = entry.tutorialUrl;
+    if (video != null) {
       children.add(Align(alignment: AlignmentDirectional.centerStart, child: TextButton.icon(
-        icon: const Icon(Icons.open_in_new, size: 18),
-        label: Text(tt('Step-by-step tutorial')),
-        onPressed: () => launchUrl(Uri.parse(faqTutorialUrl), mode: LaunchMode.externalApplication))));
+        icon: const Icon(Icons.play_circle_outline, size: 18),
+        label: Text(tt('Watch the video tutorial')),
+        onPressed: () => launchUrl(Uri.parse(video), mode: LaunchMode.externalApplication))));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
   }

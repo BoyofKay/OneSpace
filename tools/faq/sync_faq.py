@@ -38,11 +38,12 @@ def render(groups):
         '}',
         '',
         'class FaqEntry {',
-        '  const FaqEntry(this.topicEn, this.topicAr, this.qEn, this.qAr, this.blocks, {this.tutorial = false});',
+        '  const FaqEntry(this.topicEn, this.topicAr, this.qEn, this.qAr, this.blocks, {this.tutorial});',
         '  final String topicEn, topicAr, qEn, qAr;',
         '  final List<FaqBlock> blocks;',
-        '  /// True when the website has a step-by-step tutorial for this.',
-        '  final bool tutorial;',
+        "  /// The feature's video tutorial on the website (tutorials.html, at its id), if any.",
+        '  final String? tutorial;',
+        "  String? get tutorialUrl => tutorial == null ? null : '$faqTutorialUrl#$tutorial';",
         '  String topic(bool ar) => ar ? topicAr : topicEn;',
         '  String q(bool ar) => ar ? qAr : qEn;',
         "  String a(bool ar) => [for (final b in blocks) ...b.lines(ar)].join('\\n');",
@@ -66,7 +67,8 @@ def render(groups):
                 ar = ', '.join(q(t['ar']) for t in texts)
                 lines.append(f"      FaqBlock('{kind}', [{en}],")
                 lines.append(f"        [{ar}]),")
-            lines.append(f"    ]{', tutorial: true' if item.get('tutorial') else ''}),")
+            video = f", tutorial: {q(item['id'])}" if item.get('tutorial') else ''
+            lines.append(f"    ]{video}),")
     lines.append('];')
     return '\n'.join(lines) + '\n'
 

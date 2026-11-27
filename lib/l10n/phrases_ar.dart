@@ -3286,5 +3286,5 @@ const Map<String, String> arPhrases = {
   'Details (optional)': 'التفاصيل (اختياري)',
   'the occasion': 'المناسبة',
   'Check your budget and set aside what you need.': 'راجع ميزانيتك وادخر ما تحتاجه.',
-  'Step-by-step tutorial': 'الشرح خطوة بخطوة',
+  'Watch the video tutorial': 'شاهد الدرس بالفيديو',
 };
