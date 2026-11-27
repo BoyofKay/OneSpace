@@ -1,0 +1,259 @@
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.79 (1.4.0 available)
+  archive 4.0.9 (4.7.1 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  cupertino_ui 1.1.6 (1.1.7 available)
+  firebase_core 5.1.0 (5.2.0 available)
+  firebase_core_platform_interface 8.1.1 (8.2.0 available)
+  firebase_core_web 4.1.0 (4.2.0 available)
+  firebase_messaging 17.0.1 (17.1.0 available)
+  firebase_messaging_platform_interface 4.11.1 (4.12.0 available)
+  firebase_messaging_web 4.3.1 (4.4.0 available)
+  flutter_keyboard_visibility_linux 1.0.0 (2.0.0 available)
+  flutter_keyboard_visibility_macos 1.0.0 (2.0.0 available)
+  flutter_keyboard_visibility_platform_interface 2.0.0 (3.0.0 available)
+  flutter_keyboard_visibility_windows 1.0.0 (2.0.0 available)
+  geolocator 13.0.4 (14.1.2 available)
+  geolocator_android 4.6.2 (5.2.1 available)
+  image 4.5.4 (4.13.1 available)
+  image_picker_ios 0.8.13+15 (0.8.13+16 available)
+  jni 1.1.2 (1.2.1 available)
+  jni_flutter 1.0.4+1 (1.1.0 available)
+  latlong2 0.9.1 (0.10.1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.11.0 (1.11.1 available)
+  pdf 3.11.3 (3.13.1 available)
+  qr 3.0.3 (4.0.1 available)
+  record 7.1.1 (7.2.0 available)
+  test_api 0.7.14 (0.7.15 available)
+  url_launcher_android 6.3.33 (6.3.35 available)
+  uuid 4.5.2 (4.6.0 available)
+  vector_math 2.4.3 (2.4.4 available)
+  xml 6.6.1 (7.1.0 available)
+Got dependencies!
+32 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Installing build/app/outputs/flutter-apk/app-qa-debug.apk...      1,219ms
+E/flutter (14942): [ERROR:flutter/impeller/toolkit/egl/egl.cc(56)] EGL Error: Success (12288) in ../../../flutter/impeller/toolkit/egl/display.cc:161
+E/flutter (14942): [ERROR:flutter/impeller/toolkit/egl/egl.cc(56)] EGL Error: Success (12288) in ../../../flutter/impeller/toolkit/egl/display.cc:161
+I/flutter (14942): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(105)] Using the Impeller rendering backend (OpenGLES).
+D/FlutterGeolocator(14942): Attaching Geolocator to activity
+D/FlutterRenderer(14942): Width is zero. 0,0
+D/FlutterRenderer(14942): Width is zero. 0,0
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+D/FlutterGeolocator(14942): Creating service.
+D/FlutterGeolocator(14942): Binding to location service.
+D/FlutterGeolocator(14942): Geolocator foreground service connected
+D/FlutterGeolocator(14942): Initializing Geolocator services
+D/FlutterGeolocator(14942): Flutter engine connected. Connected engine count 1
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:44957/eZNH7dELi8s=/
+VMServiceFlutterDriver: Isolate found with number: 1670057794501259
+VMServiceFlutterDriver: Isolate 1670057794501259 is runnable.
+VMServiceFlutterDriver: Isolate is paused at start.
+VMServiceFlutterDriver: Attempting to resume isolate
+I/flutter (14942): 00:00 +0: OneSpace screenshots
+VMServiceFlutterDriver: Connected to Flutter application.
+I/flutter (14942): SHOTS video ar
+D/ProfileInstaller(14942): Installing profile for onespace.qa
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+I/flutter (14942): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+D/EGL_emulation(14942): app_time_stats: avg=2510.25ms min=428.87ms max=6247.79ms count=3
+D/EGL_emulation(14942): app_time_stats: avg=92.79ms min=43.84ms max=115.72ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=116.27ms min=109.92ms max=120.53ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.79ms min=108.46ms max=120.75ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.27ms min=114.76ms max=121.79ms count=9
+I/flutter (14942): OneSpace push integration inactive; in-app alerts remain available.
+D/EGL_emulation(14942): app_time_stats: avg=546.82ms min=154.34ms max=939.30ms count=2
+D/EGL_emulation(14942): app_time_stats: avg=214.87ms min=145.89ms max=434.79ms count=5
+D/EGL_emulation(14942): app_time_stats: avg=138.73ms min=107.64ms max=284.86ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=120.15ms min=100.43ms max=168.32ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.59ms min=109.07ms max=129.65ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.99ms min=108.79ms max=123.11ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.43ms min=109.74ms max=124.96ms count=9
+I/flutter (14942): CLIP_START tour 1795798899137
+D/EGL_emulation(14942): app_time_stats: avg=118.92ms min=108.95ms max=128.78ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.15ms min=109.99ms max=122.52ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.64ms min=111.54ms max=124.94ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=120.11ms min=49.78ms max=202.70ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=87.56ms min=50.64ms max=134.82ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=102.42ms min=71.61ms max=118.67ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=82.77ms min=46.34ms max=121.90ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=89.01ms min=45.06ms max=150.63ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=84.24ms min=53.23ms max=124.85ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=88.17ms min=50.52ms max=112.19ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=125.89ms min=61.93ms max=387.15ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=128.50ms min=48.64ms max=270.88ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=118.85ms min=101.06ms max=162.95ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=126.11ms min=115.26ms max=160.04ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=108.58ms min=52.05ms max=192.99ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=130.48ms min=108.45ms max=161.50ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=116.38ms min=108.20ms max=121.87ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.77ms min=48.01ms max=175.56ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=100.95ms min=49.05ms max=127.98ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=118.63ms min=111.87ms max=128.31ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=120.62ms min=62.13ms max=150.80ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=132.10ms min=111.63ms max=228.17ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=113.46ms min=71.16ms max=132.57ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.80ms min=114.18ms max=118.96ms count=9
+I/flutter (14942): CLIP_END tour 1795798924020
+I/flutter (14942): CLIP_START quickadd 1795798924021
+D/EGL_emulation(14942): app_time_stats: avg=116.47ms min=108.14ms max=122.74ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=102.60ms min=56.28ms max=126.98ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=117.39ms min=110.09ms max=125.20ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.85ms min=111.54ms max=119.94ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=128.22ms min=110.18ms max=174.73ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=131.35ms min=114.59ms max=175.03ms count=8
+I/flutter (14942): CLIP_END quickadd 1795798930920
+I/flutter (14942): CLIP_START counters 1795798930921
+D/EGL_emulation(14942): app_time_stats: avg=116.89ms min=113.31ms max=120.82ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=165.17ms min=112.93ms max=503.89ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=111.58ms min=57.39ms max=260.77ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=114.55ms min=99.80ms max=123.15ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.77ms min=113.59ms max=121.24ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=108.85ms min=43.09ms max=127.04ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=95.59ms min=69.12ms max=137.36ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=84.63ms min=47.38ms max=120.97ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=102.23ms min=60.13ms max=122.92ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=113.82ms min=89.35ms max=127.28ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=88.73ms min=56.66ms max=117.78ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=134.21ms min=45.44ms max=422.34ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=106.99ms min=50.92ms max=229.58ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=109.02ms min=49.83ms max=119.77ms count=10
+I/flutter (14942): CLIP_END counters 1795798945520
+I/flutter (14942): CLIP_START plan 1795798945759
+D/EGL_emulation(14942): app_time_stats: avg=149.91ms min=111.27ms max=348.66ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=119.22ms min=107.22ms max=154.82ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=135.27ms min=80.01ms max=208.88ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=117.33ms min=108.75ms max=123.79ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.51ms min=108.57ms max=121.75ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=103.63ms min=62.50ms max=143.01ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=86.89ms min=46.23ms max=126.78ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=79.32ms min=41.74ms max=113.99ms count=12
+D/EGL_emulation(14942): app_time_stats: avg=111.66ms min=94.80ms max=120.55ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=119.51ms min=99.64ms max=143.00ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=122.62ms min=93.21ms max=149.66ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=143.94ms min=121.74ms max=163.46ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=116.28ms min=109.14ms max=120.84ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.33ms min=110.94ms max=123.57ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.43ms min=113.89ms max=120.21ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=115.93ms min=111.25ms max=121.96ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=120.83ms min=107.99ms max=144.24ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=118.71ms min=108.19ms max=146.00ms count=9
+I/flutter (14942): CLIP_END plan 1795798964603
+I/flutter (14942): CLIP_START places 1795798964604
+D/EGL_emulation(14942): app_time_stats: avg=116.62ms min=111.30ms max=121.65ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=121.82ms min=105.79ms max=168.20ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=119.94ms min=111.16ms max=156.84ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.23ms min=109.41ms max=124.28ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=102.80ms min=38.07ms max=120.50ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=96.62ms min=57.76ms max=142.52ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=95.14ms min=66.58ms max=136.33ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=98.86ms min=47.39ms max=160.47ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=91.03ms min=47.63ms max=162.60ms count=10
+I/flutter (14942):   [1m[flutter_map][0m
+I/flutter (14942):     We want to help keep OpenStreetMap available for everyone. Our examples
+I/flutter (14942):     and demo app use the public tile servers, but they are NOT free to use by
+I/flutter (14942):     everyone! Please review whether the OpenStreetMap tile servers are suitable
+I/flutter (14942):     for your project.
+I/flutter (14942):     See:
+I/flutter (14942):       * https://operations.osmfoundation.org/policies/tiles (OSM Tile Usage Policy)
+I/flutter (14942):       * https://docs.fleaflet.dev/osm-warn for more information about this warning
+D/EGL_emulation(14942): app_time_stats: avg=168.51ms min=93.15ms max=290.36ms count=6
+D/EGL_emulation(14942): app_time_stats: avg=125.50ms min=61.42ms max=226.98ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=113.30ms min=104.42ms max=127.32ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=118.41ms min=106.47ms max=146.16ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.06ms min=101.85ms max=127.92ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.11ms min=106.73ms max=129.15ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.20ms min=103.21ms max=133.29ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=113.18ms min=88.56ms max=126.21ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=103.28ms min=57.27ms max=214.37ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=90.61ms min=57.64ms max=128.97ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=103.94ms min=64.86ms max=119.03ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=120.99ms min=109.16ms max=151.51ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=128.59ms min=111.85ms max=181.48ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=115.89ms min=101.58ms max=124.80ms count=9
+I/flutter (14942): CLIP_END places 1795798988987
+I/flutter (14942): CLIP_START trip 1795798989216
+W/onespace.qa(14942): No such thread id for suspend: 33
+D/EGL_emulation(14942): app_time_stats: avg=148.41ms min=112.74ms max=337.56ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=130.21ms min=108.77ms max=196.45ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=148.05ms min=60.03ms max=362.76ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=113.16ms min=98.85ms max=140.52ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.04ms min=110.62ms max=125.81ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=110.29ms min=46.28ms max=126.02ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=80.93ms min=50.54ms max=106.32ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=86.49ms min=49.92ms max=134.91ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=97.93ms min=46.36ms max=137.97ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=79.44ms min=51.15ms max=105.26ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=85.27ms min=44.00ms max=118.94ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=93.72ms min=66.79ms max=113.93ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=116.56ms min=108.11ms max=124.33ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=118.69ms min=96.51ms max=141.19ms count=9
+I/flutter (14942): CLIP_END trip 1795799003987
+I/flutter (14942): CLIP_START love 1795799003987
+D/EGL_emulation(14942): app_time_stats: avg=116.97ms min=112.48ms max=120.28ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=121.37ms min=108.02ms max=160.58ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=115.38ms min=109.81ms max=121.30ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=122.42ms min=62.62ms max=224.59ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.64ms min=108.86ms max=121.80ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=96.62ms min=46.00ms max=134.62ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=87.05ms min=48.80ms max=150.83ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=84.26ms min=45.14ms max=126.69ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=112.14ms min=93.75ms max=120.39ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=98.29ms min=41.48ms max=122.35ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=84.35ms min=48.84ms max=128.17ms count=11
+D/EGL_emulation(14942): app_time_stats: avg=100.20ms min=48.93ms max=149.89ms count=10
+D/EGL_emulation(14942): app_time_stats: avg=116.62ms min=110.62ms max=128.67ms count=9
+I/flutter (14942): CLIP_END love 1795799017487
+I/flutter (14942): CLIP_START letters 1795799017487
+D/EGL_emulation(14942): app_time_stats: avg=116.30ms min=108.37ms max=120.94ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=130.13ms min=112.18ms max=184.18ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=116.54ms min=99.75ms max=134.85ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.99ms min=112.52ms max=124.17ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.09ms min=102.12ms max=125.90ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=117.49ms min=113.63ms max=122.63ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.06ms min=108.18ms max=125.73ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=121.38ms min=102.90ms max=139.65ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=115.51ms min=105.38ms max=123.70ms count=9
+I/flutter (14942): CLIP_END letters 1795799026837
+I/flutter (14942): CLIP_START themes 1795799026837
+D/EGL_emulation(14942): app_time_stats: avg=116.44ms min=112.17ms max=121.23ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=190.52ms min=111.39ms max=464.66ms count=6
+D/EGL_emulation(14942): app_time_stats: avg=109.57ms min=48.40ms max=314.34ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=115.72ms min=105.76ms max=132.03ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=122.19ms min=97.46ms max=156.65ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=202.26ms min=97.51ms max=296.37ms count=5
+D/EGL_emulation(14942): app_time_stats: avg=115.74ms min=105.21ms max=120.62ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=153.99ms min=114.14ms max=263.31ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=115.18ms min=104.17ms max=123.88ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=145.13ms min=115.10ms max=202.79ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=116.86ms min=111.34ms max=123.21ms count=9
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+D/EGL_emulation(14942): app_time_stats: avg=187.67ms min=114.39ms max=383.50ms count=6
+D/EGL_emulation(14942): app_time_stats: avg=118.70ms min=106.48ms max=137.06ms count=9
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+D/EGL_emulation(14942): app_time_stats: avg=143.35ms min=114.75ms max=189.92ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=128.23ms min=92.30ms max=183.94ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=132.44ms min=105.36ms max=188.90ms count=8
+D/EGL_emulation(14942): app_time_stats: avg=117.15ms min=107.71ms max=128.71ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=120.56ms min=100.31ms max=152.12ms count=9
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+D/EGL_emulation(14942): app_time_stats: avg=159.15ms min=115.36ms max=260.34ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=124.32ms min=109.70ms max=169.10ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.74ms min=110.08ms max=122.64ms count=9
+D/FlutterJNI(14942): Sending viewport metrics to the engine.
+D/EGL_emulation(14942): app_time_stats: avg=152.15ms min=115.06ms max=202.33ms count=7
+D/EGL_emulation(14942): app_time_stats: avg=122.13ms min=103.72ms max=200.49ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.53ms min=112.48ms max=122.45ms count=9
+I/flutter (14942): CLIP_END themes 1795799051954
+D/EGL_emulation(14942): app_time_stats: avg=122.00ms min=113.61ms max=164.50ms count=9
+I/flutter (14942): SNAP video_ar_video_done
+D/EGL_emulation(14942): app_time_stats: avg=117.95ms min=109.54ms max=125.27ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=115.60ms min=107.83ms max=122.31ms count=9
+D/EGL_emulation(14942): app_time_stats: avg=116.68ms min=114.48ms max=121.66ms count=9
+I/flutter (14942): 02:58 +1: (tearDownAll)
+I/flutter (14942): 02:58 +2: All tests passed!
+All tests passed.
