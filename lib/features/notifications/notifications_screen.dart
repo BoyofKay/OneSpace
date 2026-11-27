@@ -10,7 +10,7 @@ import '../connect/gesture_experience.dart';
 import '../notes/notes_screen.dart';
 import '../checkins/checkins_screen.dart';
 import '../connect/shared_experiences_screen.dart';
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../memories/scrapbook_studio_screen.dart';
 import '../memories/memories_screen.dart';

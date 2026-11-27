@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:onespace/l10n/phrases.dart';
 
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import 'coordinate_screen.dart';
 
 /// R61: the Coordinate tab holds everything we plan together:

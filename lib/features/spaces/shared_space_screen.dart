@@ -29,12 +29,12 @@ import '../coordinate/activity_countdown_rules.dart';
 import '../coordinate/activity_detail_screen.dart';
 import '../connect/partner_gestures_screen.dart';
 import '../connect/shared_experiences_screen.dart';
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../search/global_search_screen.dart';
-import '../world/world_contacts_screen.dart';
+import '../contacts/contact_cards_screen.dart';
 import 'today_talk_window.dart';
 import 'love_nudge_rules.dart';
 import '../quick_add/quick_add_sheet.dart';
@@ -1162,7 +1162,7 @@ class _SharedSpaceScreenState extends State<SharedSpaceScreen>
           ()=>_push(const OccasionsScreen())),
         _Shortcut(tt('Notes'),Icons.sticky_note_2_outlined,widget.onOpenNotes),
         _Shortcut(tt('Contact cards'),Icons.contacts_outlined,
-          ()=>_push(const WorldContactsScreen())),
+          ()=>_push(const ContactCardsScreen())),
         ..._extraTools(),
       ]),
       group('Stay close',colors.tertiary,[

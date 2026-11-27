@@ -11,7 +11,7 @@ import '../notes/quill_note_editor_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// The Quick add choices (R71: + Daily feeling and Letter, so Quick add and

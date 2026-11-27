@@ -35,7 +35,7 @@ Five tabs. Each feature below is its own screen, its own data and its own FAQ/tu
 | **Me** | Profile, Settings (Our relationship, schedules, themes, language & currency, phone calendar, special dates), help, your messages, data & account |
 | Across the app | Share into OneSpace → Items to sort · Create from this · links between items · Voice commands (**hidden, coming soon**) |
 
-**Our places and Contact cards are two different features.** Older documents (A32 `WORLD_CONTACTS_INDEX`, "World People & Contacts", "Remember/World") come from the retired "World" tab, which held trips, people and contacts together; contact cards still live in the code folder `lib/features/world/` for that historical reason, while places are in `lib/features/places/`. That history is why agents grouped places with contacts. Treat them separately.
+**Our places and Contact cards are two different features.** Older documents (A32 `WORLD_CONTACTS_INDEX`, "World People & Contacts", "Remember/World") come from the retired "World" tab, which held trips, people and contacts together; contact cards used to live in the code folder `lib/features/world/` for that historical reason, while places are in `lib/features/places/`. That history is why agents grouped places with contacts. **Fixed 27 Nov 2026:** the `world` folder no longer exists — trips are in `lib/features/trips/`, contact cards in `lib/features/contacts/` (`ContactCardsScreen`, `ContactCardEntry`). Treat them separately.
 
 ### The four apps and two databases
 
@@ -86,6 +86,7 @@ QA and Production never share data or signing keys. The app picks its database f
 | 5 | QA release | Assistant | After the owner confirms it is public: update `release/READY_TO_BUILD.md` once → one QA APK (`qa-0.1.N`) on GitHub Releases. Confirm it exists, then tell the owner: *"Make it private again."* |
 | 6 | UAT | Owner | Test on real phones (both accounts). Feedback goes back to step 1. |
 | 7 | Approval | Owner → Assistant | Owner approves. Assistant tags that exact commit `approved-YYYY-MM-DD` and records it in §6. **No production build.** The production database files for this iteration are already in `supabase/schema/` and listed as *pending for Production* in §5. |
+| 8 | FAQ review | Assistant → Owner | **After every release** (each QA APK and each Production release, D109): the assistant checks the shared FAQ (`content/faq/*.json`, website repo) against what changed — new, changed or removed features, renamed screens, new rules — and proposes additions, edits and deletions in the FAQ review page. The owner approves; the assistant updates the FAQ (all five languages), runs `tools/faq/sync_faq.py`, and the website and the next app build carry it. |
 
 ### Go-live (after several approved iterations)
 
@@ -95,6 +96,7 @@ QA and Production never share data or signing keys. The app picks its database f
 | 2 | Production database: dry run of all pending files → backup → apply (via `prod-db-upgrade.yml` or tracked migrations). Never test a migration on Production. | Assistant |
 | 3 | Build **once** from the latest `approved-…` tag: Production AAB (`android-play.yml`) — owner uploads it to Google Play Console. iOS Production (`ios-testflight.yml`) when the Apple developer account is approved. | Assistant, then owner uploads |
 | 4 | Confirm the artifacts exist, update §5/§6, tell the owner: *"Make it private again."* | Assistant → Owner |
+| 5 | FAQ review after the release (same as step 8 above). | Assistant → Owner |
 
 Each new build already contains every earlier approved change, so one go-live build carries all lined-up iterations.
 
@@ -163,6 +165,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | D106 | 26 Nov 2026 | **General examples only (UAT):** hints and suggestions no longer use the owner's early examples (Kay's birthday, Christmas in Philadelphia, Norristown, Dr. Sara's swim club, a 610 phone number, Santorini). Activity purpose "Find a class or service" → "Find a service or provider"; outcomes "Registered" → "Booked or signed up", "Delivered" → "Done or received" (stored values unchanged); occasion preparation steps are saved in the app language. Arabic for "Planning intelligence" is «التخطيط الذكي». | **Active** |
 | D107 | 27 Nov 2026 | **Password reset stays as it is (owner):** email link that opens the app, single use, Supabase's expiry setting unchanged; the app's "reset sent" message unchanged. No temporary passwords and no 6-digit codes. Checked 27 Nov on Production: the app's request and link work; a link used once is refused on a second click; a reset sent from the Supabase dashboard opens onespace.live (dashboard uses the Site URL), so test resets from the app. | **Active** |
 | D108 | 27 Nov 2026 | **One shared FAQ (owner):** one source (`content/faq/*.json` in the website repository, EN/AR/ES/FR/DE) builds the website FAQ and generates the app FAQ (`tools/faq/sync_faq.py`; a test keeps them equal). Groups: Getting started, How to use each feature (one question per feature, with steps, the partner's view and how it works on your own, plus a tutorial link), Privacy and sharing, Notifications and settings, Account/data/separation, Signing in and help; Founder Members stays website-only. Answers are paragraphs, numbered steps and bullets. Google/Apple sign-in question removed. Voice: "coming soon" (app only; the website does not mention voice commands). The Command Center opens a ticket without a typed reason and logs "Support ticket: subject"; email search still needs a typed reason. | **Active** |
+| D109 | 27 Nov 2026 | **FAQ review after every release (owner):** new SDLC step (§2, iteration step 8 and go-live step 5). The FAQ is checked against each release and updated before or with the next one. Website FAQ: the shared 55 questions (voice now shown on the website too, as "coming soon") plus the website-only Founder Members group (11 questions), now in the review page for the owner. | **Active** |
 
 ### 4.2 Override index — which decision replaced which
 
@@ -504,6 +507,7 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - **Play upload (27 Nov):** owner uploaded OneSpace 1.0.0 (build 12) to Closed testing – Alpha with full rollout; status "Changes in review". Production track promotion after the closed testers confirm.
 - **Support screenshots live (27 Nov):** owner added `PRODUCTION_SUPPORT_STORAGE_READ_KEY` and `QA_SUPPORT_STORAGE_READ_KEY` (Supabase secret keys named `command_center_screenshots`, one per project) in Cloudflare; both tested by the owner. Command Center v1.6.3 trims the key and names the failing step; **v1.6.4 fixes the real bug**: Workers reject `redirect: 'error'`, so the storage request never left (now `manual`, 3xx refused). 251/251 tests.
 - **FAQ iteration (27 Nov; branches `iteration/2026-11-27-faq` in app and website, `iteration/2026-11-27-support-reason-faq` in Command Center):** shared FAQ (D108), rewritten after the owner's line-by-line review (55 questions; every feature answer checked against the code). Fixed with it: changing Our relationship in Settings now goes through `set_how_we_live` like the Today icon, so the partner is notified and Apart is split by time zone (before, Settings saved silently and always stored "apart, different time zones"). Feature map added to §1 (places ≠ contact cards). Local: app flutter test 443/443, analyze clean; website all checks pass; Command Center 251/251. Not merged yet: waiting for the owner's review.
+- **Folder fix (27 Nov, owner go-ahead):** `lib/features/world/` split into `lib/features/trips/` (10 files) and `lib/features/contacts/` (4 files; `WorldContactsScreen` → `ContactCardsScreen`, `WorldContactEntry` → `ContactCardEntry`); 22 files' imports updated; no database or behaviour change. flutter test 443/443, analyze no errors (app and robot tests).
 
 ---
 

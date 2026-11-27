@@ -238,8 +238,8 @@ const faqEntries = <FaqEntry>[
     ], tutorial: true),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'Can I use OneSpace by voice?', 'هل يمكنني استخدام OneSpace بالصوت؟', [
-      FaqBlock('p', ['Voice commands are coming soon. We will let you know in What’s new when they are ready.'],
-        ['الأوامر الصوتية قادمة قريبًا، وسنخبرك في «ما الجديد» عندما تصبح جاهزة.']),
+      FaqBlock('p', ['Not yet. Speaking to OneSpace is coming soon, and we will announce it in What’s new when it is ready.'],
+        ['ليس بعد. التحدث إلى OneSpace قادم قريبًا، وسنعلن عنه في «ما الجديد» عندما يصبح جاهزًا.']),
     ]),
   FaqEntry('Privacy and sharing', 'الخصوصية والمشاركة',
     'Who can see what I add?', 'من يستطيع رؤية ما أضيفه؟', [

@@ -13,18 +13,18 @@ import '../coordinate/activity_contact_view.dart';
 import '../coordinate/activity_detail_screen.dart';
 import 'saved_contact_editor.dart';
 import 'phone_contact_bridge.dart';
-import 'world_contact_entry.dart';
+import 'contact_card_entry.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// Searchable, collapsible contact cards. A direct contact is never an Activity.
-class WorldContactsScreen extends StatefulWidget{
- const WorldContactsScreen({super.key});
- @override State<WorldContactsScreen> createState()=>_WorldContactsScreenState();
+class ContactCardsScreen extends StatefulWidget{
+ const ContactCardsScreen({super.key});
+ @override State<ContactCardsScreen> createState()=>_ContactCardsScreenState();
 }
-class _WorldContactsScreenState extends State<WorldContactsScreen>{
+class _ContactCardsScreenState extends State<ContactCardsScreen>{
  final query=TextEditingController();
  final db=Supabase.instance.client;
- List<WorldContactEntry> contacts=const [];
+ List<ContactCardEntry> contacts=const [];
  String? space,error;
  bool personalAvailable=false;
  bool loading=true,showDeleted=false;
@@ -72,9 +72,9 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
        space=id;personalAvailable=scopes.canCreatePrivate;loading=false;
        contacts=[
          for(final row in raw[0])
-           WorldContactEntry.fromRow(Map<String,dynamic>.from(row)),
+           ContactCardEntry.fromRow(Map<String,dynamic>.from(row)),
          for(final row in raw[1])
-           WorldContactEntry.fromDirect(Map<String,dynamic>.from(row)),
+           ContactCardEntry.fromDirect(Map<String,dynamic>.from(row)),
        ];
      });
    }catch(_){
@@ -83,7 +83,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
      });
    }
  }
- Future<void> edit([WorldContactEntry? entry])async{
+ Future<void> edit([ContactCardEntry? entry])async{
    final id=space;
    if(id==null && !personalAvailable)return;
    final saved=await Navigator.of(context).push<bool>(
@@ -111,7 +111,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
     SnackBar(content:Text(tt('Contact import is unavailable on this device.'))));
   }
  }
- Future<void> saveToPhone(WorldContactEntry item)async{
+ Future<void> saveToPhone(ContactCardEntry item)async{
   try{
    await PhoneContactBridge.saveToPhone(item.contact);
   }on PlatformException catch(_){
@@ -138,13 +138,13 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
    await openUri(Uri.https('www.google.com','/maps/search/',{
      'api':'1','query':address}));
  }
- Future<void> openOrigin(WorldContactEntry item)async{
+ Future<void> openOrigin(ContactCardEntry item)async{
    if(item.direct||item.activityId.isEmpty)return;
    await Navigator.of(context).push<void>(MaterialPageRoute<void>(
      builder:(_)=>ActivityScreen(id:item.activityId)));
    if(mounted)await load();
  }
- Future<void> removal(WorldContactEntry item,bool remove)async{
+ Future<void> removal(ContactCardEntry item,bool remove)async{
    final confirm=await showDialog<bool>(context:context,builder:(ctx)=>
      AlertDialog(scrollable:true,
        title:Text(tt(remove?tt('Move contact to Recently deleted?'):tt('Restore contact?'))),
@@ -178,10 +178,10 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
        SnackBar(content:Text(tt('Could not update contact.'))));
    }
  }
- String creator(WorldContactEntry item){
+ String creator(ContactCardEntry item){
    return item.createdBy==db.auth.currentUser?.id?'you':'your partner';
  }
- Future<void> showHistory([WorldContactEntry? selected])async{
+ Future<void> showHistory([ContactCardEntry? selected])async{
    final source=selected;
    try{
      final direct=source?.direct;
@@ -245,7 +245,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
        SnackBar(content:Text(tt('Contact history could not be loaded.'))));
    }
  }
- Widget card(WorldContactEntry item){
+ Widget card(ContactCardEntry item){
    final key=(item.direct?'direct:':'activity:')+item.id;
    final isOpen=expanded.contains(key);
    final deleted=item.isDeleted;
@@ -293,7 +293,7 @@ class _WorldContactsScreenState extends State<WorldContactsScreen>{
  List<FilterGroupSpec> _filterGroups()=>[FilterGroupSpec(id:'source',label:tt('Source'),options:const {'all':'All','direct':'Saved directly','activity':'From Activities'},selected:sourceFilter,defaultValue:'all')];
 
  @override Widget build(BuildContext context){
-   final visible=WorldContactEntry.filtered(
+   final visible=ContactCardEntry.filtered(
      contacts.where((e)=>e.isDeleted==showDeleted &&
       (sourceFilter=='all'||(sourceFilter=='direct'?e.direct:!e.direct)))
       .toList(),query.text);

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onespace/features/world/airports.dart';
-import 'package:onespace/features/world/flight_links.dart';
+import 'package:onespace/features/trips/airports.dart';
+import 'package:onespace/features/trips/flight_links.dart';
 
 void main() {
   final all = Airports.parse('# x\nRUH|Riyadh|King Khalid International Airport|SA|l\n'

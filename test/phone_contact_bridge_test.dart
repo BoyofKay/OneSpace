@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onespace/features/world/phone_contact_bridge.dart';
-import 'package:onespace/features/world/world_contact_entry.dart';
+import 'package:onespace/features/contacts/phone_contact_bridge.dart';
+import 'package:onespace/features/contacts/contact_card_entry.dart';
 
 void main(){
  test('Android selected contact fields become a reviewable contact, not a silent sync',(){
@@ -21,7 +21,7 @@ void main(){
   expect(selected.toPayload()['phone'],contains('215'));
  });
  test('Imported metadata is searchable in saved OneSpace cards',(){
-  final entry=WorldContactEntry.fromDirect({
+  final entry=ContactCardEntry.fromDirect({
    'id':'contact','label':'Alex','visibility':'private',
    'payload':{
     'contact_name':'Alex',
