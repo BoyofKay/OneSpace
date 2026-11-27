@@ -1,4 +1,4 @@
-// R80: the screenshot robot. Signs in as the fictional demo couple (Omar & Lina),
+// R80: the screenshot robot. Signs in as the fictional demo couple (Adam & Lina),
 // resets their space to fresh demo content, then captures real app screens for
 // the website and the app stores. Runs only in .github/workflows/screenshots.yml.
 //

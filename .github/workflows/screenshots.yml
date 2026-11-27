@@ -1,7 +1,7 @@
 name: App screenshots (demo couple)
 
 # R80: real-app screenshots for the website and the stores. Signs in as the
-# fictional demo couple (Omar & Lina) on an Android emulator. Manual only.
+# fictional demo couple (Adam & Lina) on an Android emulator. Manual only.
 on:
   workflow_dispatch:
     inputs:
