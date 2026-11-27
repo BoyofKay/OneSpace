@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onespace/features/world/trip_document_rules.dart';
+import 'package:onespace/features/trips/trip_document_rules.dart';
 
 void main(){
  test('Document signatures, not filenames, determine allowed type',(){

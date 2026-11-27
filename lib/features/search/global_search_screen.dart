@@ -1,4 +1,4 @@
-import '../world/world_contacts_screen.dart';
+import '../contacts/contact_cards_screen.dart';
 import '../share_in/items_to_sort_screen.dart';
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
@@ -10,7 +10,7 @@ import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/shared_experiences_screen.dart';
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../memories/memories_screen.dart';
 import '../../core/current_space_cache.dart';
@@ -198,7 +198,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
      case 'Experience':target=SharedExperiencesScreen(initialExperienceId:hit.id);break;
      case 'Occasion':target=OccasionsScreen(initialPlanId:hit.id);break;
      case 'Memory':target=MemoriesScreen(initialMemoryId:hit.id);break;
-     case 'Contact':target=const WorldContactsScreen();break;
+     case 'Contact':target=const ContactCardsScreen();break;
      case 'Item to sort':target=const ItemsToSortScreen();break;
      default:target=const CoupleLettersScreen();
    }

@@ -12,7 +12,7 @@ import '../calendar/calendar_rules.dart';
 import '../counters/smart_duration.dart';
 import '../memories/memories_screen.dart';
 import '../memories/memory_view_screen.dart';
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import 'place_location.dart';
 import 'places_map_screen.dart';
 

@@ -8,7 +8,7 @@ import '../calendar/calendar_screen.dart';
 import '../notes/notes_screen.dart';
 import '../plans/plans_screen.dart';
 import '../reminders/reminders_screen.dart';
-import '../world/world_contacts_screen.dart';
+import '../contacts/contact_cards_screen.dart';
 import '../occasions/occasions_screen.dart';
 import '../places/places_screen.dart';
 import '../counters/counters_screen.dart';
@@ -211,7 +211,7 @@ class _RememberScreenState extends State<RememberScreen> {
               icon:Icons.contacts_outlined,
               title:tt('Contact cards'),
               subtitle:tt('Family, friends, useful contacts and shared context'),
-              destination:const WorldContactsScreen(),
+              destination:const ContactCardsScreen(),
             ),
           ],
         ],

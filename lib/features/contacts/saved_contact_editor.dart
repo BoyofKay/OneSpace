@@ -6,14 +6,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../coordinate/activity_contact.dart';
-import 'world_contact_entry.dart';
+import 'contact_card_entry.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// One editor for standalone contacts and existing Activity contact components.
 class SavedContactEditor extends StatefulWidget{
  const SavedContactEditor({super.key,required this.spaceId,this.existing,this.imported});
  final String spaceId;
- final WorldContactEntry? existing;
+ final ContactCardEntry? existing;
  final ActivityContact? imported;
  @override State<SavedContactEditor> createState()=>_SavedContactEditorState();
 }

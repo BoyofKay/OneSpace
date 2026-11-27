@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onespace/features/world/world_contact_entry.dart';
+import 'package:onespace/features/contacts/contact_card_entry.dart';
 
 void main() {
-  final gym = WorldContactEntry.fromRow({
+  final gym = ContactCardEntry.fromRow({
     'id':'first',
     'activity_id':'gymnastics',
     'label':'Gym B admissions',
@@ -15,7 +15,7 @@ void main() {
       'working_hours':'Saturday 9–1',
     },
   });
-  final heater = WorldContactEntry.fromRow({
+  final heater = ContactCardEntry.fromRow({
     'id':'second',
     'activity_id':'heater',
     'label':'Heater supplier',
@@ -31,16 +31,16 @@ void main() {
 
   test('contacts are searchable by person, provider, phone and hours', () {
     final all=[heater,gym];
-    expect(WorldContactEntry.filtered(all,'sarah'),[gym]);
-    expect(WorldContactEntry.filtered(all,'GYMNASTICS'),[gym]);
-    expect(WorldContactEntry.filtered(all,'Saturday'),[gym]);
-    expect(WorldContactEntry.filtered(all,'+1 215'),[heater]);
-    expect(WorldContactEntry.filtered(all,'nothing'),isEmpty);
+    expect(ContactCardEntry.filtered(all,'sarah'),[gym]);
+    expect(ContactCardEntry.filtered(all,'GYMNASTICS'),[gym]);
+    expect(ContactCardEntry.filtered(all,'Saturday'),[gym]);
+    expect(ContactCardEntry.filtered(all,'+1 215'),[heater]);
+    expect(ContactCardEntry.filtered(all,'nothing'),isEmpty);
   });
 
   test('blank search sorts contacts without modifying originals', () {
     final records=[heater,gym];
-    final sorted=WorldContactEntry.filtered(records,'');
+    final sorted=ContactCardEntry.filtered(records,'');
     expect(sorted.map((e)=>e.label).toList(),[
       'Gym B admissions','Heater supplier',
     ]);
@@ -48,7 +48,7 @@ void main() {
   });
 
   test('missing properties cannot create fake contact details', () {
-    final blank=WorldContactEntry.fromRow({'id':'blank'});
+    final blank=ContactCardEntry.fromRow({'id':'blank'});
     expect(blank.contact.hasDetails,isFalse);
     expect(blank.activityTitle,'Activity');
     expect(blank.label,'Contact');

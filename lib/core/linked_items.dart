@@ -12,7 +12,7 @@ import '../features/notes/notes_screen.dart';
 import '../features/occasions/occasions_screen.dart';
 import '../features/plans/plans_screen.dart';
 import '../features/reminders/reminders_screen.dart';
-import '../features/world/trips_screen.dart';
+import '../features/trips/trips_screen.dart';
 import 'package:onespace/l10n/phrases.dart';
 
 /// R53 (spec 6, backlog B-17, decision D10): item kinds that can be linked.

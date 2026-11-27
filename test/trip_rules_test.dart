@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onespace/features/world/trip_rules.dart';
+import 'package:onespace/features/trips/trip_rules.dart';
 
 void main(){
  test('Travel countdown respects calendar dates, not instants',(){

@@ -35,7 +35,7 @@ import 'package:onespace/features/notes/notes_screen.dart';
 import 'package:onespace/features/calendar/calendar_screen.dart';
 import 'package:onespace/features/plans/plans_screen.dart';
 import 'package:onespace/features/coordinate/activity_detail_screen.dart';
-import 'package:onespace/features/world/trips_screen.dart';
+import 'package:onespace/features/trips/trips_screen.dart';
 import 'package:onespace/features/occasions/occasions_screen.dart';
 import 'package:onespace/features/reminders/reminders_screen.dart';
 import 'package:onespace/features/connect/couple_letters_screen.dart';

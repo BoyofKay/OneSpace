@@ -23,8 +23,8 @@ import '../features/reminders/reminders_screen.dart';
 import '../features/search/global_search_screen.dart';
 import '../features/settings/onespace_settings_screen.dart';
 import '../features/share_in/items_to_sort_screen.dart';
-import '../features/world/trips_screen.dart';
-import '../features/world/world_contacts_screen.dart';
+import '../features/trips/trips_screen.dart';
+import '../features/contacts/contact_cards_screen.dart';
 import 'current_space_cache.dart';
 import 'form_kit.dart';
 import 'voice_commands.dart';
@@ -211,7 +211,7 @@ class VoiceAssistant {
     'letters' => const CoupleLettersScreen(),
     'activities' => const CoordinateScreen(),
     'occasions' => const OccasionsScreen(),
-    'contacts' => const WorldContactsScreen(),
+    'contacts' => const ContactCardsScreen(),
     'experiences' => const SharedExperiencesScreen(),
     'checkin' => const CheckinsScreen(),
     'settings' => const OneSpaceSettingsScreen(),

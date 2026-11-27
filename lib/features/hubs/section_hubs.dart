@@ -5,7 +5,7 @@ import '../checkins/checkins_screen.dart';
 import '../connect/couple_letters_screen.dart';
 import '../connect/partner_gestures_screen.dart';
 import '../connect/shared_experiences_screen.dart';
-import '../world/trips_screen.dart';
+import '../trips/trips_screen.dart';
 import '../../core/current_space_cache.dart';
 import 'package:onespace/l10n/phrases.dart';
 

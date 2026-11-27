@@ -2,8 +2,8 @@ import '../coordinate/activity_contact.dart';
 
 /// A standalone contact or a contact component inherited from an Activity.
 /// The two types share a searchable view, never a duplicate storage record.
-class WorldContactEntry{
- const WorldContactEntry({
+class ContactCardEntry{
+ const ContactCardEntry({
    required this.id,required this.activityId,required this.activityTitle,
    required this.label,required this.contact,this.direct=false,
    this.createdBy='',this.visibility='shared',this.archivedAt,
@@ -14,12 +14,12 @@ class WorldContactEntry{
  final bool direct;
  final String? archivedAt,updatedAt;
  bool get isDeleted=>archivedAt!=null;
- factory WorldContactEntry.fromRow(Map<String,dynamic> row){
+ factory ContactCardEntry.fromRow(Map<String,dynamic> row){
    final data=row['payload'] is Map?
      Map<String,dynamic>.from(row['payload'] as Map):<String,dynamic>{};
    final relation=row['activities'] is Map?
      Map<String,dynamic>.from(row['activities'] as Map):<String,dynamic>{};
-   return WorldContactEntry(
+   return ContactCardEntry(
      id:row['id']?.toString()??'',
      activityId:row['activity_id']?.toString()??'',
      activityTitle:relation['title']?.toString()??'Activity',
@@ -30,10 +30,10 @@ class WorldContactEntry{
      updatedAt:row['updated_at']?.toString(),
    );
  }
- factory WorldContactEntry.fromDirect(Map<String,dynamic> row){
+ factory ContactCardEntry.fromDirect(Map<String,dynamic> row){
    final data=row['payload'] is Map?
      Map<String,dynamic>.from(row['payload'] as Map):<String,dynamic>{};
-   return WorldContactEntry(
+   return ContactCardEntry(
      id:row['id']?.toString()??'',activityId:'',activityTitle:'',
      label:row['label']?.toString()??'Contact',
      contact:ActivityContact.fromPayload(data),direct:true,
@@ -51,8 +51,8 @@ class WorldContactEntry{
      contact.company,contact.role,contact.website,contact.note]
        .any((value)=>value.toLowerCase().contains(q));
  }
- static List<WorldContactEntry> filtered(
-   List<WorldContactEntry> all,String query,
+ static List<ContactCardEntry> filtered(
+   List<ContactCardEntry> all,String query,
  )=>all.where((item)=>item.matches(query)).toList()
    ..sort((a,b)=>a.label.toLowerCase().compareTo(b.label.toLowerCase()));
 }
