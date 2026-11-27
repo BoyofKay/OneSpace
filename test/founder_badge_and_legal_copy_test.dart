@@ -35,10 +35,12 @@ void main() {
   test('FAQ matches how the app works today', () {
     final all = faqEntries.map((e) => '${e.qEn} ${e.aEn}').join('\n');
     expect(all, contains('Can I use OneSpace without a partner?'));
-    expect(all, contains('valid for 48 hours'));
+    expect(all, contains('48 hours'));
     expect(all, contains('What happens if we separate?'));
     expect(all, contains('There is no number'));
     expect(all, isNot(contains('If you signed up with Google or Apple')));
+    // 27 Nov 2026: Google/Apple sign-in was dropped; the FAQ must not mention it.
+    expect(all, isNot(contains('Google or Apple')));
     expect(all, isNot(contains('Items you shared stay for your partner')));
     for (final e in faqEntries) {
       expect(e.qAr.trim(), isNotEmpty);

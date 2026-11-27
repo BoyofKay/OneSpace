@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 
@@ -79,6 +80,43 @@ class FaqScreen extends StatefulWidget {
   State<FaqScreen> createState() => _FaqScreenState();
 }
 
+/// 27 Nov 2026: an answer as short paragraphs, numbered steps and bullets,
+/// with a link to the website's step-by-step tutorial where there is one.
+class FaqAnswer extends StatelessWidget {
+  const FaqAnswer({super.key, required this.entry, required this.arabic});
+  final FaqEntry entry;
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodyMedium;
+    final children = <Widget>[];
+    for (final b in entry.blocks) {
+      final lines = b.lines(arabic);
+      if (b.kind == 'p') {
+        children.add(Text(lines.first, style: style));
+      } else {
+        for (var i = 0; i < lines.length; i++) {
+          children.add(Padding(
+            padding: const EdgeInsetsDirectional.only(start: 4, bottom: 4),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(width: 22, child: Text(b.kind == 'steps' ? '${i + 1}.' : '•', style: style)),
+              Expanded(child: Text(lines[i], style: style)),
+            ])));
+        }
+      }
+      children.add(const SizedBox(height: 8));
+    }
+    if (entry.tutorial) {
+      children.add(Align(alignment: AlignmentDirectional.centerStart, child: TextButton.icon(
+        icon: const Icon(Icons.open_in_new, size: 18),
+        label: Text(tt('Step-by-step tutorial')),
+        onPressed: () => launchUrl(Uri.parse(faqTutorialUrl), mode: LaunchMode.externalApplication))));
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+  }
+}
+
 class _FaqScreenState extends State<FaqScreen> {
   final search = TextEditingController();
 
@@ -113,7 +151,7 @@ class _FaqScreenState extends State<FaqScreen> {
               title: Text(f.q(ar)),
               childrenPadding: const EdgeInsetsDirectional.fromSTEB(16, 0, 16, 14),
               expandedCrossAxisAlignment: CrossAxisAlignment.start,
-              children: [Text(f.a(ar), style: theme.textTheme.bodyMedium)]),
+              children: [FaqAnswer(entry: f, arabic: ar)]),
           ])),
         ],
         const SizedBox(height: 16),
