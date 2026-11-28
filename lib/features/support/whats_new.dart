@@ -7,10 +7,14 @@ import 'package:onespace/l10n/phrases.dart';
 /// Bump [release] and rewrite [_items] when there is something worth telling.
 class WhatsNew {
   const WhatsNew._();
-  static const release = 'r74';
+  static const release = 'fin1'; // 28 Nov 2026: Finances tab, Me in the top bar
   static const _key = 'whats_new_seen_v1';
 
   static const _items = <(IconData, String, String, String, String)>[
+    (Icons.account_balance_wallet_outlined, 'Finances, private to you', 'A new tab for your bills and installment plans: reminders before each due day, paid, partly paid or overdue at a glance, and a Freedom timeline that shows when each plan ends.',
+      'المالية، خاصة بك', 'تبويب جديد لفواتيرك وخطط أقساطك: تذكيرات قبل كل موعد، وما دُفع أو دُفع جزئيًا أو تأخر بلمحة، و«خط الحرية» الذي يبيّن متى تنتهي كل خطة.'),
+    (Icons.account_circle_outlined, 'Me has moved', 'Profile, settings, help and your data are now behind the person button at the top of the screen.',
+      '«أنا» في مكان جديد', 'الملف الشخصي والإعدادات والمساعدة وبياناتك أصبحت خلف زر الشخص أعلى الشاشة.'),
     (Icons.event_available_outlined, 'In your phone calendar', 'Turn on Me › Settings › Show in my phone calendar to see your events, trips and special dates in Google, Samsung or iPhone calendar.',
       'في تقويم هاتفك', 'فعّل «أنا» ← «الإعدادات» ← «عرض في تقويم هاتفي» لترى مواعيدكما ورحلاتكما وتواريخكما المميزة في تقويم Google أو Samsung أو iPhone.'),
     (Icons.support_agent_outlined, 'Help, even when signed out', 'Questions and answers, Contact us and Report a problem are now on the sign-in screen too.',

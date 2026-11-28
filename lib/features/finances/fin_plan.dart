@@ -64,7 +64,7 @@ class Day implements Comparable<Day> {
   @override
   int compareTo(Day o) => _d.compareTo(o._d);
   @override
-  bool operator ==(Object o) => o is Day && o._d == _d;
+  bool operator ==(Object other) => other is Day && other._d == _d;
   @override
   int get hashCode => _d.hashCode;
   String toDb() => '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';

@@ -227,6 +227,39 @@
      }
     ]
    ]
+  },
+  {
+   "id": "finances-private",
+   "where": "both",
+   "q": {
+    "en": "Can my partner see my finances?",
+    "ar": "هل يستطيع شريكي رؤية بياناتي المالية؟",
+    "es": "¿Puede mi pareja ver mis finanzas?",
+    "fr": "Mon partenaire peut-il voir mes finances ?",
+    "de": "Kann mein Partner meine Finanzen sehen?"
+   },
+   "a": [
+    [
+     "p",
+     {
+      "en": "No. Every bill, plan and payment in Finances belongs to the person who added it and is kept in their personal space, not in your shared space. Your partner cannot see it. If you separate, you keep your own finance records.",
+      "ar": "لا. كل فاتورة وخطة ودفعة في «المالية» ملك لمن أضافها وتُحفظ في مساحته الشخصية لا في مساحتكما المشتركة، ولا يستطيع شريكك رؤيتها. وإذا انفصلتما تحتفظ بسجلاتك المالية.",
+      "es": "No. Cada factura, plan y pago de Finanzas pertenece a quien lo añadió y se guarda en su espacio personal, no en el espacio compartido. Tu pareja no puede verlo. Si os separáis, conservas tus propios registros.",
+      "fr": "Non. Chaque facture, plan et paiement de Finances appartient à la personne qui l’a ajouté et reste dans son espace personnel, pas dans l’espace partagé. Votre partenaire ne peut pas le voir. En cas de séparation, vous gardez vos propres données.",
+      "de": "Nein. Jede Rechnung, jeder Plan und jede Zahlung in Finanzen gehört der Person, die sie angelegt hat, und liegt in ihrem persönlichen Bereich, nicht im gemeinsamen Bereich. Dein Partner kann sie nicht sehen. Bei einer Trennung behältst du deine eigenen Einträge."
+     }
+    ],
+    [
+     "p",
+     {
+      "en": "Sharing a single item (for example a bill you split) is planned for a later version. It will be off until you turn it on for that item, and your partner will have to accept before it counts in their plan.",
+      "ar": "مشاركة عنصر واحد (مثل فاتورة تتقاسمانها) مخطط لها في إصدار لاحق. ستكون متوقفة حتى تفعّلها لذلك العنصر، وسيتعيّن على شريكك قبولها قبل أن تُحتسب في خطته.",
+      "es": "Compartir un solo elemento (por ejemplo, una factura que dividís) está previsto para una versión posterior. Estará desactivado hasta que lo actives para ese elemento, y tu pareja tendrá que aceptarlo antes de que cuente en su plan.",
+      "fr": "Le partage d’un seul élément (par exemple une facture partagée) est prévu pour une version ultérieure. Il restera désactivé tant que vous ne l’activez pas pour cet élément, et votre partenaire devra l’accepter avant qu’il compte dans son budget.",
+      "de": "Das Teilen einzelner Elemente (z. B. einer geteilten Rechnung) ist für eine spätere Version geplant. Es bleibt aus, bis du es für dieses Element einschaltest, und dein Partner muss zustimmen, bevor es in seinem Plan zählt."
+     }
+    ]
+   ]
   }
  ]
 }

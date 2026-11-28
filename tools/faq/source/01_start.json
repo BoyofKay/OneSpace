@@ -370,11 +370,18 @@
        "de": "Verbinden: Briefe, ein bisschen Liebe, tägliche Check-ins, gemeinsame Erlebnisse und Erinnerungen."
       },
       {
-       "en": "Me: profile, settings, help and your data.",
-       "ar": "أنا: الملف الشخصي والإعدادات والمساعدة وبياناتك.",
-       "es": "Yo: perfil, ajustes, ayuda y tus datos.",
-       "fr": "Moi : profil, réglages, aide et vos données.",
-       "de": "Ich: Profil, Einstellungen, Hilfe und deine Daten."
+       "en": "Finances: your bills, installment plans and when each plan ends (Freedom timeline). Private to you.",
+       "ar": "المالية: فواتيرك وخطط أقساطك ومتى تنتهي كل خطة (خط الحرية). خاصة بك.",
+       "es": "Finanzas: tus facturas, tus planes de cuotas y cuándo termina cada plan (línea de libertad). Privado para ti.",
+       "fr": "Finances : vos factures, vos plans de paiement et la date de fin de chacun (frise de liberté). Privé, rien que pour vous.",
+       "de": "Finanzen: deine Rechnungen, Ratenpläne und wann jeder Plan endet (Freiheits-Zeitleiste). Nur für dich sichtbar."
+      },
+      {
+       "en": "Me (the person button at the top of the screen): profile, settings, help and your data.",
+       "ar": "أنا (زر الشخص أعلى الشاشة): الملف الشخصي والإعدادات والمساعدة وبياناتك.",
+       "es": "Yo (el botón de persona arriba en la pantalla): perfil, ajustes, ayuda y tus datos.",
+       "fr": "Moi (le bouton en forme de personne en haut de l’écran) : profil, réglages, aide et vos données.",
+       "de": "Ich (die Personen-Schaltfläche oben auf dem Bildschirm): Profil, Einstellungen, Hilfe und deine Daten."
       }
      ]
     ]

@@ -1162,6 +1162,102 @@
    ]
   },
   {
+   "id": "finances",
+   "where": "both",
+   "q": {
+    "en": "How do I use Finances?",
+    "ar": "كيف أستخدم «المالية»؟",
+    "es": "¿Cómo uso Finanzas?",
+    "fr": "Comment utiliser Finances ?",
+    "de": "Wie nutze ich Finanzen?"
+   },
+   "a": [
+    [
+     "steps",
+     [
+      {
+       "en": "Open the Finances tab and tap Add.",
+       "ar": "افتح تبويب «المالية» واضغط «إضافة».",
+       "es": "Abre la pestaña Finanzas y toca Añadir.",
+       "fr": "Ouvrez l’onglet Finances et touchez Ajouter.",
+       "de": "Öffne den Tab Finanzen und tippe auf Hinzufügen."
+      },
+      {
+       "en": "Choose Add a bill (rent, utilities, phone, subscriptions) or Add an installment plan (car, phone, a loan). Quick add installments asks only for the monthly payment, the number of payments, how many are already made and the next date.",
+       "ar": "اختر «إضافة فاتورة» (الإيجار والخدمات والهاتف والاشتراكات) أو «إضافة خطة أقساط» (سيارة أو هاتف أو قرض). وتطلب «إضافة أقساط سريعة» الدفعة الشهرية وعدد الدفعات وكم دفعة تمت والتاريخ التالي فقط.",
+       "es": "Elige Añadir una factura (alquiler, suministros, teléfono, suscripciones) o Añadir un plan de cuotas (coche, teléfono, un préstamo). Añadir cuotas rápido solo pide la cuota mensual, el número de pagos, cuántos ya hiciste y la próxima fecha.",
+       "fr": "Choisissez Ajouter une facture (loyer, énergie, téléphone, abonnements) ou Ajouter un plan de paiement (voiture, téléphone, prêt). L’ajout rapide de mensualités ne demande que la mensualité, le nombre de paiements, ceux déjà faits et la prochaine date.",
+       "de": "Wähle Rechnung hinzufügen (Miete, Nebenkosten, Telefon, Abos) oder Ratenplan hinzufügen (Auto, Handy, Kredit). Raten schnell hinzufügen fragt nur nach Monatsrate, Anzahl der Zahlungen, bereits gezahlten Raten und dem nächsten Datum."
+      },
+      {
+       "en": "Set how often it is due (every week, every two weeks, twice a month, every month or every few months) and when it ends: never, on a date or after a number of payments. If it started before today, say how many payments are already made.",
+       "ar": "حدّد كم مرة تستحق (كل أسبوع أو كل أسبوعين أو مرتين في الشهر أو كل شهر أو كل بضعة أشهر) ومتى تنتهي: أبدًا أو في تاريخ أو بعد عدد من الدفعات. وإذا بدأت قبل اليوم فاذكر كم دفعة تمت.",
+       "es": "Indica cada cuánto vence (cada semana, cada dos semanas, dos veces al mes, cada mes o cada pocos meses) y cuándo termina: nunca, en una fecha o tras un número de pagos. Si empezó antes de hoy, indica cuántos pagos ya hiciste.",
+       "fr": "Indiquez la fréquence (chaque semaine, toutes les deux semaines, deux fois par mois, chaque mois ou tous les quelques mois) et la fin : jamais, à une date ou après un nombre de paiements. Si cela a commencé avant aujourd’hui, indiquez combien de paiements sont déjà faits.",
+       "de": "Lege fest, wie oft es fällig ist (jede Woche, alle zwei Wochen, zweimal im Monat, jeden Monat oder alle paar Monate) und wann es endet: nie, an einem Datum oder nach einer Anzahl Zahlungen. Hat es vor heute begonnen, gib an, wie viele Zahlungen schon gemacht sind."
+      },
+      {
+       "en": "When a payment is due, tap it and choose Done, Partly paid (with the amount) or Not done. For a bill paid automatically, just mark it done after the date.",
+       "ar": "عندما تستحق دفعة، اضغط عليها واختر «تم» أو «مدفوع جزئيًا» (مع المبلغ) أو «لم يتم». وللفاتورة التي تُدفع تلقائيًا، حدّدها كمنجزة بعد الموعد فقط.",
+       "es": "Cuando venza un pago, tócalo y elige Hecho, Pagado en parte (con el importe) o No hecho. Si una factura se paga sola, márcala como hecha después de la fecha.",
+       "fr": "Quand un paiement arrive, touchez-le et choisissez Fait, Payé en partie (avec le montant) ou Pas fait. Pour une facture prélevée automatiquement, marquez-la simplement comme faite après la date.",
+       "de": "Ist eine Zahlung fällig, tippe darauf und wähle Erledigt, Teilweise bezahlt (mit Betrag) oder Nicht erledigt. Bei automatisch bezahlten Rechnungen markiere sie nach dem Datum einfach als erledigt."
+      }
+     ]
+    ],
+    [
+     "bullets",
+     [
+      {
+       "en": "Amounts can stay the same, rise or fall by an amount or a percentage (for example insurance +10% every year), and a plan can end with a different final payment.",
+       "ar": "يمكن أن يبقى المبلغ كما هو أو يرتفع أو ينخفض بمبلغ أو بنسبة (مثل تأمين يزيد ١٠٪ كل سنة)، ويمكن أن تنتهي الخطة بدفعة أخيرة مختلفة.",
+       "es": "Los importes pueden mantenerse, subir o bajar en una cantidad o un porcentaje (por ejemplo, un seguro +10 % cada año), y un plan puede terminar con un pago final distinto.",
+       "fr": "Les montants peuvent rester identiques, monter ou baisser d’un montant ou d’un pourcentage (par exemple une assurance +10 % par an), et un plan peut finir par un dernier paiement différent.",
+       "de": "Beträge können gleich bleiben, um einen Betrag oder Prozentsatz steigen oder fallen (z. B. Versicherung +10 % pro Jahr), und ein Plan kann mit einer anderen Schlussrate enden."
+      },
+      {
+       "en": "Installments shows each plan’s paid, unpaid and overdue payments, grouped by provider. One payment that covered several plans can be split by you with Record a combined payment.",
+       "ar": "يعرض «الأقساط» الدفعات المدفوعة وغير المدفوعة والمتأخرة لكل خطة، مجمّعة حسب الجهة. ويمكنك تقسيم دفعة واحدة غطت عدة خطط عبر «تسجيل دفعة مجمّعة».",
+       "es": "Cuotas muestra los pagos hechos, pendientes y atrasados de cada plan, agrupados por proveedor. Un solo pago que cubrió varios planes lo repartes tú con Registrar un pago combinado.",
+       "fr": "Mensualités affiche pour chaque plan les paiements faits, à venir et en retard, regroupés par organisme. Un paiement qui a couvert plusieurs plans se répartit avec Enregistrer un paiement groupé.",
+       "de": "Raten zeigt pro Plan bezahlte, offene und überfällige Zahlungen, nach Anbieter gruppiert. Eine Zahlung für mehrere Pläne teilst du selbst mit Sammelzahlung erfassen auf."
+      },
+      {
+       "en": "Freedom timeline shows when each plan ends, how much room it frees every month and the day you are debt-free.",
+       "ar": "يعرض «خط الحرية» متى تنتهي كل خطة وكم تُحرر من ميزانيتك كل شهر واليوم الذي تصبح فيه بلا ديون.",
+       "es": "La línea de libertad muestra cuándo termina cada plan, cuánto margen libera cada mes y el día en que quedas sin deudas.",
+       "fr": "La frise de liberté montre quand chaque plan se termine, la marge libérée chaque mois et le jour où vous n’avez plus de dettes.",
+       "de": "Die Freiheits-Zeitleiste zeigt, wann jeder Plan endet, wie viel Spielraum er monatlich freimacht und ab wann du schuldenfrei bist."
+      },
+      {
+       "en": "A saved payment is never changed. If something was wrong, add a correction; the original stays.",
+       "ar": "الدفعة المحفوظة لا تتغير أبدًا. إذا كان هناك خطأ فأضف تصحيحًا ويبقى الأصل كما هو.",
+       "es": "Un pago guardado nunca cambia. Si algo estaba mal, añade una corrección; el original se conserva.",
+       "fr": "Un paiement enregistré ne change jamais. En cas d’erreur, ajoutez une correction ; l’original reste.",
+       "de": "Eine gespeicherte Zahlung wird nie geändert. War etwas falsch, füge eine Korrektur hinzu; das Original bleibt."
+      },
+      {
+       "en": "Reminders come before the due day (and after it for bills paid automatically). They show the name only, never the amount.",
+       "ar": "تصل التذكيرات قبل موعد الاستحقاق (وبعده للفواتير التي تُدفع تلقائيًا)، وتعرض الاسم فقط ولا تعرض المبلغ أبدًا.",
+       "es": "Los recordatorios llegan antes del vencimiento (y después, si la factura se paga sola). Solo muestran el nombre, nunca el importe.",
+       "fr": "Les rappels arrivent avant l’échéance (et après pour les factures prélevées automatiquement). Ils affichent le nom seulement, jamais le montant.",
+       "de": "Erinnerungen kommen vor dem Fälligkeitstag (bei automatisch bezahlten Rechnungen danach). Sie zeigen nur den Namen, nie den Betrag."
+      }
+     ]
+    ],
+    [
+     "p",
+     {
+      "en": "Your partner’s view: nothing. Finances is private to you; sharing an item with your partner will come in a later version and will always be your choice. On your own, Finances works exactly the same.",
+      "ar": "ما يراه شريكك: لا شيء. «المالية» خاصة بك، وستأتي مشاركة عنصر مع شريكك في إصدار لاحق وستبقى دائمًا باختيارك. وعندما تستخدم التطبيق وحدك تعمل «المالية» بالطريقة نفسها.",
+      "es": "Lo que ve tu pareja: nada. Finanzas es privado para ti; compartir un elemento con tu pareja llegará en una versión posterior y siempre será tu decisión. Si usas la app tú solo, Finanzas funciona igual.",
+      "fr": "Ce que voit votre partenaire : rien. Finances est privé ; partager un élément avec votre partenaire viendra dans une version ultérieure et restera toujours votre choix. Seul, Finances fonctionne exactement pareil.",
+      "de": "Was dein Partner sieht: nichts. Finanzen ist privat; ein Element mit deinem Partner zu teilen kommt in einer späteren Version und bleibt immer deine Entscheidung. Allein funktioniert Finanzen genauso."
+     }
+    ]
+   ]
+  },
+  {
    "id": "voice",
    "where": "both",
    "q": {
