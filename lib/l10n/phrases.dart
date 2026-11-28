@@ -3,6 +3,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:material_ui/material_ui.dart';
 
 import 'phrases_ar.dart';
+import 'phrases_ar_finances.dart';
 import 'phrases_ar_templates.dart';
 
 /// R62: the phrase layer. `tt('English text')` shows the Arabic phrase when
@@ -43,12 +44,13 @@ class OneSpacePhrases {
   static final _edges = RegExp(r'^([^A-Za-z]*)(.*?)([\s:·•,.!?…*]*)$', dotAll: true);
 
   static final Map<String, String> _caseless = {
+    for (final e in arFinancePhrases.entries) e.key.toLowerCase(): e.value,
     for (final e in arPhrases.entries) e.key.toLowerCase(): e.value,
   };
 
   static String translate(String en) {
     if (lang != 'ar' || en.isEmpty) return en;
-    final exact = arPhrases[en];
+    final exact = arPhrases[en] ?? arFinancePhrases[en];
     if (exact != null) return exact;
     final templated = _template(en);
     if (templated != null) return templated;
@@ -70,7 +72,7 @@ class OneSpacePhrases {
     if (cased != null) return cased;
     final m = _edges.firstMatch(en);
     if (m == null) return en;
-    final core = arPhrases[m.group(2)!] ?? arPhrases['${m.group(2)}.'];
+    final core = arPhrases[m.group(2)!] ?? arPhrases['${m.group(2)}.'] ?? arFinancePhrases[m.group(2)!];
     if (core == null) return en;
     final tail = m.group(3)!.replaceAll('?', '؟').replaceAll(',', '،');
     return '${m.group(1)}$core$tail';

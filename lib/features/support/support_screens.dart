@@ -57,7 +57,7 @@ Future<String> collectDiagnostics(BuildContext context) async {
   ].join('\n');
 }
 
-/// The old "Troubleshooting" timings dialog, now reachable from the Me tab.
+/// The old "Troubleshooting" timings dialog, now reachable from Me (top bar).
 Future<void> showTroubleshooting(BuildContext context) async {
   final report = await collectDiagnostics(context);
   if (!context.mounted) return;

@@ -12,6 +12,7 @@ import 'features/support/whats_new.dart';
 import 'core/voice_assistant.dart';
 import 'features/coordinate/coordinate_hub.dart';
 import 'features/profile/me_screen.dart';
+import 'features/finances/finances_screen.dart';
 import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
@@ -326,6 +327,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
   int selectedIndex = 0;
   int refreshToken = 0;
   bool showProfile = false;
+  /// 28 Nov 2026 (A1): Me is opened from the top bar, no longer a tab.
+  bool showMe = false;
   final Set<int> visited = {0};
   final BackExitPolicy _exitPolicy=BackExitPolicy();
   static const _incomingShares=MethodChannel('onespace/incoming_share');
@@ -437,9 +440,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
 
 
   void _handleAndroidBack(){
-    if(showProfile){
+    if(showProfile||showMe){
       _exitPolicy.reset();
-      setState((){showProfile=false;refreshToken++;});
+      setState((){showProfile=false;showMe=false;refreshToken++;});
       return;
     }
     if(selectedIndex!=0){
@@ -458,16 +461,24 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
     }
   }
 
-  static const _tabNames=['today','remember','coordinate','connect','me'];
+  static const _tabNames=['today','remember','coordinate','connect','finances'];
   void navigate(int index) {
     _exitPolicy.reset();
-    if(index>=0&&index<_tabNames.length&&(index!=selectedIndex||showProfile))UsageEvents.instance.log('tab/${_tabNames[index]}');
+    if(index>=0&&index<_tabNames.length&&(index!=selectedIndex||showProfile||showMe))UsageEvents.instance.log('tab/${_tabNames[index]}');
     setState(() {
       if ((index == 0 || index == 1) && selectedIndex != index) refreshToken++;
       selectedIndex = index;
       showProfile = false;
+      showMe = false;
       visited.add(index);
     });
+  }
+
+  /// A1: Me (profile, settings, help, data) opens from the person button in the top bar.
+  void openMe() {
+    _exitPolicy.reset();
+    UsageEvents.instance.log('tab/me');
+    setState(() { showMe = true; showProfile = false; visited.add(6); });
   }
 
   void open(Widget screen) {
@@ -482,7 +493,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    final visible = showProfile ? 5 : selectedIndex;
+    final visible = showProfile ? 5 : showMe ? 6 : selectedIndex;
+    final overlay = showProfile || showMe;
     final screen=MediaQuery.sizeOf(context);
     final wide=screen.width>=900&&screen.height>=620;
     final pages=IndexedStack(index:visible,children:[
@@ -496,7 +508,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
           onOpenLetters:()=>open(const CoupleLettersScreen()),
           onOpenCoordinate:()=>navigate(2),
           onOpenWorld:(){navigate(2);WidgetsBinding.instance.addPostFrameCallback((_)=>_coordinate.currentState?.show(1));},
-          onOpenProfile:()=>navigate(4),
+          onOpenProfile:openMe,
         ),
         if(visited.contains(1)) NoSpaceGate(onGetSpace:()=>navigate(0),
             child:RememberScreen(refreshToken:refreshToken))
@@ -507,9 +519,11 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
         if(visited.contains(3))NoSpaceGate(onGetSpace:()=>navigate(0),
             child:const SectionHub(section:'connect'))
           else const SizedBox.shrink(),
-        if(visited.contains(4))const MeScreen()
+        if(visited.contains(4))FinancesScreen(refreshToken:refreshToken)
           else const SizedBox.shrink(),
         if(showProfile)const ProfileSettingsScreen()
+          else const SizedBox.shrink(),
+        if(visited.contains(6))const MeScreen()
           else const SizedBox.shrink(),
       ]);
     return PopScope<Object?>(
@@ -519,10 +533,11 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
       },
       child:Scaffold(
       appBar: AppBar(
-        leading: showProfile ? IconButton(
+        leading: overlay ? IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => setState(() {
             showProfile = false;
+            showMe = false;
             refreshToken++;
           }),
           tooltip: tr(context, 'backHome'),
@@ -547,6 +562,9 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
           if(Voice.enabled)IconButton(tooltip:tt('Voice command'),visualDensity:VisualDensity.compact,icon:const Icon(Icons.mic_none_rounded),
             onPressed:()=>VoiceAssistant.start(context,goToday:()=>navigate(0))),
           if(!showProfile)const NotificationBell(),
+          // A1 (28 Nov 2026): Me moved from the tabs to the top bar.
+          if(!overlay)IconButton(tooltip:tr(context,'meTab'),visualDensity:VisualDensity.compact,
+            icon:const Icon(Icons.account_circle_outlined),onPressed:openMe),
           PopupMenuButton<String>(
             tooltip:tt('More options'),
             icon:const Icon(Icons.more_vert),
@@ -565,7 +583,7 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
           ),
         ],
       ),
-      body:SafeArea(child:wide&&!showProfile?
+      body:SafeArea(child:wide&&!overlay?
        Row(children:[
         NavigationRail(
          selectedIndex:selectedIndex,
@@ -581,15 +599,15 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
            selectedIcon:const Icon(Icons.hub),label:Text(tr(context,'coordinateTab'))),
           NavigationRailDestination(icon:const Icon(Icons.favorite_border),
            selectedIcon:const Icon(Icons.favorite),label:Text(tr(context,'connectTab'))),
-          NavigationRailDestination(icon:const Icon(Icons.person_outline),
-           selectedIcon:const Icon(Icons.person),label:Text(tr(context,'meTab'))),
+          NavigationRailDestination(icon:const Icon(Icons.account_balance_wallet_outlined),
+           selectedIcon:const Icon(Icons.account_balance_wallet),label:Text(tr(context,'financesTab'))),
          ],
         ),
         VerticalDivider(width:1,color:Theme.of(context).colorScheme.outlineVariant),
         Expanded(child:Center(child:ConstrainedBox(
          constraints:const BoxConstraints(maxWidth:1050),child:pages))),
        ]):pages),
-      bottomNavigationBar:showProfile||wide?null:NavigationBar(
+      bottomNavigationBar:overlay||wide?null:NavigationBar(
         labelBehavior:screen.width<380?
           NavigationDestinationLabelBehavior.onlyShowSelected:
           NavigationDestinationLabelBehavior.alwaysShow,
@@ -604,8 +622,8 @@ class _OneSpaceHomeState extends State<OneSpaceHome> with WidgetsBindingObserver
             selectedIcon:const Icon(Icons.hub),label:tr(context,'coordinateTab')),
           NavigationDestination(icon:const Icon(Icons.favorite_border),
             selectedIcon:const Icon(Icons.favorite),label:tr(context,'connectTab')),
-          NavigationDestination(icon:const Icon(Icons.person_outline),
-            selectedIcon:const Icon(Icons.person),label:tr(context,'meTab')),
+          NavigationDestination(icon:const Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon:const Icon(Icons.account_balance_wallet),label:tr(context,'financesTab')),
         ],
       ),
     ));

@@ -86,8 +86,8 @@ const faqEntries = <FaqEntry>[
     ]),
   FaqEntry('Getting started', 'البداية',
     'What is on each tab?', 'ماذا يوجد في كل تبويب؟', [
-      FaqBlock('bullets', ['Today: what needs you now, what is coming up, and updates since you were away.', 'Remember: calendar, to-do lists, reminders, notes, counters, occasions, places and contact cards.', 'Coordinate: Activities (plans and decisions) and trips.', 'Connect: letters, a little love, daily check-ins, shared experiences and memories.', 'Me: profile, settings, help and your data.'],
-        ['اليوم: ما يحتاجك الآن وما هو قادم والتحديثات منذ غيابك.', 'نتذكّر: التقويم وقوائم المهام والتذكيرات والملاحظات والعدّادات والمناسبات والأماكن وبطاقات جهات الاتصال.', 'ننسّق: الأنشطة (الخطط والقرارات) والرحلات.', 'نتواصل: الرسائل ولمسة حب والتواصل اليومي والتجارب المشتركة والذكريات.', 'أنا: الملف الشخصي والإعدادات والمساعدة وبياناتك.']),
+      FaqBlock('bullets', ['Today: what needs you now, what is coming up, and updates since you were away.', 'Remember: calendar, to-do lists, reminders, notes, counters, occasions, places and contact cards.', 'Coordinate: Activities (plans and decisions) and trips.', 'Connect: letters, a little love, daily check-ins, shared experiences and memories.', 'Finances: your bills, installment plans and when each plan ends (Freedom timeline). Private to you.', 'Me (the person button at the top of the screen): profile, settings, help and your data.'],
+        ['اليوم: ما يحتاجك الآن وما هو قادم والتحديثات منذ غيابك.', 'نتذكّر: التقويم وقوائم المهام والتذكيرات والملاحظات والعدّادات والمناسبات والأماكن وبطاقات جهات الاتصال.', 'ننسّق: الأنشطة (الخطط والقرارات) والرحلات.', 'نتواصل: الرسائل ولمسة حب والتواصل اليومي والتجارب المشتركة والذكريات.', 'المالية: فواتيرك وخطط أقساطك ومتى تنتهي كل خطة (خط الحرية). خاصة بك.', 'أنا (زر الشخص أعلى الشاشة): الملف الشخصي والإعدادات والمساعدة وبياناتك.']),
     ]),
   FaqEntry('Getting started', 'البداية',
     'Do we need to be online at the same time?', 'هل يجب أن نكون متصلين في الوقت نفسه؟', [
@@ -237,6 +237,15 @@ const faqEntries = <FaqEntry>[
         ['المشاركة إلى OneSpace على الآيفون تأتي مع تطبيق الآيفون.']),
     ], tutorial: true),
   FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
+    'How do I use Finances?', 'كيف أستخدم «المالية»؟', [
+      FaqBlock('steps', ['Open the Finances tab and tap Add.', 'Choose Add a bill (rent, utilities, phone, subscriptions) or Add an installment plan (car, phone, a loan). Quick add installments asks only for the monthly payment, the number of payments, how many are already made and the next date.', 'Set how often it is due (every week, every two weeks, twice a month, every month or every few months) and when it ends: never, on a date or after a number of payments. If it started before today, say how many payments are already made.', 'When a payment is due, tap it and choose Done, Partly paid (with the amount) or Not done. For a bill paid automatically, just mark it done after the date.'],
+        ['افتح تبويب «المالية» واضغط «إضافة».', 'اختر «إضافة فاتورة» (الإيجار والخدمات والهاتف والاشتراكات) أو «إضافة خطة أقساط» (سيارة أو هاتف أو قرض). وتطلب «إضافة أقساط سريعة» الدفعة الشهرية وعدد الدفعات وكم دفعة تمت والتاريخ التالي فقط.', 'حدّد كم مرة تستحق (كل أسبوع أو كل أسبوعين أو مرتين في الشهر أو كل شهر أو كل بضعة أشهر) ومتى تنتهي: أبدًا أو في تاريخ أو بعد عدد من الدفعات. وإذا بدأت قبل اليوم فاذكر كم دفعة تمت.', 'عندما تستحق دفعة، اضغط عليها واختر «تم» أو «مدفوع جزئيًا» (مع المبلغ) أو «لم يتم». وللفاتورة التي تُدفع تلقائيًا، حدّدها كمنجزة بعد الموعد فقط.']),
+      FaqBlock('bullets', ['Amounts can stay the same, rise or fall by an amount or a percentage (for example insurance +10% every year), and a plan can end with a different final payment.', 'Installments shows each plan’s paid, unpaid and overdue payments, grouped by provider. One payment that covered several plans can be split by you with Record a combined payment.', 'Freedom timeline shows when each plan ends, how much room it frees every month and the day you are debt-free.', 'A saved payment is never changed. If something was wrong, add a correction; the original stays.', 'Reminders come before the due day (and after it for bills paid automatically). They show the name only, never the amount.'],
+        ['يمكن أن يبقى المبلغ كما هو أو يرتفع أو ينخفض بمبلغ أو بنسبة (مثل تأمين يزيد ١٠٪ كل سنة)، ويمكن أن تنتهي الخطة بدفعة أخيرة مختلفة.', 'يعرض «الأقساط» الدفعات المدفوعة وغير المدفوعة والمتأخرة لكل خطة، مجمّعة حسب الجهة. ويمكنك تقسيم دفعة واحدة غطت عدة خطط عبر «تسجيل دفعة مجمّعة».', 'يعرض «خط الحرية» متى تنتهي كل خطة وكم تُحرر من ميزانيتك كل شهر واليوم الذي تصبح فيه بلا ديون.', 'الدفعة المحفوظة لا تتغير أبدًا. إذا كان هناك خطأ فأضف تصحيحًا ويبقى الأصل كما هو.', 'تصل التذكيرات قبل موعد الاستحقاق (وبعده للفواتير التي تُدفع تلقائيًا)، وتعرض الاسم فقط ولا تعرض المبلغ أبدًا.']),
+      FaqBlock('p', ['Your partner’s view: nothing. Finances is private to you; sharing an item with your partner will come in a later version and will always be your choice. On your own, Finances works exactly the same.'],
+        ['ما يراه شريكك: لا شيء. «المالية» خاصة بك، وستأتي مشاركة عنصر مع شريكك في إصدار لاحق وستبقى دائمًا باختيارك. وعندما تستخدم التطبيق وحدك تعمل «المالية» بالطريقة نفسها.']),
+    ]),
+  FaqEntry('How to use each feature', 'كيف تستخدم كل ميزة',
     'Can I use OneSpace by voice?', 'هل يمكنني استخدام OneSpace بالصوت؟', [
       FaqBlock('p', ['Not yet. Speaking to OneSpace is coming soon, and we will announce it in What’s new when it is ready.'],
         ['ليس بعد. التحدث إلى OneSpace قادم قريبًا، وسنعلن عنه في «ما الجديد» عندما يصبح جاهزًا.']),
@@ -284,6 +293,13 @@ const faqEntries = <FaqEntry>[
     'Can support see the screenshot I attach to a ticket?', 'هل يرى فريق الدعم لقطة الشاشة التي أرفقها بالبلاغ؟', [
       FaqBlock('p', ['Yes, only that screenshot, and only to help with your ticket. Each view is logged. Support never sees your notes, photos or messages.'],
         ['نعم، تلك اللقطة فقط ولمساعدتك في بلاغك فقط، وتُسجَّل كل مشاهدة. لا يرى فريق الدعم ملاحظاتك أو صورك أو رسائلك أبدًا.']),
+    ]),
+  FaqEntry('Privacy and sharing', 'الخصوصية والمشاركة',
+    'Can my partner see my finances?', 'هل يستطيع شريكي رؤية بياناتي المالية؟', [
+      FaqBlock('p', ['No. Every bill, plan and payment in Finances belongs to the person who added it and is kept in their personal space, not in your shared space. Your partner cannot see it. If you separate, you keep your own finance records.'],
+        ['لا. كل فاتورة وخطة ودفعة في «المالية» ملك لمن أضافها وتُحفظ في مساحته الشخصية لا في مساحتكما المشتركة، ولا يستطيع شريكك رؤيتها. وإذا انفصلتما تحتفظ بسجلاتك المالية.']),
+      FaqBlock('p', ['Sharing a single item (for example a bill you split) is planned for a later version. It will be off until you turn it on for that item, and your partner will have to accept before it counts in their plan.'],
+        ['مشاركة عنصر واحد (مثل فاتورة تتقاسمانها) مخطط لها في إصدار لاحق. ستكون متوقفة حتى تفعّلها لذلك العنصر، وسيتعيّن على شريكك قبولها قبل أن تُحتسب في خطته.']),
     ]),
   FaqEntry('Notifications and settings', 'الإشعارات والإعدادات',
     'I am not getting notifications. What should I check?', 'لا تصلني الإشعارات. ماذا أتحقق؟', [
