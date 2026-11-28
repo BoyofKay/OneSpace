@@ -24,7 +24,7 @@ This is the **one** document for the whole OneSpace project: how we work, what e
 
 ### The app's features — each one is separate (27 Nov 2026)
 
-Five tabs. Each feature below is its own screen, its own data and its own FAQ/tutorial entry. **Do not merge features** in documents, FAQs or tutorials.
+Five tabs. Each feature below is its own screen, its own data and its own FAQ/tutorial entry. **Do not merge features** in documents, FAQs or tutorials. **Since 28 Nov 2026 (D110): Finances is the fifth tab and Me opens from the person button in the top bar.**
 
 | Tab | Features |
 |---|---|
@@ -32,7 +32,8 @@ Five tabs. Each feature below is its own screen, its own data and its own FAQ/tu
 | **Remember** | Calendar · To-do & checklists · Reminders · Notes · Counters & timelines · Occasions · **Our places** (map, visited/bucket list) · **Contact cards** |
 | **Coordinate** | Activities (plans and decisions) · Trips |
 | **Connect** | Letters · A little love (gestures) · Daily check-ins (feelings journal) · Shared experiences · Memories (scrapbooks, daily selfies) |
-| **Me** | Profile, Settings (Our relationship, schedules, themes, language & currency, phone calendar, special dates), help, your messages, data & account |
+| **Finances** (28 Nov 2026, D110–D132) | Overview (next 30 days, overdue, Needs you) · Bills · Installments (by provider; paid / unpaid / overdue per payment) · Freedom timeline · quick add · combined payment. Private to its owner (personal storage). Code `lib/features/finances/`, all money maths in `fin_plan.dart` + `fin_money.dart`; database `fin_*` (0325–0327) |
+| **Me** (top bar, person button — no longer a tab, D110) | Profile, Settings (Our relationship, schedules, themes, language & currency, phone calendar, special dates), help, your messages, data & account |
 | Across the app | Share into OneSpace → Items to sort · Create from this · links between items · Voice commands (**hidden, coming soon**) |
 
 **Our places and Contact cards are two different features.** Older documents (A32 `WORLD_CONTACTS_INDEX`, "World People & Contacts", "Remember/World") come from the retired "World" tab, which held trips, people and contacts together; contact cards used to live in the code folder `lib/features/world/` for that historical reason, while places are in `lib/features/places/`. That history is why agents grouped places with contacts. **Fixed 27 Nov 2026:** the `world` folder no longer exists — trips are in `lib/features/trips/`, contact cards in `lib/features/contacts/` (`ContactCardsScreen`, `ContactCardEntry`). Treat them separately.
@@ -166,6 +167,30 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | D107 | 27 Nov 2026 | **Password reset stays as it is (owner):** email link that opens the app, single use, Supabase's expiry setting unchanged; the app's "reset sent" message unchanged. No temporary passwords and no 6-digit codes. Checked 27 Nov on Production: the app's request and link work; a link used once is refused on a second click; a reset sent from the Supabase dashboard opens onespace.live (dashboard uses the Site URL), so test resets from the app. | **Active** |
 | D108 | 27 Nov 2026 | **One shared FAQ (owner):** one source (`content/faq/*.json` in the website repository, EN/AR/ES/FR/DE) builds the website FAQ and generates the app FAQ (`tools/faq/sync_faq.py`; a test keeps them equal). Groups: Getting started, How to use each feature (one question per feature, with steps, the partner's view and how it works on your own, plus a tutorial link), Privacy and sharing, Notifications and settings, Account/data/separation, Signing in and help; Founder Members removed (D109). Answers are paragraphs, numbered steps and bullets. Google/Apple sign-in question removed. Voice: "coming soon" (app only; the website does not mention voice commands). The Command Center opens a ticket without a typed reason and logs "Support ticket: subject"; email search still needs a typed reason. | **Active** |
 | D109 | 27 Nov 2026 | **FAQ review after every release (owner):** new SDLC step (§2, iteration step 8 and go-live step 5). The FAQ is checked against each release and updated before or with the next one. Website FAQ: the shared 55 questions (voice now shown on the website too, as "coming soon") **The Founder Members group (11 questions) was removed from the FAQ at the owner's request**, so the website shows the 54 shared questions (the 55th, "Your messages", is app-only). | **Active** |
+| D110 | 28 Nov 2026 | **Finances is a standalone fifth tab (A1).** Me moves from the tab bar to a person button in the top bar (app-wide); FAQ (tabs answer, new Finances answers) and What's new updated (D108/D109). | **Active** |
+| D111 | 28 Nov 2026 | **Savings is part of Finances (A2)**, not a separate module. | **Active** |
+| D112 | 28 Nov 2026 | **One owner per finance record: its creator (A3).** A split or shared bill keeps that owner; the partner owns their own share and its payment history. | **Active** |
+| D113 | 28 Nov 2026 | **Private by default (A4).** Every item is private (not split, not jointly funded) until its owner shares it; permissions are per item; a partner must accept a payment responsibility before it counts in their plan. Database: `fin_item_permissions` + `fin_answer_permission()` (0325/0327); sharing screens in iteration 3. | **Active** |
+| D114 | 28 Nov 2026 | **Separation (A5):** the creator keeps their records; both forecasts drop the shared shares; each keeps a basic record of their own contributions. Fits ADR-2026-11-20: finance records live in **personal storage** (`private_space_id` = owner), and a partner's access ends automatically when they are no longer the current partner. | **Active** |
+| D115 | 28 Nov 2026 | **No joint savings pot (A6):** each partner logs their own portion toward a goal (iteration 4). | **Active** |
+| D116 | 28 Nov 2026 | **Income (A7):** optional; several sources; weekly, every 2 weeks, twice a month, monthly. One record per expected payment; a confirmed actual amount replaces the expected one for that payment only (iteration 2; the same rule already applies to bills and installments). | **Active** |
+| D117 | 28 Nov 2026 | **Confirmation (A8):** done / not done / partly paid + actual amount; no attachments. Auto-paid bills: a simple done mark after the date. | **Active** |
+| D118 | 28 Nov 2026 | **Confirmed records are immutable (A9).** Rate changes and later setup changes never alter them (each record keeps a snapshot of its due date and expected amount); corrections are new entries (`fin_payment_corrections`). People cannot update or delete payments; an item with confirmed payments can be archived, not deleted. | **Active** |
+| D119 | 28 Nov 2026 | **Budgets (A10):** per category and per item, optional overall budget; alerts at 70, 80, 90, 100% and exceeded; no rollover (iteration 2). | **Active** |
+| D120 | 28 Nov 2026 | **Reserved funds across paychecks (A11):** earmark only, no money moves (iteration 2). | **Active** |
+| D121 | 28 Nov 2026 | **No daily expense log (A12):** budget categories accept a spent total at any time, plus an optional month-end prompt (iteration 2). | **Active** |
+| D122 | 28 Nov 2026 | **Currencies (A13):** several per person and per record; rates from a **free** source refreshed once a day — coverage and licence terms to be verified before choosing (iteration 3). The user's own currency largest, partner's and original smaller. Until then every amount shows in its own currency and totals are kept per currency. | **Active** |
+| D123 | 28 Nov 2026 | **Transfers, two kinds (A14):** (1) moving your own money between your accounts or currencies is not spending — only the fee is; optional bank rate actually used; (2) support to someone else (partner, family) is an outgoing planned like a recurring bill; the receiving partner may log it as income; only the combined couple view counts it once (iteration 3). | **Active** |
+| D124 | 28 Nov 2026 | **No per-currency shortfall warnings (A15).** | **Active** |
+| D125 | 28 Nov 2026 | **Accounts and wallets optional (A16);** for anything that started before today, ask how many payments are already made — an opening position, no invented history (built: `paid_before_count`, shown as "Paid before tracking"). | **Active** |
+| D126 | 28 Nov 2026 | **No provider payment-allocation rules (A17):** the user says how a combined payment is split; the parts must add up exactly (built: `fin_record_combined_payment()`). | **Active** |
+| D127 | 28 Nov 2026 | **Optional payment link per item (A18)**, opened like other links (column `payment_link` exists; screen in iteration 2). | **Active** |
+| D128 | 28 Nov 2026 | **Push / lock screen (A19):** amounts hidden by default, user can switch them on (setting in iteration 3). Iteration 1 reminders carry the item name only, never an amount. | **Active** |
+| D129 | 28 Nov 2026 | **Optional biometric lock for Finances (A20)** (iteration 3). | **Active** |
+| D130 | 28 Nov 2026 | **Later iterations (A21):** Spending Check, saved scenarios, option ranking, minimum cash reserve, combined simulations, debt payoff planner, planning grid. The data structure supports them from the start (one schedule/amount model for every item, categories, providers, per-item permissions, immutable records). | **Active** |
+| D131 | 28 Nov 2026 | **Not now (A22):** export, budget rollover. Later: pricing. Ask the owner after testing: custom installment schedules. | **Active** |
+| D132 | 28 Nov 2026 | **Deliver in iterations (A23)**, one QA APK each — IT1 bills + installments + confirmations + Freedom timeline; IT2 income, paycheck grouping, budgets, reserved funds, category totals, payment links; IT3 conversion, transfers, sharing/splits/separation, lock-screen and biometric settings; IT4 credit cards and savings goals — not Basic/Standard/Advanced levels. | **Active** |
+| D133 | 28 Nov 2026 | **Engineering choices for Finances (28 Nov 2026, assistant):** one table `fin_items` for bills and installment plans (same schedule and amount rules); money is `numeric(15,4)` in the database and an exact whole-number decimal in the app (never `double`), read as text (`amount::text`) and rounded once, half away from zero, to the currency's decimals (0, 2 or 3); a payment reminder is one personal `reminders` row per item (`source_kind = 'finance'`, 0326) kept on the next open payment; the FAQ change was made in the app's copy (`tools/faq/source`) because the website repository could not be attached in this session — the website must receive the same change before it publishes. | **Active** |
 
 ### 4.2 Override index — which decision replaced which
 
@@ -193,9 +218,12 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 
 ---
 
-## 5. Current state and open items (updated 26 Nov 2026)
+## 5. Current state and open items (updated 28 Nov 2026)
 
 ### Open decisions and discussion points (owner to decide later)
+- **Finances — terms and privacy text for financial data** must be written and approved by the owner **before anything of Finances reaches Production** (raised 28 Nov 2026). **Ask the owner.**
+- **Finances — free exchange-rate source (A13, iteration 3):** coverage of every currency and its licence terms to be verified before choosing.
+- **Finances — custom installment schedules (A22):** ask the owner after testing iteration 1.
 - **Removed items: 30-day retention and storage (raised 27 Nov 2026).** Today the FAQ says that where a 30-day period applies, a removed item can be restored for 30 days and is then cleared. Which items have a retention period, how long, and how this relates to storage use and cost must be discussed together with the storage discussion. **Remind the owner.**
 
 ### Databases
@@ -203,6 +231,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 - **QA** (Seoul): has everything up to 0319. 0313–0318 were applied without migration records; 0319 recorded.
 - **Production is level with QA (27 Nov go-live):** `0320`, `0321` and `0324` applied to Production 27 Nov with the owner's go-live approval (recorded as migrations; RLS on the timeline tables; no counters were linked on Production, so nothing moved). `0322`/`0323` were applied earlier (D103, D105). Nothing pending.
 - `0323_qa_support_reply_visible_to_user.sql` (D105) applied to **Production** 26 Nov with the owner's go-ahead (recorded as a migration; 4 tickets untouched; users cannot read the internal note or admin name; signed-in users cannot call the function).
+- **Finances iteration 1 (28 Nov 2026):** `0325_qa_finances_foundation.sql`, `0326_qa_finance_reminders.sql`, `0327_qa_finance_permission_guard_invoker.sql` applied to **QA only** (recorded as migrations; same statements as the committed files, comments left out). **Pending for Production (go-live):** 0325, 0326, 0327 — and the finance terms/privacy text first (open decision above).
 - QA vs Production function check (26 Nov): 16 QA functions differ only by Windows line endings (same logic); the deletion dispatcher differs only by its project URL (intended); `demo_reset` → 0320.
 
 ### Apps
@@ -227,6 +256,7 @@ The Mobile App tab then shows new installs and uninstalls (30 days) and devices 
 4. Repeat with a different key for Production (`SUPPORT_OPS_KEY_PRODUCTION`, project OneSpace Production). Easiest: `select encode(extensions.gen_random_bytes(24), 'hex');` makes a 48-character key. QA key set 26 Nov 2026 and tested by the owner.
 
 ### Open items for the owner
+0. **Website FAQ (Finances, 28 Nov 2026):** the app's FAQ copy (`tools/faq/source/01_start.json` tabs answer, `02_features.json` "How do I use Finances?", `03_privacy.json` "Can my partner see my finances?") is ahead of the website's `content/faq`. Copy those three changes to `BoyofKay/onespace-app` (or let the assistant attach that repository) **when Finances reaches testers**, and add a Finances tutorial; until then the website must not announce Finances.
 1. **GitHub account locked for a billing issue** (confirmed 26 Nov 2026: GitHub's message on the website's jobs is "The job was not started because your account is locked due to a billing issue"). Every GitHub Actions job in all three repositories is blocked, **including the public website** — so making a repository public does not help until the lock is lifted. Owner: GitHub → Settings → Billing and plans (payment method / unpaid invoice). GitHub Pages deploys and Cloudflare builds still work.
 2. Decide the Command Center screenshot keys (above).
 3. Apple Developer account (iOS).
@@ -508,6 +538,16 @@ Every merged pull request in the three repositories, by day, plus QA app release
 - **Support screenshots live (27 Nov):** owner added `PRODUCTION_SUPPORT_STORAGE_READ_KEY` and `QA_SUPPORT_STORAGE_READ_KEY` (Supabase secret keys named `command_center_screenshots`, one per project) in Cloudflare; both tested by the owner. Command Center v1.6.3 trims the key and names the failing step; **v1.6.4 fixes the real bug**: Workers reject `redirect: 'error'`, so the storage request never left (now `manual`, 3xx refused). 251/251 tests.
 - **FAQ iteration (27 Nov; branches `iteration/2026-11-27-faq` in app and website, `iteration/2026-11-27-support-reason-faq` in Command Center):** shared FAQ (D108), rewritten after the owner's line-by-line review (55 questions; every feature answer checked against the code). Fixed with it: changing Our relationship in Settings now goes through `set_how_we_live` like the Today icon, so the partner is notified and Apart is split by time zone (before, Settings saved silently and always stored "apart, different time zones"). Feature map added to §1 (places ≠ contact cards). Local: app flutter test 443/443, analyze clean; website all checks pass; Command Center 251/251. Not merged yet: waiting for the owner's review.
 - **Folder fix (27 Nov, owner go-ahead):** `lib/features/world/` split into `lib/features/trips/` (10 files) and `lib/features/contacts/` (4 files; `WorldContactsScreen` → `ContactCardsScreen`, `WorldContactEntry` → `ContactCardEntry`); 22 files' imports updated; no database or behaviour change. flutter test 443/443, analyze no errors (app and robot tests).
+
+
+### 28 Nov 2026 — Finances iteration 1 (branch `iteration/2026-11-28-finances-foundation`)
+- Owner agreed the Finances decisions A1–A23 (artifact "Agreed after discussion", 28 Nov) → D110–D132; engineering choices D133.
+- **Navigation (D110):** Finances is the fifth tab; Me opens from the person button in the top bar (Today's profile shortcut opens it too); What's new tells people Me has moved.
+- **Database (QA only):** 0325 `fin_providers`, `fin_categories`, `fin_items`, `fin_payments`, `fin_payment_corrections`, `fin_combined_payments`, `fin_item_permissions`; owner-only RLS, partner read only with an accepted permission while still the current partner; payments and corrections insert-only; items with payments cannot be deleted; history in `record_action_history` (`fin_item`, no amounts or titles); account-finalization write fence. 0326 personal reminders may point at a finance item. 0327 fixes a guard found by the QA check (an owner could mark their own grant accepted).
+- **QA database checks (rolled back, no data left):** owner insert ok; owner update/delete of a payment = 0 rows; delete of an item with payments = 0 rows; payment beyond the plan's count and payment in another currency refused; finance reminder accepted; combined payment 150 → 100.25 done + 49.75 partial; wrong sum refused; partner without permission sees 0 items/payments and cannot confirm; grant to a non-partner refused; owner cannot accept for the partner (after 0327); partner sees the item only after accepting and loses it when revoked; stranger sees nothing. Supabase security advisor: no new findings on the finance tables (the two finance RPCs are intended signed-in functions).
+- **App:** `lib/features/finances/` — `fin_money.dart` (exact amounts), `fin_plan.dart` (schedules: once, weekly, every 2 weeks, twice a month, monthly, every N months; end never/by date/by count; amounts fixed, rising/falling by amount or %, balloon; paid / partly paid / not done / overdue / due today / awaiting the done mark; opening position; combined split; Freedom timeline; debt-free total; reminder day), data layer, Overview, Bills, Installments (by provider), Freedom timeline, item screen with confirm and correction sheets, editor, quick add, combined payment. Arabic for every text (`lib/l10n/phrases_ar_finances.dart`).
+- **Tests (local, Flutter 3.50.0):** `flutter analyze` no errors or warnings; `flutter test` 478/478 (new: `finances_plan_test.dart` 33, `finances_arabic_test.dart` 2; `arabic_coverage_test.dart` and `faq_shared_source_test.dart` pass with 57 FAQ questions).
+- **Not verified:** the screens were not run on a phone or emulator (no device here); reminder delivery of a finance reminder was not observed end to end; HawkScan not run (no API key, no running web app). Website FAQ not changed (repository not attachable in this session). No QA APK built yet.
 
 ---
 
