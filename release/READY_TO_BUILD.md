@@ -1,3 +1,26 @@
+# OneSpace QA — Finances iteration 1 (28 Nov 2026, one APK)
+Require-Firebase-Config: true
+
+Source: main (iteration/2026-11-28-finances-foundation). QA database has 0325–0327.
+Production untouched (0325–0327 pending for go-live).
+
+What to test on two phones (both accounts):
+- Tabs: Today, Remember, Coordinate, Connect, Finances. Me opens from the person
+  button in the top bar (and from Today's profile shortcut); back returns.
+- Finances → Add a bill: fixed / estimate / budget; every month, every 2 or 3 months,
+  twice a month, weekly; ends never / on a date / after N payments; paid automatically.
+- Add an installment plan that started before today: payments already made show as
+  "Paid before tracking"; rising 10% every 12 months; a balloon final payment.
+- Quick add installments; Record a combined payment (parts must add up to the total).
+- Tap a payment: Done / Partly paid / Not done; then Correct it (the original stays).
+- Installments view (paid / unpaid / overdue, by provider) and Freedom timeline.
+- Reminders: before the due day; the day after for auto-paid bills; name only, no amount.
+- Your partner sees none of your finance items.
+- Arabic: every Finances screen; the FAQ "How do I use Finances?".
+- Retest A7 (Activity priority words, carried from 27 Nov).
+
+---
+
 # OneSpace QA — UAT fixes for qa-0.1.482 (26 Nov 2026, one APK)
 Require-Firebase-Config: true
 
