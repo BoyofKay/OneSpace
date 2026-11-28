@@ -258,7 +258,7 @@ create policy fin_combined_owner_read on public.fin_combined_payments for select
   using (private_space_id = (select auth.uid()) and created_by = (select auth.uid()));
 
 -- Permissions: the owner grants and revokes for their current partner; the
--- grantee sees their own rows and accepts through fin_accept_permission().
+-- grantee sees their own rows and accepts through fin_answer_permission().
 drop policy if exists fin_permissions_owner on public.fin_item_permissions;
 create policy fin_permissions_owner on public.fin_item_permissions for select to authenticated
   using (owner_id = (select auth.uid()) or grantee_id = (select auth.uid()));
