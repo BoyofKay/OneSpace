@@ -191,6 +191,7 @@ The original decision log (**D1–D80**, 15–17 Nov 2026), the 20 Nov ownership
 | D131 | 28 Nov 2026 | **Not now (A22):** export, budget rollover. Later: pricing. Ask the owner after testing: custom installment schedules. | **Active** |
 | D132 | 28 Nov 2026 | **Deliver in iterations (A23)**, one QA APK each — IT1 bills + installments + confirmations + Freedom timeline; IT2 income, paycheck grouping, budgets, reserved funds, category totals, payment links; IT3 conversion, transfers, sharing/splits/separation, lock-screen and biometric settings; IT4 credit cards and savings goals — not Basic/Standard/Advanced levels. | **Active** |
 | D133 | 28 Nov 2026 | **Engineering choices for Finances (28 Nov 2026, assistant):** one table `fin_items` for bills and installment plans (same schedule and amount rules); money is `numeric(15,4)` in the database and an exact whole-number decimal in the app (never `double`), read as text (`amount::text`) and rounded once, half away from zero, to the currency's decimals (0, 2 or 3); a payment reminder is one personal `reminders` row per item (`source_kind = 'finance'`, 0326) kept on the next open payment; the FAQ change was made in the app's copy (`tools/faq/source`) because the website repository could not be attached in this session — the website must receive the same change before it publishes. | **Active** |
+| D134 | 28 Nov 2026 | **Website FAQ for Finances waits for Production (owner):** the three FAQ changes stay logged (§5) and are copied to the website repository only when Finances goes to Production. The app's FAQ copy already carries them for QA. | **Active** |
 
 ### 4.2 Override index — which decision replaced which
 
@@ -256,7 +257,11 @@ The Mobile App tab then shows new installs and uninstalls (30 days) and devices 
 4. Repeat with a different key for Production (`SUPPORT_OPS_KEY_PRODUCTION`, project OneSpace Production). Easiest: `select encode(extensions.gen_random_bytes(24), 'hex');` makes a 48-character key. QA key set 26 Nov 2026 and tested by the owner.
 
 ### Open items for the owner
-0. **Website FAQ (Finances, 28 Nov 2026):** the app's FAQ copy (`tools/faq/source/01_start.json` tabs answer, `02_features.json` "How do I use Finances?", `03_privacy.json` "Can my partner see my finances?") is ahead of the website's `content/faq`. Copy those three changes to `BoyofKay/onespace-app` (or let the assistant attach that repository) **when Finances reaches testers**, and add a Finances tutorial; until then the website must not announce Finances.
+0. **Website FAQ (Finances, 28 Nov 2026) — logged, not implemented (owner, D134):** the app's FAQ copy is ahead of the website's `content/faq` by three changes, to be copied to `BoyofKay/onespace-app` **only when Finances goes to Production** (with a Finances tutorial):
+   - `01_start.json` → `tabs`: the "Me: …" bullet replaced by "Finances: your bills, installment plans and when each plan ends (Freedom timeline). Private to you." plus a new bullet "Me (the person button at the top of the screen): profile, settings, help and your data." (EN/AR/ES/FR/DE in `tools/faq/source/01_start.json`).
+   - `02_features.json` → new item `finances` "How do I use Finances?" (before `voice`).
+   - `03_privacy.json` → new item `finances-private` "Can my partner see my finances?" (last).
+   Until then the website does not mention Finances.
 1. **GitHub account locked for a billing issue** (confirmed 26 Nov 2026: GitHub's message on the website's jobs is "The job was not started because your account is locked due to a billing issue"). Every GitHub Actions job in all three repositories is blocked, **including the public website** — so making a repository public does not help until the lock is lifted. Owner: GitHub → Settings → Billing and plans (payment method / unpaid invoice). GitHub Pages deploys and Cloudflare builds still work.
 2. Decide the Command Center screenshot keys (above).
 3. Apple Developer account (iOS).
