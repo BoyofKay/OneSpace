@@ -40,6 +40,9 @@ jobs:
           json=$(python3 -c "import json,os;print(json.dumps([s.strip() for s in os.environ['SHAPES'].split(',') if s.strip()]))")
           echo "shapes=$json" >> "$GITHUB_OUTPUT"
       - name: Reset the demo space once
+        # Best effort: if the demo seed itself is broken, photograph the demo
+        # couple's existing content instead of stopping the whole audit.
+        continue-on-error: true
         env:
           DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
         run: |

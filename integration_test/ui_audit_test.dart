@@ -27,6 +27,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:onespace/main.dart' as app;
+import 'package:onespace/features/auth/terms.dart' show termsVersion;
 import 'package:onespace/l10n/onespace_locale_controller.dart';
 import 'package:onespace/theme/onespace_appearance.dart';
 import 'package:onespace/features/counters/counters_screen.dart';
@@ -206,7 +207,20 @@ void main() {
       if (password.isEmpty) {
         note('SKIPPED signed-in screens: DEMO_PASSWORD not set');
       } else {
+        // The demo accounts must have accepted the current Terms, otherwise the
+      // app (correctly) stops at the Terms screen. Photograph it once first.
+      await db.auth.signInWithPassword(email: _email, password: password);
+      await wait(4);
+      if (find.byType(NavigationBar).evaluate().isEmpty && find.byType(NavigationRail).evaluate().isEmpty) {
+        resize(shapes.first);
+        prefix = '${shapes.first.name}__en__';
+        await shot('00_after_sign_in');
+        await db.rpc('accept_terms', params: {'p_version': termsVersion});
+        // Sign in again so the gate re-checks with the accepted Terms.
+        await db.auth.signOut();
+        await wait(2);
         await db.auth.signInWithPassword(email: _email, password: password);
+      }
         for (var i = 0; i < 60 && find.byType(NavigationBar).evaluate().isEmpty
             && find.byType(NavigationRail).evaluate().isEmpty; i++) { await wait(1); }
         await wait(5);
